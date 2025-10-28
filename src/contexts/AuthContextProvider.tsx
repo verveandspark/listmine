@@ -50,7 +50,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.log("[Auth] Session:", session);
 
         if (session?.user) {
-          await loadUserProfile(session.user);
+          setUserFromAuth(session.user);
         } else {
           console.log("[Auth] No session found");
           setLoading(false);
@@ -70,11 +70,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("[Auth] State change:", event, session?.user?.id);
       if (event === "SIGNED_IN" && session?.user) {
-        await loadUserProfile(session.user);
+        setUserFromAuth(session.user);
       } else if (event === "SIGNED_OUT") {
         setUser(null);
       } else if (event === "TOKEN_REFRESHED" && session?.user) {
-        await loadUserProfile(session.user);
+        setUserFromAuth(session.user);
       }
     });
 
@@ -83,46 +83,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  const loadUserProfile = async (supabaseUser: SupabaseUser) => {
-    try {
-      console.log("[Profile] Loading profile for:", supabaseUser.id);
+  const setUserFromAuth = (supabaseUser: SupabaseUser) => {
+    console.log("[Auth] Setting user from auth:", supabaseUser.id);
 
-      const { data, error } = await supabase
-        .from("users")
-        .select("id, email, name, tier, created_at")
-        .eq("id", supabaseUser.id)
-        .single();
+    const tierLimits = getTierLimits("free");
 
-      console.log("[Profile] Query completed!");
-      console.log("[Profile] Data:", data);
-      console.log("[Profile] Error:", error);
+    setUser({
+      id: supabaseUser.id,
+      email: supabaseUser.email || "",
+      name: supabaseUser.user_metadata?.name || "User",
+      createdAt: new Date(supabaseUser.created_at || new Date()),
+      tier: "free",
+      listLimit: tierLimits.listLimit,
+      itemsPerListLimit: tierLimits.itemsPerListLimit,
+    });
 
-      if (error) {
-        console.error("[Profile] Query error:", error);
-        logError("loadUserProfile", error, supabaseUser.id);
-        setLoading(false);
-        return;
-      }
-
-      if (data) {
-        const tierLimits = getTierLimits(data.tier);
-        setUser({
-          id: data.id,
-          email: data.email,
-          name: data.name,
-          createdAt: new Date(data.created_at),
-          tier: data.tier as "free" | "good" | "even-better" | "lots-more",
-          listLimit: tierLimits.listLimit,
-          itemsPerListLimit: tierLimits.itemsPerListLimit,
-        });
-        console.log("[Profile] User set successfully");
-      }
-    } catch (error: any) {
-      console.error("[Profile] Error:", error);
-      logError("loadUserProfile", error, supabaseUser.id);
-    } finally {
-      setLoading(false);
-    }
+    setLoading(false);
+    console.log("[Auth] User set successfully");
   };
 
   const login = async (email: string, password: string) => {
@@ -143,7 +120,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (data.user) {
-        await loadUserProfile(data.user);
+        setUserFromAuth(data.user);
       }
     } catch (error: any) {
       logError("login", error);
@@ -193,7 +170,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw profileError;
       }
 
-      await loadUserProfile(data.user);
+      setUserFromAuth(data.user);
     } catch (error: any) {
       logError("register", error);
       throw error;
