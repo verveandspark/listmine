@@ -87,66 +87,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       console.log("[Profile] Loading profile for:", supabaseUser.id);
 
-      // Get the session to get the access token
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const token = session?.access_token;
+      const { data, error } = await supabase
+        .from("users")
+        .select("id, email, name, tier, created_at")
+        .eq("id", supabaseUser.id)
+        .single();
 
-      if (!token) {
-        console.error("[Profile] No access token");
+      console.log("[Profile] Query completed!");
+      console.log("[Profile] Data:", data);
+      console.log("[Profile] Error:", error);
+
+      if (error) {
+        console.error("[Profile] Query error:", error);
+        logError("loadUserProfile", error, supabaseUser.id);
         setLoading(false);
         return;
       }
 
-      console.log("[Profile] Using REST API with token");
-
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const response = await fetch(
-        `${supabaseUrl}/rest/v1/users?id=eq.${supabaseUser.id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        },
-      );
-
-      console.log("[Profile] REST API response status:", response.status);
-
-      if (!response.ok) {
-        console.error(
-          "[Profile] REST API error:",
-          response.status,
-          response.statusText,
-        );
-        setLoading(false);
-        return;
-      }
-
-      const data = await response.json();
-      console.log("[Profile] REST API data:", data);
-
-      if (data && data.length > 0) {
-        const userData = data[0];
-        const tierLimits = getTierLimits(userData.tier);
-
+      if (data) {
+        const tierLimits = getTierLimits(data.tier);
         setUser({
-          id: userData.id,
-          email: userData.email,
-          name: userData.name,
-          createdAt: new Date(userData.created_at),
-          tier: userData.tier as "free" | "good" | "even-better" | "lots-more",
+          id: data.id,
+          email: data.email,
+          name: data.name,
+          createdAt: new Date(data.created_at),
+          tier: data.tier as "free" | "good" | "even-better" | "lots-more",
           listLimit: tierLimits.listLimit,
           itemsPerListLimit: tierLimits.itemsPerListLimit,
         });
-
         console.log("[Profile] User set successfully");
-      } else {
-        console.log("[Profile] No user data found");
       }
     } catch (error: any) {
-      console.error("[Profile] Error:", error.message);
+      console.error("[Profile] Error:", error);
       logError("loadUserProfile", error, supabaseUser.id);
     } finally {
       setLoading(false);
