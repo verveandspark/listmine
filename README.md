@@ -1,30 +1,108 @@
-# React + TypeScript + Vite
+# ListFlow - List Management Application
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A clean, intuitive dashboard that allows users to create, organize and manage multiple types of lists in one place with easy categorization and quick-access features.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### ✅ Core Functionality
+- **User Authentication**: Register and login with email/password
+- **Central Dashboard**: View all lists organized by categories (Tasks, Groceries, Ideas, Shopping, Travel, Other)
+- **List Management**: Create, edit, and delete lists with full CRUD operations
+- **Item Management**: Add, edit, reorder, and delete items within lists
+- **Rich Item Attributes**: 
+  - Priority levels (Low, Medium, High)
+  - Due dates with calendar picker
+  - Notes for additional context
+  - Completion status tracking
 
-## Expanding the ESLint configuration
+### 🎯 Advanced Features
+- **Drag & Drop Reordering**: Easily reorder items within lists
+- **Pin Lists**: Pin important lists for quick access
+- **Category Filtering**: Filter lists by category
+- **Progress Tracking**: Visual progress bars showing completion rates
+- **Import/Export**: 
+  - Import lists from CSV or TXT files
+  - Export lists to CSV or TXT formats
+- **User Profile**: View account details and usage statistics
+- **Responsive Design**: Works seamlessly on desktop and mobile devices
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+### 📊 Statistics
+- Total lists count
+- Total items count
+- Completed items tracking
+- Pinned lists count
+- Completion rate percentage
 
-- Configure the top-level `parserOptions` property like this:
+## Tech Stack
 
-```js
-export default {
-  // other rules...
-  parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json'],
-    tsconfigRootDir: __dirname,
-  },
-}
+- **Framework**: React 18 + TypeScript
+- **Build Tool**: Vite
+- **Routing**: React Router v6
+- **UI Components**: shadcn/ui (Radix UI primitives)
+- **Styling**: Tailwind CSS
+- **Icons**: Lucide React
+- **Date Handling**: date-fns
+- **State Management**: React Context API
+- **Storage**: LocalStorage for data persistence
+
+## Getting Started
+
+1. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+
+2. **Run development server**:
+   ```bash
+   npm run dev
+   ```
+
+3. **Build for production**:
+   ```bash
+   npm run build
+   ```
+
+## Usage
+
+1. **Register/Login**: Create an account or login with existing credentials
+2. **Create Lists**: Click "New List" to create a list in any category
+3. **Add Items**: Add items to your lists with optional priority, due dates, and notes
+4. **Organize**: Drag and drop to reorder items, pin important lists
+5. **Track Progress**: View completion rates and statistics
+6. **Import/Export**: Backup or share your lists using CSV or TXT formats
+
+## Project Structure
+
+```
+src/
+├── components/
+│   ├── auth/           # Authentication components
+│   ├── dashboard/      # Main dashboard view
+│   ├── list/           # List detail and management
+│   ├── import-export/  # Import/Export functionality
+│   ├── profile/        # User profile and statistics
+│   └── ui/             # Reusable UI components (shadcn)
+├── contexts/
+│   ├── AuthContext.tsx # Authentication state management
+│   └── ListContext.tsx # List data management
+├── types/
+│   └── index.ts        # TypeScript type definitions
+└── App.tsx             # Main app component with routing
 ```
 
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+## Data Persistence
+
+All data is stored in the browser's LocalStorage, including:
+- User authentication state
+- All lists and their items
+- User preferences (pinned lists, etc.)
+
+## Future Enhancements
+
+- Backend integration with Supabase or similar
+- Real-time collaboration
+- List sharing with other users
+- Tags and advanced filtering
+- Search functionality
+- Dark mode support
+- Mobile app version
