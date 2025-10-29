@@ -19,9 +19,8 @@ import {
   sanitizeInput,
 } from "@/lib/validation";
 
-const OPERATION_TIMEOUT = 15000; // 15 seconds
+const OPERATION_TIMEOUT = 15000;
 
-// Helper function to add timeout to promises
 const withTimeout = <T,>(
   promise: Promise<T>,
   timeoutMs: number = OPERATION_TIMEOUT,
@@ -34,7 +33,6 @@ const withTimeout = <T,>(
   ]);
 };
 
-// Helper function to log errors
 const logError = (operation: string, error: any, userId?: string) => {
   console.error("[ListMine Error]", {
     operation,
@@ -107,7 +105,6 @@ export function ListProvider({ children }: { children: ReactNode }) {
     if (user) {
       loadLists();
 
-      // Subscribe to changes with proper cleanup
       const listsChannel = supabase
         .channel("lists-changes")
         .on(
@@ -116,7 +113,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
             event: "*",
             schema: "public",
             table: "lists",
-            filter: `user_id=eq.${user.id}`,
+            filter: `user_id=eq.\${user.id}`,
           },
           () => {
             loadLists();
@@ -135,7 +132,6 @@ export function ListProvider({ children }: { children: ReactNode }) {
         )
         .subscribe();
 
-      // Cleanup function
       return () => {
         supabase.removeChannel(listsChannel);
       };
@@ -222,7 +218,6 @@ export function ListProvider({ children }: { children: ReactNode }) {
         error.message.includes("token")
       ) {
         setError("Your session has expired. Please log in again.");
-        // Optionally trigger logout
       } else {
         setError(
           "Couldn't load your lists. Check your connection and try again.",
@@ -240,29 +235,25 @@ export function ListProvider({ children }: { children: ReactNode }) {
   ) => {
     if (!user) return;
 
-    // Validate and sanitize list name
     const nameValidation = validateListName(title);
     if (!nameValidation.valid) {
       throw new Error(nameValidation.error);
     }
 
-    // Validate category
     const categoryValidation = validateCategory(category);
     if (!categoryValidation.valid) {
       throw new Error(categoryValidation.error);
     }
 
-    // Check for duplicate list name
     const existingList = lists.find(
       (l) => l.title.toLowerCase() === nameValidation.value!.toLowerCase(),
     );
     if (existingList) {
       throw new Error(
-        `This list name already exists. Try another name like "${nameValidation.value} 2" or "${nameValidation.value} - New".`,
+        `This list name already exists. Try another name like "\${nameValidation.value} 2" or "\${nameValidation.value} - New".`,
       );
     }
 
-    // Check list limit on client side
     if (user.listLimit !== -1 && lists.length >= user.listLimit) {
       const tierName =
         user.tier === "free"
@@ -273,7 +264,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
               ? "Even Better"
               : "Lots More";
       throw new Error(
-        `You've reached your limit of ${user.listLimit} lists on the ${tierName} tier. Upgrade to create more lists.`,
+        `You've reached your limit of \${user.listLimit} lists on the \${tierName} tier. Upgrade to create more lists.`,
       );
     }
 
@@ -293,6 +284,8 @@ export function ListProvider({ children }: { children: ReactNode }) {
         }
         throw error;
       }
+
+      await loadLists();
     } catch (error: any) {
       logError("addList", error, user?.id);
 
@@ -391,13 +384,11 @@ export function ListProvider({ children }: { children: ReactNode }) {
     const list = lists.find((l) => l.id === listId);
     if (!list) return;
 
-    // Validate and sanitize item name
     const nameValidation = validateItemName(item.text);
     if (!nameValidation.valid) {
       throw new Error(nameValidation.error);
     }
 
-    // Validate quantity
     if (item.quantity !== undefined) {
       const quantityValidation = validateQuantity(item.quantity);
       if (!quantityValidation.valid) {
@@ -405,7 +396,6 @@ export function ListProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // Validate notes
     if (item.notes) {
       const notesValidation = validateNotes(item.notes);
       if (!notesValidation.valid) {
@@ -413,7 +403,6 @@ export function ListProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // Check for duplicate item
     const existingItem = list.items.find(
       (i) => i.text.toLowerCase() === nameValidation.value!.toLowerCase(),
     );
@@ -423,7 +412,6 @@ export function ListProvider({ children }: { children: ReactNode }) {
       );
     }
 
-    // Check item limit on client side
     if (
       user &&
       user.itemsPerListLimit !== -1 &&
@@ -438,7 +426,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
               ? "Even Better"
               : "Lots More";
       throw new Error(
-        `This list has reached the ${user.itemsPerListLimit} item limit for your ${tierName} tier. Upgrade to add more items.`,
+        `This list has reached the \${user.itemsPerListLimit} item limit for your \${tierName} tier. Upgrade to add more items.`,
       );
     }
 
@@ -458,6 +446,8 @@ export function ListProvider({ children }: { children: ReactNode }) {
       );
 
       if (error) throw error;
+
+      await loadLists();
     } catch (error: any) {
       logError("addItemToList", error, user?.id);
 
@@ -490,36 +480,51 @@ export function ListProvider({ children }: { children: ReactNode }) {
     itemId: string,
     updates: Partial<ListItem>,
   ) => {
-    const { error } = await supabase
-      .from("items")
-      .update({
-        text: updates.text,
-        quantity: updates.quantity,
-        priority: updates.priority,
-        due_date: updates.dueDate?.toISOString(),
-        notes: updates.notes,
-        assigned_to: updates.assignedTo,
-        is_completed: updates.completed,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", itemId);
+    try {
+      const { error } = await supabase
+        .from("items")
+        .update({
+          text: updates.text,
+          quantity: updates.quantity,
+          priority: updates.priority,
+          due_date: updates.dueDate?.toISOString(),
+          notes: updates.notes,
+          assigned_to: updates.assignedTo,
+          is_completed: updates.completed,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", itemId);
 
-    if (error) throw error;
-    // Don't call loadLists() - realtime will handle it
+      if (error) throw error;
+      await loadLists();
+    } catch (error: any) {
+      logError("updateListItem", error, user?.id);
+      throw error;
+    }
   };
 
   const deleteListItem = async (listId: string, itemId: string) => {
-    const { error } = await supabase.from("items").delete().eq("id", itemId);
+    try {
+      const { error } = await supabase.from("items").delete().eq("id", itemId);
 
-    if (error) throw error;
-    // Don't call loadLists() - realtime will handle it
+      if (error) throw error;
+      await loadLists();
+    } catch (error: any) {
+      logError("deleteListItem", error, user?.id);
+      throw error;
+    }
   };
 
   const bulkDeleteItems = async (listId: string, itemIds: string[]) => {
-    const { error } = await supabase.from("items").delete().in("id", itemIds);
+    try {
+      const { error } = await supabase.from("items").delete().in("id", itemIds);
 
-    if (error) throw error;
-    // Don't call loadLists() - realtime will handle it
+      if (error) throw error;
+      await loadLists();
+    } catch (error: any) {
+      logError("bulkDeleteItems", error, user?.id);
+      throw error;
+    }
   };
 
   const bulkUpdateItems = async (
@@ -527,32 +532,38 @@ export function ListProvider({ children }: { children: ReactNode }) {
     itemIds: string[],
     updates: Partial<ListItem>,
   ) => {
-    const { error } = await supabase
-      .from("items")
-      .update({
-        is_completed: updates.completed,
-        priority: updates.priority,
-        updated_at: new Date().toISOString(),
-      })
-      .in("id", itemIds);
+    try {
+      const { error } = await supabase
+        .from("items")
+        .update({
+          is_completed: updates.completed,
+          priority: updates.priority,
+          updated_at: new Date().toISOString(),
+        })
+        .in("id", itemIds);
 
-    if (error) throw error;
-    // Don't call loadLists() - realtime will handle it
+      if (error) throw error;
+      await loadLists();
+    } catch (error: any) {
+      logError("bulkUpdateItems", error, user?.id);
+      throw error;
+    }
   };
 
   const reorderListItems = async (listId: string, items: ListItem[]) => {
-    const updates = items.map((item, index) => ({
-      id: item.id,
-      position: index,
-    }));
-
-    for (const update of updates) {
-      await supabase
-        .from("items")
-        .update({ position: update.position })
-        .eq("id", update.id);
+    try {
+      for (const item of items) {
+        const index = items.indexOf(item);
+        await supabase
+          .from("items")
+          .update({ position: index })
+          .eq("id", item.id);
+      }
+      await loadLists();
+    } catch (error: any) {
+      logError("reorderListItems", error, user?.id);
+      throw error;
     }
-    // Don't call loadLists() - realtime will handle it
   };
 
   const togglePin = async (listId: string) => {
@@ -568,6 +579,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
       );
 
       if (error) throw error;
+      await loadLists();
     } catch (error: any) {
       logError("togglePin", error, user?.id);
       throw new Error("Couldn't update pin status. Try again.");
@@ -582,7 +594,6 @@ export function ListProvider({ children }: { children: ReactNode }) {
   ) => {
     if (!user) return;
 
-    // Validate import data
     if (!data.trim()) {
       throw new Error(
         "This file appears to be empty. Add some items and try again.",
@@ -646,13 +657,12 @@ export function ListProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // Create list
       const { data: newList, error: listError } = await withTimeout(
         supabase
           .from("lists")
           .insert({
             user_id: user.id,
-            title: `Imported ${category} List`,
+            title: `Imported \${category} List`,
             category,
             list_type: listType,
           })
@@ -662,7 +672,6 @@ export function ListProvider({ children }: { children: ReactNode }) {
 
       if (listError) throw listError;
 
-      // Add items
       const itemsToInsert = items.map((item, index) => ({
         list_id: newList.id,
         text: item.text,
@@ -676,6 +685,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
       );
 
       if (itemsError) throw itemsError;
+      await loadLists();
     } catch (error: any) {
       logError("importList", error, user?.id);
 
@@ -714,15 +724,15 @@ export function ListProvider({ children }: { children: ReactNode }) {
         content += list.items
           .map(
             (item) =>
-              `"${item.text}","${item.quantity || ""}","${item.priority || ""}","${item.dueDate?.toISOString() || ""}","${item.notes || ""}","${item.assignedTo || ""}","${item.links?.join(";") || ""}","${item.completed}"`,
+              `"\${item.text}","\${item.quantity || ""}","\${item.priority || ""}","\${item.dueDate?.toISOString() || ""}","\${item.notes || ""}","\${item.assignedTo || ""}","\${item.links?.join(";") || ""}","\${item.completed}"`,
           )
           .join("\n");
       } else if (format === "txt") {
         content = list.items
           .map((item) => {
             let line = item.text;
-            if (item.quantity) line = `${item.quantity}x ${line}`;
-            if (item.assignedTo) line += ` (${item.assignedTo})`;
+            if (item.quantity) line = `\${item.quantity}x \${line}`;
+            if (item.assignedTo) line += ` (\${item.assignedTo})`;
             return line;
           })
           .join("\n");
@@ -773,6 +783,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
       );
 
       if (error) throw error;
+      await loadLists();
       return shareLink;
     } catch (error: any) {
       logError("generateShareLink", error, user?.id);
@@ -798,7 +809,6 @@ export function ListProvider({ children }: { children: ReactNode }) {
     const list = lists.find((l) => l.id === listId);
     if (!list) return;
 
-    // Validate email
     const emailValidation = validateEmail(email);
     if (!emailValidation.valid) {
       throw new Error(emailValidation.error);
@@ -806,7 +816,6 @@ export function ListProvider({ children }: { children: ReactNode }) {
 
     const collaborators = list.collaborators || [];
 
-    // Check if already a collaborator
     if (collaborators.includes(emailValidation.value!)) {
       throw new Error("This person is already a collaborator on this list.");
     }
@@ -830,6 +839,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
         }
         throw error;
       }
+      await loadLists();
     } catch (error: any) {
       logError("addCollaborator", error, user?.id);
 
@@ -866,6 +876,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
         list.tags?.some((tag) => tag.toLowerCase().includes(lowerQuery)),
     );
   };
+
   const filterLists = (filters: {
     category?: ListCategory;
     type?: ListType;
@@ -886,7 +897,6 @@ export function ListProvider({ children }: { children: ReactNode }) {
     const list = lists.find((l) => l.id === listId);
     if (!list) return;
 
-    // Validate tag
     const tagValidation = validateTag(tag);
     if (!tagValidation.valid) {
       throw new Error(tagValidation.error);
@@ -894,7 +904,6 @@ export function ListProvider({ children }: { children: ReactNode }) {
 
     const tags = list.tags || [];
 
-    // Check if tag already exists
     if (tags.includes(tagValidation.value!)) {
       throw new Error("This tag already exists on this list.");
     }
@@ -908,6 +917,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
       );
 
       if (error) throw error;
+      await loadLists();
     } catch (error: any) {
       logError("addTagToList", error, user?.id);
 
@@ -931,12 +941,18 @@ export function ListProvider({ children }: { children: ReactNode }) {
     const list = lists.find((l) => l.id === listId);
     if (!list) return;
 
-    const { error } = await supabase
-      .from("lists")
-      .update({ tags: (list.tags || []).filter((t) => t !== tag) })
-      .eq("id", listId);
+    try {
+      const { error } = await supabase
+        .from("lists")
+        .update({ tags: (list.tags || []).filter((t) => t !== tag) })
+        .eq("id", listId);
 
-    if (error) throw error;
+      if (error) throw error;
+      await loadLists();
+    } catch (error: any) {
+      logError("removeTagFromList", error, user?.id);
+      throw error;
+    }
   };
 
   return (
@@ -969,4 +985,12 @@ export function ListProvider({ children }: { children: ReactNode }) {
       {children}
     </ListContext.Provider>
   );
+}
+
+export function useList() {
+  const context = useContext(ListContext);
+  if (context === undefined) {
+    throw new Error("useList must be used within a ListProvider");
+  }
+  return context;
 }
