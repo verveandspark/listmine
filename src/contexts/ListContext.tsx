@@ -334,6 +334,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
       );
 
       if (error) throw error;
+      await loadLists();
     } catch (error: any) {
       logError("updateList", error, user?.id);
 
@@ -359,6 +360,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
       );
 
       if (error) throw error;
+      await loadLists();
     } catch (error: any) {
       logError("deleteList", error, user?.id);
 
