@@ -154,9 +154,10 @@ export function ListProvider({ children }: { children: ReactNode }) {
           .from("lists")
           .select("*")
           .eq("user_id", user.id)
-          .order("created_at", { ascending: false }),
+          .order("created_at", { ascending: false })
+          .then(r => r)
       );
-      const { data: listsData, error: listsError } = listsResult as any;
+      const { data: listsData, error: listsError } = listsResult;
 
       if (listsError) throw listsError;
 
@@ -165,9 +166,10 @@ export function ListProvider({ children }: { children: ReactNode }) {
           .from("items")
           .select("*")
           .in("list_id", listsData?.map((l: any) => l.id) || [])
-          .order("position", { ascending: true }),
+          .order("position", { ascending: true })
+          .then(r => r)
       );
-      const { data: itemsData, error: itemsError } = itemsResult as any;
+      const { data: itemsData, error: itemsError } = itemsResult;
 
       if (itemsError) throw itemsError;
 
@@ -277,9 +279,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
           title: nameValidation.value,
           category: categoryValidation.value,
           list_type: listType,
-        }),
+        }).then(r => r)
       );
-      const { error } = result as any;
+      const { error } = result;
 
       if (error) {
         if (error.message.includes("unique")) {
@@ -333,9 +335,10 @@ export function ListProvider({ children }: { children: ReactNode }) {
             tags: updates.tags,
             updated_at: new Date().toISOString(),
           })
-          .eq("id", listId),
+          .eq("id", listId)
+          .then(r => r)
       );
-      const { error } = result as any;
+      const { error } = result;
 
       if (error) throw error;
       await loadLists();
@@ -360,9 +363,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
   const deleteList = async (listId: string) => {
     try {
       const result = await withTimeout(
-        supabase.from("lists").delete().eq("id", listId),
+        supabase.from("lists").delete().eq("id", listId).then(r => r)
       );
-      const { error } = result as any;
+      const { error } = result;
 
       if (error) throw error;
       await loadLists();
@@ -451,9 +454,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
           position: list.items.length,
           links: item.links,
           attributes: item.attributes,
-        }),
+        }).then(r => r)
       );
-      const { error } = result as any;
+      const { error } = result;
 
       if (error) throw error;
 
@@ -505,8 +508,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
           attributes: updates.attributes,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", itemId);
-      const { error } = result as any;
+        .eq("id", itemId)
+        .then(r => r);
+      const { error } = result;
 
       if (error) throw error;
       await loadLists();
@@ -518,8 +522,8 @@ export function ListProvider({ children }: { children: ReactNode }) {
 
   const deleteListItem = async (listId: string, itemId: string) => {
     try {
-      const result = await supabase.from("items").delete().eq("id", itemId);
-      const { error } = result as any;
+      const result = await supabase.from("items").delete().eq("id", itemId).then(r => r);
+      const { error } = result;
 
       if (error) throw error;
       await loadLists();
@@ -531,8 +535,8 @@ export function ListProvider({ children }: { children: ReactNode }) {
 
   const bulkDeleteItems = async (listId: string, itemIds: string[]) => {
     try {
-      const result = await supabase.from("items").delete().in("id", itemIds);
-      const { error } = result as any;
+      const result = await supabase.from("items").delete().in("id", itemIds).then(r => r);
+      const { error } = result;
 
       if (error) throw error;
       await loadLists();
@@ -555,8 +559,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
           priority: updates.priority,
           updated_at: new Date().toISOString(),
         })
-        .in("id", itemIds);
-      const { error } = result as any;
+        .in("id", itemIds)
+        .then(r => r);
+      const { error } = result;
 
       if (error) throw error;
       await loadLists();
@@ -573,8 +578,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
         const result = await supabase
           .from("items")
           .update({ position: index })
-          .eq("id", item.id);
-        const { error } = result as any;
+          .eq("id", item.id)
+          .then(r => r);
+        const { error } = result;
         if (error) throw error;
       }
       await loadLists();
@@ -593,9 +599,10 @@ export function ListProvider({ children }: { children: ReactNode }) {
         supabase
           .from("lists")
           .update({ is_pinned: !list.isPinned })
-          .eq("id", listId),
+          .eq("id", listId)
+          .then(r => r)
       );
-      const { error } = result as any;
+      const { error } = result;
 
       if (error) throw error;
       await loadLists();
@@ -681,14 +688,15 @@ export function ListProvider({ children }: { children: ReactNode }) {
           .from("lists")
           .insert({
             user_id: user.id,
-            title: `Imported \${category} List`,
+            title: `Imported ${category} List`,
             category,
             list_type: listType,
           })
           .select()
-          .single(),
+          .single()
+          .then(r => r)
       );
-      const { data: newList, error: listError } = result as any;
+      const { data: newList, error: listError } = result;
 
       if (listError) throw listError;
 
@@ -701,9 +709,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
       }));
 
       const itemsResult = await withTimeout(
-        supabase.from("items").insert(itemsToInsert),
+        supabase.from("items").insert(itemsToInsert).then(r => r)
       );
-      const { error: itemsError } = itemsResult as any;
+      const { error: itemsError } = itemsResult;
 
       if (itemsError) throw itemsError;
       await loadLists();
@@ -800,9 +808,10 @@ export function ListProvider({ children }: { children: ReactNode }) {
             share_link: shareLink,
             is_shared: true,
           })
-          .eq("id", listId),
+          .eq("id", listId)
+          .then(r => r)
       );
-      const { error } = result as any;
+      const { error } = result;
 
       if (error) throw error;
       await loadLists();
@@ -847,9 +856,10 @@ export function ListProvider({ children }: { children: ReactNode }) {
         supabase
           .from("lists")
           .update({ collaborators: [...collaborators, emailValidation.value] })
-          .eq("id", listId),
+          .eq("id", listId)
+          .then(r => r)
       );
-      const { error } = result as any;
+      const { error } = result;
 
       if (error) {
         if (
@@ -936,9 +946,10 @@ export function ListProvider({ children }: { children: ReactNode }) {
         supabase
           .from("lists")
           .update({ tags: [...tags, tagValidation.value] })
-          .eq("id", listId),
+          .eq("id", listId)
+          .then(r => r)
       );
-      const { error } = result as any;
+      const { error } = result;
 
       if (error) throw error;
       await loadLists();
@@ -969,8 +980,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
       const result = await supabase
         .from("lists")
         .update({ tags: (list.tags || []).filter((t) => t !== tag) })
-        .eq("id", listId);
-      const { error } = result as any;
+        .eq("id", listId)
+        .then(r => r);
+      const { error } = result;
 
       if (error) throw error;
       await loadLists();
