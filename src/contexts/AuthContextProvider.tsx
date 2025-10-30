@@ -194,15 +194,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const tierLimits = getTierLimits(tier);
 
-    supabase
-      .from("users")
-      .update({
-        tier,
-        list_limit: tierLimits.listLimit,
-        items_per_list_limit: tierLimits.itemsPerListLimit,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", user.id)
+    Promise.resolve(
+      supabase
+        .from("users")
+        .update({
+          tier,
+          list_limit: tierLimits.listLimit,
+          items_per_list_limit: tierLimits.itemsPerListLimit,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", user.id)
+    )
       .then(() => {
         setUser({
           ...user,

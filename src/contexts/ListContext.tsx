@@ -799,7 +799,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
           .update({
             share_link: shareLink,
             is_shared: true,
-          })
+          } as any)
           .eq("id", listId)
       ) as any;
       const { error } = result;
@@ -846,7 +846,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
       const result = await withTimeout(
         supabase
           .from("lists")
-          .update({ collaborators: [...collaborators, emailValidation.value] })
+          .update({ 
+            collaborators: [...collaborators, emailValidation.value] 
+          } as any)
           .eq("id", listId)
       ) as any;
       const { error } = result;
@@ -935,7 +937,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
       const result = await withTimeout(
         supabase
           .from("lists")
-          .update({ tags: [...tags, tagValidation.value] })
+          .update({ 
+            tags: [...tags, tagValidation.value] 
+          } as any)
           .eq("id", listId)
       ) as any;
       const { error } = result;
@@ -968,7 +972,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
     try {
       const result = await supabase
         .from("lists")
-        .update({ tags: (list.tags || []).filter((t) => t !== tag) })
+        .update({ 
+          tags: (list.tags || []).filter((t) => t !== tag) 
+        } as any)
         .eq("id", listId);
       const { error } = result;
 

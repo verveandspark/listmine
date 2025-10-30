@@ -89,7 +89,7 @@ export default function Templates() {
 
       if (templatesError) throw templatesError;
 
-      setTemplates(data || []);
+      setTemplates(data as any);
     } catch (error: any) {
       console.error("[ListMine Error]", { operation: "loadTemplates", error });
       setError(
@@ -111,7 +111,7 @@ export default function Templates() {
 
       if (itemsError) throw itemsError;
 
-      setTemplateItems(data || []);
+      setTemplateItems(data as any);
     } catch (error: any) {
       console.error("[ListMine Error]", {
         operation: "loadTemplateItems",
