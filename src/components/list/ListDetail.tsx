@@ -141,6 +141,7 @@ export default function ListDetail() {
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [itemSortBy, setItemSortBy] = useState<
     "manual" | "priority" | "dueDate" | "alphabetical"
   >(() => {
@@ -590,8 +591,18 @@ export default function ListDetail() {
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Sidebar */}
-      <ListSidebar />
+      {/* Sidebar - Hidden on mobile, visible on desktop */}
+      <div className="hidden md:block">
+        <ListSidebar />
+      </div>
+
+      {/* Mobile Sidebar Overlay */}
+      <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
+        <SheetContent side="left" className="w-[280px] p-0">
+          <ListSidebar />
+        </SheetContent>
+      </Sheet>
+
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
@@ -613,6 +624,16 @@ export default function ListDetail() {
 
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
+                {/* Hamburger Menu Button - Mobile Only */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsSidebarOpen(true)}
+                  className="md:hidden min-h-[44px] min-w-[44px] flex-shrink-0"
+                >
+                  <Menu className="w-6 h-6" />
+                </Button>
+
                 <Button
                   variant="ghost"
                   size="icon"
