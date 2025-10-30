@@ -92,7 +92,7 @@ import {
   validateTag,
 } from "@/lib/validation";
 import { Switch } from "@/components/ui/switch";
-import { Alert, AlertDescription, AlertCircle } from "@/components/ui/alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function ListDetail() {
   const { id } = useParams<{ id: string }>();
