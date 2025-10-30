@@ -91,6 +91,8 @@ import {
   validateEmail,
   validateTag,
 } from "@/lib/validation";
+import { Switch } from "@/components/ui/switch";
+import { Alert, AlertDescription, AlertCircle } from "@/components/ui/alert";
 
 export default function ListDetail() {
   const { id } = useParams<{ id: string }>();
@@ -145,6 +147,8 @@ export default function ListDetail() {
     return (localStorage.getItem("itemSortBy") as any) || "manual";
   });
   const [showItemLimitError, setShowItemLimitError] = useState(false);
+  const [detailedMode, setDetailedMode] = useState(false);
+  const [itemLimitReached, setItemLimitReached] = useState(false);
 
   // Simulate loading on mount
   useState(() => {
@@ -1030,200 +1034,188 @@ export default function ListDetail() {
           )}
 
           {/* Add Item */}
-          <Card className="p-3 sm:p-4 mb-4 sm:mb-6">
-            <div className="space-y-3">
-              {/* Mode Toggle */}
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium text-gray-700">
-                  Add a new item
-                </h3>
-                <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
-                  <Button
-                    variant={!isDetailedMode ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => handleModeToggle("quick")}
-                    className="h-8 px-3 text-xs"
-                  >
-                    <Zap className="w-3 h-3 mr-1" />
-                    Quick
-                  </Button>
-                  <Button
-                    variant={isDetailedMode ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => handleModeToggle("detailed")}
-                    className="h-8 px-3 text-xs"
-                  >
-                    <ListTree className="w-3 h-3 mr-1" />
-                    Detailed
-                  </Button>
-                </div>
-              </div>
-
-              {/* Item Limit Warning */}
-              {showItemLimitError && user && user.itemsPerListLimit !== -1 && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
-                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-sm text-red-800">
-                      This list has reached the {user.itemsPerListLimit} item
-                      limit for your tier.{" "}
-                      <button
-                        onClick={() => navigate("/upgrade")}
-                        className="underline font-semibold hover:text-red-900"
-                      >
-                        Upgrade
-                      </button>{" "}
-                      to add more items.
-                    </p>
+          <Card className="p-0 mb-4 sm:mb-6">
+            <div className="p-3 sm:p-4">
+              <div className="space-y-3">
+                {/* Mode Toggle */}
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Add Item Mode</Label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Quick</span>
+                    <Switch
+                      checked={detailedMode}
+                      onCheckedChange={setDetailedMode}
+                    />
+                    <span className="text-xs text-muted-foreground">Detailed</span>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={() => setShowItemLimitError(false)}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
                 </div>
-              )}
 
-              {/* Quick Mode - Text and Quantity Only */}
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Input
-                  type="number"
-                  placeholder="Qty"
-                  value={newItemQuantity || ""}
-                  onChange={(e) =>
-                    setNewItemQuantity(
-                      e.target.value ? parseInt(e.target.value) : undefined,
-                    )
-                  }
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddItem();
-                    }
-                  }}
-                  className="w-full sm:w-20 min-h-[44px]"
-                />
-                <Input
-                  placeholder="e.g., Buy milk, Call dentist, Pack sunscreen"
-                  value={newItemText}
-                  onChange={(e) => setNewItemText(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddItem();
-                    }
-                  }}
-                  className="flex-1 min-h-[44px]"
-                />
-              </div>
+                {/* Item Limit Warning */}
+                {itemLimitReached && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      You've reached your item limit ({user?.itemsPerListLimit}{" "}
+                      items). Upgrade to add more items.
+                    </AlertDescription>
+                  </Alert>
+                )}
 
-              {/* Detailed Mode - All Fields */}
-              {isDetailedMode && (
-                <div className="space-y-3 pt-2 border-t border-gray-200">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Label className="text-xs">Priority</Label>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="w-3 h-3 text-gray-400 cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="max-w-xs">
-                                Mark items as high, medium, or low priority
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                      <Select
-                        value={newItemPriority || ""}
-                        onValueChange={(value) =>
-                          setNewItemPriority(value as "high" | "medium" | "low")
-                        }
-                      >
-                        <SelectTrigger className="min-h-[44px]">
-                          <SelectValue placeholder="Select priority" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="high">High</SelectItem>
-                          <SelectItem value="medium">Medium</SelectItem>
-                          <SelectItem value="low">Low</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Label className="text-xs">Due Date</Label>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="w-3 h-3 text-gray-400 cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="max-w-xs">
-                                Set a deadline for this item
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="w-full justify-start text-left font-normal min-h-[44px]"
-                          >
-                            <Calendar className="mr-2 h-4 w-4" />
-                            {newItemDueDate ? (
-                              format(newItemDueDate, "PPP")
-                            ) : (
-                              <span className="text-gray-400">
-                                Select a date
-                              </span>
-                            )}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                          <CalendarComponent
-                            mode="single"
-                            selected={newItemDueDate}
-                            onSelect={setNewItemDueDate}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="text-xs">Assigned To</Label>
+                {/* Quick Mode - Text and Quantity Only */}
+                {!detailedMode && (
+                  <div className="flex gap-2 w-full">
                     <Input
-                      placeholder="Person's name or email"
-                      value={newItemAssignedTo}
-                      onChange={(e) => setNewItemAssignedTo(e.target.value)}
-                      className="min-h-[44px] mt-2"
+                      type="number"
+                      placeholder="Qty"
+                      value={newItemQuantity}
+                      onChange={(e) => setNewItemQuantity(e.target.value)}
+                      className="w-20 min-h-[44px]"
+                      min="1"
+                    />
+                    <Input
+                      placeholder="e.g., Buy milk, Call dentist, Pack sunscreen"
+                      value={newItemText}
+                      onChange={(e) => setNewItemText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleAddItem();
+                        }
+                      }}
+                      className="flex-1 min-h-[44px]"
                     />
                   </div>
-                  <div>
-                    <Label className="text-xs">Notes</Label>
-                    <Textarea
-                      placeholder="Add notes, links, or details here..."
-                      value={newItemNotes}
-                      onChange={(e) => setNewItemNotes(e.target.value)}
-                      className="min-h-[80px] mt-2"
-                    />
-                  </div>
-                </div>
-              )}
+                )}
 
-              <Button onClick={handleAddItem} className="w-full min-h-[44px]">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Item
-              </Button>
+                {/* Detailed Mode - All Fields */}
+                {detailedMode && (
+                  <div className="space-y-3">
+                    <div className="flex gap-2 w-full">
+                      <Input
+                        type="number"
+                        placeholder="Qty"
+                        value={newItemQuantity}
+                        onChange={(e) => setNewItemQuantity(e.target.value)}
+                        className="w-20 min-h-[44px]"
+                        min="1"
+                      />
+                      <Input
+                        placeholder="e.g., Buy milk, Call dentist, Pack sunscreen"
+                        value={newItemText}
+                        onChange={(e) => setNewItemText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            handleAddItem();
+                          }
+                        }}
+                        className="flex-1 min-h-[44px]"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Label className="text-xs">Priority</Label>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="w-3 h-3 text-gray-400 cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  Mark items as high, medium, or low priority
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        <Select
+                          value={newItemPriority || ""}
+                          onValueChange={(value) =>
+                            setNewItemPriority(value as "high" | "medium" | "low")
+                          }
+                        >
+                          <SelectTrigger className="min-h-[44px]">
+                            <SelectValue placeholder="Select priority" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="high">High</SelectItem>
+                            <SelectItem value="medium">Medium</SelectItem>
+                            <SelectItem value="low">Low</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Label className="text-xs">Due Date</Label>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="w-3 h-3 text-gray-400 cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  Set a deadline for this item
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="w-full justify-start text-left font-normal min-h-[44px]"
+                            >
+                              <Calendar className="mr-2 h-4 w-4" />
+                              {newItemDueDate ? (
+                                format(newItemDueDate, "PPP")
+                              ) : (
+                                <span className="text-gray-400">
+                                  Select a date
+                                </span>
+                              )}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <CalendarComponent
+                              mode="single"
+                              selected={newItemDueDate}
+                              onSelect={setNewItemDueDate}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Assigned To</Label>
+                      <Input
+                        placeholder="Person's name or email"
+                        value={newItemAssignedTo}
+                        onChange={(e) => setNewItemAssignedTo(e.target.value)}
+                        className="min-h-[44px] mt-2"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Notes</Label>
+                      <Textarea
+                        placeholder="Add notes, links, or details here..."
+                        value={newItemNotes}
+                        onChange={(e) => setNewItemNotes(e.target.value)}
+                        className="min-h-[80px] mt-2"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Add Item Button */}
+                <Button onClick={handleAddItem} className="w-full min-h-[44px]">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Item
+                </Button>
+              </div>
             </div>
           </Card>
 
