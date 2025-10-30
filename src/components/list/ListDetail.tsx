@@ -1068,7 +1068,7 @@ export default function ListDetail() {
                       type="number"
                       placeholder="Qty"
                       value={newItemQuantity}
-                      onChange={(e) => setNewItemQuantity(e.target.value)}
+                      onChange={(e) => setNewItemQuantity(e.target.value ? parseInt(e.target.value) : 0)}
                       className="w-20 min-h-[44px]"
                       min="1"
                     />
@@ -1095,7 +1095,7 @@ export default function ListDetail() {
                         type="number"
                         placeholder="Qty"
                         value={newItemQuantity}
-                        onChange={(e) => setNewItemQuantity(e.target.value)}
+                        onChange={(e) => setNewItemQuantity(e.target.value ? parseInt(e.target.value) : 0)}
                         className="w-20 min-h-[44px]"
                         min="1"
                       />
