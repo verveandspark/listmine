@@ -22,11 +22,11 @@ import {
 const OPERATION_TIMEOUT = 15000;
 
 const withTimeout = <T,>(
-  promise: Promise<T>,
+  promise: Promise<T> | any,
   timeoutMs: number = OPERATION_TIMEOUT,
 ): Promise<T> => {
   return Promise.race([
-    promise,
+    Promise.resolve(promise),
     new Promise<T>((_, reject) =>
       setTimeout(() => reject(new Error("Operation timed out")), timeoutMs),
     ),
