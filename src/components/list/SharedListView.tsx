@@ -1,3 +1,4 @@
+// Shared list view component - displays read-only lists via share link
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
