@@ -799,7 +799,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
   };
 
   const generateShareLink = async (listId: string): Promise<string> => {
-    const shareId = `${listId}-${Date.now()}`;
+    const shareId =
+      Math.random().toString(36).substring(2, 15) +
+      Math.random().toString(36).substring(2, 15);
     const shareLink = `${window.location.origin}/shared/${shareId}`;
 
     try {
@@ -807,7 +809,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
         supabase
           .from("lists")
           .update({
-            share_link: shareLink,
+            share_link: shareId,
             is_shared: true,
           } as any)
           .eq("id", listId),
