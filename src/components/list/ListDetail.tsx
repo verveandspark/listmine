@@ -419,6 +419,10 @@ export default function ListDetail() {
   const handleGenerateShareLink = async () => {
     try {
       const link = await generateShareLink(list.id);
+      // Update the list state immediately with the new share link
+      const updatedList = { ...list, shareLink: link };
+      setLists(lists.map((l) => (l.id === list.id ? updatedList : l)));
+
       navigator.clipboard.writeText(link);
       toast({
         title: "✅ Share link copied!",
