@@ -43,11 +43,11 @@ export default function SharedListView() {
         }
 
         // Fetch list by share_link
-        const { data, error: fetchError } = await supabase
+        const { data, error: fetchError } = (await supabase
           .from("lists")
           .select("*")
           .eq("share_link", shareId)
-          .single();
+          .single()) as any;
 
         if (fetchError || !data) {
           setError("List not found or has been removed");
