@@ -24,7 +24,7 @@ interface SharedList {
   title: string;
   category: string;
   items: any[];
-  tags?: string[];
+  tags?: string[] | null;
 }
 
 export default function SharedListView() {
@@ -159,11 +159,11 @@ export default function SharedListView() {
       {/* Content */}
       <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-8 max-w-4xl mx-auto">
         {/* Tags Section */}
-        {list.tags && list.tags.length > 0 && (
+        {list.tags?.length && (
           <Card className="p-3 sm:p-4 mb-6">
             <h3 className="text-sm font-medium text-gray-700 mb-3">Tags</h3>
             <div className="flex flex-wrap gap-2">
-              {list.tags.map((tag) => (
+              {list.tags?.map((tag) => (
                 <Badge key={tag} variant="outline" className="text-xs">
                   {tag}
                 </Badge>
