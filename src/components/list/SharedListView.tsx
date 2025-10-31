@@ -35,10 +35,10 @@ export default function SharedListView() {
         }
 
         // Fetch list by share_link
-        const response: any = await supabase
+        const response: any = (await supabase
           .from("lists")
           .select("*")
-          .eq("share_link", shareId);
+          .eq("share_link", shareId)) as any;
 
         if (response.error || !response.data || response.data.length === 0) {
           setError("List not found or has been removed");
@@ -49,11 +49,11 @@ export default function SharedListView() {
         const listData = response.data[0];
 
         // Fetch items for this list
-        const itemsResponse: any = await supabase
+        const itemsResponse: any = (await supabase
           .from("items")
           .select("*")
           .eq("list_id", listData.id)
-          .order("order", { ascending: true });
+          .order("order", { ascending: true })) as any;
 
         if (itemsResponse.error) {
           setError("Could not load items");
