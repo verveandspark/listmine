@@ -35,6 +35,7 @@ export default function SharedListView() {
         }
 
         // Fetch list by share_link
+        // @ts-ignore
         const response: any = (await supabase
           .from("lists")
           .select("*")
@@ -49,6 +50,7 @@ export default function SharedListView() {
         const listData = response.data[0];
 
         // Fetch items for this list
+        // @ts-ignore
         const itemsResponse: any = (await supabase
           .from("items")
           .select("*")
