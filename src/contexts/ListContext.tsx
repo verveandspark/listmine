@@ -149,24 +149,24 @@ export function ListProvider({ children }: { children: ReactNode }) {
 
     try {
       setError(null);
-      const listsResult = await withTimeout(
+      const listsResult = (await withTimeout(
         supabase
           .from("lists")
           .select("*")
           .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
-      ) as any;
+          .order("created_at", { ascending: false }),
+      )) as any;
       const { data: listsData, error: listsError } = listsResult;
 
       if (listsError) throw listsError;
 
-      const itemsResult = await withTimeout(
+      const itemsResult = (await withTimeout(
         supabase
           .from("items")
           .select("*")
           .in("list_id", listsData?.map((l: any) => l.id) || [])
-          .order("position", { ascending: true })
-      ) as any;
+          .order("position", { ascending: true }),
+      )) as any;
       const { data: itemsData, error: itemsError } = itemsResult;
 
       if (itemsError) throw itemsError;
@@ -271,14 +271,14 @@ export function ListProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const result = await withTimeout(
+      const result = (await withTimeout(
         supabase.from("lists").insert({
           user_id: user.id,
           title: nameValidation.value,
           category: categoryValidation.value,
           list_type: listType,
-        })
-      ) as any;
+        }),
+      )) as any;
       const { error } = result;
 
       if (error) {
@@ -322,7 +322,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
 
   const updateList = async (listId: string, updates: Partial<List>) => {
     try {
-      const result = await withTimeout(
+      const result = (await withTimeout(
         supabase
           .from("lists")
           .update({
@@ -333,8 +333,8 @@ export function ListProvider({ children }: { children: ReactNode }) {
             tags: updates.tags,
             updated_at: new Date().toISOString(),
           })
-          .eq("id", listId)
-      ) as any;
+          .eq("id", listId),
+      )) as any;
       const { error } = result;
 
       if (error) throw error;
@@ -359,9 +359,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
 
   const deleteList = async (listId: string) => {
     try {
-      const result = await withTimeout(
-        supabase.from("lists").delete().eq("id", listId)
-      ) as any;
+      const result = (await withTimeout(
+        supabase.from("lists").delete().eq("id", listId),
+      )) as any;
       const { error } = result;
 
       if (error) throw error;
@@ -438,7 +438,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const result = await withTimeout(
+      const result = (await withTimeout(
         supabase.from("items").insert({
           list_id: listId,
           text: nameValidation.value,
@@ -451,8 +451,8 @@ export function ListProvider({ children }: { children: ReactNode }) {
           position: list.items.length,
           links: item.links,
           attributes: item.attributes,
-        })
-      ) as any;
+        }),
+      )) as any;
       const { error } = result;
 
       if (error) throw error;
@@ -491,20 +491,30 @@ export function ListProvider({ children }: { children: ReactNode }) {
     updates: Partial<ListItem>,
   ) => {
     try {
+      const updateData: any = {
+        updated_at: new Date().toISOString(),
+      };
+
+      // Only include fields that are being updated
+      if (updates.text !== undefined) updateData.text = updates.text;
+      if (updates.quantity !== undefined)
+        updateData.quantity = updates.quantity;
+      if (updates.priority !== undefined)
+        updateData.priority = updates.priority;
+      if (updates.dueDate !== undefined)
+        updateData.due_date = updates.dueDate?.toISOString();
+      if (updates.notes !== undefined) updateData.notes = updates.notes;
+      if (updates.assignedTo !== undefined)
+        updateData.assigned_to = updates.assignedTo;
+      if (updates.completed !== undefined)
+        updateData.is_completed = updates.completed;
+      if (updates.links !== undefined) updateData.links = updates.links;
+      if (updates.attributes !== undefined)
+        updateData.attributes = updates.attributes;
+
       const result = await supabase
         .from("items")
-        .update({
-          text: updates.text,
-          quantity: updates.quantity,
-          priority: updates.priority,
-          due_date: updates.dueDate?.toISOString(),
-          notes: updates.notes,
-          assigned_to: updates.assignedTo,
-          is_completed: updates.completed,
-          links: updates.links,
-          attributes: updates.attributes,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq("id", itemId);
       const { error } = result;
 
@@ -589,12 +599,12 @@ export function ListProvider({ children }: { children: ReactNode }) {
     if (!list) return;
 
     try {
-      const result = await withTimeout(
+      const result = (await withTimeout(
         supabase
           .from("lists")
           .update({ is_pinned: !list.isPinned })
-          .eq("id", listId)
-      ) as any;
+          .eq("id", listId),
+      )) as any;
       const { error } = result;
 
       if (error) throw error;
@@ -676,7 +686,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const result = await withTimeout(
+      const result = (await withTimeout(
         supabase
           .from("lists")
           .insert({
@@ -686,8 +696,8 @@ export function ListProvider({ children }: { children: ReactNode }) {
             list_type: listType,
           })
           .select()
-          .single()
-      ) as any;
+          .single(),
+      )) as any;
       const { data: newList, error: listError } = result;
 
       if (listError) throw listError;
@@ -700,9 +710,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
         position: index,
       }));
 
-      const itemsResult = await withTimeout(
-        supabase.from("items").insert(itemsToInsert)
-      ) as any;
+      const itemsResult = (await withTimeout(
+        supabase.from("items").insert(itemsToInsert),
+      )) as any;
       const { error: itemsError } = itemsResult;
 
       if (itemsError) throw itemsError;
@@ -793,15 +803,15 @@ export function ListProvider({ children }: { children: ReactNode }) {
     const shareLink = `${window.location.origin}/shared/${shareId}`;
 
     try {
-      const result = await withTimeout(
+      const result = (await withTimeout(
         supabase
           .from("lists")
           .update({
             share_link: shareLink,
             is_shared: true,
           } as any)
-          .eq("id", listId)
-      ) as any;
+          .eq("id", listId),
+      )) as any;
       const { error } = result;
 
       if (error) throw error;
@@ -843,14 +853,14 @@ export function ListProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const result = await withTimeout(
+      const result = (await withTimeout(
         supabase
           .from("lists")
-          .update({ 
-            collaborators: [...collaborators, emailValidation.value] 
+          .update({
+            collaborators: [...collaborators, emailValidation.value],
           } as any)
-          .eq("id", listId)
-      ) as any;
+          .eq("id", listId),
+      )) as any;
       const { error } = result;
 
       if (error) {
@@ -934,14 +944,14 @@ export function ListProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const result = await withTimeout(
+      const result = (await withTimeout(
         supabase
           .from("lists")
-          .update({ 
-            tags: [...tags, tagValidation.value] 
+          .update({
+            tags: [...tags, tagValidation.value],
           } as any)
-          .eq("id", listId)
-      ) as any;
+          .eq("id", listId),
+      )) as any;
       const { error } = result;
 
       if (error) throw error;
@@ -972,8 +982,8 @@ export function ListProvider({ children }: { children: ReactNode }) {
     try {
       const result = await supabase
         .from("lists")
-        .update({ 
-          tags: (list.tags || []).filter((t) => t !== tag) 
+        .update({
+          tags: (list.tags || []).filter((t) => t !== tag),
         } as any)
         .eq("id", listId);
       const { error } = result;

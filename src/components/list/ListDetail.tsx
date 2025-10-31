@@ -1,3 +1,5 @@
+import { useOpenGraphPreview } from "@/hooks/useOpenGraphPreview";
+import { LinkPreviewCard } from "@/components/list/LinkPreviewCard";
 import { ListSidebar } from "./ListSidebar";
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -587,6 +589,43 @@ export default function ListDetail() {
       default:
         return items.sort((a, b) => a.order - b.order);
     }
+  };
+  const LinkIconWithPreview = ({ url }: { url: string }) => {
+    const { previewData, loading, error, fetchPreview } = useOpenGraphPreview();
+    const [showPreview, setShowPreview] = useState(false);
+
+    const handleMouseEnter = () => {
+      setShowPreview(true);
+      fetchPreview(url);
+    };
+
+    const data = previewData[url];
+    const isLoading = loading[url];
+    const hasError = error[url];
+
+    return (
+      <div className="relative inline-block">
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={() => setShowPreview(false)}
+          className="text-xs sm:text-sm text-blue-600 hover:underline flex items-center gap-1 break-all"
+        >
+          <LinkIcon className="w-3 h-3 flex-shrink-0" />
+          {url}
+        </a>
+        {showPreview && (
+          <LinkPreviewCard
+            data={data || { url }}
+            isLoading={isLoading || false}
+            hasError={!!hasError}
+            errorMessage={hasError}
+          />
+        )}
+      </div>
+    );
   };
 
   return (
@@ -1418,16 +1457,7 @@ export default function ListDetail() {
                       {item.links && item.links.length > 0 && (
                         <div className="mt-2 space-y-1">
                           {item.links.map((link, idx) => (
-                            <a
-                              key={idx}
-                              href={link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs sm:text-sm text-blue-600 hover:underline flex items-center gap-1 break-all"
-                            >
-                              <ExternalLink className="w-3 h-3 flex-shrink-0" />
-                              {link}
-                            </a>
+                            <LinkIconWithPreview key={idx} url={link} />
                           ))}
                         </div>
                       )}
