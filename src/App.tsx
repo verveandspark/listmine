@@ -1,3 +1,4 @@
+import SharedListView from "@/components/list/SharedListView";
 import { Suspense, useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContextProvider";
@@ -69,6 +70,7 @@ function AppRoutes() {
           isAuthenticated ? <Navigate to="/dashboard" replace /> : <AuthPage />
         }
       />
+      <Route path="/shared/:shareId" element={<SharedListView />} />
       <Route
         path="/dashboard"
         element={
