@@ -424,7 +424,7 @@ export default function ListDetail() {
       navigator.clipboard.writeText(link);
       toast({
         title: "✅ Share link copied!",
-        description: "Link copied to clipboard",
+        description: link,
         className: "bg-blue-50 border-blue-200",
       });
     } catch (error: any) {
