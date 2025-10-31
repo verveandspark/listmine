@@ -119,6 +119,7 @@ export default function ListDetail() {
   const { toast } = useToast();
 
   const list = lists.find((l) => l.id === id);
+  const [shareLink, setShareLink] = useState<string | null>(null);
   const [newItemText, setNewItemText] = useState("");
   const [newItemQuantity, setNewItemQuantity] = useState<number | undefined>();
   const [newItemPriority, setNewItemPriority] = useState<
@@ -419,6 +420,7 @@ export default function ListDetail() {
   const handleGenerateShareLink = async () => {
     try {
       const link = await generateShareLink(list.id);
+      setShareLink(link);
       navigator.clipboard.writeText(link);
       toast({
         title: "✅ Share link copied!",
@@ -767,7 +769,10 @@ export default function ListDetail() {
                       <div>
                         <Label>Share Link (Read-only)</Label>
                         <div className="flex gap-2 mt-2">
-                          <Input value={list.shareLink || ""} readOnly />
+                          <Input
+                            value={shareLink || list.shareLink || ""}
+                            readOnly
+                          />
                           <Button onClick={handleGenerateShareLink}>
                             {list.shareLink ? "Copy" : "Generate"}
                           </Button>
