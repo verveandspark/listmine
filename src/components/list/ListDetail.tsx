@@ -308,14 +308,18 @@ export default function ListDetail() {
         dueDate: newItemDueDate,
         notes: newItemNotes,
         assignedTo: newItemAssignedTo || undefined,
+        links: newItemLinks.length > 0 ? newItemLinks : undefined,
         completed: false,
       });
+
       setNewItemText("");
       setNewItemQuantity(undefined);
       setNewItemPriority(undefined);
       setNewItemDueDate(undefined);
       setNewItemNotes("");
       setNewItemAssignedTo("");
+      setNewItemLinks([]);
+      setNewLinkInput("");
       setShowItemLimitError(false);
       toast({
         title: "✅ Item added!",
@@ -1278,6 +1282,74 @@ export default function ListDetail() {
                         onChange={(e) => setNewItemNotes(e.target.value)}
                         className="min-h-[80px] mt-2"
                       />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Links</Label>
+                      <div className="space-y-2 mt-2">
+                        {newItemLinks.length > 0 && (
+                          <div className="space-y-2">
+                            {newItemLinks.map((link, idx) => (
+                              <div
+                                key={idx}
+                                className="flex gap-2 items-center"
+                              >
+                                <Input
+                                  value={link}
+                                  readOnly
+                                  className="text-xs"
+                                />
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() =>
+                                    setNewItemLinks(
+                                      newItemLinks.filter((_, i) => i !== idx),
+                                    )
+                                  }
+                                  className="flex-shrink-0"
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="https://example.com"
+                            value={newLinkInput}
+                            onChange={(e) => setNewLinkInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                if (newLinkInput.trim()) {
+                                  setNewItemLinks([
+                                    ...newItemLinks,
+                                    newLinkInput,
+                                  ]);
+                                  setNewLinkInput("");
+                                }
+                              }
+                            }}
+                            className="flex-1 min-h-[44px] text-xs"
+                          />
+                          <Button
+                            onClick={() => {
+                              if (newLinkInput.trim()) {
+                                setNewItemLinks([
+                                  ...newItemLinks,
+                                  newLinkInput,
+                                ]);
+                                setNewLinkInput("");
+                              }
+                            }}
+                            size="sm"
+                            className="min-h-[44px]"
+                          >
+                            Add
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
