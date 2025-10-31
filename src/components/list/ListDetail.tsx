@@ -1719,11 +1719,17 @@ export default function ListDetail() {
 
                                 <Button
                                   onClick={() => {
-                                    updateListItem(
-                                      list.id,
-                                      editingItem.id,
-                                      editingItem,
-                                    );
+                                    updateListItem(list.id, editingItem.id, {
+                                      text: editingItem.text,
+                                      quantity: editingItem.quantity,
+                                      priority: editingItem.priority,
+                                      dueDate: editingItem.dueDate,
+                                      notes: editingItem.notes,
+                                      assignedTo: editingItem.assignedTo,
+                                      links: editingItem.links,
+                                      attributes: editingItem.attributes,
+                                      completed: editingItem.completed,
+                                    });
                                     setEditingItem(null);
                                     setNewLink("");
                                   }}
