@@ -127,6 +127,8 @@ export default function ListDetail() {
   const [newItemDueDate, setNewItemDueDate] = useState<Date | undefined>();
   const [newItemNotes, setNewItemNotes] = useState("");
   const [newItemAssignedTo, setNewItemAssignedTo] = useState("");
+  const [newItemLinks, setNewItemLinks] = useState<string[]>([]);
+  const [newLinkInput, setNewLinkInput] = useState("");
   const [isDetailedMode, setIsDetailedMode] = useState(() => {
     const savedMode = localStorage.getItem("itemEntryMode");
     return savedMode === "detailed";
