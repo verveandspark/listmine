@@ -12,6 +12,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { ListCategory } from "@/types";
+import { useState } from "react";
+import CreateListModal from "./CreateListModal";
 
 const categoryIcons: Record<string, any> = {
   Tasks: CheckSquare,
@@ -28,6 +30,7 @@ export function ListSidebar() {
   const { lists } = useLists();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   // Group lists by category
   const groupedLists = lists.reduce(
@@ -50,7 +53,7 @@ export function ListSidebar() {
         </div>
 
         <Button
-          onClick={() => navigate("/dashboard")}
+          onClick={() => setIsCreateModalOpen(true)}
           className="w-full mb-4 bg-blue-600 hover:bg-blue-700 text-white min-h-[44px]"
         >
           <Plus className="w-4 h-4 mr-2" />
@@ -96,6 +99,11 @@ export function ListSidebar() {
           })}
         </div>
       </div>
+
+      <CreateListModal
+        open={isCreateModalOpen}
+        onOpenChange={setIsCreateModalOpen}
+      />
     </div>
   );
 }

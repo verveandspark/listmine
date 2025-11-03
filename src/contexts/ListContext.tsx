@@ -48,7 +48,7 @@ interface ListContextType {
     title: string,
     category: ListCategory,
     listType: ListType,
-  ) => Promise<void>;
+  ) => Promise<string>;
   updateList: (id: string, updates: Partial<List>) => Promise<void>;
   deleteList: (id: string) => Promise<void>;
   addItemToList: (
@@ -234,8 +234,8 @@ export function ListProvider({ children }: { children: ReactNode }) {
     title: string,
     category: ListCategory,
     listType: ListType = "custom",
-  ) => {
-    if (!user) return;
+  ): Promise<string> => {
+    if (!user) throw new Error("User not authenticated");
 
     const nameValidation = validateListName(title);
     if (!nameValidation.valid) {
@@ -252,7 +252,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
     );
     if (existingList) {
       throw new Error(
-        `This list name already exists. Try another name like "\${nameValidation.value} 2" or "\${nameValidation.value} - New".`,
+        `This list name already exists. Try another name like "${nameValidation.value} 2" or "${nameValidation.value} - New".`,
       );
     }
 
@@ -266,7 +266,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
               ? "Even Better"
               : "Lots More";
       throw new Error(
-        `You've reached your limit of \${user.listLimit} lists on the \${tierName} tier. Upgrade to create more lists.`,
+        `You've reached your limit of ${user.listLimit} lists on the ${tierName} tier. Upgrade to create more lists.`,
       );
     }
 
@@ -277,9 +277,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
           title: nameValidation.value,
           category: categoryValidation.value,
           list_type: listType,
-        }),
+        }).select().single(),
       )) as any;
-      const { error } = result;
+      const { data: newList, error } = result;
 
       if (error) {
         if (error.message.includes("unique")) {
@@ -289,6 +289,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
       }
 
       await loadLists();
+      return newList.id;
     } catch (error: any) {
       logError("addList", error, user?.id);
 
@@ -433,7 +434,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
               ? "Even Better"
               : "Lots More";
       throw new Error(
-        `This list has reached the \${user.itemsPerListLimit} item limit for your \${tierName} tier. Upgrade to add more items.`,
+        `This list has reached the ${user.itemsPerListLimit} item limit for your ${tierName} tier. Upgrade to add more items.`,
       );
     }
 
