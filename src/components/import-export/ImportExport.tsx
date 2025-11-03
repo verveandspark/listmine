@@ -28,6 +28,8 @@ import {
   FileText,
   FileSpreadsheet,
   HelpCircle,
+  Link2,
+  Loader2,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -55,7 +57,7 @@ const listTypes: { value: ListType; label: string }[] = [
 
 export default function ImportExport() {
   const navigate = useNavigate();
-  const { importList, exportList, lists } = useLists();
+  const { importList, exportList, lists, importFromShareLink } = useLists();
   const { toast } = useToast();
   const [importData, setImportData] = useState("");
   const [importCategory, setImportCategory] = useState<ListCategory>("Tasks");
@@ -65,6 +67,8 @@ export default function ImportExport() {
   const [exportFormat, setExportFormat] = useState<"csv" | "txt" | "pdf">(
     "txt",
   );
+  const [shareUrl, setShareUrl] = useState("");
+  const [isImporting, setIsImporting] = useState(false);
 
   const handleImport = () => {
     // Validate import data
@@ -109,6 +113,69 @@ export default function ImportExport() {
         description: error.message,
         variant: "destructive",
       });
+    }
+  };
+
+  const extractShareId = (url: string): string | null => {
+    try {
+      const trimmedUrl = url.trim();
+      
+      if (trimmedUrl.includes("/shared/")) {
+        const parts = trimmedUrl.split("/shared/");
+        return parts[1]?.split(/[?#]/)[0] || null;
+      }
+      
+      if (!trimmedUrl.includes("/") && !trimmedUrl.includes("http")) {
+        return trimmedUrl;
+      }
+      
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  const handleImportFromShareLink = async () => {
+    if (!shareUrl.trim()) {
+      toast({
+        title: "⚠️ Invalid share link",
+        description: "Please enter a share link or ID",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const shareId = extractShareId(shareUrl);
+    if (!shareId) {
+      toast({
+        title: "⚠️ Invalid share link format",
+        description: "Please paste the full URL or share ID.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsImporting(true);
+
+    try {
+      const newListId = await importFromShareLink(shareId);
+      
+      toast({
+        title: "✅ List imported successfully!",
+        description: "The list has been added to your account.",
+        className: "bg-green-50 border-green-200",
+      });
+      
+      setShareUrl("");
+      navigate(`/list/${newListId}`);
+    } catch (err: any) {
+      toast({
+        title: "❌ Import failed",
+        description: err.message || "Failed to import list",
+        variant: "destructive",
+      });
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -241,11 +308,74 @@ export default function ImportExport() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="import" className="mt-6">
+          <TabsContent value="import" className="mt-6 space-y-6">
+            <Card className="p-4 sm:p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Link2 className="w-5 h-5 text-blue-600" />
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Import from ListMine Share Link
+                </h2>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="w-5 h-5 text-gray-400 cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">
+                        Paste a share link from another ListMine user to create a copy in your account
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <p className="text-sm text-gray-600 mb-4">
+                Copy lists shared by other ListMine users
+              </p>
+
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="share-url">Share Link or ID</Label>
+                  <Input
+                    id="share-url"
+                    placeholder="https://listmine.vercel.app/shared/abc123 or abc123"
+                    value={shareUrl}
+                    onChange={(e) => setShareUrl(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !isImporting) {
+                        handleImportFromShareLink();
+                      }
+                    }}
+                    className="min-h-[44px] mt-2"
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    You can paste the full URL or just the share ID
+                  </p>
+                </div>
+
+                <Button 
+                  onClick={handleImportFromShareLink} 
+                  className="w-full min-h-[44px]"
+                  disabled={isImporting}
+                >
+                  {isImporting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Importing...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4 mr-2" />
+                      Import from Share Link
+                    </>
+                  )}
+                </Button>
+              </div>
+            </Card>
+
             <Card className="p-4 sm:p-6">
               <div className="flex items-center gap-2 mb-4">
                 <h2 className="text-xl font-semibold text-gray-900">
-                  Import List
+                  Import List from File
                 </h2>
                 <TooltipProvider>
                   <Tooltip>

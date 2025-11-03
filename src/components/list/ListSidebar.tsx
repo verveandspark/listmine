@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Plus, Download } from "lucide-react";
 import { useLists } from "@/contexts/useListsHook";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
 import { ListCategory } from "@/types";
 import { useState } from "react";
 import CreateListModal from "./CreateListModal";
+import ImportListModal from "./ImportListModal";
 
 const categoryIcons: Record<string, any> = {
   Tasks: CheckSquare,
@@ -31,6 +32,7 @@ export function ListSidebar() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Group lists by category
   const groupedLists = lists.reduce(
@@ -52,13 +54,24 @@ export function ListSidebar() {
           <Badge variant="secondary">{lists.length}</Badge>
         </div>
 
-        <Button
-          onClick={() => setIsCreateModalOpen(true)}
-          className="w-full mb-4 bg-blue-600 hover:bg-blue-700 text-white min-h-[44px]"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          New List
-        </Button>
+        <div className="space-y-2 mb-4">
+          <Button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white min-h-[44px]"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            New List
+          </Button>
+
+          <Button
+            onClick={() => setIsImportModalOpen(true)}
+            variant="outline"
+            className="w-full min-h-[44px]"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Import List
+          </Button>
+        </div>
 
         <div className="space-y-4">
           {Object.entries(groupedLists).map(([category, categoryLists]) => {
@@ -103,6 +116,10 @@ export function ListSidebar() {
       <CreateListModal
         open={isCreateModalOpen}
         onOpenChange={setIsCreateModalOpen}
+      />
+      <ImportListModal
+        open={isImportModalOpen}
+        onOpenChange={setIsImportModalOpen}
       />
     </div>
   );

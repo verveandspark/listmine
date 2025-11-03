@@ -86,6 +86,7 @@ interface ListContextType {
   }) => List[];
   addTagToList: (listId: string, tag: string) => Promise<void>;
   removeTagFromList: (listId: string, tag: string) => Promise<void>;
+  importFromShareLink: (shareId: string) => Promise<string>;
   loading: boolean;
   error: string | null;
   retryLoad: () => Promise<void>;
@@ -999,6 +1000,121 @@ export function ListProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const importFromShareLink = async (shareId: string): Promise<string> => {
+    if (!user) throw new Error("User not authenticated");
+
+    try {
+      // Fetch the shared list
+      const listResult = (await withTimeout(
+        supabase
+          .from("lists")
+          .select("*")
+          .eq("share_link", shareId)
+          .eq("is_shared", true)
+          .single(),
+      )) as any;
+      const { data: sharedList, error: listError } = listResult;
+
+      if (listError || !sharedList) {
+        throw new Error("List not found or not shared. Please check the link and try again.");
+      }
+
+      // Fetch the list items
+      const itemsResult = (await withTimeout(
+        supabase
+          .from("list_items")
+          .select("*")
+          .eq("list_id", sharedList.id)
+          .order("item_order", { ascending: true }),
+      )) as any;
+      const { data: sharedItems, error: itemsError } = itemsResult;
+
+      if (itemsError) throw itemsError;
+
+      // Check list limit
+      if (user.listLimit !== -1 && lists.length >= user.listLimit) {
+        const tierName =
+          user.tier === "free"
+            ? "Free"
+            : user.tier === "good"
+              ? "Good"
+              : user.tier === "even-better"
+                ? "Even Better"
+                : "Lots More";
+        throw new Error(
+          `You've reached your limit of ${user.listLimit} lists on the ${tierName} tier. Upgrade to import more lists.`,
+        );
+      }
+
+      // Create a new list with "Copy of" prefix
+      const newListTitle = `Copy of ${sharedList.title}`;
+      const newListResult = (await withTimeout(
+        supabase
+          .from("lists")
+          .insert({
+            user_id: user.id,
+            title: newListTitle,
+            category: sharedList.category,
+            list_type: sharedList.list_type,
+          })
+          .select()
+          .single(),
+      )) as any;
+      const { data: newList, error: newListError } = newListResult;
+
+      if (newListError) throw newListError;
+
+      // Copy all items with completed = false
+      if (sharedItems && sharedItems.length > 0) {
+        const itemsToInsert = sharedItems.map((item: any, index: number) => ({
+          list_id: newList.id,
+          text: item.text,
+          quantity: item.quantity,
+          priority: item.priority,
+          due_date: item.due_date,
+          notes: item.notes,
+          assigned_to: item.assigned_to,
+          completed: false, // Fresh start
+          item_order: index,
+          links: item.links,
+          attributes: item.attributes,
+        }));
+
+        const insertResult = (await withTimeout(
+          supabase.from("list_items").insert(itemsToInsert),
+        )) as any;
+        const { error: insertError } = insertResult;
+
+        if (insertError) throw insertError;
+      }
+
+      await loadLists();
+      return newList.id;
+    } catch (error: any) {
+      logError("importFromShareLink", error, user?.id);
+
+      if (error.message === "Operation timed out") {
+        throw new Error(
+          "This is taking longer than expected. Try again in a moment.",
+        );
+      } else if (
+        error.message.includes("network") ||
+        error.message.includes("fetch")
+      ) {
+        throw new Error("Connection lost. Check your internet and try again.");
+      } else if (
+        error.message.includes("not found") ||
+        error.message.includes("not shared")
+      ) {
+        throw error;
+      } else if (error.message.includes("limit")) {
+        throw error;
+      } else {
+        throw new Error("Couldn't import list. Try again or contact support.");
+      }
+    }
+  };
+
   return (
     <ListContext.Provider
       value={{
@@ -1021,6 +1137,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
         filterLists,
         addTagToList,
         removeTagFromList,
+        importFromShareLink,
         loading,
         error,
         retryLoad: loadLists,
