@@ -186,7 +186,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
             dueDate: item.due_date ? new Date(item.due_date) : undefined,
             notes: item.notes,
             assignedTo: item.assigned_to,
-            completed: item.is_completed,
+            completed: item.completed,
             order: item.item_order,
             links: item.links,
             attributes: item.attributes,
@@ -447,7 +447,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
           due_date: item.dueDate?.toISOString(),
           notes: item.notes ? sanitizeInput(item.notes) : null,
           assigned_to: item.assignedTo ? sanitizeInput(item.assignedTo) : null,
-          is_completed: item.completed || false,
+          completed: item.completed || false,
           item_order: list.items.length,
           links: item.links,
           attributes: item.attributes,
@@ -507,7 +507,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
       if (updates.assignedTo !== undefined)
         updateData.assigned_to = updates.assignedTo;
       if (updates.completed !== undefined)
-        updateData.is_completed = updates.completed;
+        updateData.completed = updates.completed;
       if (updates.links !== undefined) updateData.links = updates.links;
       if (updates.attributes !== undefined)
         updateData.attributes = updates.attributes;
@@ -561,7 +561,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
       const result = await supabase
         .from("list_items")
         .update({
-          is_completed: updates.completed,
+          completed: updates.completed,
           priority: updates.priority,
           updated_at: new Date().toISOString(),
         })
@@ -706,7 +706,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
         list_id: newList.id,
         text: item.text,
         quantity: item.quantity,
-        is_completed: false,
+        completed: false,
         item_order: index,
       }));
 
