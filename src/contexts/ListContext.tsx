@@ -113,7 +113,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
             event: "*",
             schema: "public",
             table: "lists",
-            filter: `user_id=eq.\${user.id}`,
+            filter: `user_id=eq.${user.id}`,
           },
           () => {
             loadLists();
@@ -124,7 +124,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
           {
             event: "*",
             schema: "public",
-            table: "items",
+            table: "list_items",
           },
           () => {
             loadLists();
@@ -162,10 +162,10 @@ export function ListProvider({ children }: { children: ReactNode }) {
 
       const itemsResult = (await withTimeout(
         supabase
-          .from("items")
+          .from("list_items")
           .select("*")
           .in("list_id", listsData?.map((l: any) => l.id) || [])
-          .order("position", { ascending: true }),
+          .order("item_order", { ascending: true }),
       )) as any;
       const { data: itemsData, error: itemsError } = itemsResult;
 
@@ -187,7 +187,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
             notes: item.notes,
             assignedTo: item.assigned_to,
             completed: item.is_completed,
-            order: item.position,
+            order: item.item_order,
             links: item.links,
             attributes: item.attributes,
           })),
@@ -439,7 +439,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
 
     try {
       const result = (await withTimeout(
-        supabase.from("items").insert({
+        supabase.from("list_items").insert({
           list_id: listId,
           text: nameValidation.value,
           quantity: item.quantity,
@@ -448,7 +448,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
           notes: item.notes ? sanitizeInput(item.notes) : null,
           assigned_to: item.assignedTo ? sanitizeInput(item.assignedTo) : null,
           is_completed: item.completed || false,
-          position: list.items.length,
+          item_order: list.items.length,
           links: item.links,
           attributes: item.attributes,
         }),
@@ -513,7 +513,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
         updateData.attributes = updates.attributes;
 
       const result = await supabase
-        .from("items")
+        .from("list_items")
         .update(updateData)
         .eq("id", itemId);
       const { error } = result;
@@ -528,7 +528,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
 
   const deleteListItem = async (listId: string, itemId: string) => {
     try {
-      const result = await supabase.from("items").delete().eq("id", itemId);
+      const result = await supabase.from("list_items").delete().eq("id", itemId);
       const { error } = result;
 
       if (error) throw error;
@@ -541,7 +541,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
 
   const bulkDeleteItems = async (listId: string, itemIds: string[]) => {
     try {
-      const result = await supabase.from("items").delete().in("id", itemIds);
+      const result = await supabase.from("list_items").delete().in("id", itemIds);
       const { error } = result;
 
       if (error) throw error;
@@ -559,7 +559,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
   ) => {
     try {
       const result = await supabase
-        .from("items")
+        .from("list_items")
         .update({
           is_completed: updates.completed,
           priority: updates.priority,
@@ -581,8 +581,8 @@ export function ListProvider({ children }: { children: ReactNode }) {
       for (const item of items) {
         const index = items.indexOf(item);
         const result = await supabase
-          .from("items")
-          .update({ position: index })
+          .from("list_items")
+          .update({ item_order: index })
           .eq("id", item.id);
         const { error } = result;
         if (error) throw error;
@@ -707,11 +707,11 @@ export function ListProvider({ children }: { children: ReactNode }) {
         text: item.text,
         quantity: item.quantity,
         is_completed: false,
-        position: index,
+        item_order: index,
       }));
 
       const itemsResult = (await withTimeout(
-        supabase.from("items").insert(itemsToInsert),
+        supabase.from("list_items").insert(itemsToInsert),
       )) as any;
       const { error: itemsError } = itemsResult;
 

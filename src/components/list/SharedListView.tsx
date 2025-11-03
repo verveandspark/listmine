@@ -29,35 +29,42 @@ export default function SharedListView() {
     const fetchSharedList = async () => {
       try {
         if (!shareId) {
+          console.error("SharedListView: No shareId in URL params");
           setError("Invalid share link");
           setIsLoading(false);
           return;
         }
 
+        console.log("SharedListView: Fetching list with shareId:", shareId);
+
         // Fetch list by share_link
-        // @ts-ignore
-        const response: any = (await supabase
+        const { data: listData, error: listError } = await supabase
           .from("lists")
           .select("*")
-          .eq("share_link", shareId)) as any;
+          .eq("share_link", shareId)
+          .eq("is_shared", true)
+          .single();
 
-        if (response.error || !response.data || response.data.length === 0) {
+        console.log("SharedListView: List query result:", { listData, listError });
+
+        if (listError || !listData) {
+          console.error("SharedListView: List not found or error:", listError);
           setError("List not found or has been removed");
           setIsLoading(false);
           return;
         }
 
-        const listData = response.data[0];
-
-        // Fetch items for this list
-        // @ts-ignore
-        const itemsResponse: any = (await supabase
-          .from("items")
+        // Fetch items for this list using correct table name
+        const { data: itemsData, error: itemsError } = await supabase
+          .from("list_items")
           .select("*")
           .eq("list_id", listData.id)
-          .order("order", { ascending: true })) as any;
+          .order("item_order", { ascending: true });
 
-        if (itemsResponse.error) {
+        console.log("SharedListView: Items query result:", { itemsData, itemsError });
+
+        if (itemsError) {
+          console.error("SharedListView: Could not load items:", itemsError);
           setError("Could not load items");
           setIsLoading(false);
           return;
@@ -67,11 +74,25 @@ export default function SharedListView() {
           id: listData.id,
           title: listData.title,
           category: listData.category,
-          items: itemsResponse.data || [],
+          items: (itemsData || []).map((item: any) => ({
+            id: item.id,
+            text: item.text,
+            quantity: item.quantity,
+            priority: item.priority,
+            dueDate: item.due_date,
+            notes: item.notes,
+            assignedTo: item.assigned_to,
+            links: item.links || [],
+            completed: item.completed,
+            order: item.item_order,
+            attributes: item.attributes || {},
+          })),
           tags: listData.tags || [],
         });
         setIsLoading(false);
+        console.log("SharedListView: Successfully loaded list with", itemsData?.length || 0, "items");
       } catch (err: any) {
+        console.error("SharedListView: Unexpected error:", err);
         setError(err.message || "An error occurred");
         setIsLoading(false);
       }

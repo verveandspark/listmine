@@ -121,6 +121,7 @@ export type Database = {
           due_date: string | null
           id: string
           is_completed: boolean | null
+          links: string[] | null
           list_id: string
           notes: string | null
           position: number | null
@@ -135,6 +136,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           is_completed?: boolean | null
+          links?: string[] | null
           list_id: string
           notes?: string | null
           position?: number | null
@@ -149,6 +151,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           is_completed?: boolean | null
+          links?: string[] | null
           list_id?: string
           notes?: string | null
           position?: number | null
@@ -233,7 +236,10 @@ export type Database = {
           id: string
           is_archived: boolean | null
           is_pinned: boolean | null
+          is_shared: boolean | null
           list_type: string
+          share_link: string | null
+          tags: string[] | null
           title: string
           updated_at: string | null
           user_id: string
@@ -244,7 +250,10 @@ export type Database = {
           id?: string
           is_archived?: boolean | null
           is_pinned?: boolean | null
+          is_shared?: boolean | null
           list_type: string
+          share_link?: string | null
+          tags?: string[] | null
           title: string
           updated_at?: string | null
           user_id: string
@@ -255,7 +264,10 @@ export type Database = {
           id?: string
           is_archived?: boolean | null
           is_pinned?: boolean | null
+          is_shared?: boolean | null
           list_type?: string
+          share_link?: string | null
+          tags?: string[] | null
           title?: string
           updated_at?: string | null
           user_id?: string
