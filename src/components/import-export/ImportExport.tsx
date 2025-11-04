@@ -30,6 +30,7 @@ import {
   HelpCircle,
   Link2,
   Loader2,
+  ShoppingCart,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -39,6 +40,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { validateImportData, validateCategory } from "@/lib/validation";
+import ScrapeWishlistModal from "./ScrapeWishlistModal";
 
 const listTypes: { value: ListType; label: string }[] = [
   { value: "task-list", label: "Task List" },
@@ -57,7 +59,7 @@ const listTypes: { value: ListType; label: string }[] = [
 
 export default function ImportExport() {
   const navigate = useNavigate();
-  const { importList, exportList, lists, importFromShareLink } = useLists();
+  const { importList, exportList, lists, importFromShareLink, importFromWishlist } = useLists();
   const { toast } = useToast();
   const [importData, setImportData] = useState("");
   const [importCategory, setImportCategory] = useState<ListCategory>("Tasks");
@@ -69,6 +71,7 @@ export default function ImportExport() {
   );
   const [shareUrl, setShareUrl] = useState("");
   const [isImporting, setIsImporting] = useState(false);
+  const [isWishlistModalOpen, setIsWishlistModalOpen] = useState(false);
 
   const handleImport = () => {
     // Validate import data
@@ -262,6 +265,25 @@ export default function ImportExport() {
     }
   };
 
+  const handleWishlistImport = async (
+    items: Array<{ name: string; price?: string; link?: string; image?: string }>,
+    listName: string,
+  ) => {
+    try {
+      const newListId = await importFromWishlist(items, listName, "Shopping");
+      
+      toast({
+        title: "✅ Wishlist imported successfully!",
+        description: `Created "${listName}" with ${items.length} items`,
+        className: "bg-green-50 border-green-200",
+      });
+      
+      navigate(`/list/${newListId}`);
+    } catch (err: any) {
+      throw err;
+    }
+  };
+
   const categories: ListCategory[] = [
     "Tasks",
     "Groceries",
@@ -370,6 +392,39 @@ export default function ImportExport() {
                   )}
                 </Button>
               </div>
+            </Card>
+
+            <Card className="p-4 sm:p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <ShoppingCart className="w-5 h-5 text-purple-600" />
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Import from Retailer Wishlist
+                </h2>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="w-5 h-5 text-gray-400 cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">
+                        Import items from Amazon, Target, or Walmart wishlists
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <p className="text-sm text-gray-600 mb-4">
+                Paste a wishlist URL from Amazon, Target, or Walmart to import items
+              </p>
+
+              <Button 
+                onClick={() => setIsWishlistModalOpen(true)} 
+                className="w-full min-h-[44px]"
+                variant="outline"
+              >
+                <ShoppingCart className="w-4 h-4 mr-2" />
+                Import from Amazon/Target/Walmart
+              </Button>
             </Card>
 
             <Card className="p-4 sm:p-6">
@@ -598,6 +653,12 @@ export default function ImportExport() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <ScrapeWishlistModal
+        open={isWishlistModalOpen}
+        onOpenChange={setIsWishlistModalOpen}
+        onImport={handleWishlistImport}
+      />
     </div>
   );
 }

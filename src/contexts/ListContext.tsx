@@ -89,6 +89,11 @@ interface ListContextType {
   addTagToList: (listId: string, tag: string) => Promise<void>;
   removeTagFromList: (listId: string, tag: string) => Promise<void>;
   importFromShareLink: (shareId: string) => Promise<string>;
+  importFromWishlist: (
+    items: Array<{ name: string; price?: string; link?: string; image?: string }>,
+    listName: string,
+    category: ListCategory,
+  ) => Promise<string>;
   loading: boolean;
   error: string | null;
   retryLoad: () => Promise<void>;
@@ -1311,6 +1316,97 @@ export function ListProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const importFromWishlist = async (
+    items: Array<{ name: string; price?: string; link?: string; image?: string }>,
+    listName: string,
+    category: ListCategory = "Shopping",
+  ): Promise<string> => {
+    if (!user) throw new Error("User not authenticated");
+
+    if (!items || items.length === 0) {
+      throw new Error("No items to import");
+    }
+
+    const nameValidation = validateListName(listName);
+    if (!nameValidation.valid) {
+      throw new Error(nameValidation.error);
+    }
+
+    const categoryValidation = validateCategory(category);
+    if (!categoryValidation.valid) {
+      throw new Error(categoryValidation.error);
+    }
+
+    if (user.listLimit !== -1 && lists.length >= user.listLimit) {
+      const tierName =
+        user.tier === "free"
+          ? "Free"
+          : user.tier === "good"
+            ? "Good"
+            : user.tier === "even-better"
+              ? "Even Better"
+              : "Lots More";
+      throw new Error(
+        `You've reached your limit of ${user.listLimit} lists on the ${tierName} tier. Upgrade to create more lists.`,
+      );
+    }
+
+    try {
+      const result = (await withTimeout(
+        supabase
+          .from("lists")
+          .insert({
+            user_id: user.id,
+            title: nameValidation.value,
+            category: categoryValidation.value,
+            list_type: "shopping-list",
+          })
+          .select()
+          .single(),
+      )) as any;
+      const { data: newList, error: listError } = result;
+
+      if (listError) throw listError;
+
+      const itemsToInsert = items.map((item, index) => ({
+        list_id: newList.id,
+        text: item.name,
+        notes: item.price ? `Price: ${item.price}` : null,
+        links: item.link ? [item.link] : null,
+        completed: false,
+        item_order: index,
+        attributes: item.image ? { custom: { image: item.image } } : null,
+      }));
+
+      const itemsResult = (await withTimeout(
+        supabase.from("list_items").insert(itemsToInsert),
+      )) as any;
+      const { error: itemsError } = itemsResult;
+
+      if (itemsError) throw itemsError;
+
+      await loadLists();
+      return newList.id;
+    } catch (error: any) {
+      logError("importFromWishlist", error, user?.id);
+
+      if (error.message === "Operation timed out") {
+        throw new Error(
+          "This is taking longer than expected. Try again in a moment.",
+        );
+      } else if (
+        error.message.includes("network") ||
+        error.message.includes("fetch")
+      ) {
+        throw new Error("Connection lost. Check your internet and try again.");
+      } else if (error.message.includes("limit")) {
+        throw error;
+      } else {
+        throw new Error("Couldn't import wishlist. Try again or contact support.");
+      }
+    }
+  };
+
   return (
     <ListContext.Provider
       value={{
@@ -1334,6 +1430,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
         addTagToList,
         removeTagFromList,
         importFromShareLink,
+        importFromWishlist,
         loading,
         error,
         retryLoad: loadLists,
