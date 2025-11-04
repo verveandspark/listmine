@@ -55,43 +55,27 @@ export default function ScrapeWishlistModal({
     try {
       console.log('Calling API with URL:', url.trim());
       
-      // TEMPORARY: Mock data for testing since Vite doesn't support API routes in dev
-      console.log('Using mock data (API routes only work in production/Vercel)');
+      const response = await fetch('/api/scrape-wishlist', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: url.trim() }),
+      });
+
+      console.log('Response status:', response.status);
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Detect retailer
-      const lowerUrl = url.toLowerCase();
-      let detectedRetailer = 'Amazon';
-      if (lowerUrl.includes('target.com')) detectedRetailer = 'Target';
-      if (lowerUrl.includes('walmart.com')) detectedRetailer = 'Walmart';
-      
-      // Mock response
-      const data = {
-        success: true,
-        retailer: detectedRetailer,
-        items: [
-          { 
-            name: 'Test Product 1', 
-            price: '$19.99', 
-            link: url,
-            image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200&q=80'
-          },
-          { 
-            name: 'Test Product 2', 
-            price: '$29.99', 
-            link: url,
-            image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&q=80'
-          },
-          { 
-            name: 'Test Product 3', 
-            price: '$39.99', 
-            link: url,
-            image: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=200&q=80'
-          }
-        ]
-      };
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('API response:', data);
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to scrape wishlist');
+      }
 
       const itemsWithSelection = data.items.map((item: ScrapedItem) => ({
         ...item,
@@ -103,8 +87,8 @@ export default function ScrapeWishlistModal({
       setListName(`${data.retailer} Wishlist`);
 
       toast({
-        title: "✅ Mock data loaded (Dev Mode)",
-        description: `Found ${data.items.length} test items from ${data.retailer}. Real scraping works in production.`,
+        title: "✅ Wishlist scraped successfully",
+        description: `Found ${data.items.length} items from ${data.retailer}`,
         className: "bg-green-50 border-green-200",
       });
     } catch (err: any) {

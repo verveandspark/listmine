@@ -197,36 +197,6 @@ export default async function handler(
       return;
     }
 
-    // TEMPORARY: Return mock data to test the flow
-    console.log('Returning mock data for testing');
-    res.status(200).json({
-      success: true,
-      retailer,
-      items: [
-        { 
-          name: 'Test Product 1', 
-          price: '$19.99', 
-          link: 'https://amazon.com/test1',
-          image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200&q=80'
-        },
-        { 
-          name: 'Test Product 2', 
-          price: '$29.99', 
-          link: 'https://amazon.com/test2',
-          image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&q=80'
-        },
-        { 
-          name: 'Test Product 3', 
-          price: '$39.99', 
-          link: 'https://amazon.com/test3',
-          image: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=200&q=80'
-        }
-      ]
-    });
-    return;
-
-    // REAL SCRAPING CODE (commented out for now)
-    /*
     console.log('Fetching URL:', url);
 
     let html: string;
@@ -291,7 +261,6 @@ export default async function handler(
       retailer,
       items
     });
-    */
 
   } catch (error: any) {
     console.error('=== API ERROR ===');
