@@ -31,6 +31,8 @@ import {
   Link2,
   Loader2,
   ShoppingCart,
+  ExternalLink,
+  AlertCircle,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -40,7 +42,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { validateImportData, validateCategory } from "@/lib/validation";
-import ScrapeWishlistModal from "./ScrapeWishlistModal";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const listTypes: { value: ListType; label: string }[] = [
   { value: "task-list", label: "Task List" },
@@ -57,6 +61,14 @@ const listTypes: { value: ListType; label: string }[] = [
   { value: "custom", label: "Custom" },
 ];
 
+interface ScrapedItem {
+  name: string;
+  price?: string;
+  link?: string;
+  image?: string;
+  selected?: boolean;
+}
+
 export default function ImportExport() {
   const navigate = useNavigate();
   const { importList, exportList, lists, importFromShareLink, importFromWishlist } = useLists();
@@ -71,7 +83,14 @@ export default function ImportExport() {
   );
   const [shareUrl, setShareUrl] = useState("");
   const [isImporting, setIsImporting] = useState(false);
-  const [isWishlistModalOpen, setIsWishlistModalOpen] = useState(false);
+  
+  // Wishlist scraping state
+  const [wishlistUrl, setWishlistUrl] = useState("");
+  const [wishlistLoading, setWishlistLoading] = useState(false);
+  const [scrapedItems, setScrapedItems] = useState<ScrapedItem[]>([]);
+  const [retailer, setRetailer] = useState("");
+  const [wishlistError, setWishlistError] = useState("");
+  const [wishlistName, setWishlistName] = useState("");
 
   const handleImport = () => {
     // Validate import data
@@ -265,24 +284,143 @@ export default function ImportExport() {
     }
   };
 
-  const handleWishlistImport = async (
-    items: Array<{ name: string; price?: string; link?: string; image?: string }>,
-    listName: string,
-  ) => {
+  const handleWishlistScrape = async () => {
+    if (!wishlistUrl.trim()) {
+      setWishlistError("Please enter a wishlist URL");
+      return;
+    }
+
+    setWishlistLoading(true);
+    setWishlistError("");
+    setScrapedItems([]);
+
     try {
-      const newListId = await importFromWishlist(items, listName, "Shopping");
+      console.log('Calling API with URL:', wishlistUrl.trim());
+      
+      const response = await fetch('/api/scrape-wishlist', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: wishlistUrl.trim() }),
+      });
+
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        
+        // Detect retailer from URL for better error messages
+        const lowerUrl = wishlistUrl.toLowerCase();
+        let errorMessage = errorData.error;
+        
+        if (lowerUrl.includes('walmart.com')) {
+          errorMessage = "Walmart wishlists are not yet supported. Currently works with: Amazon wishlists";
+        } else if (lowerUrl.includes('target.com')) {
+          errorMessage = "Target wishlists are not yet supported. Currently works with: Amazon wishlists";
+        } else if (lowerUrl.includes('amazon.com')) {
+          errorMessage = "This Amazon wishlist is not accessible. Please check the URL and try again.";
+        } else if (!lowerUrl.includes('amazon.com') && !lowerUrl.includes('walmart.com') && !lowerUrl.includes('target.com')) {
+          errorMessage = "This URL is not supported. Currently works with: Amazon wishlists";
+        }
+        
+        throw new Error(errorMessage || `HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('API response:', data);
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to scrape wishlist');
+      }
+
+      const itemsWithSelection = data.items.map((item: ScrapedItem) => ({
+        ...item,
+        selected: true,
+      }));
+
+      setScrapedItems(itemsWithSelection);
+      setRetailer(data.retailer);
+      setWishlistName(`${data.retailer} Wishlist`);
+
+      toast({
+        title: "✅ Wishlist scraped successfully",
+        description: `Found ${data.items.length} items from ${data.retailer}`,
+        className: "bg-green-50 border-green-200",
+      });
+    } catch (err: any) {
+      console.error('Error:', err);
+      setWishlistError(
+        err.message || "Failed to scrape wishlist. Please check the URL and try again."
+      );
+    } finally {
+      setWishlistLoading(false);
+    }
+  };
+
+  const handleWishlistImport = async () => {
+    const selectedItems = scrapedItems.filter((item) => item.selected);
+
+    if (selectedItems.length === 0) {
+      toast({
+        title: "⚠️ No items selected",
+        description: "Please select at least one item to import",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!wishlistName.trim()) {
+      toast({
+        title: "⚠️ List name required",
+        description: "Please enter a name for your list",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const newListId = await importFromWishlist(selectedItems, wishlistName, "Shopping");
       
       toast({
         title: "✅ Wishlist imported successfully!",
-        description: `Created "${listName}" with ${items.length} items`,
+        description: `Created "${wishlistName}" with ${selectedItems.length} items`,
         className: "bg-green-50 border-green-200",
       });
       
+      // Reset state
+      setWishlistUrl("");
+      setScrapedItems([]);
+      setRetailer("");
+      setWishlistError("");
+      setWishlistName("");
+      
       navigate(`/list/${newListId}`);
     } catch (err: any) {
-      throw err;
+      toast({
+        title: "❌ Import failed",
+        description: err.message,
+        variant: "destructive",
+      });
     }
   };
+
+  const toggleItemSelection = (index: number) => {
+    setScrapedItems((items) =>
+      items.map((item, i) =>
+        i === index ? { ...item, selected: !item.selected } : item
+      )
+    );
+  };
+
+  const toggleAllItems = () => {
+    const allSelected = scrapedItems.every((item) => item.selected);
+    setScrapedItems((items) =>
+      items.map((item) => ({ ...item, selected: !allSelected }))
+    );
+  };
+
+  const selectedCount = scrapedItems.filter((item) => item.selected).length;
 
   const categories: ListCategory[] = [
     "Tasks",
@@ -398,7 +536,7 @@ export default function ImportExport() {
               <div className="flex items-center gap-2 mb-4">
                 <ShoppingCart className="w-5 h-5 text-purple-600" />
                 <h2 className="text-xl font-semibold text-gray-900">
-                  Import from Retailer Wishlist
+                  Import from Public List
                 </h2>
                 <TooltipProvider>
                   <Tooltip>
@@ -407,24 +545,157 @@ export default function ImportExport() {
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="max-w-xs">
-                        Import items from Amazon, Target, or Walmart wishlists
+                        Import items from public wishlists, registries, and shopping lists from retailer sites
                       </p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               </div>
-              <p className="text-sm text-gray-600 mb-4">
-                Paste a wishlist URL from Amazon, Target, or Walmart to import items
-              </p>
+              
+              <div className="space-y-3 mb-4">
+                <p className="text-sm text-gray-600">
+                  Paste a public list URL from any retailer site to import items. Currently supports: Amazon wishlists. More retailers coming soon!
+                </p>
+                <p className="text-xs text-gray-500">
+                  Disclaimer: Imports public wishlists, registries, and shopping lists from third-party sites. Not affiliated with any retailer. You're responsible for data you import.{" "}
+                  <a 
+                    href="https://listmine.vervesites.com/terms-of-use" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    Learn More
+                  </a>
+                </p>
+              </div>
 
-              <Button 
-                onClick={() => setIsWishlistModalOpen(true)} 
-                className="w-full min-h-[44px]"
-                variant="outline"
-              >
-                <ShoppingCart className="w-4 h-4 mr-2" />
-                Import from Amazon/Target/Walmart
-              </Button>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="wishlist-url">List URL</Label>
+                  <div className="flex gap-2 mt-2">
+                    <Input
+                      id="wishlist-url"
+                      placeholder="Paste public list URL"
+                      value={wishlistUrl}
+                      onChange={(e) => setWishlistUrl(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !wishlistLoading) {
+                          handleWishlistScrape();
+                        }
+                      }}
+                      disabled={wishlistLoading || scrapedItems.length > 0}
+                      className="flex-1 min-h-[44px]"
+                    />
+                    {scrapedItems.length === 0 && (
+                      <Button onClick={handleWishlistScrape} disabled={wishlistLoading}>
+                        {wishlistLoading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Scraping...
+                          </>
+                        ) : (
+                          "Scrape"
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {wishlistError && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{wishlistError}</AlertDescription>
+                  </Alert>
+                )}
+
+                {scrapedItems.length > 0 && (
+                  <>
+                    <div>
+                      <Label htmlFor="wishlist-name">List Name</Label>
+                      <Input
+                        id="wishlist-name"
+                        value={wishlistName}
+                        onChange={(e) => setWishlistName(e.target.value)}
+                        placeholder="Enter list name"
+                        className="mt-2 min-h-[44px]"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          checked={scrapedItems.every((item) => item.selected)}
+                          onCheckedChange={toggleAllItems}
+                        />
+                        <Label className="text-sm font-medium">
+                          Select All ({selectedCount} of {scrapedItems.length} selected)
+                        </Label>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setScrapedItems([]);
+                          setRetailer("");
+                          setWishlistError("");
+                        }}
+                      >
+                        Clear
+                      </Button>
+                    </div>
+
+                    <ScrollArea className="h-[300px] border rounded-lg">
+                      <div className="p-4 space-y-3">
+                        {scrapedItems.map((item, index) => (
+                          <div
+                            key={index}
+                            className="flex items-start gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+                          >
+                            <Checkbox
+                              checked={item.selected}
+                              onCheckedChange={() => toggleItemSelection(index)}
+                              className="mt-1"
+                            />
+                            {item.image && (
+                              <img
+                                src={item.image}
+                                alt={item.name}
+                                className="w-16 h-16 object-cover rounded"
+                              />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm line-clamp-2">
+                                {item.name}
+                              </p>
+                              {item.price && (
+                                <p className="text-sm text-green-600 font-semibold mt-1">
+                                  {item.price}
+                                </p>
+                              )}
+                              {item.link && (
+                                <a
+                                  href={item.link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-1"
+                                >
+                                  View on {retailer}
+                                  <ExternalLink className="w-3 h-3" />
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+
+                    <Button onClick={handleWishlistImport} className="w-full min-h-[44px]">
+                      <ShoppingCart className="w-4 h-4 mr-2" />
+                      Create List ({selectedCount} items)
+                    </Button>
+                  </>
+                )}
+              </div>
             </Card>
 
             <Card className="p-4 sm:p-6">
@@ -653,12 +924,6 @@ export default function ImportExport() {
           </TabsContent>
         </Tabs>
       </div>
-
-      <ScrapeWishlistModal
-        open={isWishlistModalOpen}
-        onOpenChange={setIsWishlistModalOpen}
-        onImport={handleWishlistImport}
-      />
     </div>
   );
 }

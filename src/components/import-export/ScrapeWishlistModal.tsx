@@ -67,7 +67,22 @@ export default function ScrapeWishlistModal({
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        
+        // Detect retailer from URL for better error messages
+        const lowerUrl = url.toLowerCase();
+        let errorMessage = errorData.error;
+        
+        if (lowerUrl.includes('walmart.com')) {
+          errorMessage = "Walmart wishlists are not yet supported. Currently works with: Amazon wishlists";
+        } else if (lowerUrl.includes('target.com')) {
+          errorMessage = "Target wishlists are not yet supported. Currently works with: Amazon wishlists";
+        } else if (lowerUrl.includes('amazon.com')) {
+          errorMessage = "This Amazon wishlist is not accessible. Please check the URL and try again.";
+        } else if (!lowerUrl.includes('amazon.com') && !lowerUrl.includes('walmart.com') && !lowerUrl.includes('target.com')) {
+          errorMessage = "This URL is not supported. Currently works with: Amazon wishlists";
+        }
+        
+        throw new Error(errorMessage || `HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
@@ -166,10 +181,24 @@ export default function ScrapeWishlistModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ShoppingCart className="w-5 h-5" />
-            Import from Amazon Wishlist
+            Import from Public List
           </DialogTitle>
-          <DialogDescription>
-            Paste an Amazon wishlist URL to import items
+          <DialogDescription className="space-y-2">
+            <p>Paste a public list URL from any retailer site*.</p>
+            <p className="text-xs text-gray-600">
+              *Currently supports: Amazon wishlists. More retailers coming soon!
+            </p>
+            <p className="text-xs text-gray-500">
+              Disclaimer: Imports public wishlists, registries, and shopping lists from third-party sites. Not affiliated with any retailer. You're responsible for data you import.{" "}
+              <a 
+                href="https://listmine.vervesites.com/terms-of-use" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline"
+              >
+                Learn More
+              </a>
+            </p>
           </DialogDescription>
         </DialogHeader>
 
@@ -180,7 +209,7 @@ export default function ScrapeWishlistModal({
             <div className="flex gap-2">
               <Input
                 id="wishlist-url"
-                placeholder="Paste Amazon wishlist URL"
+                placeholder="Paste public list URL"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 onKeyDown={(e) => {
@@ -205,7 +234,7 @@ export default function ScrapeWishlistModal({
               )}
             </div>
             <p className="text-xs text-gray-500">
-              Supported: Amazon Wishlists
+              Currently supports: Amazon wishlists. More retailers coming soon!
             </p>
           </div>
 
