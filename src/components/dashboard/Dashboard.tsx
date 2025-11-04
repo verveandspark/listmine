@@ -949,170 +949,162 @@ export default function Dashboard() {
           </Popover>
         </div>
 
-        {/* Category Overview - Mobile Responsive */}
-        <div className="mb-6 sm:mb-8">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">
-            Categories
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-3 sm:gap-4">
+        {/* Action Bar with Category Pills */}
+        <div className="flex flex-col gap-4 mb-6">
+          {/* Top Row: Sort and Create Button */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Select value={listSortBy} onValueChange={handleListSortChange}>
+                <SelectTrigger className="w-[180px] h-[44px]">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="recent">Recent</SelectItem>
+                  <SelectItem value="name">Name (A-Z)</SelectItem>
+                  <SelectItem value="items">Most Items</SelectItem>
+                  <SelectItem value="completion">Completion %</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Dialog
+              open={isCreateDialogOpen}
+              onOpenChange={setIsCreateDialogOpen}
+            >
+              <DialogTrigger asChild>
+                <Button className="w-full sm:w-auto min-h-[44px]">
+                  <Plus className="w-4 h-4 mr-2" />
+                  New List
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create New List</DialogTitle>
+                  <DialogDescription>
+                    Give your list a name and choose a category
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="title">List Name</Label>
+                    <Input
+                      id="title"
+                      placeholder="e.g., Grocery List, Weekend Tasks, Trip to Paris"
+                      value={newListTitle}
+                      onChange={(e) => setNewListTitle(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleCreateList();
+                        }
+                      }}
+                      className="min-h-[44px]"
+                    />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Label htmlFor="category">Category</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="max-w-xs">
+                              Organize your lists by category (Shopping, Work,
+                              Personal, etc.)
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                    <Select
+                      value={newListCategory}
+                      onValueChange={(value) =>
+                        setNewListCategory(value as ListCategory)
+                      }
+                    >
+                      <SelectTrigger className="min-h-[44px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat} value={cat}>
+                            {cat}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="type">List Type</Label>
+                    <Select
+                      value={newListType}
+                      onValueChange={(value) => setNewListType(value as ListType)}
+                    >
+                      <SelectTrigger className="min-h-[44px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {listTypes.map((type) => (
+                          <SelectItem key={type.value} value={type.value}>
+                            {type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    onClick={handleCreateList}
+                    className="w-full min-h-[44px]"
+                  >
+                    Create List
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {/* Category Pills - Horizontal Row */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            <Button
+              variant={selectedCategory === "All" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedCategory("All")}
+              className="min-h-[36px] whitespace-nowrap"
+            >
+              All
+            </Button>
             {(categories.filter((c) => c !== "All") as ListCategory[]).map(
               (category) => {
                 const Icon = categoryIcons[category];
                 const stats = getCategoryStats(category);
                 return (
-                  <Card
+                  <Button
                     key={category}
-                    className={`cursor-pointer transition-all hover:shadow-lg hover:scale-105 ${
-                      selectedCategory === category ? "ring-2 ring-primary" : ""
-                    }`}
+                    variant={selectedCategory === category ? "default" : "outline"}
+                    size="sm"
                     onClick={() => setSelectedCategory(category)}
+                    className={`min-h-[36px] whitespace-nowrap ${
+                      selectedCategory === category 
+                        ? "" 
+                        : categoryColors[category]
+                    }`}
                   >
-                    <CardContent className="p-3 sm:p-4">
-                      <div
-                        className={`w-12 h-12 sm:w-14 sm:h-14 rounded-lg ${categoryColors[category]} flex items-center justify-center mb-2 sm:mb-3`}
+                    <Icon className="w-4 h-4 mr-1.5" />
+                    {category}
+                    {stats.count > 0 && (
+                      <Badge 
+                        variant="secondary" 
+                        className="ml-1.5 h-5 px-1.5 text-xs"
                       >
-                        <Icon className="w-6 h-6 sm:w-7 sm:h-7" />
-                      </div>
-                      <h3 className="font-semibold text-gray-900 mb-1 text-xs sm:text-sm">
-                        {category}
-                      </h3>
-                      <p
-                        className={`text-xs ${stats.count === 0 ? "text-gray-400" : "text-gray-600"}`}
-                      >
-                        {stats.count} lists
-                      </p>
-                    </CardContent>
-                  </Card>
+                        {stats.count}
+                      </Badge>
+                    )}
+                  </Button>
                 );
-              },
+              }
             )}
           </div>
-        </div>
-
-        {/* Action Bar */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between mb-4 sm:mb-6 gap-3">
-          <div className="flex items-center gap-2">
-            <Button
-              variant={selectedCategory === "All" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSelectedCategory("All")}
-              className="min-h-[44px]"
-            >
-              All Lists
-            </Button>
-            {selectedCategory !== "All" && (
-              <Badge variant="secondary" className="text-sm">
-                {selectedCategory}
-              </Badge>
-            )}
-            <Select value={listSortBy} onValueChange={handleListSortChange}>
-              <SelectTrigger className="w-[180px] h-[44px]">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="recent">Recent</SelectItem>
-                <SelectItem value="name">Name (A-Z)</SelectItem>
-                <SelectItem value="items">Most Items</SelectItem>
-                <SelectItem value="completion">Completion %</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <Dialog
-            open={isCreateDialogOpen}
-            onOpenChange={setIsCreateDialogOpen}
-          >
-            <DialogTrigger asChild>
-              <Button className="w-full sm:w-auto min-h-[44px]">
-                <Plus className="w-4 h-4 mr-2" />
-                New List
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create New List</DialogTitle>
-                <DialogDescription>
-                  Give your list a name and choose a category
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="title">List Name</Label>
-                  <Input
-                    id="title"
-                    placeholder="e.g., Grocery List, Weekend Tasks, Trip to Paris"
-                    value={newListTitle}
-                    onChange={(e) => setNewListTitle(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleCreateList();
-                      }
-                    }}
-                    className="min-h-[44px]"
-                  />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Label htmlFor="category">Category</Label>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="max-w-xs">
-                            Organize your lists by category (Shopping, Work,
-                            Personal, etc.)
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  <Select
-                    value={newListCategory}
-                    onValueChange={(value) =>
-                      setNewListCategory(value as ListCategory)
-                    }
-                  >
-                    <SelectTrigger className="min-h-[44px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat} value={cat}>
-                          {cat}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="type">List Type</Label>
-                  <Select
-                    value={newListType}
-                    onValueChange={(value) => setNewListType(value as ListType)}
-                  >
-                    <SelectTrigger className="min-h-[44px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {listTypes.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button
-                  onClick={handleCreateList}
-                  className="w-full min-h-[44px]"
-                >
-                  Create List
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
         </div>
 
         {/* Pinned Lists */}
