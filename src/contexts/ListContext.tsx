@@ -1,23 +1,17 @@
 import {
   createContext,
-  useContext,
-  useState,
-  ReactNode,
   useEffect,
+  useState,
 } from "react";
-import { List, ListItem, ListCategory, ListType } from "@/types";
 import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/contexts/useAuthHook";
+import { List, ListItem, ListCategory, ListType } from "@/types";
+import { useAuth } from "./useAuthHook";
 import {
   validateListName,
-  validateItemName,
-  validateEmail,
-  validateTag,
-  validateNotes,
-  validateQuantity,
   validateCategory,
-  sanitizeInput,
+  validateImportData,
 } from "@/lib/validation";
+import html2pdf from "html2pdf.js";
 
 const OPERATION_TIMEOUT = 15000;
 
@@ -648,38 +642,135 @@ export function ListProvider({ children }: { children: ReactNode }) {
             "We couldn't read this file. Make sure it's a valid CSV file with headers.",
           );
         }
+        
         const headers = lines[0]
           .toLowerCase()
           .split(",")
-          .map((h) => h.trim());
+          .map((h) => h.trim().replace(/^"|"$/g, ""));
+        
         for (let i = 1; i < lines.length; i++) {
-          const values = lines[i]
-            .split(",")
-            .map((v) => v.trim().replace(/^"|"$/g, ""));
+          // Parse CSV line handling quoted fields
+          const values: string[] = [];
+          let currentValue = "";
+          let insideQuotes = false;
+          
+          for (let j = 0; j < lines[i].length; j++) {
+            const char = lines[i][j];
+            if (char === '"') {
+              insideQuotes = !insideQuotes;
+            } else if (char === ',' && !insideQuotes) {
+              values.push(currentValue.trim());
+              currentValue = "";
+            } else {
+              currentValue += char;
+            }
+          }
+          values.push(currentValue.trim());
+          
+          const getValueByHeader = (headerName: string) => {
+            const index = headers.indexOf(headerName);
+            return index >= 0 ? values[index]?.replace(/^"|"$/g, "") : "";
+          };
+          
+          const itemText = getValueByHeader("item name") || getValueByHeader("text") || getValueByHeader("name") || values[0] || "";
+          
+          if (!itemText) continue;
+          
           const item: Omit<ListItem, "id" | "order"> = {
-            text: values[headers.indexOf("text")] || values[0] || "",
-            completed: false,
+            text: itemText,
+            completed: getValueByHeader("completed") === "true",
           };
 
-          const qtyIndex = headers.indexOf("quantity");
-          if (qtyIndex >= 0 && values[qtyIndex]) {
-            item.quantity = parseInt(values[qtyIndex]);
+          const quantity = getValueByHeader("quantity");
+          if (quantity) item.quantity = parseInt(quantity);
+
+          const priority = getValueByHeader("priority");
+          if (priority && ["low", "medium", "high"].includes(priority.toLowerCase())) {
+            item.priority = priority.toLowerCase() as "low" | "medium" | "high";
           }
 
-          const linkIndex = headers.indexOf("link");
-          if (linkIndex >= 0 && values[linkIndex]) {
-            item.links = [values[linkIndex]];
+          const dueDate = getValueByHeader("due date");
+          if (dueDate) {
+            const parsedDate = new Date(dueDate);
+            if (!isNaN(parsedDate.getTime())) {
+              item.dueDate = parsedDate;
+            }
+          }
+
+          const notes = getValueByHeader("notes");
+          if (notes) item.notes = notes;
+
+          const assignedTo = getValueByHeader("assigned to");
+          if (assignedTo) item.assignedTo = assignedTo;
+
+          const link = getValueByHeader("link") || getValueByHeader("links");
+          if (link) {
+            item.links = link.split(";").map(l => l.trim()).filter(l => l);
+          }
+
+          const tags = getValueByHeader("tags");
+          if (tags) {
+            item.attributes = { 
+              ...item.attributes, 
+              custom: { tags: tags } 
+            };
           }
 
           items.push(item);
         }
       } else {
-        lines.forEach((line) => {
-          items.push({
-            text: line.trim(),
-            completed: false,
-          });
-        });
+        // TXT format - parse formatted text
+        let currentItem: Omit<ListItem, "id" | "order"> | null = null;
+        
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          
+          // Check if it's a new item (starts with □, ☐, -, *, or bullet)
+          if (trimmedLine.match(/^[□☐\-\*•]\s+/)) {
+            if (currentItem) items.push(currentItem);
+            
+            const itemText = trimmedLine.replace(/^[□☐\-\*•]\s+/, "").trim();
+            currentItem = {
+              text: itemText,
+              completed: false,
+            };
+          } else if (currentItem) {
+            // Parse item attributes
+            if (trimmedLine.toLowerCase().startsWith("notes:")) {
+              currentItem.notes = trimmedLine.substring(6).trim();
+            } else if (trimmedLine.toLowerCase().startsWith("link:")) {
+              const link = trimmedLine.substring(5).trim();
+              currentItem.links = [link];
+            } else if (trimmedLine.toLowerCase().startsWith("due:")) {
+              const dateStr = trimmedLine.substring(4).trim();
+              const parsedDate = new Date(dateStr);
+              if (!isNaN(parsedDate.getTime())) {
+                currentItem.dueDate = parsedDate;
+              }
+            } else if (trimmedLine.toLowerCase().startsWith("priority:")) {
+              const priority = trimmedLine.substring(9).trim().toLowerCase();
+              if (["low", "medium", "high"].includes(priority)) {
+                currentItem.priority = priority as "low" | "medium" | "high";
+              }
+            } else if (trimmedLine.toLowerCase().startsWith("assigned:")) {
+              currentItem.assignedTo = trimmedLine.substring(9).trim();
+            } else if (trimmedLine.toLowerCase().startsWith("tags:")) {
+              const tags = trimmedLine.substring(5).trim();
+              currentItem.attributes = { 
+                ...currentItem.attributes, 
+                custom: { tags } 
+              };
+            }
+          } else if (!trimmedLine.match(/^[□☐\-\*•]/)) {
+            // Simple line without formatting
+            items.push({
+              text: trimmedLine,
+              completed: false,
+            });
+          }
+        }
+        
+        if (currentItem) items.push(currentItem);
       }
     } catch (error) {
       throw new Error(
@@ -708,8 +799,14 @@ export function ListProvider({ children }: { children: ReactNode }) {
         list_id: newList.id,
         text: item.text,
         quantity: item.quantity,
-        completed: false,
+        priority: item.priority,
+        due_date: item.dueDate?.toISOString(),
+        notes: item.notes,
+        assigned_to: item.assignedTo,
+        completed: item.completed || false,
         item_order: index,
+        links: item.links,
+        attributes: item.attributes,
       }));
 
       const itemsResult = (await withTimeout(
@@ -750,48 +847,139 @@ export function ListProvider({ children }: { children: ReactNode }) {
     try {
       let content = "";
       let mimeType = "text/plain";
+      let filename = `${list.title}.${format}`;
 
       if (format === "csv") {
-        content =
-          "Text,Quantity,Priority,Due Date,Notes,Assigned To,Links,Completed\n";
+        // CSV with ALL fields
+        content = "Item Name,Notes,Link,Due Date,Priority,Tags,Completed,Assigned To,Quantity\n";
         content += list.items
-          .map(
-            (item) =>
-              `"\${item.text}","\${item.quantity || ""}","\${item.priority || ""}","\${item.dueDate?.toISOString() || ""}","\${item.notes || ""}","\${item.assignedTo || ""}","\${item.links?.join(";") || ""}","\${item.completed}"`,
-          )
-          .join("\n");
-      } else if (format === "txt") {
-        content = list.items
           .map((item) => {
-            let line = item.text;
-            if (item.quantity) line = `\${item.quantity}x \${line}`;
-            if (item.assignedTo) line += ` (\${item.assignedTo})`;
-            return line;
+            const tags = item.attributes?.custom?.tags || "";
+            const links = item.links?.join(";") || "";
+            const dueDate = item.dueDate ? item.dueDate.toISOString().split('T')[0] : "";
+            
+            return [
+              `"${item.text.replace(/"/g, '""')}"`,
+              `"${(item.notes || "").replace(/"/g, '""')}"`,
+              `"${links}"`,
+              `"${dueDate}"`,
+              `"${item.priority || ""}"`,
+              `"${tags}"`,
+              `"${item.completed}"`,
+              `"${item.assignedTo || ""}"`,
+              `"${item.quantity || ""}"`
+            ].join(",");
           })
           .join("\n");
+        mimeType = "text/csv";
+        
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+      } else if (format === "txt") {
+        // TXT with formatted details
+        content = `${list.title}\n`;
+        content += `Category: ${list.category} | Type: ${list.listType}\n`;
+        content += `Exported: ${new Date().toLocaleDateString()}\n`;
+        content += "=".repeat(50) + "\n\n";
+        
+        content += list.items
+          .map((item) => {
+            let itemText = `${item.completed ? "☑" : "□"} ${item.text}`;
+            if (item.quantity) itemText = `${item.quantity}x ${itemText}`;
+            
+            let details = "";
+            if (item.notes) details += `\n  Notes: ${item.notes}`;
+            if (item.links && item.links.length > 0) details += `\n  Link: ${item.links.join(", ")}`;
+            if (item.dueDate) details += `\n  Due: ${item.dueDate.toLocaleDateString()}`;
+            if (item.priority) details += `\n  Priority: ${item.priority}`;
+            if (item.attributes?.custom?.tags) details += `\n  Tags: ${item.attributes.custom.tags}`;
+            if (item.assignedTo) details += `\n  Assigned: ${item.assignedTo}`;
+            
+            return itemText + details;
+          })
+          .join("\n\n");
+          
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
       } else if (format === "pdf") {
-        content = `
-        <html>
-          <head><title>${list.title}</title></head>
-          <body>
-            <h1>${list.title}</h1>
-            <p>Category: ${list.category} | Type: ${list.listType}</p>
-            <ul>
-              ${list.items.map((item) => `<li>${item.text}${item.quantity ? ` (${item.quantity})` : ""}</li>`).join("")}
-            </ul>
-          </body>
-        </html>
-      `;
-        mimeType = "text/html";
+        // Generate actual PDF using html2pdf.js
+        const htmlContent = `
+          <div style="font-family: Arial, sans-serif; padding: 40px; background: white;">
+            <h1 style="color: #2563eb; border-bottom: 3px solid #2563eb; padding-bottom: 10px; margin-bottom: 10px;">
+              ${list.title}
+            </h1>
+            <div style="color: #666; margin-bottom: 20px; font-size: 14px;">
+              <strong>Category:</strong> ${list.category} | 
+              <strong>Type:</strong> ${list.listType} | 
+              <strong>Items:</strong> ${list.items.length} | 
+              <strong>Exported:</strong> ${new Date().toLocaleDateString()}
+            </div>
+            
+            <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+              <thead>
+                <tr>
+                  <th style="background: #2563eb; color: white; padding: 12px; text-align: left; font-weight: 600; width: 5%;">✓</th>
+                  <th style="background: #2563eb; color: white; padding: 12px; text-align: left; font-weight: 600; width: 25%;">Item</th>
+                  <th style="background: #2563eb; color: white; padding: 12px; text-align: left; font-weight: 600; width: 20%;">Notes</th>
+                  <th style="background: #2563eb; color: white; padding: 12px; text-align: left; font-weight: 600; width: 10%;">Due Date</th>
+                  <th style="background: #2563eb; color: white; padding: 12px; text-align: left; font-weight: 600; width: 10%;">Priority</th>
+                  <th style="background: #2563eb; color: white; padding: 12px; text-align: left; font-weight: 600; width: 15%;">Assigned To</th>
+                  <th style="background: #2563eb; color: white; padding: 12px; text-align: left; font-weight: 600; width: 15%;">Link</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${list.items.map((item, index) => `
+                  <tr style="${index % 2 === 0 ? 'background: #f9fafb;' : ''}">
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd; vertical-align: top;">${item.completed ? "☑" : "□"}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd; vertical-align: top; ${item.completed ? 'text-decoration: line-through; color: #999;' : ''}">
+                      ${item.quantity ? `<strong>${item.quantity}x</strong> ` : ""}${item.text}
+                    </td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd; vertical-align: top;">${item.notes || "-"}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd; vertical-align: top;">${item.dueDate ? item.dueDate.toLocaleDateString() : "-"}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd; vertical-align: top; ${
+                      item.priority === 'high' ? 'color: #dc2626; font-weight: 600;' :
+                      item.priority === 'medium' ? 'color: #f59e0b; font-weight: 600;' :
+                      item.priority === 'low' ? 'color: #10b981;' : ''
+                    }">${item.priority || "-"}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd; vertical-align: top;">${item.assignedTo || "-"}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd; vertical-align: top;">${item.links && item.links.length > 0 ? item.links[0].substring(0, 30) + "..." : "-"}</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+            
+            <div style="margin-top: 30px; text-align: center; color: #999; font-size: 12px;">
+              Generated by ListMine • ${new Date().toLocaleString()}
+            </div>
+          </div>
+        `;
+        
+        // Create temporary element
+        const element = document.createElement("div");
+        element.innerHTML = htmlContent;
+        
+        // Configure html2pdf options
+        const opt = {
+          margin: 10,
+          filename: filename,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        
+        // Generate and download PDF
+        html2pdf().set(opt).from(element).save();
       }
-
-      const blob = new Blob([content], { type: mimeType });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${list.title}.${format}`;
-      a.click();
-      URL.revokeObjectURL(url);
     } catch (error: any) {
       logError("exportList", error, user?.id);
       throw new Error(
