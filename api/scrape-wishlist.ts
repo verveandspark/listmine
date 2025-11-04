@@ -19,8 +19,6 @@ interface ScraperResponse {
 const detectRetailer = (url: string): string | null => {
   const lowerUrl = url.toLowerCase();
   if (lowerUrl.includes('amazon.com')) return 'Amazon';
-  if (lowerUrl.includes('target.com')) return 'Target';
-  if (lowerUrl.includes('walmart.com')) return 'Walmart';
   return null;
 };
 
@@ -192,7 +190,7 @@ export default async function handler(
     if (!retailer) {
       res.status(400).json({ 
         success: false, 
-        error: 'Unsupported retailer. Please use Amazon, Target, or Walmart URLs.' 
+        error: 'Unsupported URL. Please use Amazon wishlist URLs only.' 
       });
       return;
     }
@@ -203,48 +201,20 @@ export default async function handler(
     const scraperApiKey = process.env.SCRAPER_API_KEY;
     console.log('ScraperAPI key available:', !!scraperApiKey);
 
-    if (retailer === 'Amazon') {
-      if (!scraperApiKey) {
-        res.status(400).json({
-          success: false,
-          error: 'Amazon scraping requires ScraperAPI key. Please contact support or try Target/Walmart lists.'
-        });
-        return;
-      }
-      console.log('Using ScraperAPI for Amazon');
-      html = await fetchWithScraperAPI(url, scraperApiKey);
-      console.log('HTML length:', html.length);
-    } else {
-      try {
-        console.log('Trying direct fetch');
-        html = await fetchDirectly(url);
-        console.log('HTML length:', html.length);
-      } catch (directError) {
-        console.log('Direct fetch failed, trying ScraperAPI');
-        if (scraperApiKey) {
-          html = await fetchWithScraperAPI(url, scraperApiKey);
-          console.log('HTML length:', html.length);
-        } else {
-          throw directError;
-        }
-      }
+    if (!scraperApiKey) {
+      res.status(400).json({
+        success: false,
+        error: 'Amazon scraping requires ScraperAPI key. Please contact support.'
+      });
+      return;
     }
+    
+    console.log('Using ScraperAPI for Amazon');
+    html = await fetchWithScraperAPI(url, scraperApiKey);
+    console.log('HTML length:', html.length);
 
     const $ = cheerio.load(html);
-
-    let items: ScrapedItem[] = [];
-
-    switch (retailer) {
-      case 'Amazon':
-        items = scrapeAmazon($);
-        break;
-      case 'Target':
-        items = scrapeTarget($);
-        break;
-      case 'Walmart':
-        items = scrapeWalmart($);
-        break;
-    }
+    const items: ScrapedItem[] = scrapeAmazon($);
 
     console.log('Scraped items count:', items.length);
 

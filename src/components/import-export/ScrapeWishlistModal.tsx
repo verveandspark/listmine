@@ -166,10 +166,10 @@ export default function ScrapeWishlistModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ShoppingCart className="w-5 h-5" />
-            Import from Retailer Wishlist
+            Import from Amazon Wishlist
           </DialogTitle>
           <DialogDescription>
-            Paste an Amazon, Target, or Walmart wishlist URL to import items
+            Paste an Amazon wishlist URL to import items
           </DialogDescription>
         </DialogHeader>
 
@@ -180,7 +180,7 @@ export default function ScrapeWishlistModal({
             <div className="flex gap-2">
               <Input
                 id="wishlist-url"
-                placeholder="https://www.amazon.com/hz/wishlist/ls/..."
+                placeholder="Paste Amazon wishlist URL"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 onKeyDown={(e) => {
@@ -205,7 +205,7 @@ export default function ScrapeWishlistModal({
               )}
             </div>
             <p className="text-xs text-gray-500">
-              Supported: Amazon Wishlists, Target Lists, Walmart Lists
+              Supported: Amazon Wishlists
             </p>
           </div>
 
