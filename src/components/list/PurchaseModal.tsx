@@ -26,7 +26,7 @@ interface PurchaseModalProps {
     };
   };
   listId: string;
-  onPurchaseComplete: () => void;
+  onPurchaseComplete: (purchaserName: string | null, purchaseNote: string | null) => void;
 }
 
 export default function PurchaseModal({
@@ -43,8 +43,11 @@ export default function PurchaseModal({
   const handleConfirm = async () => {
     setIsSubmitting(true);
     try {
-      // Call the purchase confirmation handler
-      await onPurchaseComplete();
+      // Call the purchase confirmation handler with the form data
+      await onPurchaseComplete(
+        purchaserName.trim() || null,
+        purchaseNote.trim() || null
+      );
       
       // Reset form
       setPurchaserName("");

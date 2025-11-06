@@ -215,14 +215,12 @@ export default function SharedListView() {
     setIsPurchaseModalOpen(true);
   };
 
-  const handlePurchaseComplete = async () => {
+  const handlePurchaseComplete = async (purchaserName: string | null, purchaseNote: string | null) => {
     if (!selectedItem || !list) return;
 
     try {
-      // Get the modal values (we'll need to pass them from the modal)
-      const purchaserName = (document.getElementById("purchaser-name") as HTMLInputElement)?.value || null;
-      const purchaseNote = (document.getElementById("purchase-note") as HTMLTextAreaElement)?.value || null;
-
+      console.log("Starting purchase process for item:", selectedItem.id);
+      
       // Insert purchase record
       const { data: purchaseData, error: purchaseError } = await supabase
         .from("purchases")
@@ -235,12 +233,17 @@ export default function SharedListView() {
         .select()
         .single();
 
-      if (purchaseError) throw purchaseError;
+      if (purchaseError) {
+        console.error("Purchase insert error:", purchaseError);
+        throw purchaseError;
+      }
+
+      console.log("Purchase record created:", purchaseData);
 
       // Update item status to 'Purchased'
       const updatedAttributes = {
         ...selectedItem.attributes,
-        purchaseStatus: "Purchased",
+        purchaseStatus: "purchased",
       };
 
       // If quantity_needed > 1, decrement it
@@ -253,7 +256,12 @@ export default function SharedListView() {
         .update({ attributes: updatedAttributes })
         .eq("id", selectedItem.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error("Item update error:", updateError);
+        throw updateError;
+      }
+
+      console.log("Item attributes updated successfully");
 
       // Update local state
       setPurchases((prev) => ({
@@ -271,8 +279,9 @@ export default function SharedListView() {
       }));
 
       toast({
-        title: "Thank you!",
+        title: "✅ Thank you!",
         description: "Item marked as purchased",
+        className: "bg-green-50 border-green-200",
       });
 
       setIsPurchaseModalOpen(false);
@@ -280,8 +289,8 @@ export default function SharedListView() {
     } catch (error: any) {
       console.error("Error completing purchase:", error);
       toast({
-        title: "Error",
-        description: "Failed to mark item as purchased. Please try again.",
+        title: "❌ Failed to mark item as purchased",
+        description: error.message || "Please try again",
         variant: "destructive",
       });
     }
@@ -345,7 +354,10 @@ export default function SharedListView() {
                 {list.title}
               </h1>
               <p className="text-xs sm:text-sm text-gray-600">
-                {list.category} · {list.items.length} items · Read-only
+                {list.category} · {list.items.length} items · 
+                {list.listType === "registry-list" ? " Shared Registry" : 
+                 list.listType === "shopping-list" ? " Shared Wishlist" : 
+                 " Shared List"}
               </p>
             </div>
             <Button

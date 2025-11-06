@@ -895,21 +895,38 @@ export default function ListDetail() {
                   </Tooltip>
                 </TooltipProvider>
                 {(list.listType === "registry-list" || list.listType === "shopping-list") && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setIsPurchaseHistoryOpen(true)}
-                          className="h-10 w-10"
-                        >
-                          <ShoppingCart className="w-4 h-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Purchase History</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={handleGenerateShareLink}
+                            className="h-10 w-10"
+                          >
+                            <Share2 className="w-4 h-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Share this list</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => setIsPurchaseHistoryOpen(true)}
+                            className="h-10 w-10"
+                          >
+                            <ShoppingCart className="w-4 h-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Purchase History</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </>
                 )}
                 <TooltipProvider>
                   <Tooltip>
@@ -1041,17 +1058,30 @@ export default function ListDetail() {
                 <SheetContent side="right" className="w-[280px]">
                   <div className="flex flex-col gap-3 mt-8">
                     {(list.listType === "registry-list" || list.listType === "shopping-list") && (
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setIsPurchaseHistoryOpen(true);
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className="w-full justify-start min-h-[44px]"
-                      >
-                        <ShoppingCart className="w-4 h-4 mr-2" />
-                        Purchase History
-                      </Button>
+                      <>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            handleGenerateShareLink();
+                            setIsMobileMenuOpen(false);
+                          }}
+                          className="w-full justify-start min-h-[44px]"
+                        >
+                          <Share2 className="w-4 h-4 mr-2" />
+                          Share List
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setIsPurchaseHistoryOpen(true);
+                            setIsMobileMenuOpen(false);
+                          }}
+                          className="w-full justify-start min-h-[44px]"
+                        >
+                          <ShoppingCart className="w-4 h-4 mr-2" />
+                          Purchase History
+                        </Button>
+                      </>
                     )}
                     <Button
                       variant="outline"
@@ -1088,17 +1118,6 @@ export default function ListDetail() {
                     >
                       <CheckCircle className="w-4 h-4 mr-2" />
                       {isSelectMode ? "Done Selecting" : "Select Multiple"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setIsShareDialogOpen(true);
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="w-full justify-start min-h-[44px]"
-                    >
-                      <Share2 className="w-4 h-4 mr-2" />
-                      Share List
                     </Button>
                     <Button
                       variant="outline"
