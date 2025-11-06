@@ -103,6 +103,7 @@ import {
   validateCategory,
   checkListLimit,
 } from "@/lib/validation";
+import CreateListModal from "@/components/list/CreateListModal";
 
 const categoryIcons: Record<string, any> = {
   Tasks: CheckSquare,
@@ -132,7 +133,7 @@ const listTypes: { value: ListType; label: string }[] = [
   { value: "registry-list", label: "Registry List" },
   { value: "checklist", label: "Checklist" },
   { value: "grocery-list", label: "Grocery List" },
-  { value: "shopping-list", label: "Shopping List" },
+  { value: "shopping-list", label: "Wishlist" },
   { value: "idea-list", label: "Idea List" },
   { value: "multi-topic", label: "Multi-Topic" },
   { value: "compare-contrast", label: "Compare & Contrast" },
@@ -966,102 +967,13 @@ export default function Dashboard() {
                 </SelectContent>
               </Select>
             </div>
-            <Dialog
-              open={isCreateDialogOpen}
-              onOpenChange={setIsCreateDialogOpen}
+            <Button 
+              className="w-full sm:w-auto min-h-[44px]"
+              onClick={() => setIsCreateDialogOpen(true)}
             >
-              <DialogTrigger asChild>
-                <Button className="w-full sm:w-auto min-h-[44px]">
-                  <Plus className="w-4 h-4 mr-2" />
-                  New List
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Create New List</DialogTitle>
-                  <DialogDescription>
-                    Give your list a name and choose a category
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="title">List Name</Label>
-                    <Input
-                      id="title"
-                      placeholder="e.g., Grocery List, Weekend Tasks, Trip to Paris"
-                      value={newListTitle}
-                      onChange={(e) => setNewListTitle(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          handleCreateList();
-                        }
-                      }}
-                      className="min-h-[44px]"
-                    />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Label htmlFor="category">Category</Label>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="max-w-xs">
-                              Organize your lists by category (Shopping, Work,
-                              Personal, etc.)
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                    <Select
-                      value={newListCategory}
-                      onValueChange={(value) =>
-                        setNewListCategory(value as ListCategory)
-                      }
-                    >
-                      <SelectTrigger className="min-h-[44px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((cat) => (
-                          <SelectItem key={cat} value={cat}>
-                            {cat}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="type">List Type</Label>
-                    <Select
-                      value={newListType}
-                      onValueChange={(value) => setNewListType(value as ListType)}
-                    >
-                      <SelectTrigger className="min-h-[44px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {listTypes.map((type) => (
-                          <SelectItem key={type.value} value={type.value}>
-                            {type.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button
-                    onClick={handleCreateList}
-                    className="w-full min-h-[44px]"
-                  >
-                    Create List
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+              <Plus className="w-4 h-4 mr-2" />
+              New List
+            </Button>
           </div>
 
           {/* Category Pills - Horizontal Row */}
@@ -1076,7 +988,7 @@ export default function Dashboard() {
             </Button>
             {(categories.filter((c) => c !== "All") as ListCategory[]).map(
               (category) => {
-                const Icon = categoryIcons[category];
+                const Icon = categoryIcons[category] || ListChecks;
                 const stats = getCategoryStats(category);
                 return (
                   <Button
@@ -1093,12 +1005,9 @@ export default function Dashboard() {
                     <Icon className="w-4 h-4 mr-1.5" />
                     {category}
                     {stats.count > 0 && (
-                      <Badge 
-                        variant="secondary" 
-                        className="ml-1.5 h-5 px-1.5 text-xs"
-                      >
+                      <span className="ml-1.5 h-5 px-1.5 text-xs bg-secondary text-secondary-foreground rounded-md inline-flex items-center">
                         {stats.count}
-                      </Badge>
+                      </span>
                     )}
                   </Button>
                 );
@@ -1116,7 +1025,7 @@ export default function Dashboard() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {pinnedLists.map((list) => {
-                const Icon = categoryIcons[list.category];
+                const Icon = categoryIcons[list.category] || ListChecks;
                 const completedItems = list.items.filter(
                   (item) => item.completed,
                 ).length;
@@ -1337,7 +1246,7 @@ export default function Dashboard() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {unpinnedLists.map((list) => {
-                const Icon = categoryIcons[list.category];
+                const Icon = categoryIcons[list.category] || ListChecks;
                 const completedItems = list.items.filter(
                   (item) => item.completed,
                 ).length;
@@ -1518,6 +1427,12 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      {/* Create List Modal */}
+      <CreateListModal 
+        open={isCreateDialogOpen} 
+        onOpenChange={setIsCreateDialogOpen} 
+      />
     </div>
   );
 }

@@ -75,7 +75,7 @@ export function ListSidebar() {
 
         <div className="space-y-4">
           {Object.entries(groupedLists).map(([category, categoryLists]) => {
-            const Icon = categoryIcons[category];
+            const Icon = categoryIcons[category] || ListChecks;
             return (
               <div key={category}>
                 <div className="flex items-center gap-2 mb-2">
