@@ -8,6 +8,29 @@ export interface User {
   itemsPerListLimit: number;
 }
 
+export interface ListItemAttributes {
+  color?: string;
+  size?: string;
+  weight?: string;
+  price?: number;
+  category?: string;
+  unit?: string;
+  quantity?: number;
+  priority?: string;
+  status?: string;
+  purchaseStatus?: string;
+  quantityNeeded?: number;
+  productLink?: string;
+  inspirationLink?: string;
+  linkTitle?: string;
+  linkImage?: string;
+  linkDescription?: string;
+  customLinkTitle?: string;
+  customLinkDescription?: string;
+  customLinkImage?: string;
+  custom?: Record<string, string>;
+}
+
 export interface ListItem {
   id: string;
   text: string;
@@ -17,14 +40,7 @@ export interface ListItem {
   notes?: string;
   completed: boolean;
   order: number;
-  // New attributes
-  attributes?: {
-    color?: string;
-    size?: string;
-    weight?: string;
-    price?: number;
-    custom?: Record<string, string>;
-  };
+  attributes?: ListItemAttributes;
   links?: string[];
   assignedTo?: string;
 }

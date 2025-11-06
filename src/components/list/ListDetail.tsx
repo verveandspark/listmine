@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useLists } from "@/contexts/useListsHook";
 import { useAuth } from "@/contexts/useAuthHook";
-import { ListItem as ListItemType } from "@/types";
+import { ListItem as ListItemType, ListCategory, ListType } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,6 +38,7 @@ import {
   ListTree,
   ChevronRight,
   AlertCircle,
+  Edit,
 } from "lucide-react";
 import {
   Dialog,
@@ -92,6 +93,8 @@ import {
   checkItemLimit,
   validateEmail,
   validateTag,
+  validateListName,
+  validateCategory,
 } from "@/lib/validation";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -115,6 +118,7 @@ export default function ListDetail() {
     addCollaborator,
     addTagToList,
     removeTagFromList,
+    updateList,
   } = useLists();
   const { toast } = useToast();
 
@@ -140,16 +144,22 @@ export default function ListDetail() {
   const [newItemQuantityPurchased, setNewItemQuantityPurchased] = useState<number | undefined>();
   const [newItemProductLink, setNewItemProductLink] = useState<string>("");
   
+  // Manual link preview fields
+  const [newItemLinkTitle, setNewItemLinkTitle] = useState<string>("");
+  const [newItemLinkDescription, setNewItemLinkDescription] = useState<string>("");
+  const [newItemLinkImage, setNewItemLinkImage] = useState<string>("");
+  
   const [isDetailedMode, setIsDetailedMode] = useState(() => {
     const savedMode = localStorage.getItem("itemEntryMode");
     return savedMode === "detailed";
   });
 
+  const [editingItem, setEditingItem] = useState<ListItemType | null>(null);
+
   // Link preview for new items
   const { previewData, loading: previewLoading, error: previewError, fetchPreview } = useOpenGraphPreview();
   const [showNewItemPreview, setShowNewItemPreview] = useState(false);
 
-  const [editingItem, setEditingItem] = useState<ListItemType | null>(null);
   const [draggedItem, setDraggedItem] = useState<ListItemType | null>(null);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
@@ -170,6 +180,12 @@ export default function ListDetail() {
   const [showItemLimitError, setShowItemLimitError] = useState(false);
   const [detailedMode, setDetailedMode] = useState(false);
   const [itemLimitReached, setItemLimitReached] = useState(false);
+  
+  // Edit list state
+  const [isEditListDialogOpen, setIsEditListDialogOpen] = useState(false);
+  const [editListTitle, setEditListTitle] = useState("");
+  const [editListCategory, setEditListCategory] = useState<string>("");
+  const [editListType, setEditListType] = useState<string>("");
 
   // Simulate loading on mount
   useState(() => {
@@ -333,26 +349,20 @@ export default function ListDetail() {
         if (newItemStatus) attributes.purchaseStatus = newItemStatus;
         if (newItemProductLink) {
           attributes.productLink = newItemProductLink;
-          // Save link preview data if available
-          const linkPreview = previewData[newItemProductLink];
-          if (linkPreview) {
-            attributes.linkTitle = linkPreview.title;
-            attributes.linkImage = linkPreview.image;
-            attributes.linkDescription = linkPreview.description;
-          }
+          // Save manual link preview data
+          if (newItemLinkTitle) attributes.customLinkTitle = newItemLinkTitle;
+          if (newItemLinkDescription) attributes.customLinkDescription = newItemLinkDescription;
+          if (newItemLinkImage) attributes.customLinkImage = newItemLinkImage;
         }
       } else if (list.listType === "shopping-list") {
         if (newItemPrice) attributes.price = newItemPrice;
         if (newItemStatus) attributes.purchaseStatus = newItemStatus;
         if (newItemProductLink) {
           attributes.productLink = newItemProductLink;
-          // Save link preview data if available
-          const linkPreview = previewData[newItemProductLink];
-          if (linkPreview) {
-            attributes.linkTitle = linkPreview.title;
-            attributes.linkImage = linkPreview.image;
-            attributes.linkDescription = linkPreview.description;
-          }
+          // Save manual link preview data
+          if (newItemLinkTitle) attributes.customLinkTitle = newItemLinkTitle;
+          if (newItemLinkDescription) attributes.customLinkDescription = newItemLinkDescription;
+          if (newItemLinkImage) attributes.customLinkImage = newItemLinkImage;
         }
       } else if (list.listType === "todo-list") {
         if (newItemStatus) attributes.status = newItemStatus;
@@ -360,13 +370,10 @@ export default function ListDetail() {
         if (newItemStatus) attributes.status = newItemStatus;
         if (newItemProductLink) {
           attributes.inspirationLink = newItemProductLink;
-          // Save link preview data if available
-          const linkPreview = previewData[newItemProductLink];
-          if (linkPreview) {
-            attributes.linkTitle = linkPreview.title;
-            attributes.linkImage = linkPreview.image;
-            attributes.linkDescription = linkPreview.description;
-          }
+          // Save manual link preview data
+          if (newItemLinkTitle) attributes.customLinkTitle = newItemLinkTitle;
+          if (newItemLinkDescription) attributes.customLinkDescription = newItemLinkDescription;
+          if (newItemLinkImage) attributes.customLinkImage = newItemLinkImage;
         }
       }
 
@@ -398,6 +405,9 @@ export default function ListDetail() {
       setNewItemQuantityNeeded(undefined);
       setNewItemQuantityPurchased(undefined);
       setNewItemProductLink("");
+      setNewItemLinkTitle("");
+      setNewItemLinkDescription("");
+      setNewItemLinkImage("");
       setShowNewItemPreview(false);
       setShowItemLimitError(false);
       
@@ -592,6 +602,49 @@ export default function ListDetail() {
     }
   };
 
+  const handleEditList = () => {
+    if (!list) return;
+
+    // Validate list name
+    const nameValidation = validateListName(editListTitle);
+    if (!nameValidation.valid) {
+      toast({
+        title: "⚠️ Invalid list name",
+        description: nameValidation.error,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      updateList(list.id, {
+        title: nameValidation.value!,
+        category: editListCategory as any,
+        listType: editListType as any,
+      });
+      setIsEditListDialogOpen(false);
+      toast({
+        title: "✅ List updated successfully!",
+        description: `${nameValidation.value} has been updated`,
+        className: "bg-green-50 border-green-200",
+      });
+    } catch (error: any) {
+      toast({
+        title: "❌ Failed to update list",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const openEditListDialog = () => {
+    if (!list) return;
+    setEditListTitle(list.title);
+    setEditListCategory(list.category);
+    setEditListType(list.listType);
+    setIsEditListDialogOpen(true);
+  };
+
   const handleAddLink = () => {
     if (editingItem && newLink.trim()) {
       const links = editingItem.links || [];
@@ -704,39 +757,17 @@ export default function ListDetail() {
   };
 
   const LinkIconWithPreview = ({ url }: { url: string }) => {
-    const { previewData, loading, error, fetchPreview } = useOpenGraphPreview();
-    const [showPreview, setShowPreview] = useState(false);
-
-    const handleMouseEnter = () => {
-      setShowPreview(true);
-      fetchPreview(url);
-    };
-
-    const data = previewData[url];
-    const isLoading = loading[url];
-    const hasError = error[url];
-
     return (
       <div className="relative inline-block">
         <a
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={() => setShowPreview(false)}
           className="text-xs sm:text-sm text-blue-600 hover:underline flex items-center gap-1 break-all"
         >
           <LinkIcon className="w-3 h-3 flex-shrink-0" />
           {url}
         </a>
-        {showPreview && (
-          <LinkPreviewCard
-            data={data || { url }}
-            isLoading={isLoading || false}
-            hasError={!!hasError}
-            errorMessage={hasError}
-          />
-        )}
       </div>
     );
   };
@@ -813,34 +844,48 @@ export default function ListDetail() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="min-h-[44px] min-w-[44px]"
+                        className="h-10 w-10"
                       >
                         <HelpCircle className="w-5 h-5 text-gray-600" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent side="bottom" className="max-w-xs">
-                      <div className="space-y-2 text-sm">
-                        <p className="font-semibold">Keyboard Shortcuts:</p>
-                        <p>
-                          <kbd className="px-2 py-1 bg-gray-100 rounded">
-                            Esc
-                          </kbd>{" "}
-                          - Close Modal
-                        </p>
-                      </div>
+                    <TooltipContent>Help</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={openEditListDialog}
+                        className="h-10 w-10"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Edit list</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => togglePin(list.id)}
+                        className="h-10 w-10"
+                      >
+                        <Pin
+                          className={`w-4 h-4 ${list.isPinned ? "fill-current" : ""}`}
+                        />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {list.isPinned ? "Unpin list" : "Pin list"}
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => togglePin(list.id)}
-                  className="min-h-[44px] min-w-[44px]"
-                >
-                  <Pin
-                    className={`w-4 h-4 ${list.isPinned ? "fill-current" : ""}`}
-                  />
-                </Button>
                 <Button
                   variant={isSelectMode ? "default" : "outline"}
                   size="sm"
@@ -848,77 +893,14 @@ export default function ListDetail() {
                     setIsSelectMode(!isSelectMode);
                     if (isSelectMode) setSelectedItems(new Set());
                   }}
-                  className="min-h-[44px]"
+                  className="h-10"
                 >
                   <CheckCircle className="w-4 h-4 mr-2" />
                   {isSelectMode ? "Done" : "Select Multiple"}
                 </Button>
-                <Dialog
-                  open={isShareDialogOpen}
-                  onOpenChange={setIsShareDialogOpen}
-                >
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <Share2 className="w-4 h-4 mr-2" />
-                      Share
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Share List</DialogTitle>
-                      <DialogDescription>
-                        Share this list with others
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label>Share Link (Read-only)</Label>
-                        <div className="flex gap-2 mt-2">
-                          <Input
-                            value={shareLink || list.shareLink || ""}
-                            readOnly
-                          />
-                          <Button onClick={handleGenerateShareLink}>
-                            {list.shareLink ? "Copy" : "Generate"}
-                          </Button>
-                        </div>
-                      </div>
-                      <div>
-                        <Label>Add Collaborator (Premium)</Label>
-                        <div className="flex gap-2 mt-2">
-                          <Input
-                            placeholder="email@example.com"
-                            value={collaboratorEmail}
-                            onChange={(e) =>
-                              setCollaboratorEmail(e.target.value)
-                            }
-                          />
-                          <Button onClick={handleAddCollaborator}>Add</Button>
-                        </div>
-                        {list.collaborators &&
-                          list.collaborators.length > 0 && (
-                            <div className="mt-3">
-                              <p className="text-sm text-gray-600 mb-2">
-                                Collaborators:
-                              </p>
-                              {list.collaborators.map((email) => (
-                                <Badge
-                                  key={email}
-                                  variant="secondary"
-                                  className="mr-2"
-                                >
-                                  {email}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
-                      </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm" disabled={isExporting}>
+                    <Button variant="outline" size="sm" disabled={isExporting} className="h-10">
                       {isExporting ? (
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       ) : (
@@ -958,7 +940,7 @@ export default function ListDetail() {
                 </Popover>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="destructive" size="sm">
+                    <Button variant="destructive" size="sm" className="h-10">
                       <Trash2 className="w-4 h-4 mr-2" />
                       Delete
                     </Button>
@@ -999,6 +981,17 @@ export default function ListDetail() {
                 </SheetTrigger>
                 <SheetContent side="right" className="w-[280px]">
                   <div className="flex flex-col gap-3 mt-8">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        openEditListDialog();
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="w-full justify-start min-h-[44px]"
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit List
+                    </Button>
                     <Button
                       variant="outline"
                       onClick={() => {
@@ -1486,6 +1479,37 @@ export default function ListDetail() {
                             />
                           </div>
                         </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label className="text-xs mb-2">Link Title (optional)</Label>
+                            <Input
+                              type="text"
+                              placeholder="e.g., Wireless Headphones"
+                              value={newItemLinkTitle}
+                              onChange={(e) => setNewItemLinkTitle(e.target.value)}
+                              className="min-h-[44px]"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs mb-2">Link Description (optional)</Label>
+                            <Textarea
+                              placeholder="e.g., Noise-canceling over-ear headphones"
+                              value={newItemLinkDescription}
+                              onChange={(e) => setNewItemLinkDescription(e.target.value)}
+                              className="min-h-[60px]"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <Label className="text-xs mb-2">Link Image URL (optional)</Label>
+                          <Input
+                            type="url"
+                            placeholder="e.g., https://example.com/image.jpg"
+                            value={newItemLinkImage}
+                            onChange={(e) => setNewItemLinkImage(e.target.value)}
+                            className="min-h-[44px]"
+                          />
+                        </div>
                         <Textarea
                           placeholder="Notes (optional)"
                           value={newItemNotes}
@@ -1526,30 +1550,13 @@ export default function ListDetail() {
                         />
                         <div>
                           <Label className="text-xs mb-2">Product Link (optional)</Label>
-                          <div className="relative">
-                            <Input
-                              type="url"
-                              placeholder="https://example.com/product"
-                              value={newItemProductLink}
-                              onChange={(e) => setNewItemProductLink(e.target.value)}
-                              onBlur={() => {
-                                if (newItemProductLink) {
-                                  fetchPreview(newItemProductLink);
-                                  setShowNewItemPreview(true);
-                                }
-                              }}
-                              onFocus={() => setShowNewItemPreview(false)}
-                              className="min-h-[44px]"
-                            />
-                            {showNewItemPreview && newItemProductLink && (
-                              <LinkPreviewCard
-                                data={previewData[newItemProductLink] || { url: newItemProductLink }}
-                                isLoading={previewLoading[newItemProductLink] || false}
-                                hasError={!!previewError[newItemProductLink]}
-                                errorMessage={previewError[newItemProductLink]}
-                              />
-                            )}
-                          </div>
+                          <Input
+                            type="url"
+                            placeholder="https://example.com/product"
+                            value={newItemProductLink}
+                            onChange={(e) => setNewItemProductLink(e.target.value)}
+                            className="min-h-[44px]"
+                          />
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
@@ -1579,6 +1586,35 @@ export default function ListDetail() {
                               min="1"
                             />
                           </div>
+                        </div>
+                        <div>
+                          <Label className="text-xs mb-2">Link Title (optional)</Label>
+                          <Input
+                            type="text"
+                            placeholder="e.g., Sterling Silver Ring"
+                            value={newItemLinkTitle}
+                            onChange={(e) => setNewItemLinkTitle(e.target.value)}
+                            className="min-h-[44px]"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs mb-2">Link Description (optional)</Label>
+                          <Textarea
+                            placeholder="e.g., Beautiful handcrafted ring"
+                            value={newItemLinkDescription}
+                            onChange={(e) => setNewItemLinkDescription(e.target.value)}
+                            className="min-h-[60px]"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs mb-2">Link Image URL (optional)</Label>
+                          <Input
+                            type="url"
+                            placeholder="e.g., https://example.com/image.jpg"
+                            value={newItemLinkImage}
+                            onChange={(e) => setNewItemLinkImage(e.target.value)}
+                            className="min-h-[44px]"
+                          />
                         </div>
                         <div>
                           <Label className="text-xs mb-2">Purchase Status</Label>
@@ -1636,30 +1672,13 @@ export default function ListDetail() {
                         />
                         <div>
                           <Label className="text-xs mb-2">Product Link (optional)</Label>
-                          <div className="relative">
-                            <Input
-                              type="url"
-                              placeholder="https://example.com/product"
-                              value={newItemProductLink}
-                              onChange={(e) => setNewItemProductLink(e.target.value)}
-                              onBlur={() => {
-                                if (newItemProductLink) {
-                                  fetchPreview(newItemProductLink);
-                                  setShowNewItemPreview(true);
-                                }
-                              }}
-                              onFocus={() => setShowNewItemPreview(false)}
-                              className="min-h-[44px]"
-                            />
-                            {showNewItemPreview && newItemProductLink && (
-                              <LinkPreviewCard
-                                data={previewData[newItemProductLink] || { url: newItemProductLink }}
-                                isLoading={previewLoading[newItemProductLink] || false}
-                                hasError={!!previewError[newItemProductLink]}
-                                errorMessage={previewError[newItemProductLink]}
-                              />
-                            )}
-                          </div>
+                          <Input
+                            type="url"
+                            placeholder="https://example.com/product"
+                            value={newItemProductLink}
+                            onChange={(e) => setNewItemProductLink(e.target.value)}
+                            className="min-h-[44px]"
+                          />
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
@@ -1677,23 +1696,34 @@ export default function ListDetail() {
                             />
                           </div>
                           <div>
-                            <Label className="text-xs mb-2">Priority</Label>
-                            <Select
-                              value={newItemPriority || ""}
-                              onValueChange={(value) =>
-                                setNewItemPriority(value as "high" | "medium" | "low")
-                              }
-                            >
-                              <SelectTrigger className="min-h-[44px]">
-                                <SelectValue placeholder="Select priority" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="high">Must have</SelectItem>
-                                <SelectItem value="medium">Want</SelectItem>
-                                <SelectItem value="low">Nice to have</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            <Label className="text-xs mb-2">Link Title (optional)</Label>
+                            <Input
+                              type="text"
+                              placeholder="e.g., Wireless Headphones"
+                              value={newItemLinkTitle}
+                              onChange={(e) => setNewItemLinkTitle(e.target.value)}
+                              className="min-h-[44px]"
+                            />
                           </div>
+                        </div>
+                        <div>
+                          <Label className="text-xs mb-2">Link Description (optional)</Label>
+                          <Textarea
+                            placeholder="e.g., Noise-canceling over-ear headphones"
+                            value={newItemLinkDescription}
+                            onChange={(e) => setNewItemLinkDescription(e.target.value)}
+                            className="min-h-[60px]"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs mb-2">Link Image URL (optional)</Label>
+                          <Input
+                            type="url"
+                            placeholder="e.g., https://example.com/image.jpg"
+                            value={newItemLinkImage}
+                            onChange={(e) => setNewItemLinkImage(e.target.value)}
+                            className="min-h-[44px]"
+                          />
                         </div>
                         <div>
                           <Label className="text-xs mb-2">Purchase Status</Label>
@@ -1751,30 +1781,42 @@ export default function ListDetail() {
                         />
                         <div>
                           <Label className="text-xs mb-2">Inspiration Link (optional)</Label>
-                          <div className="relative">
-                            <Input
-                              type="url"
-                              placeholder="https://example.com/inspiration"
-                              value={newItemProductLink}
-                              onChange={(e) => setNewItemProductLink(e.target.value)}
-                              onBlur={() => {
-                                if (newItemProductLink) {
-                                  fetchPreview(newItemProductLink);
-                                  setShowNewItemPreview(true);
-                                }
-                              }}
-                              onFocus={() => setShowNewItemPreview(false)}
-                              className="min-h-[44px]"
-                            />
-                            {showNewItemPreview && newItemProductLink && (
-                              <LinkPreviewCard
-                                data={previewData[newItemProductLink] || { url: newItemProductLink }}
-                                isLoading={previewLoading[newItemProductLink] || false}
-                                hasError={!!previewError[newItemProductLink]}
-                                errorMessage={previewError[newItemProductLink]}
-                              />
-                            )}
-                          </div>
+                          <Input
+                            type="url"
+                            placeholder="https://example.com/inspiration"
+                            value={newItemProductLink}
+                            onChange={(e) => setNewItemProductLink(e.target.value)}
+                            className="min-h-[44px]"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs mb-2">Link Title (optional)</Label>
+                          <Input
+                            type="text"
+                            placeholder="e.g., Modern Kitchen Design"
+                            value={newItemLinkTitle}
+                            onChange={(e) => setNewItemLinkTitle(e.target.value)}
+                            className="min-h-[44px]"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs mb-2">Link Description (optional)</Label>
+                          <Textarea
+                            placeholder="e.g., Minimalist kitchen with marble countertops"
+                            value={newItemLinkDescription}
+                            onChange={(e) => setNewItemLinkDescription(e.target.value)}
+                            className="min-h-[60px]"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs mb-2">Link Image URL (optional)</Label>
+                          <Input
+                            type="url"
+                            placeholder="e.g., https://example.com/image.jpg"
+                            value={newItemLinkImage}
+                            onChange={(e) => setNewItemLinkImage(e.target.value)}
+                            className="min-h-[44px]"
+                          />
                         </div>
                         <div>
                           <Label className="text-xs mb-2">Status</Label>
@@ -1943,20 +1985,25 @@ export default function ListDetail() {
                                 rel="noopener noreferrer"
                                 className="block border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow bg-white"
                               >
-                                {item.attributes.linkImage && (
+                                {item.attributes.customLinkImage && (
                                   <img
-                                    src={item.attributes.linkImage}
-                                    alt={item.attributes.linkTitle || "Product"}
+                                    src={item.attributes.customLinkImage}
+                                    alt={item.attributes.customLinkTitle || "Product"}
                                     className="w-full h-32 object-cover"
                                   />
                                 )}
                                 <div className="p-3">
                                   <h4 className="font-semibold text-sm text-gray-900 line-clamp-2">
-                                    {item.attributes.linkTitle || "Product Link"}
+                                    {item.attributes.customLinkTitle || new URL(item.attributes.productLink || item.attributes.inspirationLink || "").hostname}
                                   </h4>
-                                  {item.attributes.linkDescription && (
+                                  {item.attributes.customLinkDescription && (
                                     <p className="text-xs text-gray-600 mt-1 line-clamp-2">
-                                      {item.attributes.linkDescription}
+                                      {item.attributes.customLinkDescription}
+                                    </p>
+                                  )}
+                                  {!item.attributes.customLinkDescription && (
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      Click to view
                                     </p>
                                   )}
                                   <p className="text-xs text-blue-600 mt-2 truncate flex items-center gap-1">
@@ -2234,12 +2281,56 @@ export default function ListDetail() {
                                                 },
                                               })
                                             }
-                                            onBlur={() => {
-                                              const link = editingItem.attributes?.productLink;
-                                              if (link) {
-                                                fetchPreview(link);
-                                              }
-                                            }}
+                                          />
+                                        </div>
+                                        <div className="space-y-2">
+                                          <Label>Link Title (optional)</Label>
+                                          <Input
+                                            type="text"
+                                            placeholder="e.g., Wireless Headphones"
+                                            value={editingItem.attributes?.customLinkTitle || ""}
+                                            onChange={(e) =>
+                                              setEditingItem({
+                                                ...editingItem,
+                                                attributes: {
+                                                  ...editingItem.attributes,
+                                                  customLinkTitle: e.target.value,
+                                                },
+                                              })
+                                            }
+                                          />
+                                        </div>
+                                        <div className="space-y-2">
+                                          <Label>Link Description (optional)</Label>
+                                          <Textarea
+                                            placeholder="e.g., Noise-canceling over-ear headphones"
+                                            value={editingItem.attributes?.customLinkDescription || ""}
+                                            onChange={(e) =>
+                                              setEditingItem({
+                                                ...editingItem,
+                                                attributes: {
+                                                  ...editingItem.attributes,
+                                                  customLinkDescription: e.target.value,
+                                                },
+                                              })
+                                            }
+                                          />
+                                        </div>
+                                        <div className="space-y-2">
+                                          <Label>Link Image URL (optional)</Label>
+                                          <Input
+                                            type="url"
+                                            placeholder="e.g., https://example.com/image.jpg"
+                                            value={editingItem.attributes?.customLinkImage || ""}
+                                            onChange={(e) =>
+                                              setEditingItem({
+                                                ...editingItem,
+                                                attributes: {
+                                                  ...editingItem.attributes,
+                                                  customLinkImage: e.target.value,
+                                                },
+                                              })
+                                            }
                                           />
                                         </div>
                                         <div className="grid grid-cols-2 gap-4">
@@ -2336,12 +2427,56 @@ export default function ListDetail() {
                                                 },
                                               })
                                             }
-                                            onBlur={() => {
-                                              const link = editingItem.attributes?.productLink;
-                                              if (link) {
-                                                fetchPreview(link);
-                                              }
-                                            }}
+                                          />
+                                        </div>
+                                        <div className="space-y-2">
+                                          <Label>Link Title (optional)</Label>
+                                          <Input
+                                            type="text"
+                                            placeholder="e.g., Sterling Silver Ring"
+                                            value={editingItem.attributes?.customLinkTitle || ""}
+                                            onChange={(e) =>
+                                              setEditingItem({
+                                                ...editingItem,
+                                                attributes: {
+                                                  ...editingItem.attributes,
+                                                  customLinkTitle: e.target.value,
+                                                },
+                                              })
+                                            }
+                                          />
+                                        </div>
+                                        <div className="space-y-2">
+                                          <Label>Link Description (optional)</Label>
+                                          <Textarea
+                                            placeholder="e.g., Beautiful handcrafted ring"
+                                            value={editingItem.attributes?.customLinkDescription || ""}
+                                            onChange={(e) =>
+                                              setEditingItem({
+                                                ...editingItem,
+                                                attributes: {
+                                                  ...editingItem.attributes,
+                                                  customLinkDescription: e.target.value,
+                                                },
+                                              })
+                                            }
+                                          />
+                                        </div>
+                                        <div className="space-y-2">
+                                          <Label>Link Image URL (optional)</Label>
+                                          <Input
+                                            type="url"
+                                            placeholder="e.g., https://example.com/image.jpg"
+                                            value={editingItem.attributes?.customLinkImage || ""}
+                                            onChange={(e) =>
+                                              setEditingItem({
+                                                ...editingItem,
+                                                attributes: {
+                                                  ...editingItem.attributes,
+                                                  customLinkImage: e.target.value,
+                                                },
+                                              })
+                                            }
                                           />
                                         </div>
                                         <div className="grid grid-cols-2 gap-4">
@@ -2428,12 +2563,56 @@ export default function ListDetail() {
                                                 },
                                               })
                                             }
-                                            onBlur={() => {
-                                              const link = editingItem.attributes?.inspirationLink;
-                                              if (link) {
-                                                fetchPreview(link);
-                                              }
-                                            }}
+                                          />
+                                        </div>
+                                        <div className="space-y-2">
+                                          <Label>Link Title (optional)</Label>
+                                          <Input
+                                            type="text"
+                                            placeholder="e.g., Modern Kitchen Design"
+                                            value={editingItem.attributes?.customLinkTitle || ""}
+                                            onChange={(e) =>
+                                              setEditingItem({
+                                                ...editingItem,
+                                                attributes: {
+                                                  ...editingItem.attributes,
+                                                  customLinkTitle: e.target.value,
+                                                },
+                                              })
+                                            }
+                                          />
+                                        </div>
+                                        <div className="space-y-2">
+                                          <Label>Link Description (optional)</Label>
+                                          <Textarea
+                                            placeholder="e.g., Minimalist kitchen with marble countertops"
+                                            value={editingItem.attributes?.customLinkDescription || ""}
+                                            onChange={(e) =>
+                                              setEditingItem({
+                                                ...editingItem,
+                                                attributes: {
+                                                  ...editingItem.attributes,
+                                                  customLinkDescription: e.target.value,
+                                                },
+                                              })
+                                            }
+                                          />
+                                        </div>
+                                        <div className="space-y-2">
+                                          <Label>Link Image URL (optional)</Label>
+                                          <Input
+                                            type="url"
+                                            placeholder="e.g., https://example.com/image.jpg"
+                                            value={editingItem.attributes?.customLinkImage || ""}
+                                            onChange={(e) =>
+                                              setEditingItem({
+                                                ...editingItem,
+                                                attributes: {
+                                                  ...editingItem.attributes,
+                                                  customLinkImage: e.target.value,
+                                                },
+                                              })
+                                            }
                                           />
                                         </div>
                                         <div className="space-y-2">
@@ -2717,20 +2896,25 @@ export default function ListDetail() {
                             rel="noopener noreferrer"
                             className="block border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow bg-white"
                           >
-                            {item.attributes.linkImage && (
+                            {item.attributes.customLinkImage && (
                               <img
-                                src={item.attributes.linkImage}
-                                alt={item.attributes.linkTitle || "Product"}
+                                src={item.attributes.customLinkImage}
+                                alt={item.attributes.customLinkTitle || "Product"}
                                 className="w-full h-32 object-cover"
                               />
                             )}
                             <div className="p-3">
                               <h4 className="font-semibold text-sm text-gray-900 line-clamp-2">
-                                {item.attributes.linkTitle || "Product Link"}
+                                {item.attributes.customLinkTitle || new URL(item.attributes.productLink || item.attributes.inspirationLink || "").hostname}
                               </h4>
-                              {item.attributes.linkDescription && (
+                              {item.attributes.customLinkDescription && (
                                 <p className="text-xs text-gray-600 mt-1 line-clamp-2">
-                                  {item.attributes.linkDescription}
+                                  {item.attributes.customLinkDescription}
+                                </p>
+                              )}
+                              {!item.attributes.customLinkDescription && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Click to view
                                 </p>
                               )}
                               <p className="text-xs text-blue-600 mt-2 truncate flex items-center gap-1">
@@ -3018,76 +3202,129 @@ export default function ListDetail() {
                                         />
                                       </div>
                                       <div className="space-y-2">
-                                        <Label>Price</Label>
+                                        <Label>Link Title (optional)</Label>
                                         <Input
-                                          type="number"
-                                          step="0.01"
-                                          value={editingItem.attributes?.price || ""}
+                                          type="text"
+                                          placeholder="e.g., Wireless Headphones"
+                                          value={editingItem.attributes?.customLinkTitle || ""}
                                           onChange={(e) =>
                                             setEditingItem({
                                               ...editingItem,
                                               attributes: {
                                                 ...editingItem.attributes,
-                                                price: e.target.value
-                                                  ? parseFloat(e.target.value)
-                                                  : undefined,
+                                                customLinkTitle: e.target.value,
                                               },
                                             })
                                           }
                                         />
                                       </div>
                                       <div className="space-y-2">
-                                        <Label>Priority</Label>
+                                        <Label>Link Description (optional)</Label>
+                                        <Textarea
+                                          placeholder="e.g., Noise-canceling over-ear headphones"
+                                          value={editingItem.attributes?.customLinkDescription || ""}
+                                          onChange={(e) =>
+                                            setEditingItem({
+                                              ...editingItem,
+                                              attributes: {
+                                                ...editingItem.attributes,
+                                                customLinkDescription: e.target.value,
+                                              },
+                                            })
+                                          }
+                                          rows={2}
+                                        />
+                                      </div>
+                                      <div className="space-y-2">
+                                        <Label>Link Image URL (optional)</Label>
+                                        <Input
+                                          type="url"
+                                          placeholder="e.g., https://example.com/image.jpg"
+                                          value={editingItem.attributes?.customLinkImage || ""}
+                                          onChange={(e) =>
+                                            setEditingItem({
+                                              ...editingItem,
+                                              attributes: {
+                                                ...editingItem.attributes,
+                                                customLinkImage: e.target.value,
+                                              },
+                                            })
+                                          }
+                                        />
+                                      </div>
+                                      <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                          <Label>Price</Label>
+                                          <Input
+                                            type="number"
+                                            step="0.01"
+                                            value={editingItem.attributes?.price || ""}
+                                            onChange={(e) =>
+                                              setEditingItem({
+                                                ...editingItem,
+                                                attributes: {
+                                                  ...editingItem.attributes,
+                                                  price: e.target.value
+                                                    ? parseFloat(e.target.value)
+                                                    : undefined,
+                                                },
+                                              })
+                                            }
+                                          />
+                                        </div>
+                                        <div className="space-y-2">
+                                          <Label>Priority</Label>
+                                          <Select
+                                            value={editingItem.priority || "none"}
+                                            onValueChange={(value) =>
+                                              setEditingItem({
+                                                ...editingItem,
+                                                priority:
+                                                  value === "none"
+                                                    ? undefined
+                                                    : (value as
+                                                        | "low"
+                                                        | "medium"
+                                                        | "high"),
+                                              })
+                                            }
+                                          >
+                                            <SelectTrigger>
+                                              <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="none">None</SelectItem>
+                                              <SelectItem value="high">Must have</SelectItem>
+                                              <SelectItem value="medium">Want</SelectItem>
+                                              <SelectItem value="low">Nice to have</SelectItem>
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+                                      </div>
+                                      <div className="space-y-2">
+                                        <Label>Purchase Status</Label>
                                         <Select
-                                          value={editingItem.priority || "none"}
+                                          value={editingItem.attributes?.purchaseStatus || ""}
                                           onValueChange={(value) =>
                                             setEditingItem({
                                               ...editingItem,
-                                              priority:
-                                                value === "none"
-                                                  ? undefined
-                                                  : (value as
-                                                      | "low"
-                                                      | "medium"
-                                                      | "high"),
+                                              attributes: {
+                                                ...editingItem.attributes,
+                                                purchaseStatus: value,
+                                              },
                                             })
                                           }
                                         >
                                           <SelectTrigger>
-                                            <SelectValue />
+                                            <SelectValue placeholder="Select status" />
                                           </SelectTrigger>
                                           <SelectContent>
-                                            <SelectItem value="none">None</SelectItem>
-                                            <SelectItem value="high">Must have</SelectItem>
-                                            <SelectItem value="medium">Want</SelectItem>
-                                            <SelectItem value="low">Nice to have</SelectItem>
+                                            <SelectItem value="not-purchased">Not purchased</SelectItem>
+                                            <SelectItem value="purchased">Purchased</SelectItem>
+                                            <SelectItem value="received">Received</SelectItem>
                                           </SelectContent>
                                         </Select>
                                       </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                      <Label>Purchase Status</Label>
-                                      <Select
-                                        value={editingItem.attributes?.purchaseStatus || ""}
-                                        onValueChange={(value) =>
-                                          setEditingItem({
-                                            ...editingItem,
-                                            attributes: {
-                                              ...editingItem.attributes,
-                                              purchaseStatus: value,
-                                            },
-                                          })
-                                        }
-                                      >
-                                        <SelectTrigger>
-                                          <SelectValue placeholder="Select status" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="not-purchased">Not purchased</SelectItem>
-                                          <SelectItem value="purchased">Purchased</SelectItem>
-                                          <SelectItem value="received">Received</SelectItem>
-                                        </SelectContent>
-                                      </Select>
                                     </div>
                                   </>
                                 )}
@@ -3110,12 +3347,56 @@ export default function ListDetail() {
                                             },
                                           })
                                         }
-                                        onBlur={() => {
-                                          const link = editingItem.attributes?.productLink;
-                                          if (link) {
-                                            fetchPreview(link);
-                                          }
-                                        }}
+                                      />
+                                    </div>
+                                    <div className="space-y-2">
+                                      <Label>Link Title (optional)</Label>
+                                      <Input
+                                        type="text"
+                                        placeholder="e.g., Sterling Silver Ring"
+                                        value={editingItem.attributes?.customLinkTitle || ""}
+                                        onChange={(e) =>
+                                          setEditingItem({
+                                            ...editingItem,
+                                            attributes: {
+                                              ...editingItem.attributes,
+                                              customLinkTitle: e.target.value,
+                                            },
+                                          })
+                                        }
+                                      />
+                                    </div>
+                                    <div className="space-y-2">
+                                      <Label>Link Description (optional)</Label>
+                                      <Textarea
+                                        placeholder="e.g., Beautiful handcrafted ring"
+                                        value={editingItem.attributes?.customLinkDescription || ""}
+                                        onChange={(e) =>
+                                          setEditingItem({
+                                            ...editingItem,
+                                            attributes: {
+                                              ...editingItem.attributes,
+                                              customLinkDescription: e.target.value,
+                                            },
+                                          })
+                                        }
+                                      />
+                                    </div>
+                                    <div className="space-y-2">
+                                      <Label>Link Image URL (optional)</Label>
+                                      <Input
+                                        type="url"
+                                        placeholder="e.g., https://example.com/image.jpg"
+                                        value={editingItem.attributes?.customLinkImage || ""}
+                                        onChange={(e) =>
+                                          setEditingItem({
+                                            ...editingItem,
+                                            attributes: {
+                                              ...editingItem.attributes,
+                                              customLinkImage: e.target.value,
+                                            },
+                                          })
+                                        }
                                       />
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
@@ -3202,12 +3483,56 @@ export default function ListDetail() {
                                             },
                                           })
                                         }
-                                        onBlur={() => {
-                                          const link = editingItem.attributes?.inspirationLink;
-                                          if (link) {
-                                            fetchPreview(link);
-                                          }
-                                        }}
+                                      />
+                                    </div>
+                                    <div className="space-y-2">
+                                      <Label>Link Title (optional)</Label>
+                                      <Input
+                                        type="text"
+                                        placeholder="e.g., Modern Kitchen Design"
+                                        value={editingItem.attributes?.customLinkTitle || ""}
+                                        onChange={(e) =>
+                                          setEditingItem({
+                                            ...editingItem,
+                                            attributes: {
+                                              ...editingItem.attributes,
+                                              customLinkTitle: e.target.value,
+                                            },
+                                          })
+                                        }
+                                      />
+                                    </div>
+                                    <div className="space-y-2">
+                                      <Label>Link Description (optional)</Label>
+                                      <Textarea
+                                        placeholder="e.g., Minimalist kitchen with marble countertops"
+                                        value={editingItem.attributes?.customLinkDescription || ""}
+                                        onChange={(e) =>
+                                          setEditingItem({
+                                            ...editingItem,
+                                            attributes: {
+                                              ...editingItem.attributes,
+                                              customLinkDescription: e.target.value,
+                                            },
+                                          })
+                                        }
+                                      />
+                                    </div>
+                                    <div className="space-y-2">
+                                      <Label>Link Image URL (optional)</Label>
+                                      <Input
+                                        type="url"
+                                        placeholder="e.g., https://example.com/image.jpg"
+                                        value={editingItem.attributes?.customLinkImage || ""}
+                                        onChange={(e) =>
+                                          setEditingItem({
+                                            ...editingItem,
+                                            attributes: {
+                                              ...editingItem.attributes,
+                                              customLinkImage: e.target.value,
+                                            },
+                                          })
+                                        }
                                       />
                                     </div>
                                     <div className="space-y-2">
@@ -3330,6 +3655,81 @@ export default function ListDetail() {
           </div>
         </div>
       </div>
+
+      {/* Edit List Modal */}
+      <Dialog open={isEditListDialogOpen} onOpenChange={setIsEditListDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit List</DialogTitle>
+            <DialogDescription>
+              Update list name, category, and type
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div>
+              <Label>List Name</Label>
+              <Input
+                placeholder="e.g., Grocery Shopping"
+                value={editListTitle}
+                onChange={(e) => setEditListTitle(e.target.value)}
+                className="mt-2"
+              />
+            </div>
+            <div>
+              <Label>Category</Label>
+              <Select
+                value={editListCategory}
+                onValueChange={(value) => setEditListCategory(value)}
+              >
+                <SelectTrigger className="mt-2">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Tasks">Tasks</SelectItem>
+                  <SelectItem value="Groceries">Groceries</SelectItem>
+                  <SelectItem value="Ideas">Ideas</SelectItem>
+                  <SelectItem value="Shopping">Shopping</SelectItem>
+                  <SelectItem value="Travel">Travel</SelectItem>
+                  <SelectItem value="Work">Work</SelectItem>
+                  <SelectItem value="Home">Home</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>List Type</Label>
+              <Select
+                value={editListType}
+                onValueChange={(value) => setEditListType(value)}
+              >
+                <SelectTrigger className="mt-2">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="custom">Custom</SelectItem>
+                  <SelectItem value="todo-list">To-Do List</SelectItem>
+                  <SelectItem value="grocery-list">Grocery List</SelectItem>
+                  <SelectItem value="registry-list">Registry</SelectItem>
+                  <SelectItem value="shopping-list">Wishlist</SelectItem>
+                  <SelectItem value="idea-list">Idea List</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex gap-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setIsEditListDialogOpen(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleEditList} className="flex-1">
+                Save Changes
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

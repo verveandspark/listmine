@@ -14,7 +14,6 @@ import {
 import { ListCategory } from "@/types";
 import { useState } from "react";
 import CreateListModal from "./CreateListModal";
-import ImportListModal from "./ImportListModal";
 
 const categoryIcons: Record<string, any> = {
   Tasks: CheckSquare,
@@ -32,7 +31,6 @@ export function ListSidebar() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Group lists by category
   const groupedLists = lists.reduce(
@@ -64,7 +62,7 @@ export function ListSidebar() {
           </Button>
 
           <Button
-            onClick={() => setIsImportModalOpen(true)}
+            onClick={() => navigate("/import-export")}
             variant="outline"
             className="w-full min-h-[44px]"
           >
@@ -116,10 +114,6 @@ export function ListSidebar() {
       <CreateListModal
         open={isCreateModalOpen}
         onOpenChange={setIsCreateModalOpen}
-      />
-      <ImportListModal
-        open={isImportModalOpen}
-        onOpenChange={setIsImportModalOpen}
       />
     </div>
   );

@@ -1,35 +1,35 @@
 import { FirebaseTest } from "@/components/FirebaseTest";
 import {
-  CheckSquare,
   Plus,
-  Trash2,
-  Share2,
-  Settings,
-  FileText,
   Search,
-  X,
-  Pin,
-  Download,
-  Users,
-  Tag,
-  MoreVertical,
-  Edit,
-  ListChecks,
-  AlertCircle,
-  Loader2,
-  ClipboardList,
-  Crown,
-  HelpCircle,
-  Menu,
   Filter,
+  SortAsc,
+  Calendar,
+  CheckCircle,
   Clock,
+  AlertCircle,
+  TrendingUp,
   Package,
-  Upload,
-  User,
-  LogOut,
+  Loader2,
+  Share2,
+  Download,
+  Trash2,
+  Pin,
+  X,
+  ChevronDown,
+  Menu,
+  Edit,
+  CheckSquare,
   ShoppingCart,
   Lightbulb,
   Plane,
+  ListChecks,
+  Crown,
+  HelpCircle,
+  FileText,
+  Upload,
+  User,
+  LogOut,
 } from "lucide-react";
 
 import { useState } from "react";
@@ -152,6 +152,7 @@ export default function Dashboard() {
     deleteList,
     exportList,
     generateShareLink,
+    updateList,
     loading,
     error,
     retryLoad,
@@ -185,6 +186,13 @@ export default function Dashboard() {
   >("all");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  // Edit list state
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingList, setEditingList] = useState<any>(null);
+  const [editListTitle, setEditListTitle] = useState("");
+  const [editListCategory, setEditListCategory] = useState<ListCategory>("Tasks");
+  const [editListType, setEditListType] = useState<ListType>("custom");
 
   // Simulate loading on mount
   useState(() => {
@@ -281,6 +289,75 @@ export default function Dashboard() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleEditList = () => {
+    if (!editingList) return;
+
+    // Validate list name
+    const nameValidation = validateListName(editListTitle);
+    if (!nameValidation.valid) {
+      toast({
+        title: "⚠️ Invalid list name",
+        description: nameValidation.error,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate category
+    const categoryValidation = validateCategory(editListCategory);
+    if (!categoryValidation.valid) {
+      toast({
+        title: "⚠️ Invalid category",
+        description: categoryValidation.error,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check for duplicate list name (excluding current list)
+    const existingList = lists.find(
+      (l) => l.id !== editingList.id && l.title.toLowerCase() === nameValidation.value!.toLowerCase(),
+    );
+    if (existingList) {
+      toast({
+        title: "⚠️ This list name already exists",
+        description: `Try another name like "${nameValidation.value} 2" or "${nameValidation.value} - New".`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      updateList(editingList.id, {
+        title: nameValidation.value!,
+        category: editListCategory,
+        listType: editListType,
+      });
+      setIsEditDialogOpen(false);
+      setEditingList(null);
+      toast({
+        title: "✅ List updated successfully!",
+        description: `${nameValidation.value} has been updated`,
+        className: "bg-green-50 border-green-200",
+      });
+    } catch (error: any) {
+      toast({
+        title: "❌ Failed to update list",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const openEditDialog = (list: any, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setEditingList(list);
+    setEditListTitle(list.title);
+    setEditListCategory(list.category);
+    setEditListType(list.listType);
+    setIsEditDialogOpen(true);
   };
 
   const handleListSortChange = (value: string) => {
@@ -1045,6 +1122,21 @@ export default function Dashboard() {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 rounded-full bg-gray-100 hover:bg-gray-200"
+                              onClick={(e) => openEditDialog(list, e)}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Edit</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 rounded-full bg-gray-100 hover:bg-gray-200"
                               onClick={(e) => handleQuickShare(e, list.id)}
                             >
                               <Share2 className="w-4 h-4" />
@@ -1266,6 +1358,21 @@ export default function Dashboard() {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 rounded-full bg-gray-100 hover:bg-gray-200"
+                              onClick={(e) => openEditDialog(list, e)}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Edit</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 rounded-full bg-gray-100 hover:bg-gray-200"
                               onClick={(e) => handleQuickShare(e, list.id)}
                             >
                               <Share2 className="w-4 h-4" />
@@ -1433,6 +1540,80 @@ export default function Dashboard() {
         open={isCreateDialogOpen} 
         onOpenChange={setIsCreateDialogOpen} 
       />
+
+      {/* Edit List Modal */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit List</DialogTitle>
+            <DialogDescription>
+              Update list name, category, and type
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div>
+              <Label>List Name</Label>
+              <Input
+                placeholder="e.g., Grocery Shopping"
+                value={editListTitle}
+                onChange={(e) => setEditListTitle(e.target.value)}
+                className="mt-2"
+              />
+            </div>
+            <div>
+              <Label>Category</Label>
+              <Select
+                value={editListCategory}
+                onValueChange={(value) => setEditListCategory(value as ListCategory)}
+              >
+                <SelectTrigger className="mt-2">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Tasks">Tasks</SelectItem>
+                  <SelectItem value="Groceries">Groceries</SelectItem>
+                  <SelectItem value="Ideas">Ideas</SelectItem>
+                  <SelectItem value="Shopping">Shopping</SelectItem>
+                  <SelectItem value="Travel">Travel</SelectItem>
+                  <SelectItem value="Work">Work</SelectItem>
+                  <SelectItem value="Home">Home</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>List Type</Label>
+              <Select
+                value={editListType}
+                onValueChange={(value) => setEditListType(value as ListType)}
+              >
+                <SelectTrigger className="mt-2">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {listTypes.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex gap-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setIsEditDialogOpen(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleEditList} className="flex-1">
+                Save Changes
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

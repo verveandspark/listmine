@@ -160,7 +160,7 @@ export default function ImportExport() {
   const handleImportFromShareLink = async () => {
     if (!shareUrl.trim()) {
       toast({
-        title: "⚠️ Invalid share link",
+        title: "⚠�� Invalid share link",
         description: "Please enter a share link or ID",
         variant: "destructive",
       });
@@ -559,7 +559,7 @@ export default function ImportExport() {
                 <p className="text-xs text-gray-500">
                   Disclaimer: Imports public wishlists, registries, and shopping lists from third-party sites. Not affiliated with any retailer. You're responsible for data you import.{" "}
                   <a 
-                    href="https://listmine.vervesites.com/terms-of-use" 
+                    href="https://listmine.com/terms-of-use" 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="text-blue-600 hover:underline"
