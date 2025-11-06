@@ -44,7 +44,7 @@ import {
   HelpCircle,
   FileText,
   Upload,
-  User,
+  User as UserIcon,
   LogOut,
   GripVertical,
   Tag,

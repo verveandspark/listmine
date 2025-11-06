@@ -112,14 +112,15 @@ export default function PurchaseHistoryModal({
       if (itemError) throw itemError;
 
       // Update item status and restore quantity
-      const updatedAttributes = {
-        ...itemData.attributes,
+      const currentAttributes = (itemData.attributes as any) || {};
+      const updatedAttributes: any = {
+        ...currentAttributes,
         purchaseStatus: "not-purchased",
       };
 
       // If quantityNeeded exists, increment it back
-      if (itemData.attributes?.quantityNeeded !== undefined) {
-        updatedAttributes.quantityNeeded = (itemData.attributes.quantityNeeded || 0) + 1;
+      if (currentAttributes.quantityNeeded !== undefined) {
+        updatedAttributes.quantityNeeded = (currentAttributes.quantityNeeded || 0) + 1;
       }
 
       const { error: updateError } = await supabase

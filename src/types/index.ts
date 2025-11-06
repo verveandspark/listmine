@@ -29,6 +29,7 @@ export interface ListItemAttributes {
   customLinkDescription?: string;
   customLinkImage?: string;
   custom?: Record<string, string>;
+  [key: string]: any;
 }
 
 export interface ListItem {
@@ -61,7 +62,7 @@ export interface List {
   showPurchaserInfo?: boolean;
 }
 
-export type ListCategory = 'Tasks' | 'Groceries' | 'Ideas' | 'Shopping' | 'Travel' | 'Work' | 'Home' | 'Other';
+export type ListCategory = 'Tasks' | 'Groceries' | 'Ideas' | 'Shopping' | 'Travel' | 'Work' | 'Home' | 'School' | 'Other';
 
 export type ListType = 
   | 'task-list'

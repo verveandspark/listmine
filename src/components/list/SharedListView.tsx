@@ -21,7 +21,6 @@ import {
 import { format } from "date-fns";
 import { isToday, isPast } from "date-fns";
 import PurchaseModal from "./PurchaseModal";
-import { LinkPreviewCard } from "./LinkPreviewCard";
 
 export default function SharedListView() {
   const { shareId } = useParams();
@@ -539,12 +538,39 @@ export default function SharedListView() {
                     {/* Link Preview for registry/wishlist items */}
                     {list.listType && isRegistryOrWishlist(list.listType) && item.attributes?.productLink && (
                       <div className="mt-3">
-                        <LinkPreviewCard
-                          url={item.attributes.productLink}
-                          customTitle={item.attributes.customLinkTitle}
-                          customDescription={item.attributes.customLinkDescription}
-                          customImage={item.attributes.customLinkImage}
-                        />
+                        <a
+                          href={item.attributes.productLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow bg-white"
+                        >
+                          {item.attributes.customLinkImage && (
+                            <img
+                              src={item.attributes.customLinkImage}
+                              alt={item.attributes.customLinkTitle || "Product"}
+                              className="w-full h-32 object-cover"
+                            />
+                          )}
+                          <div className="p-3">
+                            <h4 className="font-semibold text-sm text-gray-900 line-clamp-2">
+                              {item.attributes.customLinkTitle || new URL(item.attributes.productLink).hostname}
+                            </h4>
+                            {item.attributes.customLinkDescription && (
+                              <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                                {item.attributes.customLinkDescription}
+                              </p>
+                            )}
+                            {!item.attributes.customLinkDescription && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                Click to view
+                              </p>
+                            )}
+                            <p className="text-xs text-blue-600 mt-2 truncate flex items-center gap-1">
+                              <ExternalLink className="w-3 h-3" />
+                              {new URL(item.attributes.productLink).hostname}
+                            </p>
+                          </div>
+                        </a>
                       </div>
                     )}
 
