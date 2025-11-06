@@ -233,12 +233,16 @@ export type Database = {
         Row: {
           category: string
           created_at: string | null
+          description: string | null
           id: string
           is_archived: boolean | null
           is_pinned: boolean | null
+          is_public: boolean | null
           is_shared: boolean | null
           list_type: string
+          public_link: string | null
           share_link: string | null
+          show_purchaser_info: boolean | null
           tags: string[] | null
           title: string
           updated_at: string | null
@@ -247,12 +251,16 @@ export type Database = {
         Insert: {
           category: string
           created_at?: string | null
+          description?: string | null
           id?: string
           is_archived?: boolean | null
           is_pinned?: boolean | null
+          is_public?: boolean | null
           is_shared?: boolean | null
           list_type: string
+          public_link?: string | null
           share_link?: string | null
+          show_purchaser_info?: boolean | null
           tags?: string[] | null
           title: string
           updated_at?: string | null
@@ -261,12 +269,16 @@ export type Database = {
         Update: {
           category?: string
           created_at?: string | null
+          description?: string | null
           id?: string
           is_archived?: boolean | null
           is_pinned?: boolean | null
+          is_public?: boolean | null
           is_shared?: boolean | null
           list_type?: string
+          public_link?: string | null
           share_link?: string | null
+          show_purchaser_info?: boolean | null
           tags?: string[] | null
           title?: string
           updated_at?: string | null
@@ -278,6 +290,107 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchases: {
+        Row: {
+          created_at: string | null
+          id: string
+          item_id: string
+          list_id: string
+          purchase_date: string | null
+          purchase_note: string | null
+          purchaser_name: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          item_id: string
+          list_id: string
+          purchase_date?: string | null
+          purchase_note?: string | null
+          purchaser_name?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          item_id?: string
+          list_id?: string
+          purchase_date?: string | null
+          purchase_note?: string | null
+          purchaser_name?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchases_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "list_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchases_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      registry_purchases: {
+        Row: {
+          created_at: string | null
+          gift_giver_email: string | null
+          gift_giver_id: string | null
+          gift_giver_name: string
+          id: string
+          list_item_id: string
+          notes: string | null
+          purchase_status: string
+          purchased_at: string | null
+          quantity_purchased: number | null
+          received_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          gift_giver_email?: string | null
+          gift_giver_id?: string | null
+          gift_giver_name: string
+          id?: string
+          list_item_id: string
+          notes?: string | null
+          purchase_status?: string
+          purchased_at?: string | null
+          quantity_purchased?: number | null
+          received_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          gift_giver_email?: string | null
+          gift_giver_id?: string | null
+          gift_giver_name?: string
+          id?: string
+          list_item_id?: string
+          notes?: string | null
+          purchase_status?: string
+          purchased_at?: string | null
+          quantity_purchased?: number | null
+          received_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registry_purchases_list_item_id_fkey"
+            columns: ["list_item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
             referencedColumns: ["id"]
           },
         ]
@@ -440,6 +553,50 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      wishlist_purchases: {
+        Row: {
+          created_at: string | null
+          id: string
+          list_item_id: string
+          notes: string | null
+          purchase_status: string
+          purchased_at: string | null
+          purchased_by: string | null
+          received_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          list_item_id: string
+          notes?: string | null
+          purchase_status?: string
+          purchased_at?: string | null
+          purchased_by?: string | null
+          received_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          list_item_id?: string
+          notes?: string | null
+          purchase_status?: string
+          purchased_at?: string | null
+          purchased_by?: string | null
+          received_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wishlist_purchases_list_item_id_fkey"
+            columns: ["list_item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

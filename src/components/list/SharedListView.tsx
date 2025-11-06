@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useToast } from "@/components/ui/use-toast";
 import {
   Loader2,
   ArrowLeft,
@@ -14,16 +15,25 @@ import {
   StickyNote,
   Link as LinkIcon,
   User as UserIcon,
+  ShoppingCart,
+  ExternalLink,
 } from "lucide-react";
 import { format } from "date-fns";
 import { isToday, isPast } from "date-fns";
+import PurchaseModal from "./PurchaseModal";
+import { LinkPreviewCard } from "./LinkPreviewCard";
 
 export default function SharedListView() {
   const { shareId } = useParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [list, setList] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [purchases, setPurchases] = useState<Record<string, any>>({});
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
+  const [showPurchaserInfo, setShowPurchaserInfo] = useState(false);
 
   useEffect(() => {
     const fetchSharedList = async () => {
@@ -54,6 +64,9 @@ export default function SharedListView() {
           return;
         }
 
+        // Set the show_purchaser_info setting
+        setShowPurchaserInfo(listData.show_purchaser_info || false);
+
         // Fetch items for this list using correct table name
         const { data: itemsData, error: itemsError } = await supabase
           .from("list_items")
@@ -70,10 +83,28 @@ export default function SharedListView() {
           return;
         }
 
+        // Fetch purchases for this list
+        const { data: purchasesData, error: purchasesError } = await supabase
+          .from("purchases")
+          .select("*")
+          .eq("list_id", listData.id);
+
+        console.log("SharedListView: Purchases query result:", { purchasesData, purchasesError });
+
+        // Create a map of item_id to purchase data
+        const purchasesMap: Record<string, any> = {};
+        if (purchasesData) {
+          purchasesData.forEach((purchase: any) => {
+            purchasesMap[purchase.item_id] = purchase;
+          });
+        }
+        setPurchases(purchasesMap);
+
         setList({
           id: listData.id,
           title: listData.title,
           category: listData.category,
+          listType: listData.list_type,
           items: (itemsData || []).map((item: any) => ({
             id: item.id,
             text: item.text,
@@ -100,6 +131,166 @@ export default function SharedListView() {
 
     fetchSharedList();
   }, [shareId]);
+
+  // Set up real-time subscriptions for purchases and items
+  useEffect(() => {
+    if (!list?.id) return;
+
+    // Subscribe to purchases changes
+    const purchasesChannel = supabase
+      .channel(`purchases:${list.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'purchases',
+          filter: `list_id=eq.${list.id}`,
+        },
+        (payload) => {
+          console.log('Purchase change received:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            setPurchases((prev) => ({
+              ...prev,
+              [payload.new.item_id]: payload.new,
+            }));
+          } else if (payload.eventType === 'DELETE') {
+            setPurchases((prev) => {
+              const updated = { ...prev };
+              delete updated[payload.old.item_id];
+              return updated;
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    // Subscribe to list_items changes (for quantity updates)
+    const itemsChannel = supabase
+      .channel(`list_items:${list.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'list_items',
+          filter: `list_id=eq.${list.id}`,
+        },
+        (payload) => {
+          console.log('Item change received:', payload);
+          
+          setList((prevList: any) => ({
+            ...prevList,
+            items: prevList.items.map((item: any) =>
+              item.id === payload.new.id
+                ? {
+                    ...item,
+                    attributes: payload.new.attributes || {},
+                  }
+                : item
+            ),
+          }));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(purchasesChannel);
+      supabase.removeChannel(itemsChannel);
+    };
+  }, [list?.id]);
+
+  const handlePurchaseClick = (item: any) => {
+    // Check if item is already purchased
+    if (purchases[item.id]) {
+      toast({
+        title: "Already Purchased",
+        description: "This item is already being purchased",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedItem(item);
+    setIsPurchaseModalOpen(true);
+  };
+
+  const handlePurchaseComplete = async () => {
+    if (!selectedItem || !list) return;
+
+    try {
+      // Get the modal values (we'll need to pass them from the modal)
+      const purchaserName = (document.getElementById("purchaser-name") as HTMLInputElement)?.value || null;
+      const purchaseNote = (document.getElementById("purchase-note") as HTMLTextAreaElement)?.value || null;
+
+      // Insert purchase record
+      const { data: purchaseData, error: purchaseError } = await supabase
+        .from("purchases")
+        .insert({
+          list_id: list.id,
+          item_id: selectedItem.id,
+          purchaser_name: purchaserName,
+          purchase_note: purchaseNote,
+        })
+        .select()
+        .single();
+
+      if (purchaseError) throw purchaseError;
+
+      // Update item status to 'Purchased'
+      const updatedAttributes = {
+        ...selectedItem.attributes,
+        purchaseStatus: "Purchased",
+      };
+
+      // If quantity_needed > 1, decrement it
+      if (selectedItem.attributes?.quantityNeeded && selectedItem.attributes.quantityNeeded > 1) {
+        updatedAttributes.quantityNeeded = selectedItem.attributes.quantityNeeded - 1;
+      }
+
+      const { error: updateError } = await supabase
+        .from("list_items")
+        .update({ attributes: updatedAttributes })
+        .eq("id", selectedItem.id);
+
+      if (updateError) throw updateError;
+
+      // Update local state
+      setPurchases((prev) => ({
+        ...prev,
+        [selectedItem.id]: purchaseData,
+      }));
+
+      setList((prevList: any) => ({
+        ...prevList,
+        items: prevList.items.map((item: any) =>
+          item.id === selectedItem.id
+            ? { ...item, attributes: updatedAttributes }
+            : item
+        ),
+      }));
+
+      toast({
+        title: "Thank you!",
+        description: "Item marked as purchased",
+      });
+
+      setIsPurchaseModalOpen(false);
+      setSelectedItem(null);
+    } catch (error: any) {
+      console.error("Error completing purchase:", error);
+      toast({
+        title: "Error",
+        description: "Failed to mark item as purchased. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const isRegistryOrWishlist = (listType: string) => {
+    return listType === "registry-list" || listType === "shopping-list";
+  };
 
   if (isLoading) {
     return (
@@ -201,25 +392,36 @@ export default function SharedListView() {
               </div>
             </Card>
           ) : (
-            list.items.map((item: any, index: number) => (
+            list.items.map((item: any, index: number) => {
+              const isPurchased = !!purchases[item.id];
+              
+              return (
               <Card
                 key={item.id}
-                className={`p-3 sm:p-4 ${index % 2 === 1 ? "bg-gray-50" : "bg-white"}`}
+                className={`p-3 sm:p-4 transition-all ${
+                  isPurchased 
+                    ? "bg-green-50 border-green-200" 
+                    : index % 2 === 1 
+                    ? "bg-gray-50" 
+                    : "bg-white"
+                }`}
               >
                 <div className="flex items-start gap-2 sm:gap-3">
                   <Checkbox
-                    checked={item.completed}
+                    checked={item.completed || isPurchased}
                     disabled
                     className="mt-1 h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0"
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p
-                        className={`text-sm sm:text-base text-gray-900 transition-all duration-200 ${item.completed ? "line-through opacity-50" : ""} break-words`}
+                        className={`text-sm sm:text-base text-gray-900 transition-all duration-200 ${
+                          item.completed || isPurchased ? "line-through opacity-60" : ""
+                        } break-words`}
                       >
                         {item.quantity && (
                           <span className="font-semibold text-blue-600">
-                            {item.quantity}×{" "}
+                            {item.quantity}× {" "}
                           </span>
                         )}
                         {item.text}
@@ -275,6 +477,14 @@ export default function SharedListView() {
                             ${item.attributes.price}
                           </Badge>
                         )}
+                        {item.attributes.quantityNeeded && (
+                          <Badge
+                            variant="outline"
+                            className="bg-indigo-50 text-indigo-700 border-indigo-200 text-xs"
+                          >
+                            Quantity needed: {item.attributes.quantityNeeded}
+                          </Badge>
+                        )}
                       </div>
                     )}
 
@@ -325,10 +535,52 @@ export default function SharedListView() {
                         ))}
                       </div>
                     )}
+
+                    {/* Link Preview for registry/wishlist items */}
+                    {list.listType && isRegistryOrWishlist(list.listType) && item.attributes?.productLink && (
+                      <div className="mt-3">
+                        <LinkPreviewCard
+                          url={item.attributes.productLink}
+                          customTitle={item.attributes.customLinkTitle}
+                          customDescription={item.attributes.customLinkDescription}
+                          customImage={item.attributes.customLinkImage}
+                        />
+                      </div>
+                    )}
+
+                    {/* Purchase button for registry/wishlist items */}
+                    {list.listType && isRegistryOrWishlist(list.listType) && (
+                      <div className="mt-3">
+                        {purchases[item.id] ? (
+                          <div className="flex items-center gap-2">
+                            <Badge 
+                              variant="outline" 
+                              className="bg-green-50 text-green-700 border-green-200 text-sm py-1.5 px-3"
+                            >
+                              <ShoppingCart className="w-4 h-4 mr-1.5" />
+                              {showPurchaserInfo && purchases[item.id].purchaser_name
+                                ? `Purchased by ${purchases[item.id].purchaser_name}`
+                                : "Purchased"}
+                            </Badge>
+                          </div>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() => handlePurchaseClick(item)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                          >
+                            <ShoppingCart className="w-4 h-4 mr-2" />
+                            I'm buying this
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </Card>
-            ))
+              )
+            })
           )}
         </div>
 
@@ -346,6 +598,17 @@ export default function SharedListView() {
           </div>
         </Card>
       </div>
+
+      {/* Purchase Modal */}
+      {selectedItem && (
+        <PurchaseModal
+          open={isPurchaseModalOpen}
+          onOpenChange={setIsPurchaseModalOpen}
+          item={selectedItem}
+          listId={list.id}
+          onPurchaseComplete={handlePurchaseComplete}
+        />
+      )}
     </div>
   );
 }

@@ -1,0 +1,1 @@
+ALTER TABLE public.lists ADD COLUMN IF NOT EXISTS show_purchaser_info BOOLEAN DEFAULT FALSE;

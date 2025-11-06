@@ -48,18 +48,17 @@ export interface ListItem {
 export interface List {
   id: string;
   title: string;
-  category: string;
+  category: ListCategory;
   listType: ListType;
   items: ListItem[];
   isPinned: boolean;
+  isShared: boolean;
+  shareLink?: string;
+  tags?: string[];
+  collaborators?: string[];
   createdAt: Date;
   updatedAt: Date;
-  // New features
-  shareLink?: string;
-  isShared: boolean;
-  collaborators?: string[];
-  tags?: string[];
-  reminders?: boolean;
+  showPurchaserInfo?: boolean;
 }
 
 export type ListCategory = 'Tasks' | 'Groceries' | 'Ideas' | 'Shopping' | 'Travel' | 'Work' | 'Home' | 'Other';

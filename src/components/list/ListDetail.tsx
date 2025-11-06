@@ -1,6 +1,7 @@
 import { useOpenGraphPreview } from "@/hooks/useOpenGraphPreview";
 import { LinkPreviewCard } from "@/components/list/LinkPreviewCard";
 import { ListSidebar } from "./ListSidebar";
+import PurchaseHistoryModal from "./PurchaseHistoryModal";
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useLists } from "@/contexts/useListsHook";
@@ -15,30 +16,41 @@ import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft,
   Plus,
-  Trash2,
-  GripVertical,
+  Search,
+  Filter,
+  SortAsc,
   Calendar,
-  Flag,
-  StickyNote,
-  Download,
-  Pin,
-  Link as LinkIcon,
-  User as UserIcon,
-  Share2,
-  Tag,
-  CheckSquare,
-  X,
-  ExternalLink,
+  CheckCircle,
+  Clock,
+  AlertCircle,
+  TrendingUp,
   Package,
   Loader2,
-  HelpCircle,
-  CheckCircle,
-  Menu,
-  Zap,
-  ListTree,
+  Share2,
+  Download,
+  Trash2,
+  Pin,
+  X,
+  ChevronDown,
   ChevronRight,
-  AlertCircle,
+  Menu,
   Edit,
+  CheckSquare,
+  ShoppingCart,
+  Lightbulb,
+  Plane,
+  ListChecks,
+  Crown,
+  HelpCircle,
+  FileText,
+  Upload,
+  User,
+  LogOut,
+  GripVertical,
+  Tag,
+  ExternalLink,
+  Flag,
+  Link as LinkIcon,
 } from "lucide-react";
 import {
   Dialog,
@@ -98,6 +110,7 @@ import {
 } from "@/lib/validation";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/lib/supabase";
 
 export default function ListDetail() {
   const { id } = useParams<{ id: string }>();
@@ -186,6 +199,7 @@ export default function ListDetail() {
   const [editListTitle, setEditListTitle] = useState("");
   const [editListCategory, setEditListCategory] = useState<string>("");
   const [editListType, setEditListType] = useState<string>("");
+  const [isPurchaseHistoryOpen, setIsPurchaseHistoryOpen] = useState(false);
 
   // Simulate loading on mount
   useState(() => {
@@ -637,6 +651,34 @@ export default function ListDetail() {
     }
   };
 
+  const handleTogglePurchaserInfo = async (value: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("lists")
+        .update({ show_purchaser_info: value })
+        .eq("id", list.id);
+
+      if (error) throw error;
+
+      // Update local list state
+      updateList(list.id, { showPurchaserInfo: value });
+
+      toast({
+        title: value ? "Purchaser names visible" : "Purchaser names hidden",
+        description: value 
+          ? "You can now see who purchased each item" 
+          : "All purchases will show as Anonymous",
+      });
+    } catch (error: any) {
+      console.error("Error updating purchaser info setting:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update privacy setting",
+        variant: "destructive",
+      });
+    }
+  };
+
   const openEditListDialog = () => {
     if (!list) return;
     setEditListTitle(list.title);
@@ -852,6 +894,23 @@ export default function ListDetail() {
                     <TooltipContent>Help</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
+                {(list.listType === "registry-list" || list.listType === "shopping-list") && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setIsPurchaseHistoryOpen(true)}
+                          className="h-10 w-10"
+                        >
+                          <ShoppingCart className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Purchase History</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -981,6 +1040,19 @@ export default function ListDetail() {
                 </SheetTrigger>
                 <SheetContent side="right" className="w-[280px]">
                   <div className="flex flex-col gap-3 mt-8">
+                    {(list.listType === "registry-list" || list.listType === "shopping-list") && (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setIsPurchaseHistoryOpen(true);
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="w-full justify-start min-h-[44px]"
+                      >
+                        <ShoppingCart className="w-4 h-4 mr-2" />
+                        Purchase History
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       onClick={() => {
@@ -2863,7 +2935,7 @@ export default function ListDetail() {
                         )}
                         {item.notes && (
                           <Badge variant="outline" className="text-xs">
-                            <StickyNote className="w-3 h-3 mr-1" />
+                            <FileText className="w-3 h-3 mr-1" />
                             Note
                           </Badge>
                         )}
@@ -3730,6 +3802,18 @@ export default function ListDetail() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Purchase History Modal */}
+      {(list.listType === "registry-list" || list.listType === "shopping-list") && (
+        <PurchaseHistoryModal
+          open={isPurchaseHistoryOpen}
+          onOpenChange={setIsPurchaseHistoryOpen}
+          listId={list.id}
+          listItems={list.items.map((item) => ({ id: item.id, text: item.text }))}
+          showPurchaserInfo={list.showPurchaserInfo || false}
+          onTogglePurchaserInfo={handleTogglePurchaserInfo}
+        />
+      )}
     </div>
   );
 }
