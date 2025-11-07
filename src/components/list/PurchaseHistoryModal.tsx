@@ -178,10 +178,7 @@ export default function PurchaseHistoryModal({
               </div>
               <Switch
                 checked={showPurchaserInfo}
-                onCheckedChange={(checked) => {
-                  onTogglePurchaserInfo(checked);
-                }}
-                className="data-[state=checked]:bg-blue-600"
+                onCheckedChange={onTogglePurchaserInfo}
               />
             </div>
 

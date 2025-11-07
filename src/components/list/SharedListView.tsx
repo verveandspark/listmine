@@ -524,6 +524,12 @@ export default function SharedListView() {
                       )}
                     </div>
 
+                    {item.attributes?.purchaseStatus === "purchased" && (
+                      <Badge className="bg-green-100 text-green-700 border-green-300">
+                        ✓ Purchased
+                      </Badge>
+                    )}
+
                     {item.notes && !item.completed && (
                       <p className="text-xs sm:text-sm text-gray-600 mt-2 break-words">
                         {item.notes}

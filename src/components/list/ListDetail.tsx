@@ -749,6 +749,39 @@ export default function ListDetail() {
     if (!list) return [];
     let items = [...list.items];
 
+    // For registry/wishlist, group by purchase status first
+    if (list.listType === "registry-list" || list.listType === "shopping-list") {
+      const unpurchased = items.filter(item => item.attributes?.purchaseStatus !== "purchased");
+      const purchased = items.filter(item => item.attributes?.purchaseStatus === "purchased");
+      
+      // Sort each group according to the selected sort method
+      const sortGroup = (group: typeof items) => {
+        switch (itemSortBy) {
+          case "priority":
+            const priorityOrder = { high: 0, medium: 1, low: 2 };
+            return group.sort((a, b) => {
+              const aPriority = a.priority ? priorityOrder[a.priority] : 999;
+              const bPriority = b.priority ? priorityOrder[b.priority] : 999;
+              return aPriority - bPriority;
+            });
+          case "dueDate":
+            return group.sort((a, b) => {
+              if (!a.dueDate) return 1;
+              if (!b.dueDate) return -1;
+              return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+            });
+          case "alphabetical":
+            return group.sort((a, b) => a.text.localeCompare(b.text));
+          case "manual":
+          default:
+            return group.sort((a, b) => a.order - b.order);
+        }
+      };
+      
+      return [...sortGroup(unpurchased), ...sortGroup(purchased)];
+    }
+
+    // For other list types, use normal sorting
     switch (itemSortBy) {
       case "priority":
         const priorityOrder = { high: 0, medium: 1, low: 2 };
@@ -2042,11 +2075,31 @@ export default function ListDetail() {
                             >
                               {item.quantity && (
                                 <span className="font-semibold text-blue-600">
-                                  {item.quantity}×{" "}
+                                  {item.quantity}× {" "}
                                 </span>
                               )}
                               {item.text}
                             </p>
+                            {isPurchased && (
+                              <Badge className="bg-green-100 text-green-700 border-green-300">
+                                ✓ Purchased
+                              </Badge>
+                            )}
+                            {item.dueDate && (
+                              <Badge
+                                variant="outline"
+                                className={`${getDueDateColor(item.dueDate)} flex items-center gap-1 text-xs`}
+                              >
+                                <Calendar className="w-3 h-3" />
+                                {format(new Date(item.dueDate), "MMM d")}
+                              </Badge>
+                            )}
+                            {item.assignedTo && (
+                              <Badge variant="outline" className="text-xs">
+                                <UserIcon className="w-3 h-3 mr-1" />
+                                {item.assignedTo}
+                              </Badge>
+                            )}
                           </div>
 
                           {/* Grocery-specific attributes */}
@@ -2915,6 +2968,11 @@ export default function ListDetail() {
                               )}
                               {item.text}
                             </p>
+                            {isPurchased && (
+                              <Badge className="bg-green-100 text-green-700 border-green-300">
+                                ✓ Purchased
+                              </Badge>
+                            )}
                             {item.dueDate && (
                               <Badge
                                 variant="outline"
