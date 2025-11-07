@@ -221,26 +221,7 @@ export default function SharedListView() {
     try {
       console.log("Starting purchase process for item:", selectedItem.id);
       
-      // Insert purchase record
-      const { data: purchaseData, error: purchaseError } = await supabase
-        .from("purchases")
-        .insert({
-          list_id: list.id,
-          item_id: selectedItem.id,
-          purchaser_name: purchaserName,
-          purchase_note: purchaseNote,
-        })
-        .select()
-        .single();
-
-      if (purchaseError) {
-        console.error("Purchase insert error:", purchaseError);
-        throw purchaseError;
-      }
-
-      console.log("Purchase record created:", purchaseData);
-
-      // Update item status to 'Purchased'
+      // Update item status to 'Purchased' FIRST
       const updatedAttributes = {
         ...selectedItem.attributes,
         purchaseStatus: "purchased",
@@ -261,9 +242,28 @@ export default function SharedListView() {
         throw updateError;
       }
 
-      console.log("Item attributes updated successfully");
+      console.log("Item attributes updated successfully with purchaseStatus:", updatedAttributes);
 
-      // Update local state
+      // Then insert purchase record
+      const { data: purchaseData, error: purchaseError } = await supabase
+        .from("purchases")
+        .insert({
+          list_id: list.id,
+          item_id: selectedItem.id,
+          purchaser_name: purchaserName,
+          purchase_note: purchaseNote,
+        })
+        .select()
+        .single();
+
+      if (purchaseError) {
+        console.error("Purchase insert error:", purchaseError);
+        throw purchaseError;
+      }
+
+      console.log("Purchase record created:", purchaseData);
+
+      // Update local state immediately
       setPurchases((prev) => ({
         ...prev,
         [selectedItem.id]: purchaseData,
