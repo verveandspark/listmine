@@ -2180,7 +2180,7 @@ export default function ListDetail() {
                                       Click to view
                                     </p>
                                   )}
-                                  <p className="text-xs text-blue-600 mt-2 truncate flex items-center gap-1">
+                                  <p className="text-xs text-primary mt-2 truncate flex items-center gap-1">
                                     <ExternalLink className="w-3 h-3" />
                                     {new URL(item.attributes.productLink || item.attributes.inspirationLink || "").hostname}
                                   </p>
@@ -3075,9 +3075,9 @@ export default function ListDetail() {
                               </Badge>
                             )}
                             {(item.attributes?.productLink || item.attributes?.inspirationLink) && (
-                              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                                <LinkIcon className="w-3 h-3 mr-1" />
-                                {list.listType === "idea-list" ? "Inspiration" : "Product"} Link
+                              <Badge variant="outline" className="text-xs bg-blue-50 border-blue-200">
+                                <LinkIcon className="w-3 h-3 mr-1 text-primary" />
+                                <span className="text-primary underline">{list.listType === "idea-list" ? "Inspiration" : "Product"} Link</span>
                               </Badge>
                             )}
                             {item.links && item.links.length > 0 && (
@@ -3124,7 +3124,7 @@ export default function ListDetail() {
                                       Click to view
                                     </p>
                                   )}
-                                  <p className="text-xs text-blue-600 mt-2 truncate flex items-center gap-1">
+                                  <p className="text-xs text-primary mt-2 truncate flex items-center gap-1">
                                     <ExternalLink className="w-3 h-3" />
                                     {new URL(item.attributes.productLink || item.attributes.inspirationLink || "").hostname}
                                   </p>
