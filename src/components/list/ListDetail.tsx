@@ -2902,7 +2902,8 @@ export default function ListDetail() {
                         )}
                       </div>
                     </Card>
-                  ))}
+                    );
+                  })}
                 </div>
               ))
             ) : (
