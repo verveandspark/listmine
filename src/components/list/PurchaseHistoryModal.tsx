@@ -61,7 +61,13 @@ export default function PurchaseHistoryModal({
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [purchaseToDelete, setPurchaseToDelete] = useState<string | null>(null);
+  const [localShowPurchaserInfo, setLocalShowPurchaserInfo] = useState(showPurchaserInfo);
   const { toast } = useToast();
+
+  // Sync local state with prop
+  useEffect(() => {
+    setLocalShowPurchaserInfo(showPurchaserInfo);
+  }, [showPurchaserInfo]);
 
   useEffect(() => {
     if (open) {
@@ -90,6 +96,13 @@ export default function PurchaseHistoryModal({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleToggle = async (value: boolean) => {
+    // Update local state immediately for instant UI feedback
+    setLocalShowPurchaserInfo(value);
+    // Then update the database
+    await onTogglePurchaserInfo(value);
   };
 
   const handleDeletePurchase = async (purchaseId: string, itemId: string) => {
@@ -180,8 +193,8 @@ export default function PurchaseHistoryModal({
               </div>
               <Switch
                 id="show-purchaser-toggle"
-                checked={showPurchaserInfo}
-                onCheckedChange={onTogglePurchaserInfo}
+                checked={localShowPurchaserInfo}
+                onCheckedChange={handleToggle}
               />
             </div>
 
@@ -217,7 +230,7 @@ export default function PurchaseHistoryModal({
                           {getItemName(purchase.item_id)}
                         </TableCell>
                         <TableCell>
-                          {showPurchaserInfo && purchase.purchaser_name ? (
+                          {localShowPurchaserInfo && purchase.purchaser_name ? (
                             <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                               {purchase.purchaser_name}
                             </Badge>
