@@ -544,7 +544,7 @@ export default function SharedListView() {
                             href={link}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-xs sm:text-sm text-blue-600 hover:underline flex items-center gap-1 break-all"
+                            className="text-xs sm:text-sm text-[#1f628e] hover:text-[#174a6b] underline flex items-center gap-1 break-all"
                           >
                             <LinkIcon className="w-3 h-3 flex-shrink-0" />
                             {link}

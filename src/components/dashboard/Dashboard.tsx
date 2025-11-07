@@ -33,8 +33,8 @@ import {
 } from "lucide-react";
 
 import { useState } from "react";
-import { useLists } from "@/contexts/useListsHook";
 import { useAuth } from "@/contexts/useAuthHook";
+import { useList } from "@/contexts/ListContext";
 import { ListCategory, ListType } from "@/types";
 import {
   Card,
@@ -117,15 +117,15 @@ const categoryIcons: Record<string, any> = {
 };
 
 const categoryColors: Record<string, string> = {
-  Home: "bg-[#919e5d]/10 text-[#919e5d] border-[#919e5d]/20",
-  Shopping: "bg-[#b2c28b]/10 text-[#b2c28b] border-[#b2c28b]/20",
-  Work: "bg-[#187baf]/10 text-[#187baf] border-[#187baf]/20",
-  School: "bg-[#629ac0]/10 text-[#629ac0] border-[#629ac0]/20",
-  Tasks: "bg-[#73833f]/10 text-[#73833f] border-[#73833f]/20",
-  Other: "bg-[#c2d3e5]/10 text-[#c2d3e5] border-[#c2d3e5]/20",
-  Groceries: "bg-[#b2c28b]/10 text-[#b2c28b] border-[#b2c28b]/20",
-  Ideas: "bg-[#919e5d]/10 text-[#919e5d] border-[#919e5d]/20",
-  Travel: "bg-[#629ac0]/10 text-[#629ac0] border-[#629ac0]/20",
+  Home: "bg-[#5789aa]/10 text-[#5789aa] border-[#5789aa]/20",
+  Shopping: "bg-[#2ba8a8]/10 text-[#2ba8a8] border-[#2ba8a8]/20",
+  Work: "bg-[#1f628e]/10 text-[#1f628e] border-[#1f628e]/20",
+  School: "bg-[#80d4d4]/10 text-[#80d4d4] border-[#80d4d4]/20",
+  Tasks: "bg-[#2ba8a8]/10 text-[#2ba8a8] border-[#2ba8a8]/20",
+  Other: "bg-[#cbd5e1]/10 text-[#cbd5e1] border-[#cbd5e1]/20",
+  Groceries: "bg-[#2ba8a8]/10 text-[#2ba8a8] border-[#2ba8a8]/20",
+  Ideas: "bg-[#5789aa]/10 text-[#5789aa] border-[#5789aa]/20",
+  Travel: "bg-[#80d4d4]/10 text-[#80d4d4] border-[#80d4d4]/20",
 };
 
 const listTypes: { value: ListType; label: string }[] = [
@@ -144,21 +144,21 @@ const listTypes: { value: ListType; label: string }[] = [
 ];
 
 export default function Dashboard() {
+  const { user, logout } = useAuth();
   const {
     lists,
     addList,
+    updateList,
+    deleteList,
     togglePin,
     searchLists,
     filterLists,
-    deleteList,
-    exportList,
-    generateShareLink,
-    updateList,
     loading,
     error,
     retryLoad,
-  } = useLists();
-  const { user, logout } = useAuth();
+    generateShareLink,
+    exportList,
+  } = useList();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -258,7 +258,7 @@ export default function Dashboard() {
     );
     if (existingList) {
       toast({
-        title: "⚠�� This list name already exists",
+        title: "⚠️ This list name already exists",
         description: `Try another name like "${nameValidation.value} 2" or "${nameValidation.value} - New".`,
         variant: "destructive",
       });
@@ -375,8 +375,14 @@ export default function Dashboard() {
     return count;
   };
 
-  const getTimeAgo = (date: Date) => {
-    return formatDistanceToNow(date, { addSuffix: true });
+  const getTimeAgo = (date: string | Date | null | undefined) => {
+    if (!date) return 'Never';
+    try {
+      return formatDistanceToNow(new Date(date), { addSuffix: true });
+    } catch (error) {
+      console.error('[ListMine] Invalid date in getTimeAgo:', date, error);
+      return 'Unknown';
+    }
   };
 
   const getDueToday = (list: any) => {
@@ -500,7 +506,9 @@ export default function Dashboard() {
         return bCompletion - aCompletion;
       case "recent":
       default:
-        return b.updatedAt.getTime() - a.updatedAt.getTime();
+        const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+        const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+        return dateB - dateA;
     }
   });
 
@@ -581,14 +589,14 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-                <ListChecks className="w-6 h-6 text-primary-foreground" />
-              </div>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-                  ListMine
-                </h1>
-                <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">
+              {/* Full Logo */}
+              <img 
+                src="/assets/listmine-logo-full.png" 
+                alt="ListMine" 
+                className="h-10 sm:h-12"
+              />
+              <div className="hidden sm:block">
+                <p className="text-xs sm:text-sm text-gray-600">
                   Welcome back, {user?.name}
                   {user?.tier === "premium" && (
                     <Badge variant="secondary" className="ml-2">

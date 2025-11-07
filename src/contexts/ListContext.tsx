@@ -124,7 +124,8 @@ export function ListProvider({ children }: { children: ReactNode }) {
             filter: `user_id=eq.${user.id}`,
           },
           () => {
-            loadLists();
+            // Don't call loadLists here to avoid double loading
+            // The realtime subscription will trigger a re-render
           },
         )
         .on(
@@ -135,6 +136,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
             table: "list_items",
           },
           () => {
+            // Reload lists when items change
             loadLists();
           },
         )
@@ -151,88 +153,86 @@ export function ListProvider({ children }: { children: ReactNode }) {
 
   const loadLists = async () => {
     if (!user) {
+      setLists([]);
       setLoading(false);
       return;
     }
 
     try {
+      setLoading(true);
       setError(null);
-      const listsResult = (await withTimeout(
-        supabase
-          .from("lists")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false }),
-      )) as any;
-      const { data: listsData, error: listsError } = listsResult;
 
-      if (listsError) throw listsError;
+      // Verify Supabase client is initialized
+      if (!supabase) {
+        throw new Error("Supabase client not initialized");
+      }
 
-      const itemsResult = (await withTimeout(
-        supabase
-          .from("list_items")
-          .select("*")
-          .in("list_id", listsData?.map((l: any) => l.id) || [])
-          .order("item_order", { ascending: true }),
-      )) as any;
-      const { data: itemsData, error: itemsError } = itemsResult;
+      // Log connection attempt
+      console.log("[ListMine] Attempting to load lists...", {
+        userId: user.id,
+        supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+        hasAnonKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY,
+      });
 
-      if (itemsError) throw itemsError;
+      const { data: listsData, error: listsError } = await supabase
+        .from("lists")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
 
-      const listsWithItems: List[] = (listsData || []).map((list: any) => ({
-        id: list.id,
-        title: list.title,
-        category: list.category as ListCategory,
-        listType: list.list_type as ListType,
-        items: (itemsData || [])
-          .filter((item: any) => item.list_id === list.id)
-          .map((item: any) => ({
-            id: item.id,
-            text: item.text,
-            quantity: item.quantity,
-            priority: item.priority as "high" | "medium" | "low" | undefined,
-            dueDate: item.due_date ? new Date(item.due_date) : undefined,
-            notes: item.notes,
-            assignedTo: item.assigned_to,
-            completed: item.completed,
-            order: item.item_order,
-            links: item.links,
-            attributes: item.attributes,
-          })),
-        isPinned: list.is_pinned || false,
-        tags: list.tags || [],
-        collaborators: list.collaborators || [],
-        shareLink: list.share_link,
-        isShared: list.is_shared || false,
-        createdAt: new Date(list.created_at),
-        updatedAt: new Date(list.updated_at),
+      if (listsError) {
+        console.error("[ListMine Error]", {
+          operation: "loadLists - lists query",
+          error: listsError,
+          errorCode: listsError.code,
+          errorMessage: listsError.message,
+          errorDetails: listsError.details,
+          userId: user.id,
+        });
+        throw listsError;
+      }
+
+      console.log("[ListMine] Lists loaded successfully:", listsData?.length || 0);
+
+      const { data: itemsData, error: itemsError } = await supabase
+        .from("list_items")
+        .select("*")
+        .in(
+          "list_id",
+          listsData?.map((l) => l.id) || [],
+        );
+
+      if (itemsError) {
+        console.error("[ListMine Error]", {
+          operation: "loadLists - items query",
+          error: itemsError,
+          errorCode: itemsError.code,
+          errorMessage: itemsError.message,
+        });
+        throw itemsError;
+      }
+
+      console.log("[ListMine] Items loaded successfully:", itemsData?.length || 0);
+
+      const listsWithItems = listsData?.map((list) => ({
+        ...list,
+        items: itemsData?.filter((item) => item.list_id === list.id) || [],
       }));
 
-      setLists(listsWithItems);
-    } catch (error: any) {
-      logError("loadLists", error, user?.id);
-
-      if (error.message === "Operation timed out") {
-        setError(
-          "This is taking longer than expected. Please wait or try again.",
-        );
-      } else if (
-        error.message.includes("network") ||
-        error.message.includes("fetch")
-      ) {
-        setError(
-          "We're having trouble connecting. Check your internet connection and try again.",
-        );
-      } else if (
-        error.message.includes("JWT") ||
-        error.message.includes("token")
-      ) {
-        setError("Your session has expired. Please log in again.");
-      } else {
-        setError(
-          "Couldn't load your lists. Check your connection and try again.",
-        );
-      }
+      setLists(listsWithItems || []);
+    } catch (err: any) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to load lists";
+      console.error("[ListMine Error]", {
+        operation: "loadLists",
+        error: err,
+        errorMessage,
+        errorName: err?.name,
+        errorStack: err?.stack,
+        supabaseUrl: import.meta.env.VITE_SUPABASE_URL ? "Set" : "Missing",
+        supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY ? "Set" : "Missing",
+        networkOnline: navigator.onLine,
+      });
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

@@ -838,7 +838,7 @@ export default function ListDetail() {
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs sm:text-sm text-blue-600 hover:underline flex items-center gap-1 break-all"
+          className="text-xs sm:text-sm text-[#1f628e] hover:text-[#174a6b] underline flex items-center gap-1 break-all"
         >
           <LinkIcon className="w-3 h-3 flex-shrink-0" />
           {url}
@@ -2915,6 +2915,10 @@ export default function ListDetail() {
                   isPurchased && 
                   (list.listType === "registry-list" || list.listType === "shopping-list");
                 
+                // Calculate continuous numbering for registry/wishlist
+                const showNumbering = list.listType === "registry-list" || list.listType === "shopping-list";
+                const itemNumber = index + 1;
+                
                 return (
                   <div key={item.id}>
                     {/* Divider before first purchased item */}
@@ -2950,6 +2954,11 @@ export default function ListDetail() {
                           <div className="cursor-move mt-1 hidden sm:block">
                             <GripVertical className="w-5 h-5 text-gray-400" />
                           </div>
+                        )}
+                        {showNumbering && (
+                          <span className="text-sm font-semibold text-gray-500 mt-1 flex-shrink-0 min-w-[2rem]">
+                            {itemNumber}.
+                          </span>
                         )}
                         <Checkbox
                           checked={item.completed}

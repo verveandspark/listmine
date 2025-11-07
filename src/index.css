@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Lato:wght@300;400;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,37 +7,37 @@
 @layer base {
   :root {
     --background: 0 0% 100%; /* Pure White #FFFFFF */
-    --foreground: 217 33% 17%; /* Dark Gray #1E293B */
+    --foreground: 215 25% 27%; /* Charcoal #334155 */
 
-    --card: 200 33% 97%; /* Very Light Blue-Gray #F5F8FA */
-    --card-foreground: 217 33% 17%; /* Dark Gray */
+    --card: 200 33% 97%; /* Light Gray #F5F8FA */
+    --card-foreground: 215 25% 27%; /* Charcoal */
 
     --popover: 0 0% 100%; /* White */
-    --popover-foreground: 217 33% 17%; /* Dark Gray */
+    --popover-foreground: 215 25% 27%; /* Charcoal */
 
-    --primary: 201 75% 37%; /* Primary Blue #187BAF */
+    --primary: 203 64% 34%; /* Primary Blue #1F628E */
     --primary-foreground: 0 0% 100%; /* White */
 
-    --secondary: 202 48% 58%; /* Soft Blue #629AC0 */
+    --secondary: 202 35% 51%; /* Secondary Blue #5789AA */
     --secondary-foreground: 0 0% 100%; /* White */
 
     --muted: 210 40% 96.1%; /* Light Gray */
-    --muted-foreground: 215.4 16.3% 46.9%; /* Medium Gray */
+    --muted-foreground: 215 16% 47%; /* Dark Gray #64748B */
 
-    --accent: 87 30% 63%; /* Light Sage Green #B2C28B */
+    --accent: 180 60% 41%; /* Teal Accent #2BA8A8 */
     --accent-foreground: 0 0% 100%; /* White */
 
     --destructive: 0 84.2% 60.2%; /* Red */
     --destructive-foreground: 0 0% 100%; /* White */
 
-    --border: 210 45% 82%; /* Light Blue #C2D3E5 */
-    --input: 210 45% 82%; /* Light Blue */
-    --ring: 201 75% 37%; /* Primary Blue */
+    --border: 180 50% 67%; /* Light Teal #80D4D4 */
+    --input: 180 50% 67%; /* Light Teal */
+    --ring: 203 64% 34%; /* Primary Blue */
 
     --radius: 0.75rem;
 
     /* Success color */
-    --success: 83 36% 36%; /* Dark Sage Green #73833F */
+    --success: 180 60% 41%; /* Teal #2BA8A8 */
     --success-foreground: 0 0% 100%; /* White */
 
     /* Warning color */
@@ -44,25 +46,25 @@
   }
 
   .dark {
-    --background: 217 33% 17%; /* Dark Gray */
+    --background: 215 25% 27%; /* Charcoal */
     --foreground: 210 40% 98%; /* Soft Gray */
 
-    --card: 217 33% 17%;
+    --card: 215 25% 27%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 217 33% 17%;
+    --popover: 215 25% 27%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 201 75% 37%;
+    --primary: 203 64% 34%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 202 48% 58%;
+    --secondary: 202 35% 51%;
     --secondary-foreground: 0 0% 100%;
 
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
 
-    --accent: 87 30% 63%;
+    --accent: 180 60% 41%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62.8% 30.6%;
@@ -70,9 +72,9 @@
 
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 201 75% 37%;
+    --ring: 203 64% 34%;
 
-    --success: 83 36% 36%;
+    --success: 180 60% 41%;
     --success-foreground: 0 0% 100%;
   }
 }
@@ -83,14 +85,18 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+    font-family: 'Lato', -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
       "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans",
       "Helvetica Neue", sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Consistent heading styles */
+  /* Consistent heading styles with Montserrat */
+  h1, h2, h3, h4 {
+    font-family: 'Montserrat', sans-serif;
+  }
+  
   h1 {
     @apply text-3xl font-bold tracking-tight;
   }
@@ -104,7 +110,7 @@
     @apply text-lg font-semibold;
   }
 
-  /* Consistent body text */
+  /* Consistent body text with Lato */
   p {
     @apply text-base leading-relaxed;
   }
@@ -112,6 +118,11 @@
   /* Small text */
   small {
     @apply text-sm;
+  }
+  
+  /* Links - Primary blue with underline */
+  a {
+    @apply text-[#1f628e] underline hover:text-[#174a6b] transition-colors;
   }
 }
 
@@ -195,13 +206,13 @@
 
   /* Consistent text colors */
   .text-primary-content {
-    @apply text-gray-900;
+    @apply text-foreground;
   }
   .text-secondary-content {
-    @apply text-gray-600;
+    @apply text-muted-foreground;
   }
   .text-muted-content {
-    @apply text-gray-500;
+    @apply text-muted-foreground;
   }
 
   /* Smooth transitions */
