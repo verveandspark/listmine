@@ -225,9 +225,9 @@ export default function Templates() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
           <p className="text-gray-600">Loading templates...</p>
         </div>
       </div>
@@ -236,10 +236,10 @@ export default function Templates() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 flex items-center justify-center p-4">
         <Card className="max-w-md w-full p-8 text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="w-8 h-8 text-red-600" />
+          <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-8 h-8 text-destructive" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
             Failed to Load Templates
@@ -255,7 +255,7 @@ export default function Templates() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -327,8 +327,8 @@ export default function Templates() {
                       variant={template.is_premium ? "default" : "secondary"}
                       className={
                         template.is_premium
-                          ? "bg-yellow-500 hover:bg-yellow-600"
-                          : "bg-green-500 hover:bg-green-600"
+                          ? "bg-warning text-warning-foreground"
+                          : "bg-success/10 text-success border-success/20"
                       }
                     >
                       {template.is_premium ? (
@@ -387,8 +387,8 @@ export default function Templates() {
                   }
                   className={
                     selectedTemplate?.is_premium
-                      ? "bg-yellow-500 hover:bg-yellow-600 mt-2"
-                      : "bg-green-500 hover:bg-green-600 mt-2"
+                      ? "bg-warning text-warning-foreground mt-2"
+                      : "bg-success/10 text-success border-success/20 mt-2"
                   }
                 >
                   {selectedTemplate?.is_premium ? (

@@ -1971,7 +1971,7 @@ export default function ListDetail() {
                 )}
 
                 {/* Add Item Button */}
-                <Button onClick={handleAddItem} className="w-full min-h-[44px]">
+                <Button onClick={handleAddItem} className="w-full min-h-[44px] bg-primary hover:bg-primary/90">
                   <Plus className="w-4 h-4 mr-2" />
                   Add Item
                 </Button>
@@ -2119,7 +2119,7 @@ export default function ListDetail() {
                               {item.attributes.price && (
                                 <Badge
                                   variant="outline"
-                                  className="bg-success/10 text-success border-success/20 text-xs"
+                                  className="bg-gray-100 text-gray-700 border-gray-300 text-xs"
                                 >
                                   ${item.attributes.price}
                                 </Badge>
@@ -3024,7 +3024,7 @@ export default function ListDetail() {
                               {item.attributes.price && (
                                 <Badge
                                   variant="outline"
-                                  className="bg-accent/10 text-accent border-accent/20 text-xs"
+                                  className="bg-gray-100 text-gray-700 border-gray-300 text-xs"
                                 >
                                   ${item.attributes.price}
                                 </Badge>

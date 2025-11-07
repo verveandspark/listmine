@@ -55,7 +55,7 @@ export function ListSidebar() {
         <div className="space-y-2 mb-4">
           <Button
             onClick={() => setIsCreateModalOpen(true)}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white min-h-[44px]"
+            className="w-full bg-primary hover:bg-primary/90 text-white min-h-[44px]"
           >
             <Plus className="w-4 h-4 mr-2" />
             New List
@@ -91,7 +91,7 @@ export function ListSidebar() {
                       key={list.id}
                       variant={list.id === id ? "secondary" : "ghost"}
                       className={`w-full justify-between text-left h-auto py-2 ${
-                        list.id === id ? "bg-blue-50 text-blue-900" : ""
+                        list.id === id ? "bg-primary/20 text-primary font-semibold" : ""
                       }`}
                       onClick={() => navigate(`/list/${list.id}`)}
                     >

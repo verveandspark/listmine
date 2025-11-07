@@ -117,14 +117,15 @@ const categoryIcons: Record<string, any> = {
 };
 
 const categoryColors: Record<string, string> = {
-  Tasks: "bg-primary/10 text-primary border-primary/20",
-  Groceries: "bg-success/10 text-success border-success/20",
-  Ideas: "bg-warning/10 text-warning border-warning/20",
-  Shopping: "bg-accent/10 text-accent border-accent/20",
-  Travel: "bg-warning/10 text-warning border-warning/20",
-  Work: "bg-secondary/10 text-secondary border-secondary/20",
-  Home: "bg-accent/10 text-accent border-accent/20",
-  Other: "bg-gray-100 text-gray-700 border-gray-200",
+  Home: "bg-[#919e5d]/10 text-[#919e5d] border-[#919e5d]/20",
+  Shopping: "bg-[#b2c28b]/10 text-[#b2c28b] border-[#b2c28b]/20",
+  Work: "bg-[#187baf]/10 text-[#187baf] border-[#187baf]/20",
+  School: "bg-[#629ac0]/10 text-[#629ac0] border-[#629ac0]/20",
+  Tasks: "bg-[#73833f]/10 text-[#73833f] border-[#73833f]/20",
+  Other: "bg-[#c2d3e5]/10 text-[#c2d3e5] border-[#c2d3e5]/20",
+  Groceries: "bg-[#b2c28b]/10 text-[#b2c28b] border-[#b2c28b]/20",
+  Ideas: "bg-[#919e5d]/10 text-[#919e5d] border-[#919e5d]/20",
+  Travel: "bg-[#629ac0]/10 text-[#629ac0] border-[#629ac0]/20",
 };
 
 const listTypes: { value: ListType; label: string }[] = [
@@ -257,7 +258,7 @@ export default function Dashboard() {
     );
     if (existingList) {
       toast({
-        title: "⚠️ This list name already exists",
+        title: "⚠�� This list name already exists",
         description: `Try another name like "${nameValidation.value} 2" or "${nameValidation.value} - New".`,
         variant: "destructive",
       });
@@ -453,13 +454,11 @@ export default function Dashboard() {
 
   const categories: (ListCategory | "All")[] = [
     "All",
-    "Tasks",
-    "Groceries",
-    "Ideas",
-    "Shopping",
-    "Travel",
-    "Work",
     "Home",
+    "Shopping",
+    "Work",
+    "School",
+    "Tasks",
     "Other",
   ];
 

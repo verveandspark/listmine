@@ -160,7 +160,7 @@ export default function ImportExport() {
   const handleImportFromShareLink = async () => {
     if (!shareUrl.trim()) {
       toast({
-        title: "⚠�� Invalid share link",
+        title: "⚠️ Invalid share link",
         description: "Please enter a share link or ID",
         variant: "destructive",
       });
@@ -434,7 +434,7 @@ export default function ImportExport() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10">
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center gap-4">
@@ -471,7 +471,7 @@ export default function ImportExport() {
           <TabsContent value="import" className="mt-6 space-y-6">
             <Card className="p-4 sm:p-6">
               <div className="flex items-center gap-2 mb-4">
-                <Link2 className="w-5 h-5 text-blue-600" />
+                <Link2 className="w-5 h-5 text-primary" />
                 <h2 className="text-xl font-semibold text-gray-900">
                   Import from ListMine Share Link
                 </h2>
@@ -534,7 +534,7 @@ export default function ImportExport() {
 
             <Card className="p-4 sm:p-6">
               <div className="flex items-center gap-2 mb-4">
-                <ShoppingCart className="w-5 h-5 text-purple-600" />
+                <ShoppingCart className="w-5 h-5 text-accent" />
                 <h2 className="text-xl font-semibold text-gray-900">
                   Import from Public List
                 </h2>

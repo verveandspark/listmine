@@ -4,38 +4,38 @@
 
 @layer base {
   :root {
-    --background: 210 40% 98%; /* Soft Gray #F8FAFC */
+    --background: 0 0% 100%; /* Pure White #FFFFFF */
     --foreground: 217 33% 17%; /* Dark Gray #1E293B */
 
-    --card: 0 0% 100%; /* White */
+    --card: 200 33% 97%; /* Very Light Blue-Gray #F5F8FA */
     --card-foreground: 217 33% 17%; /* Dark Gray */
 
     --popover: 0 0% 100%; /* White */
     --popover-foreground: 217 33% 17%; /* Dark Gray */
 
-    --primary: 217 91% 60%; /* Primary Blue #2563EB */
+    --primary: 201 75% 37%; /* Primary Blue #187BAF */
     --primary-foreground: 0 0% 100%; /* White */
 
-    --secondary: 199 89% 48%; /* Secondary Blue #0EA5E9 */
+    --secondary: 202 48% 58%; /* Soft Blue #629AC0 */
     --secondary-foreground: 0 0% 100%; /* White */
 
     --muted: 210 40% 96.1%; /* Light Gray */
     --muted-foreground: 215.4 16.3% 46.9%; /* Medium Gray */
 
-    --accent: 224 76% 48%; /* Accent Blue #1E40AF */
+    --accent: 87 30% 63%; /* Light Sage Green #B2C28B */
     --accent-foreground: 0 0% 100%; /* White */
 
     --destructive: 0 84.2% 60.2%; /* Red */
     --destructive-foreground: 0 0% 100%; /* White */
 
-    --border: 214.3 31.8% 91.4%; /* Light Gray Border */
-    --input: 214.3 31.8% 91.4%; /* Light Gray Input */
-    --ring: 217 91% 60%; /* Primary Blue */
+    --border: 210 45% 82%; /* Light Blue #C2D3E5 */
+    --input: 210 45% 82%; /* Light Blue */
+    --ring: 201 75% 37%; /* Primary Blue */
 
     --radius: 0.75rem;
 
     /* Success color */
-    --success: 160 84% 39%; /* Success Green #10B981 */
+    --success: 83 36% 36%; /* Dark Sage Green #73833F */
     --success-foreground: 0 0% 100%; /* White */
 
     /* Warning color */
@@ -53,16 +53,16 @@
     --popover: 217 33% 17%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 217 91% 60%;
+    --primary: 201 75% 37%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 202 48% 58%;
+    --secondary-foreground: 0 0% 100%;
 
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
 
-    --accent: 224 76% 48%;
+    --accent: 87 30% 63%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62.8% 30.6%;
@@ -70,7 +70,10 @@
 
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 217 91% 60%;
+    --ring: 201 75% 37%;
+
+    --success: 83 36% 36%;
+    --success-foreground: 0 0% 100%;
   }
 }
 
@@ -151,18 +154,18 @@
     @apply animate-spin;
   }
 
-  /* Consistent badge styling */
+  /* Consistent badge styling using CSS variables */
   .badge-success {
-    @apply bg-green-50 text-green-700 border-green-200;
+    @apply bg-success/10 text-success border-success/20;
   }
   .badge-error {
-    @apply bg-red-100 text-red-700 border-red-200;
+    @apply bg-destructive/10 text-destructive border-destructive/20;
   }
   .badge-warning {
-    @apply bg-orange-100 text-orange-700 border-orange-200;
+    @apply bg-warning/10 text-warning border-warning/20;
   }
   .badge-info {
-    @apply bg-blue-50 text-blue-700 border-blue-200;
+    @apply bg-primary/10 text-primary border-primary/20;
   }
 }
 

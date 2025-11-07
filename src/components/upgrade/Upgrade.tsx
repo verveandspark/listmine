@@ -110,7 +110,7 @@ export default function Upgrade() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10">
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center gap-4">
@@ -154,7 +154,7 @@ export default function Upgrade() {
               Annual
               <Badge
                 variant="secondary"
-                className="ml-2 bg-green-100 text-green-700"
+                className="ml-2 bg-success/10 text-success border-success/20"
               >
                 Save up to 20%
               </Badge>
@@ -177,12 +177,12 @@ export default function Upgrade() {
                 key={tier.id}
                 className={`relative flex flex-col ${
                   tier.recommended
-                    ? "border-2 border-yellow-400 shadow-xl scale-105"
+                    ? "border-2 border-warning shadow-xl scale-105"
                     : "border border-gray-200"
                 }`}
               >
                 {tier.recommended && (
-                  <div className="absolute -top-3 right-4 bg-yellow-400 text-yellow-900 px-3 py-1 text-xs font-bold rounded-full shadow-md">
+                  <div className="absolute -top-3 right-4 bg-warning text-warning-foreground px-3 py-1 text-xs font-bold rounded-full shadow-md">
                     RECOMMENDED
                   </div>
                 )}
@@ -208,7 +208,7 @@ export default function Upgrade() {
                       )}
                     </div>
                     {isAnnual && tier.monthlyPrice > 0 && (
-                      <p className="text-sm text-green-600 font-medium mt-1">
+                      <p className="text-sm text-success font-medium mt-1">
                         Save ${savings}/year
                         {tier.recommended && " (best value)"}
                       </p>
@@ -272,7 +272,7 @@ export default function Upgrade() {
                     disabled={isCurrentTier}
                     className={`w-full ${
                       tier.recommended && !isCurrentTier
-                        ? "bg-yellow-500 hover:bg-yellow-600 text-gray-900"
+                        ? "bg-warning hover:bg-warning/90 text-warning-foreground"
                         : ""
                     }`}
                     variant={isCurrentTier ? "outline" : "default"}

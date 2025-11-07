@@ -483,7 +483,7 @@ export default function SharedListView() {
                         {item.attributes.price && (
                           <Badge
                             variant="outline"
-                            className="bg-accent/10 text-accent border-accent/20 text-xs"
+                            className="bg-gray-100 text-gray-700 border-gray-300 text-xs"
                           >
                             ${item.attributes.price}
                           </Badge>

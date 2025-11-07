@@ -49,7 +49,7 @@ export default function Profile() {
   const sharedLists = lists.filter((list) => list.isShared).length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10">
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center gap-4">
@@ -201,88 +201,88 @@ export default function Profile() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-blue-600" />
-                    <p className="text-sm font-medium text-blue-900">
+                    <FileText className="w-5 h-5 text-primary" />
+                    <p className="text-sm font-medium text-primary">
                       Total Lists
                     </p>
                   </div>
-                  <TrendingUp className="w-4 h-4 text-blue-600" />
+                  <TrendingUp className="w-4 h-4 text-primary" />
                 </div>
-                <p className="text-3xl font-bold text-blue-600">{totalLists}</p>
+                <p className="text-3xl font-bold text-primary">{totalLists}</p>
               </div>
 
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="bg-success/10 border border-success/20 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <Package className="w-5 h-5 text-green-600" />
-                    <p className="text-sm font-medium text-green-900">
+                    <Package className="w-5 h-5 text-success" />
+                    <p className="text-sm font-medium text-success">
                       Total Items
                     </p>
                   </div>
-                  <TrendingUp className="w-4 h-4 text-green-600" />
+                  <TrendingUp className="w-4 h-4 text-success" />
                 </div>
-                <p className="text-3xl font-bold text-green-600">
+                <p className="text-3xl font-bold text-success">
                   {totalItems}
                 </p>
               </div>
 
-              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <div className="bg-accent/10 border border-accent/20 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-purple-600" />
-                    <p className="text-sm font-medium text-purple-900">
+                    <CheckCircle className="w-5 h-5 text-accent" />
+                    <p className="text-sm font-medium text-accent">
                       Completed
                     </p>
                   </div>
-                  <TrendingUp className="w-4 h-4 text-purple-600" />
+                  <TrendingUp className="w-4 h-4 text-accent" />
                 </div>
-                <p className="text-3xl font-bold text-purple-600">
+                <p className="text-3xl font-bold text-accent">
                   {completedItems}
                 </p>
               </div>
 
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+              <div className="bg-warning/10 border border-warning/20 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <Pin className="w-5 h-5 text-orange-600" />
-                    <p className="text-sm font-medium text-orange-900">
+                    <Pin className="w-5 h-5 text-warning" />
+                    <p className="text-sm font-medium text-warning">
                       Pinned
                     </p>
                   </div>
-                  <TrendingDown className="w-4 h-4 text-orange-400" />
+                  <TrendingDown className="w-4 h-4 text-warning" />
                 </div>
-                <p className="text-3xl font-bold text-orange-600">
+                <p className="text-3xl font-bold text-warning">
                   {pinnedLists}
                 </p>
               </div>
 
-              <div className="bg-pink-50 border border-pink-200 rounded-lg p-4">
+              <div className="bg-secondary/10 border border-secondary/20 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <Share2 className="w-5 h-5 text-pink-600" />
-                    <p className="text-sm font-medium text-pink-900">Shared</p>
+                    <Share2 className="w-5 h-5 text-secondary" />
+                    <p className="text-sm font-medium text-secondary">Shared</p>
                   </div>
-                  <TrendingUp className="w-4 h-4 text-pink-600" />
+                  <TrendingUp className="w-4 h-4 text-secondary" />
                 </div>
-                <p className="text-3xl font-bold text-pink-600">
+                <p className="text-3xl font-bold text-secondary">
                   {sharedLists}
                 </p>
               </div>
 
-              <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+              <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <ListChecks className="w-5 h-5 text-indigo-600" />
-                    <p className="text-sm font-medium text-indigo-900">
+                    <ListChecks className="w-5 h-5 text-primary" />
+                    <p className="text-sm font-medium text-primary">
                       Avg Items
                     </p>
                   </div>
-                  <TrendingUp className="w-4 h-4 text-indigo-600" />
+                  <TrendingUp className="w-4 h-4 text-primary" />
                 </div>
-                <p className="text-3xl font-bold text-indigo-600">
+                <p className="text-3xl font-bold text-primary">
                   {totalLists > 0 ? Math.round(totalItems / totalLists) : 0}
                 </p>
               </div>
