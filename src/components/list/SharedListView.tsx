@@ -602,9 +602,7 @@ export default function SharedListView() {
                               className="bg-green-50 text-green-700 border-green-200 text-sm py-1.5 px-3"
                             >
                               <ShoppingCart className="w-4 h-4 mr-1.5" />
-                              {showPurchaserInfo && purchases[item.id].purchaser_name
-                                ? `Purchased by ${purchases[item.id].purchaser_name}`
-                                : "Purchased"}
+                              ✓ Purchased
                             </Badge>
                           </div>
                         ) : (

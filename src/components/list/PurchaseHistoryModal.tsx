@@ -171,12 +171,15 @@ export default function PurchaseHistoryModal({
             {/* Privacy Toggle */}
             <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
               <div className="space-y-1">
-                <Label className="text-sm font-semibold">Show Purchaser Names</Label>
+                <Label htmlFor="show-purchaser-toggle" className="text-sm font-semibold">
+                  Show Purchaser Names
+                </Label>
                 <p className="text-xs text-gray-600">
                   When enabled, you can see who purchased each item. When disabled, all purchases show as "Anonymous"
                 </p>
               </div>
               <Switch
+                id="show-purchaser-toggle"
                 checked={showPurchaserInfo}
                 onCheckedChange={onTogglePurchaserInfo}
               />
