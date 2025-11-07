@@ -2034,7 +2034,10 @@ export default function ListDetail() {
                       {categoryItems.length}
                     </Badge>
                   </div>
-                  {categoryItems.map((item, index) => (
+                  {categoryItems.map((item, index) => {
+                    const isPurchased = item.attributes?.purchaseStatus === "purchased";
+                    
+                    return (
                     <Card
                       key={item.id}
                       className={`p-3 sm:p-4 hover:shadow-md transition-all ${index % 2 === 1 ? "bg-gray-50" : "bg-white"}`}
