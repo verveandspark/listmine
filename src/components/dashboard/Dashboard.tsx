@@ -117,13 +117,13 @@ const categoryIcons: Record<string, any> = {
 };
 
 const categoryColors: Record<string, string> = {
-  Tasks: "bg-blue-100 text-blue-700 border-blue-200",
-  Groceries: "bg-green-100 text-green-700 border-green-200",
-  Ideas: "bg-yellow-100 text-yellow-700 border-yellow-200",
-  Shopping: "bg-purple-100 text-purple-700 border-purple-200",
-  Travel: "bg-orange-100 text-orange-700 border-orange-200",
-  Work: "bg-indigo-100 text-indigo-700 border-indigo-200",
-  Home: "bg-pink-100 text-pink-700 border-pink-200",
+  Tasks: "bg-primary/10 text-primary border-primary/20",
+  Groceries: "bg-success/10 text-success border-success/20",
+  Ideas: "bg-warning/10 text-warning border-warning/20",
+  Shopping: "bg-accent/10 text-accent border-accent/20",
+  Travel: "bg-warning/10 text-warning border-warning/20",
+  Work: "bg-secondary/10 text-secondary border-secondary/20",
+  Home: "bg-accent/10 text-accent border-accent/20",
   Other: "bg-gray-100 text-gray-700 border-gray-200",
 };
 
@@ -540,7 +540,7 @@ export default function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
           <p className="text-gray-600 text-lg">Loading...</p>
@@ -550,7 +550,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10">
       {/* Limit Reached Modal */}
       <AlertDialog open={showLimitModal} onOpenChange={setShowLimitModal}>
         <AlertDialogContent>
@@ -569,7 +569,7 @@ export default function Dashboard() {
                 setShowLimitModal(false);
                 navigate("/upgrade");
               }}
-              className="bg-yellow-500 hover:bg-yellow-600"
+              className="bg-warning hover:bg-warning/90"
             >
               Upgrade Now
             </AlertDialogAction>
@@ -650,7 +650,7 @@ export default function Dashboard() {
                   onClick={() => navigate("/upgrade")}
                   variant="outline"
                   size="sm"
-                  className="border-yellow-400 text-yellow-700 min-h-[44px]"
+                  className="border-warning text-warning min-h-[44px]"
                 >
                   <Crown className="w-4 h-4 mr-2" />
                   Upgrade
@@ -771,7 +771,7 @@ export default function Dashboard() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-8 w-full sm:w-auto">
               <div className="w-full sm:w-auto">
                 <div className="flex items-center gap-2 mb-1">
-                  <FileText className="w-5 h-5 text-blue-600" />
+                  <FileText className="w-5 h-5 text-primary" />
                   <p className="text-sm text-gray-600">Lists</p>
                   {user?.listLimit !== -1 && (
                     <TooltipProvider>
@@ -791,7 +791,7 @@ export default function Dashboard() {
                     </TooltipProvider>
                   )}
                 </div>
-                <p className="text-2xl sm:text-3xl font-bold text-blue-600">
+                <p className="text-2xl sm:text-3xl font-bold text-primary">
                   {lists.length}{" "}
                   {user?.listLimit !== -1 && (
                     <span className="text-lg sm:text-xl text-gray-400">
@@ -810,8 +810,8 @@ export default function Dashboard() {
                       <div
                         className={`h-2 rounded-full transition-all ${
                           getUsagePercentage() >= 80
-                            ? "bg-orange-500"
-                            : "bg-blue-600"
+                            ? "bg-warning"
+                            : "bg-primary"
                         }`}
                         style={{ width: `${getUsagePercentage()}%` }}
                       />
@@ -825,10 +825,10 @@ export default function Dashboard() {
               <div className="hidden sm:block h-16 w-px bg-gray-200" />
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <Package className="w-5 h-5 text-green-600" />
+                  <Package className="w-5 h-5 text-success" />
                   <p className="text-sm text-gray-600">Total Items</p>
                 </div>
-                <p className="text-2xl sm:text-3xl font-bold text-green-600">
+                <p className="text-2xl sm:text-3xl font-bold text-success">
                   {lists.reduce((sum, list) => sum + list.items.length, 0)}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
@@ -844,7 +844,7 @@ export default function Dashboard() {
                   <TooltipTrigger asChild>
                     <Badge
                       variant="outline"
-                      className="bg-orange-50 text-orange-700 border-orange-300"
+                      className="bg-warning/10 text-warning border-warning/30"
                     >
                       <AlertCircle className="w-3 h-3 mr-1" />
                       {Math.round(getUsagePercentage())}% capacity
@@ -1308,8 +1308,8 @@ export default function Dashboard() {
           {unpinnedLists.length === 0 ? (
             <Card className="p-8 sm:p-16 text-center bg-gradient-to-br from-gray-50 to-white">
               <div className="max-w-md mx-auto">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <ListChecks className="w-8 h-8 text-blue-600" />
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <ListChecks className="w-8 h-8 text-primary" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
                   {searchQuery

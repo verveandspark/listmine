@@ -281,7 +281,7 @@ export default function SharedListView() {
       toast({
         title: "✅ Thank you!",
         description: "Item marked as purchased",
-        className: "bg-green-50 border-green-200",
+        className: "bg-success/10 border-success/20",
       });
 
       setIsPurchaseModalOpen(false);
@@ -302,7 +302,7 @@ export default function SharedListView() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
           <p className="text-gray-600 text-lg">Loading shared list...</p>
@@ -313,9 +313,9 @@ export default function SharedListView() {
 
   if (error || !list) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 flex items-center justify-center">
         <Card className="p-8 text-center max-w-md">
-          <h2 className="text-xl font-semibold mb-4 text-red-600">
+          <h2 className="text-xl font-semibold mb-4 text-destructive">
             {error || "List not found"}
           </h2>
           <p className="text-gray-600 mb-6">
@@ -339,13 +339,13 @@ export default function SharedListView() {
   };
 
   const priorityColors: any = {
-    low: "bg-green-100 text-green-700 border-green-200",
-    medium: "bg-yellow-100 text-yellow-700 border-yellow-200",
-    high: "bg-red-100 text-red-700 border-red-200",
+    low: "bg-success/10 text-success border-success/20",
+    medium: "bg-warning/10 text-warning border-warning/20",
+    high: "bg-destructive/10 text-destructive border-destructive/20",
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10">
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between gap-4">
@@ -391,8 +391,8 @@ export default function SharedListView() {
           {list.items.length === 0 ? (
             <Card className="p-8 sm:p-16 text-center bg-gradient-to-br from-gray-50 to-white">
               <div className="max-w-md mx-auto">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Package className="w-8 h-8 text-blue-600" />
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Package className="w-8 h-8 text-primary" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
                   This list is empty
@@ -411,7 +411,7 @@ export default function SharedListView() {
                 key={item.id}
                 className={`p-3 sm:p-4 transition-all ${
                   isPurchased 
-                    ? "bg-green-50 border-green-200" 
+                    ? "bg-success/10 border-success/20" 
                     : index % 2 === 1 
                     ? "bg-gray-50" 
                     : "bg-white"
@@ -431,7 +431,7 @@ export default function SharedListView() {
                         } break-words`}
                       >
                         {item.quantity && (
-                          <span className="font-semibold text-blue-600">
+                          <span className="font-semibold text-primary">
                             {item.quantity}× {" "}
                           </span>
                         )}
@@ -459,7 +459,7 @@ export default function SharedListView() {
                         {item.attributes.color && (
                           <Badge
                             variant="outline"
-                            className="bg-blue-50 text-blue-700 border-blue-200 text-xs"
+                            className="bg-primary/10 text-primary border-primary/20 text-xs"
                           >
                             Color: {item.attributes.color}
                           </Badge>
@@ -467,7 +467,7 @@ export default function SharedListView() {
                         {item.attributes.size && (
                           <Badge
                             variant="outline"
-                            className="bg-green-50 text-green-700 border-green-200 text-xs"
+                            className="bg-success/10 text-success border-success/20 text-xs"
                           >
                             Size: {item.attributes.size}
                           </Badge>
@@ -475,7 +475,7 @@ export default function SharedListView() {
                         {item.attributes.weight && (
                           <Badge
                             variant="outline"
-                            className="bg-orange-50 text-orange-700 border-orange-200 text-xs"
+                            className="bg-warning/10 text-warning border-warning/20 text-xs"
                           >
                             Weight: {item.attributes.weight}
                           </Badge>
@@ -483,7 +483,7 @@ export default function SharedListView() {
                         {item.attributes.price && (
                           <Badge
                             variant="outline"
-                            className="bg-purple-50 text-purple-700 border-purple-200 text-xs"
+                            className="bg-accent/10 text-accent border-accent/20 text-xs"
                           >
                             ${item.attributes.price}
                           </Badge>
@@ -491,7 +491,7 @@ export default function SharedListView() {
                         {item.attributes.quantityNeeded && (
                           <Badge
                             variant="outline"
-                            className="bg-indigo-50 text-indigo-700 border-indigo-200 text-xs"
+                            className="bg-secondary/10 text-secondary border-secondary/20 text-xs"
                           >
                             Quantity needed: {item.attributes.quantityNeeded}
                           </Badge>
@@ -525,7 +525,7 @@ export default function SharedListView() {
                     </div>
 
                     {item.attributes?.purchaseStatus === "purchased" && (
-                      <Badge className="bg-green-100 text-green-700 border-green-300">
+                      <Badge className="bg-success/10 text-success border-success/30">
                         ✓ Purchased
                       </Badge>
                     )}
@@ -599,7 +599,7 @@ export default function SharedListView() {
                           <div className="flex items-center gap-2">
                             <Badge 
                               variant="outline" 
-                              className="bg-green-50 text-green-700 border-green-200 text-sm py-1.5 px-3"
+                              className="bg-success/10 text-success border-success/20 text-sm py-1.5 px-3"
                             >
                               <ShoppingCart className="w-4 h-4 mr-1.5" />
                               ✓ Purchased
@@ -610,7 +610,7 @@ export default function SharedListView() {
                             size="sm"
                             variant="default"
                             onClick={() => handlePurchaseClick(item)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                            className="bg-primary hover:bg-primary/90 text-white"
                           >
                             <ShoppingCart className="w-4 h-4 mr-2" />
                             I'm buying this
@@ -626,7 +626,7 @@ export default function SharedListView() {
           )}
         </div>
 
-        <Card className="mt-8 p-6 sm:p-8 bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+        <Card className="mt-8 p-6 sm:p-8 bg-gradient-to-r from-primary/10 to-secondary/10 border-primary/20">
           <div className="text-center max-w-md mx-auto">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
               Like this list?

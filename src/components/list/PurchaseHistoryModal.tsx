@@ -182,7 +182,7 @@ export default function PurchaseHistoryModal({
 
           <div className="space-y-4 mt-4">
             {/* Privacy Toggle */}
-            <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="flex items-center justify-between p-4 bg-primary/10 rounded-lg border border-primary/20">
               <div className="space-y-1">
                 <Label htmlFor="show-purchaser-toggle" className="text-sm font-semibold">
                   Show Purchaser Names
@@ -201,7 +201,7 @@ export default function PurchaseHistoryModal({
             {/* Purchase History Table */}
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
               </div>
             ) : purchases.length === 0 ? (
               <div className="text-center py-8">
@@ -231,7 +231,7 @@ export default function PurchaseHistoryModal({
                         </TableCell>
                         <TableCell>
                           {localShowPurchaserInfo && purchase.purchaser_name ? (
-                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
                               {purchase.purchaser_name}
                             </Badge>
                           ) : (
@@ -251,7 +251,7 @@ export default function PurchaseHistoryModal({
                             variant="ghost"
                             size="sm"
                             onClick={() => setPurchaseToDelete(purchase.id)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -287,7 +287,7 @@ export default function PurchaseHistoryModal({
                   handleDeletePurchase(purchase.id, purchase.item_id);
                 }
               }}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive hover:bg-destructive/90"
             >
               Remove Purchase
             </AlertDialogAction>

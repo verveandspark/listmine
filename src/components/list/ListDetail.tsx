@@ -221,9 +221,15 @@ export default function ListDetail() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  const priorityColors = {
+    low: "bg-success/10 text-success border-success/20",
+    medium: "bg-warning/10 text-warning border-warning/20",
+    high: "bg-destructive/10 text-destructive border-destructive/20",
+  };
+
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
           <p className="text-gray-600 text-lg">Loading...</p>
@@ -234,7 +240,7 @@ export default function ListDetail() {
 
   if (!list) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 flex items-center justify-center">
         <Card className="p-8 text-center">
           <h2 className="text-xl font-semibold mb-4">List not found</h2>
           <Button onClick={() => navigate("/dashboard")}>
@@ -734,12 +740,6 @@ export default function ListDetail() {
     return "text-gray-600 bg-gray-50 border-gray-200";
   };
 
-  const priorityColors = {
-    low: "bg-green-100 text-green-700 border-green-200",
-    medium: "bg-yellow-100 text-yellow-700 border-yellow-200",
-    high: "bg-red-100 text-red-700 border-red-200",
-  };
-
   const handleItemSortChange = (value: string) => {
     setItemSortBy(value as any);
     localStorage.setItem("itemSortBy", value);
@@ -848,7 +848,7 @@ export default function ListDetail() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="flex min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10">
       {/* Sidebar - Hidden on mobile, visible on desktop */}
       <div className="hidden md:block">
         <ListSidebar />
@@ -1272,10 +1272,10 @@ export default function ListDetail() {
 
           {/* Bulk Actions Toolbar */}
           {isSelectMode && (
-            <Card className="p-3 sm:p-4 mb-4 bg-blue-50 border-blue-200">
+            <Card className="p-3 sm:p-4 mb-4 bg-primary/10 border-primary/20">
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <p className="text-sm font-semibold text-blue-900">
+                  <p className="text-sm font-semibold text-primary">
                     {selectedItems.size} item
                     {selectedItems.size !== 1 ? "s" : ""} selected
                   </p>
@@ -1295,7 +1295,7 @@ export default function ListDetail() {
                     <Button
                       size="sm"
                       onClick={handleBulkComplete}
-                      className="min-h-[44px] w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white"
+                      className="min-h-[44px] w-full sm:w-auto bg-success hover:bg-success/90 text-white"
                     >
                       <CheckSquare className="w-4 h-4 mr-2" />
                       Mark Complete
@@ -1303,7 +1303,7 @@ export default function ListDetail() {
                     <Button
                       size="sm"
                       onClick={handleBulkDelete}
-                      className="min-h-[44px] w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white"
+                      className="min-h-[44px] w-full sm:w-auto bg-destructive hover:bg-destructive/90 text-white"
                     >
                       <Trash2 className="w-4 h-4 mr-2" />
                       Delete Selected
@@ -1997,9 +1997,9 @@ export default function ListDetail() {
 
           {/* Purchase History Note for Registry/Wishlist */}
           {(list.listType === "registry-list" || list.listType === "shopping-list") && (
-            <Alert className="mb-4 bg-blue-50 border-blue-200">
-              <ShoppingCart className="h-4 w-4 text-blue-600" />
-              <AlertDescription className="text-sm text-blue-900">
+            <Alert className="mb-4 bg-primary/10 border-primary/20">
+              <ShoppingCart className="h-4 w-4 text-primary" />
+              <AlertDescription className="text-sm text-primary">
                 <strong>Tip:</strong> Open Purchase History to see purchaser details for items marked as purchased.
               </AlertDescription>
             </Alert>
@@ -2010,8 +2010,8 @@ export default function ListDetail() {
             {list.items.length === 0 ? (
               <Card className="p-8 sm:p-16 text-center bg-gradient-to-br from-gray-50 to-white">
                 <div className="max-w-md mx-auto">
-                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Package className="w-8 h-8 text-blue-600" />
+                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Package className="w-8 h-8 text-primary" />
                   </div>
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">
                     This list is empty
@@ -2111,7 +2111,7 @@ export default function ListDetail() {
                               {item.attributes.unit && (
                                 <Badge
                                   variant="outline"
-                                  className="bg-blue-50 text-blue-700 border-blue-200 text-xs"
+                                  className="bg-primary/10 text-primary border-primary/20 text-xs"
                                 >
                                   {item.attributes.unit}
                                 </Badge>
@@ -2119,7 +2119,7 @@ export default function ListDetail() {
                               {item.attributes.price && (
                                 <Badge
                                   variant="outline"
-                                  className="bg-green-50 text-green-700 border-green-200 text-xs"
+                                  className="bg-success/10 text-success border-success/20 text-xs"
                                 >
                                   ${item.attributes.price}
                                 </Badge>
@@ -2921,7 +2921,7 @@ export default function ListDetail() {
                     {isFirstPurchased && (
                       <div className="flex items-center gap-3 my-6">
                         <div className="flex-1 h-px bg-gray-300"></div>
-                        <Badge className="bg-green-100 text-green-800 border-green-300 px-3 py-1">
+                        <Badge className="bg-success/10 text-success border-success/30 px-3 py-1">
                           ✓ Purchased Items
                         </Badge>
                         <div className="flex-1 h-px bg-gray-300"></div>
@@ -2929,7 +2929,7 @@ export default function ListDetail() {
                     )}
                     
                     <Card
-                      className={`p-3 sm:p-4 hover:shadow-md transition-all ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${isPurchased ? "border-green-200 bg-green-50/30" : ""}`}
+                      className={`p-3 sm:p-4 hover:shadow-md transition-all ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${isPurchased ? "border-success/20 bg-success/5" : ""}`}
                       draggable={itemSortBy === "manual"}
                       onDragStart={() =>
                         itemSortBy === "manual" && handleDragStart(item)
@@ -2973,7 +2973,7 @@ export default function ListDetail() {
                               {item.text}
                             </p>
                             {isPurchased && (
-                              <Badge className="bg-green-100 text-green-700 border-green-300">
+                              <Badge className="bg-success/10 text-success border-success/30">
                                 ✓ Purchased
                               </Badge>
                             )}
@@ -3000,7 +3000,7 @@ export default function ListDetail() {
                               {item.attributes.color && (
                                 <Badge
                                   variant="outline"
-                                  className="bg-blue-50 text-blue-700 border-blue-200 text-xs"
+                                  className="bg-primary/10 text-primary border-primary/20 text-xs"
                                 >
                                   Color: {item.attributes.color}
                                 </Badge>
@@ -3008,7 +3008,7 @@ export default function ListDetail() {
                               {item.attributes.size && (
                                 <Badge
                                   variant="outline"
-                                  className="bg-green-50 text-green-700 border-green-200 text-xs"
+                                  className="bg-success/10 text-success border-success/20 text-xs"
                                 >
                                   Size: {item.attributes.size}
                                 </Badge>
@@ -3016,7 +3016,7 @@ export default function ListDetail() {
                               {item.attributes.weight && (
                                 <Badge
                                   variant="outline"
-                                  className="bg-orange-50 text-orange-700 border-orange-200 text-xs"
+                                  className="bg-warning/10 text-warning border-warning/20 text-xs"
                                 >
                                   Weight: {item.attributes.weight}
                                 </Badge>
@@ -3024,7 +3024,7 @@ export default function ListDetail() {
                               {item.attributes.price && (
                                 <Badge
                                   variant="outline"
-                                  className="bg-purple-50 text-purple-700 border-purple-200 text-xs"
+                                  className="bg-accent/10 text-accent border-accent/20 text-xs"
                                 >
                                   ${item.attributes.price}
                                 </Badge>
