@@ -200,6 +200,9 @@ export default function ListDetail() {
   const [editListCategory, setEditListCategory] = useState<string>("");
   const [editListType, setEditListType] = useState<string>("");
   const [isPurchaseHistoryOpen, setIsPurchaseHistoryOpen] = useState(false);
+  
+  // Tags section collapsed state
+  const [isTagsSectionOpen, setIsTagsSectionOpen] = useState(false);
 
   // Simulate loading on mount
   useState(() => {
@@ -838,7 +841,7 @@ export default function ListDetail() {
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs sm:text-sm text-[#1f628e] hover:text-[#174a6b] underline flex items-center gap-1 break-all"
+          className="text-xs sm:text-sm text-primary hover:text-primary/80 underline flex items-center gap-1 break-all"
         >
           <LinkIcon className="w-3 h-3 flex-shrink-0" />
           {url}
@@ -1215,11 +1218,17 @@ export default function ListDetail() {
         </header>
 
         <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
-          {/* Tags Section */}
+          {/* Tags Section - Collapsible */}
           <Card className="p-3 sm:p-4 mb-4">
-            <div className="flex items-center justify-between mb-3">
+            <button
+              onClick={() => setIsTagsSectionOpen(!isTagsSectionOpen)}
+              className="w-full flex items-center justify-between text-left"
+            >
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-medium text-gray-700">Tags</h3>
+                <Badge variant="outline" className="text-xs">
+                  {list.tags?.length || 0}
+                </Badge>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -1233,41 +1242,49 @@ export default function ListDetail() {
                   </Tooltip>
                 </TooltipProvider>
               </div>
-            </div>
-            <div className="flex flex-wrap gap-2 mb-3">
-              {list.tags && list.tags.length > 0 ? (
-                list.tags.map((tag) => (
-                  <Badge key={tag} variant="outline" className="text-xs">
-                    {tag}
-                    <button
-                      onClick={() => removeTagFromList(list.id, tag)}
-                      className="ml-1 hover:text-red-600"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </Badge>
-                ))
-              ) : (
-                <p className="text-xs text-gray-500">No tags yet</p>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <Input
-                placeholder="e.g., urgent, work, personal, home"
-                value={newTag}
-                onChange={(e) => setNewTag(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleAddTag();
-                  }
-                }}
-                className="flex-1 min-h-[44px]"
+              <ChevronDown 
+                className={`w-4 h-4 transition-transform ${isTagsSectionOpen ? 'rotate-180' : ''}`} 
               />
-              <Button onClick={handleAddTag} size="sm" className="min-h-[44px]">
-                <Tag className="w-4 h-4" />
-              </Button>
-            </div>
+            </button>
+            
+            {isTagsSectionOpen && (
+              <div className="mt-3 space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  {list.tags && list.tags.length > 0 ? (
+                    list.tags.map((tag) => (
+                      <Badge key={tag} variant="outline" className="text-xs">
+                        {tag}
+                        <button
+                          onClick={() => removeTagFromList(list.id, tag)}
+                          className="ml-1 hover:text-red-600"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    ))
+                  ) : (
+                    <p className="text-xs text-gray-500">No tags yet</p>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="e.g., urgent, work, personal, home"
+                    value={newTag}
+                    onChange={(e) => setNewTag(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddTag();
+                      }
+                    }}
+                    className="flex-1 min-h-[44px]"
+                  />
+                  <Button onClick={handleAddTag} size="sm" className="min-h-[44px]">
+                    <Tag className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </Card>
 
           {/* Bulk Actions Toolbar */}

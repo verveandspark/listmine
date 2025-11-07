@@ -1275,10 +1275,10 @@ export default function Dashboard() {
                             {list.isShared && (
                               <Badge
                                 variant="outline"
-                                className="bg-blue-50 text-blue-700 border-blue-200 text-xs"
+                                className="bg-blue-50 border-blue-200 text-xs"
                               >
-                                <Share2 className="w-3 h-3 mr-1" />
-                                Shared
+                                <Share2 className="w-3 h-3 mr-1 text-primary" />
+                                <span className="text-primary underline">Shared</span>
                               </Badge>
                             )}
                           </div>
@@ -1511,10 +1511,10 @@ export default function Dashboard() {
                             {list.isShared && (
                               <Badge
                                 variant="outline"
-                                className="bg-blue-50 text-blue-700 border-blue-200 text-xs"
+                                className="bg-blue-50 border-blue-200 text-xs"
                               >
-                                <Share2 className="w-3 h-3 mr-1" />
-                                Shared
+                                <Share2 className="w-3 h-3 mr-1 text-primary" />
+                                <span className="text-primary underline">Shared</span>
                               </Badge>
                             )}
                           </div>

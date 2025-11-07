@@ -6,7 +6,7 @@ import {
   useContext,
 } from "react";
 import { supabase } from "@/lib/supabase";
-import { List, ListItem, ListCategory, ListType } from "@/types";
+import { List, ListItem, ListCategory, ListType, ListItemAttributes } from "@/types";
 import { useAuth } from "./useAuthHook";
 import {
   validateListName,
@@ -214,12 +214,35 @@ export function ListProvider({ children }: { children: ReactNode }) {
 
       console.log("[ListMine] Items loaded successfully:", itemsData?.length || 0);
 
-      const listsWithItems = listsData?.map((list) => ({
-        ...list,
-        items: itemsData?.filter((item) => item.list_id === list.id) || [],
-      }));
+      const listsWithItems: List[] = listsData?.map((list) => ({
+        id: list.id,
+        title: list.title,
+        category: list.category as ListCategory,
+        listType: (list.list_type || 'custom') as ListType,
+        items: (itemsData?.filter((item) => item.list_id === list.id) || []).map((item) => ({
+          id: item.id,
+          text: item.text,
+          quantity: item.quantity || undefined,
+          priority: item.priority as 'low' | 'medium' | 'high' | undefined,
+          dueDate: item.due_date ? new Date(item.due_date) : undefined,
+          notes: item.notes || undefined,
+          completed: item.completed || false,
+          order: item.item_order || 0,
+          attributes: item.attributes as ListItemAttributes | undefined,
+          links: item.links as string[] | undefined,
+          assignedTo: item.assigned_to || undefined,
+        })),
+        isPinned: list.is_pinned || false,
+        isShared: list.is_shared || false,
+        shareLink: list.share_link || undefined,
+        tags: (list.tags as string[]) || [],
+        collaborators: [],
+        createdAt: new Date(list.created_at),
+        updatedAt: new Date(list.updated_at),
+        showPurchaserInfo: list.show_purchaser_info || false,
+      })) || [];
 
-      setLists(listsWithItems || []);
+      setLists(listsWithItems);
     } catch (err: any) {
       const errorMessage = err instanceof Error ? err.message : "Failed to load lists";
       console.error("[ListMine Error]", {

@@ -270,9 +270,9 @@ export default function Upgrade() {
                   <Button
                     onClick={() => handleUpgrade(tier.id)}
                     disabled={isCurrentTier}
-                    className={`w-full ${
+                    className={`w-full font-bold py-6 transition-all ${
                       tier.recommended && !isCurrentTier
-                        ? "bg-warning hover:bg-warning/90 text-warning-foreground"
+                        ? "bg-primary hover:bg-primary/90 text-white shadow-lg hover:shadow-xl"
                         : ""
                     }`}
                     variant={isCurrentTier ? "outline" : "default"}
