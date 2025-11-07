@@ -1,207 +1,213 @@
 @tailwind base;
-  @tailwind components;
-  @tailwind utilities;
+@tailwind components;
+@tailwind utilities;
 
-  @layer base {
-    :root {
-      --background: 0 0% 100%;
-      --foreground: 222.2 84% 4.9%;
+@layer base {
+  :root {
+    --background: 210 40% 98%; /* Soft Gray #F8FAFC */
+    --foreground: 217 33% 17%; /* Dark Gray #1E293B */
 
-      --card: 0 0% 100%;
-      --card-foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%; /* White */
+    --card-foreground: 217 33% 17%; /* Dark Gray */
 
-      --popover: 0 0% 100%;
-      --popover-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%; /* White */
+    --popover-foreground: 217 33% 17%; /* Dark Gray */
 
-      --primary: 222.2 47.4% 11.2%;
-      --primary-foreground: 210 40% 98%;
+    --primary: 217 91% 60%; /* Primary Blue #2563EB */
+    --primary-foreground: 0 0% 100%; /* White */
 
-      --secondary: 210 40% 96.1%;
-      --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 199 89% 48%; /* Secondary Blue #0EA5E9 */
+    --secondary-foreground: 0 0% 100%; /* White */
 
-      --muted: 210 40% 96.1%;
-      --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 210 40% 96.1%; /* Light Gray */
+    --muted-foreground: 215.4 16.3% 46.9%; /* Medium Gray */
 
-      --accent: 210 40% 96.1%;
-      --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 224 76% 48%; /* Accent Blue #1E40AF */
+    --accent-foreground: 0 0% 100%; /* White */
 
-      --destructive: 0 84.2% 60.2%;
-      --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84.2% 60.2%; /* Red */
+    --destructive-foreground: 0 0% 100%; /* White */
 
-      --border: 214.3 31.8% 91.4%;
-      --input: 214.3 31.8% 91.4%;
-      --ring: 222.2 84% 4.9%;
+    --border: 214.3 31.8% 91.4%; /* Light Gray Border */
+    --input: 214.3 31.8% 91.4%; /* Light Gray Input */
+    --ring: 217 91% 60%; /* Primary Blue */
 
-      --radius: 0.75rem;
-      
-      /* Success color */
-      --success: 142 76% 36%;
-      --success-foreground: 0 0% 100%;
-      
-      /* Warning color */
-      --warning: 38 92% 50%;
-      --warning-foreground: 0 0% 100%;
-    }
+    --radius: 0.75rem;
 
-    .dark {
-      --background: 222.2 84% 4.9%;
-      --foreground: 210 40% 98%;
+    /* Success color */
+    --success: 160 84% 39%; /* Success Green #10B981 */
+    --success-foreground: 0 0% 100%; /* White */
 
-      --card: 222.2 84% 4.9%;
-      --card-foreground: 210 40% 98%;
-
-      --popover: 222.2 84% 4.9%;
-      --popover-foreground: 210 40% 98%;
-
-      --primary: 210 40% 98%;
-      --primary-foreground: 222.2 47.4% 11.2%;
-
-      --secondary: 217.2 32.6% 17.5%;
-      --secondary-foreground: 210 40% 98%;
-
-      --muted: 217.2 32.6% 17.5%;
-      --muted-foreground: 215 20.2% 65.1%;
-
-      --accent: 217.2 32.6% 17.5%;
-      --accent-foreground: 210 40% 98%;
-
-      --destructive: 0 62.8% 30.6%;
-      --destructive-foreground: 210 40% 98%;
-
-      --border: 217.2 32.6% 17.5%;
-      --input: 217.2 32.6% 17.5%;
-      --ring: 212.7 26.8% 83.9%;
-    }
+    /* Warning color */
+    --warning: 38 92% 50%; /* Orange */
+    --warning-foreground: 0 0% 100%; /* White */
   }
 
-  @layer base {
-    * {
-      @apply border-border;
-    }
-    body {
-      @apply bg-background text-foreground;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-    
-    /* Consistent heading styles */
-    h1 {
-      @apply text-3xl font-bold tracking-tight;
-    }
-    h2 {
-      @apply text-2xl font-semibold tracking-tight;
-    }
-    h3 {
-      @apply text-xl font-semibold tracking-tight;
-    }
-    h4 {
-      @apply text-lg font-semibold;
-    }
-    
-    /* Consistent body text */
-    p {
-      @apply text-base leading-relaxed;
-    }
-    
-    /* Small text */
-    small {
-      @apply text-sm;
-    }
+  .dark {
+    --background: 217 33% 17%; /* Dark Gray */
+    --foreground: 210 40% 98%; /* Soft Gray */
+
+    --card: 217 33% 17%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 217 33% 17%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 224 76% 48%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 217 91% 60%;
   }
-  
-  @layer components {
-    /* Consistent button hover transitions */
-    button {
-      @apply transition-all duration-200 ease-in-out;
-    }
-    
-    /* Consistent card hover effects */
-    .card-hover {
-      @apply transition-all duration-200 ease-in-out hover:shadow-lg hover:scale-[1.02];
-    }
-    
-    /* Consistent icon sizing */
-    .icon-sm {
-      @apply w-4 h-4;
-    }
-    .icon-md {
-      @apply w-5 h-5;
-    }
-    .icon-lg {
-      @apply w-6 h-6;
-    }
-    
-    /* Consistent spacing */
-    .section-spacing {
-      @apply mb-6 sm:mb-8;
-    }
-    
-    /* Consistent form field styling */
-    input:focus,
-    textarea:focus,
-    select:focus {
-      @apply ring-2 ring-primary ring-offset-2 outline-none;
-    }
-    
-    /* Loading spinner */
-    .spinner {
-      @apply animate-spin;
-    }
-    
-    /* Consistent badge styling */
-    .badge-success {
-      @apply bg-green-100 text-green-700 border-green-200;
-    }
-    .badge-error {
-      @apply bg-red-100 text-red-700 border-red-200;
-    }
-    .badge-warning {
-      @apply bg-orange-100 text-orange-700 border-orange-200;
-    }
-    .badge-info {
-      @apply bg-blue-100 text-blue-700 border-blue-200;
-    }
+}
+
+@layer base {
+  * {
+    @apply border-border;
   }
-  
-  @layer utilities {
-    /* Consistent border radius */
-    .rounded-card {
-      @apply rounded-xl;
-    }
-    .rounded-button {
-      @apply rounded-lg;
-    }
-    .rounded-input {
-      @apply rounded-md;
-    }
-    
-    /* Consistent shadows */
-    .shadow-card {
-      box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-    }
-    .shadow-card-hover {
-      box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    }
-    
-    /* Consistent text colors */
-    .text-primary-content {
-      @apply text-gray-900;
-    }
-    .text-secondary-content {
-      @apply text-gray-600;
-    }
-    .text-muted-content {
-      @apply text-gray-500;
-    }
-    
-    /* Smooth transitions */
-    .transition-smooth {
-      @apply transition-all duration-200 ease-in-out;
-    }
-    
-    /* Consistent disabled state */
-    .disabled-state {
-      @apply opacity-50 cursor-not-allowed pointer-events-none;
-    }
+  body {
+    @apply bg-background text-foreground;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+      "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans",
+      "Helvetica Neue", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
+
+  /* Consistent heading styles */
+  h1 {
+    @apply text-3xl font-bold tracking-tight;
+  }
+  h2 {
+    @apply text-2xl font-semibold tracking-tight;
+  }
+  h3 {
+    @apply text-xl font-semibold tracking-tight;
+  }
+  h4 {
+    @apply text-lg font-semibold;
+  }
+
+  /* Consistent body text */
+  p {
+    @apply text-base leading-relaxed;
+  }
+
+  /* Small text */
+  small {
+    @apply text-sm;
+  }
+}
+
+@layer components {
+  /* Consistent button hover transitions */
+  button {
+    @apply transition-all duration-200 ease-in-out;
+  }
+
+  /* Consistent card hover effects */
+  .card-hover {
+    @apply transition-all duration-200 ease-in-out hover:shadow-lg hover:scale-[1.02];
+  }
+
+  /* Consistent icon sizing */
+  .icon-sm {
+    @apply w-4 h-4;
+  }
+  .icon-md {
+    @apply w-5 h-5;
+  }
+  .icon-lg {
+    @apply w-6 h-6;
+  }
+
+  /* Consistent spacing */
+  .section-spacing {
+    @apply mb-6 sm:mb-8;
+  }
+
+  /* Consistent form field styling */
+  input:focus,
+  textarea:focus,
+  select:focus {
+    @apply ring-2 ring-primary ring-offset-2 outline-none;
+  }
+
+  /* Loading spinner */
+  .spinner {
+    @apply animate-spin;
+  }
+
+  /* Consistent badge styling */
+  .badge-success {
+    @apply bg-green-50 text-green-700 border-green-200;
+  }
+  .badge-error {
+    @apply bg-red-100 text-red-700 border-red-200;
+  }
+  .badge-warning {
+    @apply bg-orange-100 text-orange-700 border-orange-200;
+  }
+  .badge-info {
+    @apply bg-blue-50 text-blue-700 border-blue-200;
+  }
+}
+
+@layer utilities {
+  /* Consistent border radius */
+  .rounded-card {
+    @apply rounded-xl;
+  }
+  .rounded-button {
+    @apply rounded-lg;
+  }
+  .rounded-input {
+    @apply rounded-md;
+  }
+
+  /* Consistent shadows */
+  .shadow-card {
+    box-shadow:
+      0 1px 3px 0 rgb(0 0 0 / 0.1),
+      0 1px 2px -1px rgb(0 0 0 / 0.1);
+  }
+  .shadow-card-hover {
+    box-shadow:
+      0 10px 15px -3px rgb(0 0 0 / 0.1),
+      0 4px 6px -4px rgb(0 0 0 / 0.1);
+  }
+
+  /* Consistent text colors */
+  .text-primary-content {
+    @apply text-gray-900;
+  }
+  .text-secondary-content {
+    @apply text-gray-600;
+  }
+  .text-muted-content {
+    @apply text-gray-500;
+  }
+
+  /* Smooth transitions */
+  .transition-smooth {
+    @apply transition-all duration-200 ease-in-out;
+  }
+
+  /* Consistent disabled state */
+  .disabled-state {
+    @apply opacity-50 cursor-not-allowed pointer-events-none;
+  }
+}
