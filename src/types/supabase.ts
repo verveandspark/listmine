@@ -527,12 +527,48 @@ export type Database = {
         }
         Relationships: []
       }
+      tier_change_logs: {
+        Row: {
+          admin_email: string
+          changed_at: string | null
+          id: string
+          new_tier: string
+          old_tier: string
+          user_id: string
+        }
+        Insert: {
+          admin_email: string
+          changed_at?: string | null
+          id?: string
+          new_tier: string
+          old_tier: string
+          user_id: string
+        }
+        Update: {
+          admin_email?: string
+          changed_at?: string | null
+          id?: string
+          new_tier?: string
+          old_tier?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tier_change_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           created_at: string | null
           email: string
           id: string
           name: string | null
+          role: string | null
           tier: string | null
           updated_at: string | null
         }
@@ -541,6 +577,7 @@ export type Database = {
           email: string
           id?: string
           name?: string | null
+          role?: string | null
           tier?: string | null
           updated_at?: string | null
         }
@@ -549,6 +586,7 @@ export type Database = {
           email?: string
           id?: string
           name?: string | null
+          role?: string | null
           tier?: string | null
           updated_at?: string | null
         }

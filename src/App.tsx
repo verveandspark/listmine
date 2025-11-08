@@ -12,6 +12,7 @@ import ImportExport from "./components/import-export/ImportExport";
 import Profile from "./components/profile/Profile";
 import Upgrade from "./components/upgrade/Upgrade";
 import Templates from "./components/templates/Templates";
+import AdminPanel from "./components/admin/AdminPanel";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
@@ -116,6 +117,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Upgrade />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/users"
+        element={
+          <ProtectedRoute>
+            <AdminPanel />
           </ProtectedRoute>
         }
       />
