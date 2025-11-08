@@ -139,25 +139,40 @@ export default function AdminPanel() {
 
     // Get current user data
     const currentUser = users.find((u) => u.id === userId);
-    if (!currentUser) return;
+    if (!currentUser) {
+      console.error("User not found:", userId);
+      setUpgrading(null);
+      return;
+    }
+
+    console.log("Updating tier:", {
+      userId,
+      userEmail: currentUser.email,
+      oldTier: currentUser.tier,
+      newTier,
+    });
 
     // Update tier
-    const { error: updateError } = await supabase
+    const { data, error: updateError } = await supabase
       .from("users")
       .update({ tier: newTier, updated_at: new Date().toISOString() })
-      .eq("id", userId);
+      .eq("id", userId)
+      .select();
+
+    console.log("Update result:", { data, error: updateError });
 
     if (updateError) {
+      console.error("Failed to update tier:", updateError);
       toast({
         title: "❌ Error",
-        description: "Failed to update tier",
+        description: `Failed to update tier: ${updateError.message}`,
         variant: "destructive",
       });
       setUpgrading(null);
       return;
     }
 
-    // Log the change
+    // Log the change (optional - ignore if table doesn't exist)
     const { error: logError } = await supabase
       .from("tier_change_logs")
       .insert({
@@ -168,7 +183,7 @@ export default function AdminPanel() {
       });
 
     if (logError) {
-      console.error("Failed to log tier change:", logError);
+      console.warn("Failed to log tier change (table may not exist):", logError);
     }
 
     toast({
