@@ -227,6 +227,19 @@ export default function AuthPage() {
                     ) : null}
                     Sign In
                   </Button>
+                  <p className="text-center text-sm text-gray-600 mt-4">
+                    New to ListMine?{" "}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const registerTab = document.querySelector('[value="register"]') as HTMLElement;
+                        registerTab?.click();
+                      }}
+                      className="text-primary font-semibold underline hover:text-primary/80"
+                    >
+                      Create a free account
+                    </button>
+                  </p>
                 </form>
               </CardContent>
             </Card>
@@ -237,7 +250,7 @@ export default function AuthPage() {
               <CardHeader>
                 <CardTitle>Create an account</CardTitle>
                 <CardDescription>
-                  Get started with your list management journey
+                  Start with a Free account - no credit card required
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -284,6 +297,19 @@ export default function AuthPage() {
                       Must be at least 8 characters
                     </p>
                   </div>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-sm text-blue-900 font-medium mb-1">
+                      ✨ Free Tier Includes:
+                    </p>
+                    <ul className="text-xs text-blue-800 space-y-1 ml-4 list-disc">
+                      <li>Create up to 5 lists</li>
+                      <li>Unlimited items per list</li>
+                      <li>Share lists with others</li>
+                    </ul>
+                    <p className="text-xs text-blue-700 mt-2">
+                      Upgrade anytime from inside the app for more features!
+                    </p>
+                  </div>
                   <Button
                     type="submit"
                     className="w-full min-h-[44px]"
@@ -292,7 +318,7 @@ export default function AuthPage() {
                     {loading ? (
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     ) : null}
-                    Create Account
+                    Create Free Account
                   </Button>
                 </form>
               </CardContent>

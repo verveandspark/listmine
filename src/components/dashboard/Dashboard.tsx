@@ -772,6 +772,45 @@ export default function Dashboard() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        {/* Welcome Banner for New Users */}
+        {lists.length === 0 && (
+          <div className="mb-6 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg border border-primary/20 p-6">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
+                <ListChecks className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-xl font-bold text-gray-900 mb-2">
+                  Welcome to ListMine! 🎉
+                </h2>
+                <p className="text-gray-700 mb-3">
+                  You're all set with a <span className="font-semibold">Free account</span>. 
+                  Start organizing your life with up to 5 lists and unlimited items!
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    onClick={() => setIsCreateDialogOpen(true)}
+                    size="sm"
+                    className="min-h-[36px]"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Your First List
+                  </Button>
+                  <Button
+                    onClick={() => window.open('https://listmine.com/how-it-works', '_blank')}
+                    variant="outline"
+                    size="sm"
+                    className="min-h-[36px]"
+                  >
+                    <HelpCircle className="w-4 h-4 mr-2" />
+                    How It Works
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Usage Stats */}
         <div className="mb-4 sm:mb-6 bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -779,7 +818,9 @@ export default function Dashboard() {
               <div className="w-full sm:w-auto">
                 <div className="flex items-center gap-2 mb-1">
                   <FileText className="w-5 h-5 text-primary" />
-                  <p className="text-sm text-gray-600">Lists</p>
+                  <p className="text-sm text-gray-600">
+                    Lists · <span className="font-semibold">{getTierName(user?.tier || "free")} Tier</span>
+                  </p>
                   {user?.listLimit !== -1 && (
                     <TooltipProvider>
                       <Tooltip>
@@ -865,6 +906,24 @@ export default function Dashboard() {
               </TooltipProvider>
             )}
           </div>
+          {user?.tier === "free" && (
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-gray-600">
+                  Need more lists? Upgrade to unlock unlimited lists and premium features.
+                </p>
+                <Button
+                  onClick={() => window.open('https://listmine.com/pricing', '_blank')}
+                  variant="outline"
+                  size="sm"
+                  className="border-primary text-primary hover:bg-primary/10 min-h-[36px] ml-4"
+                >
+                  <Crown className="w-4 h-4 mr-2" />
+                  View Plans
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Search and Filters */}
@@ -1621,6 +1680,56 @@ export default function Dashboard() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Footer */}
+      <footer className="bg-white border-t border-gray-200 mt-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <img 
+                src="/assets/listmine-icon.png" 
+                alt="ListMine" 
+                className="h-6 w-6"
+              />
+              <p className="text-sm text-gray-600">
+                © 2025 ListMine. Organize your life, one list at a time.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-4 text-sm">
+              <a
+                href="https://listmine.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-600 hover:text-primary underline"
+              >
+                About ListMine
+              </a>
+              <a
+                href="https://listmine.com/pricing"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-600 hover:text-primary underline"
+              >
+                Pricing
+              </a>
+              <a
+                href="https://listmine.com/how-it-works"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-600 hover:text-primary underline"
+              >
+                How It Works
+              </a>
+              <a
+                href="mailto:support@listmine.com"
+                className="text-gray-600 hover:text-primary underline"
+              >
+                Contact Support
+              </a>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
