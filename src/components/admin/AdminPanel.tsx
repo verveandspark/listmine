@@ -200,8 +200,8 @@ export default function AdminPanel() {
     const labels: Record<string, string> = {
       free: "Free",
       good: "Good",
-      "even-better": "Even Better",
-      "lots-more": "Lots More",
+      even_better: "Even Better",
+      lots_more: "Lots More",
     };
     return labels[tier] || tier;
   };
@@ -210,8 +210,8 @@ export default function AdminPanel() {
     const colors: Record<string, string> = {
       free: "bg-gray-100 text-gray-700 border-gray-300",
       good: "bg-blue-100 text-blue-700 border-blue-300",
-      "even-better": "bg-primary/10 text-primary border-primary/30",
-      "lots-more": "bg-yellow-100 text-yellow-700 border-yellow-300",
+      even_better: "bg-primary/10 text-primary border-primary/30",
+      lots_more: "bg-yellow-100 text-yellow-700 border-yellow-300",
     };
     return colors[tier] || "bg-gray-100 text-gray-700";
   };
@@ -362,10 +362,10 @@ export default function AdminPanel() {
                           <SelectContent>
                             <SelectItem value="free">Free</SelectItem>
                             <SelectItem value="good">Good</SelectItem>
-                            <SelectItem value="even-better">
+                            <SelectItem value="even_better">
                               Even Better
                             </SelectItem>
-                            <SelectItem value="lots-more">
+                            <SelectItem value="lots_more">
                               Lots More
                             </SelectItem>
                           </SelectContent>
