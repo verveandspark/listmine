@@ -66,6 +66,10 @@ function AppRoutes() {
 
   return (
     <Routes>
+      <Route 
+        path="/" 
+        element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <AuthPage />} 
+      />
       <Route path="/auth" element={<AuthPage />} />
       <Route path="/auth/reset-password" element={<ResetPassword />} />
       <Route path="/shared/:shareId" element={<SharedListView />} />
