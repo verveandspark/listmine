@@ -11,18 +11,30 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ListChecks } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
 import { validateEmail, validatePassword } from "@/lib/validation";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function AuthPage() {
   const { login, register } = useAuth();
+  const { toast } = useToast();
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
   const [registerName, setRegisterName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,12 +106,69 @@ export default function AuthPage() {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Validate email
+    const emailValidation = validateEmail(resetEmail);
+    if (!emailValidation.valid) {
+      toast({
+        title: "⚠️ Invalid Email",
+        description: emailValidation.error,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setResetLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        emailValidation.value!,
+        {
+          redirectTo: `${window.location.origin}/auth/reset-password`,
+        }
+      );
+
+      if (error) throw error;
+
+      toast({
+        title: "✅ Reset Link Sent",
+        description: "Check your email for the password reset link.",
+      });
+      setIsForgotPasswordOpen(false);
+      setResetEmail("");
+    } catch (error: any) {
+      console.error("Password reset failed:", error);
+      toast({
+        title: "❌ Error",
+        description: error.message || "Failed to send reset link. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
+        {/* Logo and Branding */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-2xl mb-4">
-            <ListChecks className="w-8 h-8 text-primary-foreground" />
+          <img
+            src="/assets/listmine-logo-full.png"
+            alt="ListMine Logo"
+            className="h-16 mx-auto mb-4"
+            onError={(e) => {
+              // Fallback if image doesn't load
+              e.currentTarget.style.display = 'none';
+              const fallback = document.getElementById('logo-fallback');
+              if (fallback) fallback.style.display = 'block';
+            }}
+          />
+          <div id="logo-fallback" style={{ display: 'none' }} className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-2xl mb-4">
+            <svg className="w-8 h-8 text-primary-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+            </svg>
           </div>
           <h1 className="text-3xl font-bold text-gray-900">ListMine</h1>
           <p className="text-gray-600 mt-2">
@@ -149,6 +218,15 @@ export default function AuthPage() {
                       required
                       className="min-h-[44px] mt-2"
                     />
+                    <div className="mt-2 text-right">
+                      <button
+                        type="button"
+                        onClick={() => setIsForgotPasswordOpen(true)}
+                        className="text-sm text-primary underline hover:text-primary/80"
+                      >
+                        Forgot Password?
+                      </button>
+                    </div>
                   </div>
                   <Button
                     type="submit"
@@ -233,6 +311,52 @@ export default function AuthPage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Forgot Password Modal */}
+      <Dialog open={isForgotPasswordOpen} onOpenChange={setIsForgotPasswordOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset Password</DialogTitle>
+            <DialogDescription>
+              Enter your email address and we'll send you a link to reset your password.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleForgotPassword} className="space-y-4 mt-4">
+            <div>
+              <Label htmlFor="reset-email">Email</Label>
+              <Input
+                id="reset-email"
+                type="email"
+                placeholder="your@email.com"
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+                required
+                className="min-h-[44px] mt-2"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsForgotPasswordOpen(false)}
+                className="flex-1 min-h-[44px]"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="flex-1 min-h-[44px]"
+                disabled={resetLoading}
+              >
+                {resetLoading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : null}
+                Send Reset Link
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

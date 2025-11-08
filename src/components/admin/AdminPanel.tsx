@@ -53,13 +53,29 @@ export default function AdminPanel() {
         return;
       }
 
+      console.log("Checking admin status for user:", user.id, user.email);
+
       const { data, error } = await supabase
         .from("users")
-        .select("role")
+        .select("role, email")
         .eq("id", user.id)
         .single();
 
-      if (error || data?.role !== "admin") {
+      console.log("Admin check result:", { data, error });
+
+      if (error) {
+        console.error("Error checking admin status:", error);
+        toast({
+          title: "⛔ Access Denied",
+          description: "Failed to verify admin status.",
+          variant: "destructive",
+        });
+        navigate("/dashboard");
+        return;
+      }
+
+      if (data?.role !== "admin") {
+        console.log("User is not admin. Role:", data?.role);
         toast({
           title: "⛔ Access Denied",
           description: "You don't have permission to access this page.",
@@ -69,26 +85,37 @@ export default function AdminPanel() {
         return;
       }
 
+      console.log("User is admin, loading panel");
       fetchUsers();
     };
 
     checkAdmin();
-  }, [user, navigate]);
+  }, [user]);
 
   const fetchUsers = async () => {
     setLoading(true);
+    console.log("Fetching all users...");
+    
     const { data, error } = await supabase
       .from("users")
       .select("*")
       .order("created_at", { ascending: false });
 
+    console.log("Fetch users result:", { 
+      count: data?.length, 
+      data, 
+      error 
+    });
+
     if (error) {
+      console.error("Error fetching users:", error);
       toast({
         title: "❌ Error",
         description: "Failed to fetch users",
         variant: "destructive",
       });
     } else {
+      console.log(`Successfully fetched ${data?.length || 0} users`);
       setUsers(data || []);
       setFilteredUsers(data || []);
     }

@@ -6,6 +6,7 @@ import { ListProvider } from "./contexts/ListContext";
 import { useAuth } from "./contexts/useAuthHook";
 import { Toaster } from "./components/ui/toaster";
 import AuthPage from "./components/auth/AuthPage";
+import ResetPassword from "./components/auth/ResetPassword";
 import Dashboard from "./components/dashboard/Dashboard";
 import ListDetail from "./components/list/ListDetail";
 import ImportExport from "./components/import-export/ImportExport";
@@ -65,12 +66,8 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route
-        path="/"
-        element={
-          isAuthenticated ? <Navigate to="/dashboard" replace /> : <AuthPage />
-        }
-      />
+      <Route path="/auth" element={<AuthPage />} />
+      <Route path="/auth/reset-password" element={<ResetPassword />} />
       <Route path="/shared/:shareId" element={<SharedListView />} />
       <Route
         path="/dashboard"
