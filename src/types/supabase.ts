@@ -641,7 +641,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_allowed_list_types: { Args: { user_tier: string }; Returns: string[] }
     }
     Enums: {
       [_ in never]: never

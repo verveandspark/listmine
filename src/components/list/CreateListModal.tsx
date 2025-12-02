@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLists } from "@/contexts/useListsHook";
+import { useAuth } from "@/contexts/useAuthHook";
 import {
   Dialog,
   DialogContent,
@@ -18,8 +19,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ListCategory, ListType } from "@/types";
-import { Loader2 } from "lucide-react";
+import { Loader2, Lock } from "lucide-react";
+import { getListTypesWithAvailability, UserTier } from "@/lib/tierUtils";
+import ListTypeUpsellModal from "./ListTypeUpsellModal";
 
 interface CreateListModalProps {
   open: boolean;
@@ -33,11 +42,17 @@ export default function CreateListModal({
   const [listName, setListName] = useState("");
   const [category, setCategory] = useState<ListCategory>("Tasks");
   const [listType, setListType] = useState<ListType>("custom");
+  const [upsellOpen, setUpsellOpen] = useState(false);
+  const [upsellListType, setUpsellListType] = useState<{ label: string; tier: UserTier } | null>(null);
   
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { addList } = useLists();
+  const { user } = useAuth();
   const navigate = useNavigate();
+
+  const userTier = (user?.tier || "free") as UserTier;
+  const listTypesWithAvailability = getListTypesWithAvailability(userTier);
 
   const categories: ListCategory[] = [
     "Tasks",
@@ -48,14 +63,14 @@ export default function CreateListModal({
     "Other",
   ];
 
-  const listTypes: { value: ListType; label: string }[] = [
-    { value: "custom", label: "Custom" },
-    { value: "todo-list", label: "To-Do" },
-    { value: "grocery-list", label: "Grocery" },
-    { value: "registry-list", label: "Registry" },
-    { value: "shopping-list", label: "Wishlist" },
-    { value: "idea-list", label: "Idea" },
-  ];
+  const handleListTypeClick = (typeInfo: typeof listTypesWithAvailability[0]) => {
+    if (typeInfo.available) {
+      setListType(typeInfo.value);
+    } else {
+      setUpsellListType({ label: typeInfo.label, tier: typeInfo.requiredTier });
+      setUpsellOpen(true);
+    }
+  };
 
   const handleCreate = async () => {
     if (!listName.trim()) {
@@ -141,21 +156,40 @@ export default function CreateListModal({
           {/* List Type */}
           <div className="grid gap-2">
             <Label htmlFor="list-type">List Type *</Label>
-            <Select
-              value={listType}
-              onValueChange={(value) => setListType(value as ListType)}
-            >
-              <SelectTrigger id="list-type">
-                <SelectValue placeholder="Select list type" />
-              </SelectTrigger>
-              <SelectContent>
-                {listTypes.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {type.label}
-                  </SelectItem>
+            <div className="grid grid-cols-2 gap-2">
+              <TooltipProvider>
+                {listTypesWithAvailability.map((typeInfo) => (
+                  <Tooltip key={typeInfo.value}>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant={listType === typeInfo.value ? "default" : "outline"}
+                        className={`relative justify-start ${
+                          !typeInfo.available
+                            ? "opacity-60 cursor-not-allowed border-dashed"
+                            : ""
+                        } ${
+                          listType === typeInfo.value
+                            ? "ring-2 ring-primary ring-offset-2"
+                            : ""
+                        }`}
+                        onClick={() => handleListTypeClick(typeInfo)}
+                      >
+                        {typeInfo.label}
+                        {!typeInfo.available && (
+                          <Lock className="w-3 h-3 ml-auto text-muted-foreground" />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    {!typeInfo.available && (
+                      <TooltipContent>
+                        <p>Available on {typeInfo.tierLabel} tier</p>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
                 ))}
-              </SelectContent>
-            </Select>
+              </TooltipProvider>
+            </div>
           </div>
 
           {error && (
@@ -184,6 +218,16 @@ export default function CreateListModal({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Upsell Modal */}
+      {upsellListType && (
+        <ListTypeUpsellModal
+          open={upsellOpen}
+          onOpenChange={setUpsellOpen}
+          listTypeLabel={upsellListType.label}
+          requiredTier={upsellListType.tier}
+        />
+      )}
     </Dialog>
   );
 }

@@ -20,6 +20,7 @@ import {
   validateTag,
 } from "@/lib/validation";
 import html2pdf from "html2pdf.js";
+import { canAccessListType, getAvailableListTypes, UserTier } from "@/lib/tierUtils";
 
 const OPERATION_TIMEOUT = 15000;
 
@@ -244,7 +245,13 @@ export function ListProvider({ children }: { children: ReactNode }) {
         showPurchaserInfo: list.show_purchaser_info || false,
       })) || [];
 
-      setLists(listsWithItems);
+      // Filter lists based on user tier - only show lists the user has access to
+      const userTier = (user.tier || 'free') as UserTier;
+      const filteredLists = listsWithItems.filter((list) => 
+        canAccessListType(userTier, list.listType)
+      );
+
+      setLists(filteredLists);
     } catch (err: any) {
       const errorMessage = err instanceof Error ? err.message : "Failed to load lists";
       console.error("[ListMine Error]", {
@@ -278,6 +285,14 @@ export function ListProvider({ children }: { children: ReactNode }) {
     const categoryValidation = validateCategory(category);
     if (!categoryValidation.valid) {
       throw new Error(categoryValidation.error);
+    }
+
+    // Validate list type access based on user tier
+    const userTier = (user.tier || 'free') as UserTier;
+    if (!canAccessListType(userTier, listType)) {
+      throw new Error(
+        `${listType} lists are not available on your current tier. Please upgrade to access this list type.`
+      );
     }
 
     const existingList = lists.find(
