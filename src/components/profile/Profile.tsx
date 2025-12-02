@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/useAuthHook";
 import { useLists } from "@/contexts/useListsHook";
+import { resetOnboarding } from "@/components/onboarding/OnboardingTooltips";
 import {
   Card,
   CardContent,
@@ -12,6 +13,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   ArrowLeft,
   User,
@@ -26,6 +33,8 @@ import {
   CheckCircle,
   Pin,
   Share2,
+  MessageSquare,
+  RotateCcw,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -306,6 +315,56 @@ export default function Profile() {
                 </div>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Feedback Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Help Us Improve</CardTitle>
+            <CardDescription>Share your feedback or report bugs</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={() => window.open('https://forms.gle/9uQRYmrC8qC38Raj9', '_blank')}
+                    className="w-full bg-primary hover:bg-primary/90 text-white min-h-[44px]"
+                  >
+                    <MessageSquare className="w-4 h-4 mr-2" />
+                    Submit Beta Feedback
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Help us improve! Share your feedback or report bugs here.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </CardContent>
+        </Card>
+
+        {/* Onboarding Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Onboarding Tour</CardTitle>
+            <CardDescription>Replay the welcome tour anytime</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-3">
+              Click the button below, then navigate to the Dashboard to see the tour.
+            </p>
+            <Button
+              onClick={() => {
+                resetOnboarding();
+                window.location.reload();
+              }}
+              variant="outline"
+              className="w-full min-h-[44px]"
+            >
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Replay Onboarding Tour
+            </Button>
           </CardContent>
         </Card>
       </div>

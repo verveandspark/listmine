@@ -462,22 +462,50 @@ export default function ListDetail() {
     localStorage.setItem("itemEntryMode", mode);
   };
 
-  const handleDragStart = (item: ListItemType) => {
+  const handleDragStart = (e: React.DragEvent, item: ListItemType) => {
     setDraggedItem(item);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", item.id);
+    // Add visual feedback
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = "0.5";
+    }
   };
 
   const handleDragOver = (e: React.DragEvent, targetItem: ListItemType) => {
     e.preventDefault();
-    if (!draggedItem || draggedItem.id === targetItem.id) return;
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleDrop = (e: React.DragEvent, targetItem: ListItemType) => {
+    e.preventDefault();
+    if (!draggedItem || draggedItem.id === targetItem.id) {
+      setDraggedItem(null);
+      return;
+    }
 
     const items = [...list.items];
     const draggedIndex = items.findIndex((i) => i.id === draggedItem.id);
     const targetIndex = items.findIndex((i) => i.id === targetItem.id);
 
+    if (draggedIndex === -1 || targetIndex === -1) {
+      setDraggedItem(null);
+      return;
+    }
+
     items.splice(draggedIndex, 1);
     items.splice(targetIndex, 0, draggedItem);
 
     reorderListItems(list.id, items);
+    setDraggedItem(null);
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    // Reset visual feedback
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = "1";
+    }
+    setDraggedItem(null);
   };
 
   const handleDeleteList = () => {
@@ -1998,13 +2026,20 @@ export default function ListDetail() {
 
           {/* Sort Items Dropdown */}
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium text-gray-700">Items</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-medium text-gray-700">Items</h3>
+              {itemSortBy === "manual" && (
+                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                  Drag to reorder
+                </span>
+              )}
+            </div>
             <Select value={itemSortBy} onValueChange={handleItemSortChange}>
               <SelectTrigger className="w-[180px] h-[40px]">
                 <SelectValue placeholder="Sort items by" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="manual">Manual</SelectItem>
+                <SelectItem value="manual">Manual (drag to reorder)</SelectItem>
                 <SelectItem value="priority">Priority</SelectItem>
                 <SelectItem value="dueDate">Due Date</SelectItem>
                 <SelectItem value="alphabetical">Alphabetical</SelectItem>
@@ -2057,13 +2092,19 @@ export default function ListDetail() {
                     return (
                     <Card
                       key={item.id}
-                      className={`p-3 sm:p-4 hover:shadow-md transition-all ${index % 2 === 1 ? "bg-gray-50" : "bg-white"}`}
+                      className={`p-3 sm:p-4 hover:shadow-md transition-all ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2" : ""}`}
                       draggable={itemSortBy === "manual"}
-                      onDragStart={() =>
-                        itemSortBy === "manual" && handleDragStart(item)
+                      onDragStart={(e) =>
+                        itemSortBy === "manual" && handleDragStart(e, item)
                       }
                       onDragOver={(e) =>
                         itemSortBy === "manual" && handleDragOver(e, item)
+                      }
+                      onDrop={(e) =>
+                        itemSortBy === "manual" && handleDrop(e, item)
+                      }
+                      onDragEnd={(e) =>
+                        itemSortBy === "manual" && handleDragEnd(e)
                       }
                     >
                       <div className="flex items-start gap-2 sm:gap-3">
@@ -2075,8 +2116,8 @@ export default function ListDetail() {
                           />
                         )}
                         {itemSortBy === "manual" && (
-                          <div className="cursor-move mt-1 hidden sm:block">
-                            <GripVertical className="w-5 h-5 text-gray-400" />
+                          <div className="cursor-grab active:cursor-grabbing mt-1 touch-none">
+                            <GripVertical className="w-5 h-5 text-gray-400 hover:text-gray-600" />
                           </div>
                         )}
                         <Checkbox
@@ -2086,7 +2127,7 @@ export default function ListDetail() {
                               completed: checked as boolean,
                             })
                           }
-                          className="mt-1 h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0"
+                          className={`mt-1 h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform ${item.completed ? "animate-check-bounce" : ""}`}
                         />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
@@ -2950,13 +2991,19 @@ export default function ListDetail() {
                     )}
                     
                     <Card
-                      className={`p-3 sm:p-4 hover:shadow-md transition-all ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${isPurchased ? "border-success/20 bg-success/5" : ""}`}
+                      className={`p-3 sm:p-4 hover:shadow-md transition-all ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${isPurchased ? "border-success/20 bg-success/5" : ""} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2" : ""}`}
                       draggable={itemSortBy === "manual"}
-                      onDragStart={() =>
-                        itemSortBy === "manual" && handleDragStart(item)
+                      onDragStart={(e) =>
+                        itemSortBy === "manual" && handleDragStart(e, item)
                       }
                       onDragOver={(e) =>
                         itemSortBy === "manual" && handleDragOver(e, item)
+                      }
+                      onDrop={(e) =>
+                        itemSortBy === "manual" && handleDrop(e, item)
+                      }
+                      onDragEnd={(e) =>
+                        itemSortBy === "manual" && handleDragEnd(e)
                       }
                     >
                       <div className="flex items-start gap-2 sm:gap-3">
@@ -2968,8 +3015,8 @@ export default function ListDetail() {
                           />
                         )}
                         {itemSortBy === "manual" && (
-                          <div className="cursor-move mt-1 hidden sm:block">
-                            <GripVertical className="w-5 h-5 text-gray-400" />
+                          <div className="cursor-grab active:cursor-grabbing mt-1 touch-none">
+                            <GripVertical className="w-5 h-5 text-gray-400 hover:text-gray-600" />
                           </div>
                         )}
                         {showNumbering && (
@@ -2984,7 +3031,7 @@ export default function ListDetail() {
                               completed: checked as boolean,
                             })
                           }
-                          className="mt-1 h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0"
+                          className={`mt-1 h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform ${item.completed ? "animate-check-bounce" : ""}`}
                         />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">

@@ -1,4 +1,5 @@
 import { FirebaseTest } from "@/components/FirebaseTest";
+import { OnboardingTooltips } from "@/components/onboarding/OnboardingTooltips";
 import {
   Plus,
   Search,
@@ -30,6 +31,7 @@ import {
   Upload,
   User,
   LogOut,
+  MessageSquare,
 } from "lucide-react";
 
 import { useState } from "react";
@@ -558,6 +560,9 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10">
+      {/* Onboarding Tooltips for New Users */}
+      <OnboardingTooltips />
+
       {/* Limit Reached Modal */}
       <AlertDialog open={showLimitModal} onOpenChange={setShowLimitModal}>
         <AlertDialogContent>
@@ -1167,7 +1172,7 @@ export default function Dashboard() {
               Pinned Lists
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-              {pinnedLists.map((list) => {
+              {pinnedLists.map((list, index) => {
                 const Icon = categoryIcons[list.category] || ListChecks;
                 const completedItems = list.items.filter(
                   (item) => item.completed,
@@ -1176,7 +1181,8 @@ export default function Dashboard() {
                 return (
                   <Card
                     key={list.id}
-                    className="hover:shadow-lg hover:bg-gray-50 transition-all cursor-pointer group relative"
+                    className="hover:shadow-lg hover:bg-gray-50 transition-all cursor-pointer group relative animate-slide-up"
+                    style={{ animationDelay: `${index * 50}ms` }}
                     onClick={() => navigate(`/list/${list.id}`)}
                   >
                     {/* Quick Actions */}
@@ -1403,7 +1409,7 @@ export default function Dashboard() {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-              {unpinnedLists.map((list) => {
+              {unpinnedLists.map((list, index) => {
                 const Icon = categoryIcons[list.category] || ListChecks;
                 const completedItems = list.items.filter(
                   (item) => item.completed,
@@ -1412,7 +1418,8 @@ export default function Dashboard() {
                 return (
                   <Card
                     key={list.id}
-                    className="hover:shadow-lg hover:bg-gray-50 transition-all cursor-pointer group relative"
+                    className="hover:shadow-lg hover:bg-gray-50 transition-all cursor-pointer group relative animate-slide-up"
+                    style={{ animationDelay: `${index * 50}ms` }}
                     onClick={() => navigate(`/list/${list.id}`)}
                   >
                     {/* Quick Actions - same as pinned lists */}
@@ -1726,6 +1733,24 @@ export default function Dashboard() {
               >
                 Contact Support
               </a>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <a
+                      href="https://forms.gle/9uQRYmrC8qC38Raj9"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 bg-primary text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-primary/90 transition-colors"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                      Beta Feedback
+                    </a>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Help us improve! Share your feedback or report bugs here.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
         </div>

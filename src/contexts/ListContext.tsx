@@ -219,7 +219,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
         title: list.title,
         category: list.category as ListCategory,
         listType: (list.list_type || 'custom') as ListType,
-        items: (itemsData?.filter((item) => item.list_id === list.id) || []).map((item) => ({
+        items: (itemsData?.filter((item) => item.list_id === list.id) || [])
+          .sort((a, b) => (a.item_order || 0) - (b.item_order || 0))
+          .map((item) => ({
           id: item.id,
           text: item.text,
           quantity: item.quantity || undefined,
@@ -610,6 +612,16 @@ export function ListProvider({ children }: { children: ReactNode }) {
 
   const reorderListItems = async (listId: string, items: ListItem[]) => {
     try {
+      // Optimistically update local state first for smooth UX
+      setLists((prevLists) =>
+        prevLists.map((list) =>
+          list.id === listId
+            ? { ...list, items: items.map((item, index) => ({ ...item, order: index })) }
+            : list
+        )
+      );
+
+      // Then persist to database
       for (const item of items) {
         const index = items.indexOf(item);
         const result = await supabase
@@ -619,9 +631,10 @@ export function ListProvider({ children }: { children: ReactNode }) {
         const { error } = result;
         if (error) throw error;
       }
-      await loadLists();
     } catch (error: any) {
       logError("reorderListItems", error, user?.id);
+      // Reload lists to restore correct state on error
+      await loadLists();
       throw error;
     }
   };

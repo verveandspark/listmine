@@ -66,10 +66,36 @@ module.exports = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "pop-in": {
+          "0%": { transform: "scale(0.95)", opacity: "0" },
+          "100%": { transform: "scale(1)", opacity: "1" },
+        },
+        "check-bounce": {
+          "0%": { transform: "scale(1)" },
+          "50%": { transform: "scale(1.2)" },
+          "100%": { transform: "scale(1)" },
+        },
+        "slide-up": {
+          "0%": { transform: "translateY(10px)", opacity: "0" },
+          "100%": { transform: "translateY(0)", opacity: "1" },
+        },
+        "pulse-soft": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.7" },
+        },
+        "drag-lift": {
+          "0%": { transform: "scale(1)", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" },
+          "100%": { transform: "scale(1.02)", boxShadow: "0 8px 25px rgba(0,0,0,0.15)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "pop-in": "pop-in 0.2s ease-out",
+        "check-bounce": "check-bounce 0.3s ease-in-out",
+        "slide-up": "slide-up 0.3s ease-out",
+        "pulse-soft": "pulse-soft 2s ease-in-out infinite",
+        "drag-lift": "drag-lift 0.15s ease-out forwards",
       },
     },
   },

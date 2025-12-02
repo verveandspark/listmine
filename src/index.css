@@ -18,13 +18,13 @@
     --primary: 203 64% 34%; /* Primary Blue #1F628E */
     --primary-foreground: 0 0% 100%; /* White */
 
-    --secondary: 202 35% 51%; /* Secondary Blue #5789AA */
+    --secondary: 202 45% 42%; /* Secondary Blue #3D7A9E - improved contrast */
     --secondary-foreground: 0 0% 100%; /* White */
 
     --muted: 210 40% 96.1%; /* Light Gray */
     --muted-foreground: 215 16% 47%; /* Dark Gray #64748B */
 
-    --accent: 180 60% 41%; /* Teal Accent #2BA8A8 */
+    --accent: 180 55% 35%; /* Teal Accent #298585 - improved contrast */
     --accent-foreground: 0 0% 100%; /* White */
 
     --destructive: 0 84.2% 60.2%; /* Red */
@@ -37,7 +37,7 @@
     --radius: 0.75rem;
 
     /* Success color */
-    --success: 180 60% 41%; /* Teal #2BA8A8 */
+    --success: 180 55% 35%; /* Teal #298585 - improved contrast */
     --success-foreground: 0 0% 100%; /* White */
 
     /* Warning color */
@@ -58,13 +58,13 @@
     --primary: 203 64% 34%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 202 35% 51%;
+    --secondary: 202 45% 42%;
     --secondary-foreground: 0 0% 100%;
 
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
 
-    --accent: 180 60% 41%;
+    --accent: 180 55% 35%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62.8% 30.6%;
@@ -74,7 +74,7 @@
     --input: 217.2 32.6% 17.5%;
     --ring: 203 64% 34%;
 
-    --success: 180 60% 41%;
+    --success: 180 55% 35%;
     --success-foreground: 0 0% 100%;
   }
 }

@@ -1,4 +1,4 @@
-import { Plus, Download } from "lucide-react";
+import { Plus, Download, MessageSquare } from "lucide-react";
 import { useLists } from "@/contexts/useListsHook";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,12 @@ import {
   ListChecks,
   ChevronRight,
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ListCategory } from "@/types";
 import { useState } from "react";
 import CreateListModal from "./CreateListModal";
@@ -109,6 +115,27 @@ export function ListSidebar() {
             );
           })}
         </div>
+      </div>
+
+      {/* Feedback Button */}
+      <div className="p-4 border-t border-gray-200 mt-auto">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={() => window.open('https://forms.gle/9uQRYmrC8qC38Raj9', '_blank')}
+                variant="outline"
+                className="w-full border-primary text-primary hover:bg-primary/10 min-h-[44px]"
+              >
+                <MessageSquare className="w-4 h-4 mr-2" />
+                Beta Feedback
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Help us improve! Share your feedback or report bugs here.</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       <CreateListModal

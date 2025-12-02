@@ -96,7 +96,7 @@ export default function CreateListModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] bg-white">
+      <DialogContent className="sm:max-w-[425px] bg-white animate-pop-in">
         <DialogHeader>
           <DialogTitle>Create New List</DialogTitle>
         </DialogHeader>
