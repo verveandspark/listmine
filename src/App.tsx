@@ -18,7 +18,10 @@ import AdminPanel from "./components/admin/AdminPanel";
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
 
+  console.log("[ProtectedRoute] loading:", loading, "isAuthenticated:", isAuthenticated);
+
   if (loading) {
+    console.log("[ProtectedRoute] Showing loading spinner");
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -29,11 +32,14 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
+  console.log("[ProtectedRoute] Rendering children:", isAuthenticated);
   return isAuthenticated ? <>{children}</> : <Navigate to="/" replace />;
 }
 
 function AppRoutes() {
   const { isAuthenticated, loading } = useAuth();
+
+  console.log("[AppRoutes] loading:", loading, "isAuthenticated:", isAuthenticated);
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
@@ -54,6 +60,7 @@ function AppRoutes() {
   }, []);
 
   if (loading) {
+    console.log("[AppRoutes] Stuck in loading state - showing spinner");
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -63,6 +70,8 @@ function AppRoutes() {
       </div>
     );
   }
+
+  console.log("[AppRoutes] Rendering routes");
 
   return (
     <Routes>
@@ -134,6 +143,7 @@ function AppRoutes() {
 }
 
 function App() {
+  console.log("[App] Rendering App component");
   return (
     <AuthProvider>
       <ListProvider>

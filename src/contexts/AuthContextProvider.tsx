@@ -14,6 +14,7 @@ const logError = (operation: string, error: any, userId?: string) => {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  console.log("[AuthProvider] Rendering AuthProvider");
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +51,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.log("[Auth] Session:", session);
 
         if (session?.user) {
-          await setUserFromAuth(session.user);
+          console.log("[Auth] Session found, calling setUserFromAuth...");
+          try {
+            await setUserFromAuth(session.user);
+            console.log("[Auth] setUserFromAuth completed successfully");
+          } catch (err) {
+            console.error("[Auth] setUserFromAuth threw an error:", err);
+            setLoading(false);
+          }
         } else {
           console.log("[Auth] No session found");
           setLoading(false);
@@ -87,15 +95,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     console.log("[Auth] Setting user from auth:", supabaseUser.id);
 
     // Query the users table to get the actual tier
+    console.log("[Auth] Fetching user tier from database...");
     const { data: userData, error } = await supabase
       .from('users')
       .select('tier')
       .eq('id', supabaseUser.id)
       .single();
 
+    console.log("[Auth] User tier query result:", { userData, error });
+
+    if (error) {
+      console.error("[Auth] Error fetching user tier:", error);
+    }
+
     const tier = (userData?.tier || 'free') as 'free' | 'good' | 'even_better' | 'lots_more';
     const tierLimits = getTierLimits(tier);
 
+    console.log("[Auth] Setting user state with tier:", tier);
     setUser({
       id: supabaseUser.id,
       email: supabaseUser.email || "",
@@ -106,8 +122,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       itemsPerListLimit: tierLimits.itemsPerListLimit,
     });
 
+    console.log("[Auth] About to set loading to false");
     setLoading(false);
-    console.log("[Auth] User set successfully");
+    console.log("[Auth] User set successfully, loading is now false");
   };
 
   const login = async (email: string, password: string) => {
@@ -345,5 +362,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     getTierLimits,
   };
 
+  console.log("[AuthProvider] Returning provider, loading:", loading, "user:", user?.id);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

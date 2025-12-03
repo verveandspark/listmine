@@ -50,22 +50,35 @@ export default function AdminUsersPage() {
   const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
+    console.log("[Admin] useEffect triggered - calling fetchUsers");
     fetchUsers();
   }, []);
 
   const fetchUsers = async () => {
+    console.log("[Admin] fetchUsers() called");
     try {
       setLoading(true);
+      console.log("[Admin] About to fetch users from Supabase...");
+      
       const { data, error } = await supabase
         .from("users")
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      console.log("[Admin] Supabase response received");
+      console.log("[Admin] Data:", data);
+      console.log("[Admin] Error:", error);
+
+      if (error) {
+        console.error("[Admin] Supabase error thrown:", error);
+        throw error;
+      }
+      console.log("[Admin] Setting users, count:", data?.length || 0);
       setUsers(data || []);
     } catch (error) {
-      console.error("Error fetching users:", error);
+      console.error("[Admin] Catch block - Error fetching users:", error);
     } finally {
+      console.log("[Admin] Finally block - setting loading to false");
       setLoading(false);
     }
   };
@@ -190,7 +203,12 @@ export default function AdminUsersPage() {
     }
   };
 
-  if (loading) return <div className="p-8">Loading users...</div>;
+  if (loading) {
+    console.log("[Admin] Rendering loading state...");
+    return <div className="p-8">Loading users...</div>;
+  }
+
+  console.log("[Admin] Rendering main content, users count:", users.length);
 
   return (
     <div className="space-y-6 p-8">

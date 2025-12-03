@@ -105,12 +105,16 @@ export const ListContext = createContext<ListContextType | undefined>(
 );
 
 export function ListProvider({ children }: { children: ReactNode }) {
+  console.log("[ListProvider] Rendering ListProvider");
   const [lists, setLists] = useState<List[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
+  console.log("[ListProvider] user:", user?.id, "loading:", loading);
+
   useEffect(() => {
+    console.log("[ListProvider] useEffect triggered, user:", user?.id);
     if (user) {
       loadLists();
 
@@ -1458,6 +1462,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  console.log("[ListProvider] Returning provider, rendering children");
   return (
     <ListContext.Provider
       value={{
