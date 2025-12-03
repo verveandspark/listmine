@@ -289,18 +289,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       // Update Supabase auth user metadata if name is being updated
       if (updates.name) {
-        await supabase.auth.updateUser({
+        const { error: authError } = await supabase.auth.updateUser({
           data: { name: updates.name },
         });
+        if (authError) throw authError;
+      }
+
+      // Build update object with only defined values to avoid RLS recursion
+      const updateData: Record<string, any> = {
+        updated_at: new Date().toISOString(),
+      };
+      
+      if (updates.name !== undefined) {
+        updateData.name = updates.name;
       }
 
       const { error } = await supabase
         .from("users")
-        .update({
-          name: updates.name,
-          email: updates.email,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq("id", user.id);
 
       if (error) throw error;
