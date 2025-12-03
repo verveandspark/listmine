@@ -57,6 +57,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             console.log("[Auth] setUserFromAuth completed successfully");
           } catch (err) {
             console.error("[Auth] setUserFromAuth threw an error:", err);
+          } finally {
+            // Always ensure loading is false after attempting to set user
+            console.log("[Auth] Ensuring loading is false after setUserFromAuth");
             setLoading(false);
           }
         } else {
@@ -77,12 +80,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("[Auth] State change:", event, session?.user?.id);
-      if (event === "SIGNED_IN" && session?.user) {
-        await setUserFromAuth(session.user);
-      } else if (event === "SIGNED_OUT") {
-        setUser(null);
-      } else if (event === "TOKEN_REFRESHED" && session?.user) {
-        await setUserFromAuth(session.user);
+      try {
+        if (event === "SIGNED_IN" && session?.user) {
+          await setUserFromAuth(session.user);
+        } else if (event === "SIGNED_OUT") {
+          setUser(null);
+          setLoading(false);
+        } else if (event === "TOKEN_REFRESHED" && session?.user) {
+          await setUserFromAuth(session.user);
+        }
+      } catch (err) {
+        console.error("[Auth] Error in onAuthStateChange handler:", err);
+        setLoading(false);
       }
     });
 
@@ -94,21 +103,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const setUserFromAuth = async (supabaseUser: SupabaseUser) => {
     console.log("[Auth] Setting user from auth:", supabaseUser.id);
 
-    // Query the users table to get the actual tier
-    console.log("[Auth] Fetching user tier from database...");
-    const { data: userData, error } = await supabase
-      .from('users')
-      .select('tier')
-      .eq('id', supabaseUser.id)
-      .single();
+    let tier: 'free' | 'good' | 'even_better' | 'lots_more' = 'free';
 
-    console.log("[Auth] User tier query result:", { userData, error });
+    try {
+      // Query the users table to get the actual tier with timeout
+      console.log("[Auth] Fetching user tier from database...");
+      
+      // Use AbortController for proper timeout handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.log("[Auth] Tier fetch timeout - aborting");
+        controller.abort();
+      }, 5000);
 
-    if (error) {
-      console.error("[Auth] Error fetching user tier:", error);
+      const { data: userData, error: tierError } = await supabase
+        .from('users')
+        .select('tier')
+        .eq('id', supabaseUser.id)
+        .single()
+        .abortSignal(controller.signal);
+
+      clearTimeout(timeoutId);
+      
+      console.log("[Auth] User tier query completed:", { userData, tierError });
+
+      if (tierError) {
+        console.error("[Auth] Error fetching user tier:", tierError);
+      } else if (userData) {
+        tier = (userData.tier || 'free') as 'free' | 'good' | 'even_better' | 'lots_more';
+        console.log("[Auth] Got tier from database:", tier);
+      }
+    } catch (err: any) {
+      console.error("[Auth] Exception fetching user tier:", err?.message || err);
+      // Continue with default tier
+    } finally {
+      console.log("[Auth] Tier fetch finished (finally block), proceeding with tier:", tier);
     }
 
-    const tier = (userData?.tier || 'free') as 'free' | 'good' | 'even_better' | 'lots_more';
     const tierLimits = getTierLimits(tier);
 
     console.log("[Auth] Setting user state with tier:", tier);
