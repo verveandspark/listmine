@@ -345,7 +345,7 @@ export default function ListDetail() {
             ? "Free"
             : user.tier === "good"
               ? "Good"
-              : user.tier === "even-better"
+              : user.tier === "even_better"
                 ? "Even Better"
                 : "Lots More";
         toast({

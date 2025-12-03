@@ -3,7 +3,7 @@ export interface User {
   email: string;
   name: string;
   createdAt: Date;
-  tier: 'free' | 'good' | 'even-better' | 'lots-more';
+  tier: 'free' | 'good' | 'even_better' | 'lots_more';
   listLimit: number;
   itemsPerListLimit: number;
 }

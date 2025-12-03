@@ -310,7 +310,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
           ? "Free"
           : user.tier === "good"
             ? "Good"
-            : user.tier === "even-better"
+            : user.tier === "even_better"
               ? "Even Better"
               : "Lots More";
       throw new Error(
@@ -478,7 +478,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
           ? "Free"
           : user.tier === "good"
             ? "Good"
-            : user.tier === "even-better"
+            : user.tier === "even_better"
               ? "Even Better"
               : "Lots More";
       throw new Error(
@@ -1394,7 +1394,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
           ? "Free"
           : user.tier === "good"
             ? "Good"
-            : user.tier === "even-better"
+            : user.tier === "even_better"
               ? "Even Better"
               : "Lots More";
       throw new Error(

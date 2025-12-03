@@ -1,6 +1,6 @@
 import { ListType } from "@/types";
 
-export type UserTier = "free" | "good" | "even-better" | "lots-more";
+export type UserTier = "free" | "good" | "even_better" | "lots_more";
 
 export interface ListTypeInfo {
   value: ListType;
@@ -15,16 +15,16 @@ export const ALL_LIST_TYPES: ListTypeInfo[] = [
   { value: "todo-list", label: "To-Do", requiredTier: "free", tierLabel: "Free" },
   { value: "grocery-list", label: "Grocery", requiredTier: "good", tierLabel: "Good" },
   { value: "idea-list", label: "Idea", requiredTier: "good", tierLabel: "Good" },
-  { value: "registry-list", label: "Registry", requiredTier: "even-better", tierLabel: "Even Better" },
-  { value: "shopping-list", label: "Wishlist", requiredTier: "even-better", tierLabel: "Even Better" },
+  { value: "registry-list", label: "Registry", requiredTier: "even_better", tierLabel: "Even Better" },
+  { value: "shopping-list", label: "Wishlist", requiredTier: "even_better", tierLabel: "Even Better" },
 ];
 
 // Tier hierarchy for comparison
 const TIER_HIERARCHY: Record<UserTier, number> = {
   "free": 0,
   "good": 1,
-  "even-better": 2,
-  "lots-more": 3,
+  "even_better": 2,
+  "lots_more": 3,
 };
 
 /**
@@ -75,8 +75,8 @@ export function getTierDisplayName(tier: UserTier): string {
   const names: Record<UserTier, string> = {
     "free": "Free",
     "good": "Good",
-    "even-better": "Even Better",
-    "lots-more": "Lots More",
+    "even_better": "Even Better",
+    "lots_more": "Lots More",
   };
   return names[tier] || tier;
 }
@@ -88,8 +88,8 @@ export function getTierPricing(tier: UserTier): string {
   const pricing: Record<UserTier, string> = {
     "free": "Free",
     "good": "$2.99/mo",
-    "even-better": "$5.99/mo",
-    "lots-more": "$9.99/mo",
+    "even_better": "$5.99/mo",
+    "lots_more": "$9.99/mo",
   };
   return pricing[tier] || "";
 }

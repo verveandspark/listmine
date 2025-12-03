@@ -451,9 +451,9 @@ export default function Dashboard() {
         return "Free";
       case "good":
         return "Good";
-      case "even-better":
+      case "even_better":
         return "Even Better";
-      case "lots-more":
+      case "lots_more":
         return "Lots More";
       default:
         return "Free";

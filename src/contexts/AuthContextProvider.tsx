@@ -24,9 +24,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { listLimit: 5, itemsPerListLimit: 20 };
       case "good":
         return { listLimit: 50, itemsPerListLimit: 150 };
-      case "even-better":
+      case "even_better":
         return { listLimit: 100, itemsPerListLimit: 500 };
-      case "lots-more":
+      case "lots_more":
         return { listLimit: -1, itemsPerListLimit: -1 };
       default:
         return { listLimit: 5, itemsPerListLimit: 20 };
@@ -196,7 +196,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateUserTier = (
-    tier: "free" | "good" | "even-better" | "lots-more",
+    tier: "free" | "good" | "even_better" | "lots_more",
   ) => {
     if (!user) return;
 

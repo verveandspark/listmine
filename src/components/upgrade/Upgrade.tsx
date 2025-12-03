@@ -60,7 +60,7 @@ export default function Upgrade() {
       ],
     },
     {
-      id: "even-better",
+      id: "even_better",
       name: "Even Better",
       subtitle: "Perfect for registries and wish lists",
       monthlyPrice: 5.99,
@@ -79,7 +79,7 @@ export default function Upgrade() {
       ],
     },
     {
-      id: "lots-more",
+      id: "lots_more",
       name: "Lots More",
       subtitle: "Everything you need for teams",
       monthlyPrice: 10.99,
