@@ -35,42 +35,98 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
+    let isMounted = true;
+    
     const initAuth = async () => {
+      console.log("[Auth] Initializing auth...");
+      
+      // Set a global timeout to ensure loading is always cleared
+      const globalTimeout = setTimeout(() => {
+        console.error("[Auth] Global timeout reached (10s) - forcing loading to false");
+        if (isMounted) {
+          setUser(null);
+          setLoading(false);
+        }
+      }, 10000);
+      
       try {
-        console.log("[Auth] Initializing auth...");
         const {
           data: { session },
           error: sessionError,
         } = await supabase.auth.getSession();
 
+        console.log("[Auth] getSession result:", { 
+          hasSession: !!session, 
+          hasUser: !!session?.user,
+          error: sessionError?.message 
+        });
+
         if (sessionError) {
           console.error("[Auth] Session error:", sessionError);
-          throw sessionError;
+          // Clear any invalid session data
+          await supabase.auth.signOut();
+          if (isMounted) {
+            setUser(null);
+            setLoading(false);
+          }
+          clearTimeout(globalTimeout);
+          return;
         }
 
-        console.log("[Auth] Session:", session);
+        // Check if session is expired
+        if (session?.expires_at) {
+          const expiresAt = new Date(session.expires_at * 1000);
+          const now = new Date();
+          console.log("[Auth] Session expires at:", expiresAt, "Now:", now);
+          
+          if (expiresAt < now) {
+            console.log("[Auth] Session expired, signing out");
+            await supabase.auth.signOut();
+            if (isMounted) {
+              setUser(null);
+              setLoading(false);
+            }
+            clearTimeout(globalTimeout);
+            return;
+          }
+        }
 
         if (session?.user) {
-          console.log("[Auth] Session found, calling setUserFromAuth...");
+          console.log("[Auth] Valid session found, calling setUserFromAuth...");
           try {
             await setUserFromAuth(session.user);
             console.log("[Auth] setUserFromAuth completed successfully");
           } catch (err) {
             console.error("[Auth] setUserFromAuth threw an error:", err);
-          } finally {
-            // Always ensure loading is false after attempting to set user
-            console.log("[Auth] Ensuring loading is false after setUserFromAuth");
-            setLoading(false);
+            // Even if setUserFromAuth fails, we should still set a basic user
+            if (isMounted) {
+              setUser({
+                id: session.user.id,
+                email: session.user.email || "",
+                name: session.user.user_metadata?.name || "User",
+                createdAt: new Date(session.user.created_at || new Date()),
+                tier: 'free',
+                listLimit: 5,
+                itemsPerListLimit: 20,
+              });
+            }
           }
         } else {
-          console.log("[Auth] No session found");
-          setLoading(false);
+          console.log("[Auth] No session found - user not logged in");
         }
       } catch (error: any) {
         console.error("[Auth] Init error:", error);
         logError("initAuth", error);
-        setError(error.message || "Failed to initialize auth");
-        setLoading(false);
+        if (isMounted) {
+          setError(error.message || "Failed to initialize auth");
+          setUser(null);
+        }
+      } finally {
+        clearTimeout(globalTimeout);
+        console.log("[Auth] initAuth finally block - setting loading to false");
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
@@ -80,6 +136,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("[Auth] State change:", event, session?.user?.id);
+      
+      if (!isMounted) return;
+      
       try {
         if (event === "SIGNED_IN" && session?.user) {
           await setUserFromAuth(session.user);
@@ -88,6 +147,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setLoading(false);
         } else if (event === "TOKEN_REFRESHED" && session?.user) {
           await setUserFromAuth(session.user);
+        } else if (event === "TOKEN_REFRESHED" && !session) {
+          // Token refresh failed - session is invalid
+          console.log("[Auth] Token refresh failed - no session");
+          setUser(null);
+          setLoading(false);
         }
       } catch (err) {
         console.error("[Auth] Error in onAuthStateChange handler:", err);
@@ -96,6 +160,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
   }, []);
