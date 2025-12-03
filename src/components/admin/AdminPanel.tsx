@@ -180,7 +180,7 @@ export default function AdminUsersPage() {
         .eq("id", userId);
       if (error) throw error;
       setSuccessMessage(`Tier updated to ${newTier}`);
-      fetchUsers();
+      await fetchUsers();
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error) {
       console.error("Error updating tier:", error);
