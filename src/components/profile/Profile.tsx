@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/useAuthHook";
 import { useLists } from "@/contexts/useListsHook";
 import { resetOnboarding } from "@/components/onboarding/OnboardingTooltips";
+import { getTierDisplayName } from "@/lib/tierUtils";
 import {
   Card,
   CardContent,
@@ -263,11 +264,11 @@ export default function Profile() {
                   {user.name}
                 </h2>
                 <p className="text-gray-600">{user.email}</p>
-                {user.tier === "premium" ? (
+                {user.tier !== "free" ? (
                   <div className="mt-2 space-y-2">
                     <Badge className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-yellow-900 text-base px-4 py-1">
                       <Crown className="w-4 h-4 mr-2" />
-                      Premium Member
+                      {getTierDisplayName(user.tier)} Tier
                     </Badge>
                     <div>
                       <Button variant="outline" size="sm" className="mt-2">
@@ -277,7 +278,7 @@ export default function Profile() {
                   </div>
                 ) : (
                   <Badge variant="secondary" className="mt-2">
-                    Free Tier
+                    {getTierDisplayName(user.tier)} Tier
                   </Badge>
                 )}
               </div>
