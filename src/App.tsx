@@ -37,9 +37,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AppRoutes() {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated } = useAuth();
 
-  console.log("[AppRoutes] loading:", loading, "isAuthenticated:", isAuthenticated);
+  console.log("[AppRoutes] isAuthenticated:", isAuthenticated);
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
@@ -58,18 +58,6 @@ function AppRoutes() {
     window.addEventListener("keydown", handleGlobalKeyDown);
     return () => window.removeEventListener("keydown", handleGlobalKeyDown);
   }, []);
-
-  if (loading) {
-    console.log("[AppRoutes] Stuck in loading state - showing spinner");
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
 
   console.log("[AppRoutes] Rendering routes");
 
@@ -142,25 +130,48 @@ function AppRoutes() {
   );
 }
 
+function AuthenticatedApp() {
+  const { loading, user } = useAuth();
+
+  console.log("[AuthenticatedApp] loading:", loading, "user:", user?.id);
+
+  if (loading) {
+    console.log("[AuthenticatedApp] Auth still loading, showing spinner");
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  console.log("[AuthenticatedApp] Auth loaded, rendering ListProvider and routes");
+  return (
+    <ListProvider>
+      <Suspense
+        fallback={
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading...</p>
+            </div>
+          </div>
+        }
+      >
+        <AppRoutes />
+        <Toaster />
+      </Suspense>
+    </ListProvider>
+  );
+}
+
 function App() {
   console.log("[App] Rendering App component");
   return (
     <AuthProvider>
-      <ListProvider>
-        <Suspense
-          fallback={
-            <div className="min-h-screen flex items-center justify-center">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                <p className="text-gray-600">Loading...</p>
-              </div>
-            </div>
-          }
-        >
-          <AppRoutes />
-          <Toaster />
-        </Suspense>
-      </ListProvider>
+      <AuthenticatedApp />
     </AuthProvider>
   );
 }
