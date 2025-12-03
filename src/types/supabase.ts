@@ -700,6 +700,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_get_all_users: {
+        Args: never
+        Returns: {
+          created_at: string | null
+          email: string
+          id: string
+          is_admin: boolean | null
+          name: string | null
+          role: string | null
+          tier: string | null
+          updated_at: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "users"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       clear_user_data: { Args: { target_user_id: string }; Returns: Json }
       delete_user_account: { Args: { target_user_id: string }; Returns: Json }
       disable_user_account: {
