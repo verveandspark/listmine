@@ -222,13 +222,13 @@ export default function AdminUsersPage() {
         <div className="rounded-lg border p-4">
           <p className="text-sm text-gray-600">Free Tier</p>
           <p className="text-2xl font-bold">
-            {users.filter((u) => u.tier === "Free").length}
+            {users.filter((u) => u.tier === "free").length}
           </p>
         </div>
         <div className="rounded-lg border p-4">
           <p className="text-sm text-gray-600">Paid Users</p>
           <p className="text-2xl font-bold">
-            {users.filter((u) => u.tier !== "Free").length}
+            {users.filter((u) => u.tier !== "free").length}
           </p>
         </div>
         <div className="rounded-lg border p-4">
@@ -314,10 +314,10 @@ export default function AdminUsersPage() {
                       disabled={actionLoading}
                       className="rounded border px-2 py-1 text-sm"
                     >
-                      <option value="Free">Free</option>
-                      <option value="Good">Good</option>
-                      <option value="Even Better">Even Better</option>
-                      <option value="Lots More">Lots More</option>
+                      <option value="free">Free</option>
+                      <option value="good">Good</option>
+                      <option value="even_better">Even Better</option>
+                      <option value="lots_more">Lots More</option>
                     </select>
 
                     <DropdownMenu>
