@@ -109,21 +109,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Query the users table to get the actual tier with timeout
       console.log("[Auth] Fetching user tier from database...");
       
-      // Use AbortController for proper timeout handling
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
-        console.log("[Auth] Tier fetch timeout - aborting");
-        controller.abort();
-      }, 5000);
+      // Use Promise.race for timeout handling
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          console.log("[Auth] Tier fetch timeout after 5s");
+          reject(new Error('Tier fetch timeout after 5s'));
+        }, 5000);
+      });
 
-      const { data: userData, error: tierError } = await supabase
+      const queryPromise = supabase
         .from('users')
         .select('tier')
         .eq('id', supabaseUser.id)
-        .single()
-        .abortSignal(controller.signal);
+        .single();
 
-      clearTimeout(timeoutId);
+      const { data: userData, error: tierError } = await Promise.race([queryPromise, timeoutPromise]);
       
       console.log("[Auth] User tier query completed:", { userData, tierError });
 
