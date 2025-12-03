@@ -304,11 +304,13 @@ export default function AdminUsersPage() {
                 <td className="px-6 py-4 text-sm text-gray-600">
                   {new Date(user.created_at).toLocaleDateString()}
                 </td>
-                <td className="px-6 py-4 text-right">
-                  <div className="flex items-center gap-2">
+                <td className="px-6 py-4">
+                  <div className="flex items-center justify-end gap-2">
                     <select
                       value={user.tier}
-                      onChange={(e) => handleTierChange(user.id, e.target.value)}
+                      onChange={(e) =>
+                        handleTierChange(user.id, e.target.value)
+                      }
                       disabled={actionLoading}
                       className="rounded border px-2 py-1 text-sm"
                     >
