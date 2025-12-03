@@ -58,12 +58,49 @@ export default function AdminUsersPage() {
     console.log("[Admin] fetchUsers() called");
     try {
       setLoading(true);
-      console.log("[Admin] About to fetch users from Supabase...");
       
-      const { data, error } = await supabase
+      // First, check if the current user is an admin
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      
+      if (!currentUser) {
+        console.error("[Admin] No authenticated user");
+        throw new Error("Not authenticated");
+      }
+      
+      // Check if user is admin
+      const { data: userData, error: userError } = await supabase
         .from("users")
-        .select("*")
-        .order("created_at", { ascending: false });
+        .select("is_admin")
+        .eq("id", currentUser.id)
+        .single();
+      
+      if (userError) {
+        console.error("[Admin] Error checking admin status:", userError);
+        throw userError;
+      }
+      
+      const isAdmin = userData?.is_admin === true;
+      console.log("[Admin] User is admin:", isAdmin);
+      
+      let data;
+      let error;
+      
+      if (isAdmin) {
+        // Admin: use the secure RPC function to fetch all users
+        console.log("[Admin] Fetching all users via admin_get_all_users RPC...");
+        const result = await supabase.rpc("admin_get_all_users");
+        data = result.data;
+        error = result.error;
+      } else {
+        // Non-admin: fetch only their own row
+        console.log("[Admin] Non-admin - fetching only own user data...");
+        const result = await supabase
+          .from("users")
+          .select("*")
+          .eq("id", currentUser.id);
+        data = result.data;
+        error = result.error;
+      }
 
       console.log("[Admin] Supabase response received");
       console.log("[Admin] Data:", data);
@@ -73,8 +110,14 @@ export default function AdminUsersPage() {
         console.error("[Admin] Supabase error thrown:", error);
         throw error;
       }
-      console.log("[Admin] Setting users, count:", data?.length || 0);
-      setUsers(data || []);
+      
+      // Sort by created_at descending
+      const sortedData = (data || []).sort((a: User, b: User) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      
+      console.log("[Admin] Setting users, count:", sortedData.length);
+      setUsers(sortedData);
     } catch (error) {
       console.error("[Admin] Catch block - Error fetching users:", error);
     } finally {
