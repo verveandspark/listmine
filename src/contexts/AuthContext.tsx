@@ -9,6 +9,8 @@ export interface AuthContextType {
   updateUserTier: (tier: "free" | "good" | "even-better" | "lots-more") => void;
   resetPassword: (email: string) => Promise<void>;
   updateProfile: (updates: any) => void;
+  updateEmail: (newEmail: string) => Promise<void>;
+  updatePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   loading: boolean;
   error: string | null;
   getTierLimits: (tier: string) => {

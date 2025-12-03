@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/useAuthHook";
 import { useLists } from "@/contexts/useListsHook";
@@ -20,6 +21,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   ArrowLeft,
   User,
   Mail,
@@ -35,13 +44,44 @@ import {
   Share2,
   MessageSquare,
   RotateCcw,
+  Pencil,
+  Check,
+  X,
+  Lock,
+  Loader2,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { format } from "date-fns";
 
 export default function Profile() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, updateProfile, updateEmail, updatePassword } = useAuth();
   const { lists } = useLists();
+
+  // Edit states
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [isEditingEmail, setIsEditingEmail] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [isSavingName, setIsSavingName] = useState(false);
+  const [isSavingEmail, setIsSavingEmail] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [nameSuccess, setNameSuccess] = useState(false);
+  const [emailSuccess, setEmailSuccess] = useState(false);
+
+  // Password change states
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   if (!user) {
     navigate("/");
@@ -56,6 +96,133 @@ export default function Profile() {
   );
   const pinnedLists = lists.filter((list) => list.isPinned).length;
   const sharedLists = lists.filter((list) => list.isShared).length;
+
+  const handleEditName = () => {
+    setEditName(user.name);
+    setIsEditingName(true);
+    setNameError(null);
+    setNameSuccess(false);
+  };
+
+  const handleSaveName = async () => {
+    if (!editName.trim()) {
+      setNameError("Name cannot be empty");
+      return;
+    }
+
+    setIsSavingName(true);
+    setNameError(null);
+
+    try {
+      await updateProfile({ name: editName.trim() });
+      setIsEditingName(false);
+      setNameSuccess(true);
+      setTimeout(() => setNameSuccess(false), 3000);
+    } catch (error: any) {
+      setNameError(error.message || "Failed to update name");
+    } finally {
+      setIsSavingName(false);
+    }
+  };
+
+  const handleCancelName = () => {
+    setIsEditingName(false);
+    setEditName("");
+    setNameError(null);
+  };
+
+  const handleEditEmail = () => {
+    setEditEmail(user.email);
+    setIsEditingEmail(true);
+    setEmailError(null);
+    setEmailSuccess(false);
+  };
+
+  const handleSaveEmail = async () => {
+    if (!editEmail.trim()) {
+      setEmailError("Email cannot be empty");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(editEmail)) {
+      setEmailError("Please enter a valid email address");
+      return;
+    }
+
+    setIsSavingEmail(true);
+    setEmailError(null);
+
+    try {
+      await updateEmail(editEmail.trim());
+      setIsEditingEmail(false);
+      setEmailSuccess(true);
+      setTimeout(() => setEmailSuccess(false), 3000);
+    } catch (error: any) {
+      setEmailError(error.message || "Failed to update email");
+    } finally {
+      setIsSavingEmail(false);
+    }
+  };
+
+  const handleCancelEmail = () => {
+    setIsEditingEmail(false);
+    setEditEmail("");
+    setEmailError(null);
+  };
+
+  const handleChangePassword = async () => {
+    setPasswordError(null);
+
+    if (!currentPassword) {
+      setPasswordError("Please enter your current password");
+      return;
+    }
+
+    if (!newPassword) {
+      setPasswordError("Please enter a new password");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordError("New password must be at least 6 characters");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError("New passwords do not match");
+      return;
+    }
+
+    setIsChangingPassword(true);
+
+    try {
+      await updatePassword(currentPassword, newPassword);
+      setPasswordSuccess(true);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setTimeout(() => {
+        setIsPasswordModalOpen(false);
+        setPasswordSuccess(false);
+      }, 2000);
+    } catch (error: any) {
+      setPasswordError(error.message || "Failed to change password");
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
+  const resetPasswordModal = () => {
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setPasswordError(null);
+    setPasswordSuccess(false);
+    setShowCurrentPassword(false);
+    setShowNewPassword(false);
+    setShowConfirmPassword(false);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10">
@@ -119,14 +286,123 @@ export default function Profile() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Name</Label>
-                <Input id="name" value={user.name} disabled />
+                {isEditingName ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="name"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        disabled={isSavingName}
+                        autoFocus
+                      />
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={handleSaveName}
+                        disabled={isSavingName}
+                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                      >
+                        {isSavingName ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Check className="w-4 h-4" />
+                        )}
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={handleCancelName}
+                        disabled={isSavingName}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    {nameError && (
+                      <p className="text-sm text-red-600">{nameError}</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Input id="name" value={user.name} disabled />
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={handleEditName}
+                      className="text-gray-500 hover:text-gray-700"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+                {nameSuccess && (
+                  <p className="text-sm text-green-600">Name updated successfully!</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-gray-500" />
-                  <Input id="email" value={user.email} disabled />
-                </div>
+                {isEditingEmail ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                      <Input
+                        id="email"
+                        type="email"
+                        value={editEmail}
+                        onChange={(e) => setEditEmail(e.target.value)}
+                        disabled={isSavingEmail}
+                        autoFocus
+                      />
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={handleSaveEmail}
+                        disabled={isSavingEmail}
+                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                      >
+                        {isSavingEmail ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Check className="w-4 h-4" />
+                        )}
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={handleCancelEmail}
+                        disabled={isSavingEmail}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    {emailError && (
+                      <p className="text-sm text-red-600">{emailError}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      A confirmation email will be sent to verify your new address.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                    <Input id="email" value={user.email} disabled />
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={handleEditEmail}
+                      className="text-gray-500 hover:text-gray-700"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+                {emailSuccess && (
+                  <p className="text-sm text-green-600">
+                    Email update initiated! Check your inbox to confirm.
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="joined">Member Since</Label>
@@ -138,6 +414,19 @@ export default function Profile() {
                     disabled
                   />
                 </div>
+              </div>
+              <div className="pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    resetPasswordModal();
+                    setIsPasswordModalOpen(true);
+                  }}
+                  className="w-full sm:w-auto"
+                >
+                  <Lock className="w-4 h-4 mr-2" />
+                  Change Password
+                </Button>
               </div>
             </div>
           </CardContent>
@@ -368,6 +657,153 @@ export default function Profile() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Change Password Modal */}
+      <Dialog
+        open={isPasswordModalOpen}
+        onOpenChange={(open) => {
+          if (!open) resetPasswordModal();
+          setIsPasswordModalOpen(open);
+        }}
+      >
+        <DialogContent className="sm:max-w-[425px] bg-white">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="w-5 h-5" />
+              Change Password
+            </DialogTitle>
+            <DialogDescription>
+              Enter your current password and choose a new one.
+            </DialogDescription>
+          </DialogHeader>
+
+          {passwordSuccess ? (
+            <div className="py-6 text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
+                <Check className="w-8 h-8 text-green-600" />
+              </div>
+              <p className="text-lg font-medium text-green-600">
+                Password changed successfully!
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="current-password">Current Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="current-password"
+                      type={showCurrentPassword ? "text" : "password"}
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      disabled={isChangingPassword}
+                      placeholder="Enter current password"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    >
+                      {showCurrentPassword ? (
+                        <EyeOff className="w-4 h-4 text-gray-500" />
+                      ) : (
+                        <Eye className="w-4 h-4 text-gray-500" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="new-password">New Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="new-password"
+                      type={showNewPassword ? "text" : "password"}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      disabled={isChangingPassword}
+                      placeholder="Enter new password"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                    >
+                      {showNewPassword ? (
+                        <EyeOff className="w-4 h-4 text-gray-500" />
+                      ) : (
+                        <Eye className="w-4 h-4 text-gray-500" />
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Must be at least 6 characters
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password">Confirm New Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="confirm-password"
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      disabled={isChangingPassword}
+                      placeholder="Confirm new password"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="w-4 h-4 text-gray-500" />
+                      ) : (
+                        <Eye className="w-4 h-4 text-gray-500" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                {passwordError && (
+                  <p className="text-sm text-red-600">{passwordError}</p>
+                )}
+              </div>
+
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsPasswordModalOpen(false)}
+                  disabled={isChangingPassword}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleChangePassword}
+                  disabled={isChangingPassword}
+                >
+                  {isChangingPassword ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Changing...
+                    </>
+                  ) : (
+                    "Change Password"
+                  )}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

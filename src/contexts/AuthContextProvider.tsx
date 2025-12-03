@@ -231,10 +231,69 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updateEmail = async (newEmail: string) => {
+    if (!user) throw new Error("User not authenticated");
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        email: newEmail,
+      });
+
+      if (error) throw error;
+
+      // Update the users table as well
+      await supabase
+        .from("users")
+        .update({
+          email: newEmail,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", user.id);
+
+      setUser({ ...user, email: newEmail });
+    } catch (error: any) {
+      logError("updateEmail", error, user.id);
+      throw error;
+    }
+  };
+
+  const updatePassword = async (currentPassword: string, newPassword: string) => {
+    if (!user) throw new Error("User not authenticated");
+
+    try {
+      // First verify the current password by re-authenticating
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      });
+
+      if (signInError) {
+        throw new Error("Current password is incorrect");
+      }
+
+      // Now update to the new password
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) throw error;
+    } catch (error: any) {
+      logError("updatePassword", error, user.id);
+      throw error;
+    }
+  };
+
   const updateProfile = async (updates: Partial<User>) => {
     if (!user) return;
 
     try {
+      // Update Supabase auth user metadata if name is being updated
+      if (updates.name) {
+        await supabase.auth.updateUser({
+          data: { name: updates.name },
+        });
+      }
+
       const { error } = await supabase
         .from("users")
         .update({
@@ -261,6 +320,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isAuthenticated: !!user,
     updateUserTier,
     resetPassword,
+    updateEmail,
+    updatePassword,
     updateProfile,
     loading,
     error,
