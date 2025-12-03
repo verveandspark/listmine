@@ -229,6 +229,27 @@ export type Database = {
           },
         ]
       }
+      list_type_tiers: {
+        Row: {
+          created_at: string | null
+          id: number
+          list_type: string
+          tier: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          list_type: string
+          tier: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          list_type?: string
+          tier?: string
+        }
+        Relationships: []
+      }
       lists: {
         Row: {
           category: string
@@ -642,6 +663,10 @@ export type Database = {
     }
     Functions: {
       get_allowed_list_types: { Args: { user_tier: string }; Returns: string[] }
+      update_user_name: {
+        Args: { new_name: string; user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
