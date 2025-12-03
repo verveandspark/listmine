@@ -287,29 +287,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
 
     try {
-      // Update Supabase auth user metadata if name is being updated
+      // Check for active auth session before updating auth metadata
       if (updates.name) {
-        const { error: authError } = await supabase.auth.updateUser({
-          data: { name: updates.name },
+        const { data: sessionData } = await supabase.auth.getSession();
+        
+        // Only update auth metadata if we have an active session
+        if (sessionData?.session) {
+          const { error: authError } = await supabase.auth.updateUser({
+            data: { name: updates.name },
+          });
+          // Don't throw on auth error - just log it and continue with DB update
+          if (authError) {
+            console.warn("Could not update auth metadata:", authError.message);
+          }
+        }
+
+        // Use database function to update name (avoids RLS recursion)
+        const { error: dbError } = await supabase.rpc('update_user_name', {
+          user_id: user.id,
+          new_name: updates.name
         });
-        if (authError) throw authError;
+
+        if (dbError) {
+          console.error('Error updating name:', dbError);
+          throw new Error('Failed to update name');
+        }
       }
-
-      // Build update object with only defined values to avoid RLS recursion
-      const updateData: Record<string, any> = {
-        updated_at: new Date().toISOString(),
-      };
-      
-      if (updates.name !== undefined) {
-        updateData.name = updates.name;
-      }
-
-      const { error } = await supabase
-        .from("users")
-        .update(updateData)
-        .eq("id", user.id);
-
-      if (error) throw error;
 
       setUser({ ...user, ...updates });
     } catch (error: any) {
