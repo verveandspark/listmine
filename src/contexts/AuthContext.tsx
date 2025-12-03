@@ -6,7 +6,7 @@ export interface AuthContextType {
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
-  updateUserTier: (tier: "free" | "good" | "even-better" | "lots-more") => void;
+  updateUserTier: (tier: "free" | "good" | "even_better" | "lots_more") => void;
   resetPassword: (email: string) => Promise<void>;
   updateProfile: (updates: any) => void;
   updateEmail: (newEmail: string) => Promise<void>;
