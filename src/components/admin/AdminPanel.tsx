@@ -1,387 +1,427 @@
+"use client";
+
 import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/useAuthHook";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/components/ui/use-toast";
-import { Search, Loader2, ArrowLeft, Crown, Shield } from "lucide-react";
-import { format } from "date-fns";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  MoreVertical,
+  Mail,
+  Lock,
+  Trash2,
+  AlertCircle,
+  Check,
+} from "lucide-react";
 
 interface User {
   id: string;
   email: string;
-  name: string | null;
+  name: string;
   tier: string;
-  role: string;
+  is_admin: boolean;
+  is_disabled?: boolean;
   created_at: string;
-  updated_at: string;
 }
 
-export default function AdminPanel() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const [searchEmail, setSearchEmail] = useState("");
+export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [upgrading, setUpgrading] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [actionType, setActionType] = useState<string | null>(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [reason, setReason] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
-  // Check if user is admin
   useEffect(() => {
-    const checkAdmin = async () => {
-      if (!user) {
-        navigate("/auth");
-        return;
-      }
-
-      console.log("Checking admin status for user:", user.id, user.email);
-
-      const { data, error } = await supabase
-        .from("users")
-        .select("role, email")
-        .eq("id", user.id)
-        .single();
-
-      console.log("Admin check result:", { data, error });
-
-      if (error) {
-        console.error("Error checking admin status:", error);
-        toast({
-          title: "⛔ Access Denied",
-          description: "Failed to verify admin status.",
-          variant: "destructive",
-        });
-        navigate("/dashboard");
-        return;
-      }
-
-      if (data?.role !== "admin") {
-        console.log("User is not admin. Role:", data?.role);
-        toast({
-          title: "⛔ Access Denied",
-          description: "You don't have permission to access this page.",
-          variant: "destructive",
-        });
-        navigate("/dashboard");
-        return;
-      }
-
-      console.log("User is admin, loading panel");
-      fetchUsers();
-    };
-
-    checkAdmin();
-  }, [user]);
+    fetchUsers();
+  }, []);
 
   const fetchUsers = async () => {
-    setLoading(true);
-    console.log("Fetching all users...");
-    
-    const { data, error } = await supabase
-      .from("users")
-      .select("*")
-      .order("created_at", { ascending: false });
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("users")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-    console.log("Fetch users result:", { 
-      count: data?.length, 
-      data, 
-      error 
-    });
-
-    if (error) {
-      console.error("Error fetching users:", error);
-      toast({
-        title: "❌ Error",
-        description: "Failed to fetch users",
-        variant: "destructive",
-      });
-    } else {
-      console.log(`Successfully fetched ${data?.length || 0} users`);
+      if (error) throw error;
       setUsers(data || []);
-      setFilteredUsers(data || []);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  const handleSearch = (email: string) => {
-    setSearchEmail(email);
-    if (email.trim() === "") {
-      setFilteredUsers(users);
-    } else {
-      const filtered = users.filter((u) =>
-        u.email.toLowerCase().includes(email.toLowerCase())
+  // Send Magic Login Link
+  const handleSendMagicLink = async (email: string) => {
+    try {
+      setActionLoading(true);
+      const { error } = await supabase.auth.admin.inviteUserByEmail(email, {
+        redirectTo: `\${window.location.origin}/app`,
+      });
+      if (error) throw error;
+      setSuccessMessage(`Magic link sent to \${email}`);
+      setTimeout(() => setSuccessMessage(""), 3000);
+    } catch (error) {
+      console.error("Error sending magic link:", error);
+      alert("Failed to send magic link");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Disable Account
+  const handleDisableAccount = async (userId: string) => {
+    try {
+      setActionLoading(true);
+      const { error } = await supabase.rpc("disable_user_account", {
+        target_user_id: userId,
+        reason: reason || "Admin action",
+      });
+      if (error) throw error;
+      setSuccessMessage("Account disabled");
+      setShowConfirmDialog(false);
+      setReason("");
+      fetchUsers();
+      setTimeout(() => setSuccessMessage(""), 3000);
+    } catch (error) {
+      console.error("Error disabling account:", error);
+      alert("Failed to disable account");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Enable Account
+  const handleEnableAccount = async (userId: string) => {
+    try {
+      setActionLoading(true);
+      const { error } = await supabase.rpc("enable_user_account", {
+        target_user_id: userId,
+      });
+      if (error) throw error;
+      setSuccessMessage("Account enabled");
+      fetchUsers();
+      setTimeout(() => setSuccessMessage(""), 3000);
+    } catch (error) {
+      console.error("Error enabling account:", error);
+      alert("Failed to enable account");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Clear User Data
+  const handleClearData = async (userId: string) => {
+    try {
+      setActionLoading(true);
+      const { data, error } = await supabase.rpc("clear_user_data", {
+        target_user_id: userId,
+      });
+      if (error) throw error;
+      setSuccessMessage(
+        `User data cleared. \${data.lists_deleted} lists deleted.`,
       );
-      setFilteredUsers(filtered);
+      setShowConfirmDialog(false);
+      fetchUsers();
+      setTimeout(() => setSuccessMessage(""), 3000);
+    } catch (error) {
+      console.error("Error clearing data:", error);
+      alert("Failed to clear data");
+    } finally {
+      setActionLoading(false);
     }
   };
 
-  const handleUpgradeTier = async (userId: string, newTier: string) => {
-    setUpgrading(userId);
-
-    // Get current user data
-    const currentUser = users.find((u) => u.id === userId);
-    if (!currentUser) {
-      console.error("User not found:", userId);
-      setUpgrading(null);
-      return;
-    }
-
-    console.log("Updating tier:", {
-      userId,
-      userEmail: currentUser.email,
-      oldTier: currentUser.tier,
-      newTier,
-    });
-
-    // Update tier
-    const { data, error: updateError } = await supabase
-      .from("users")
-      .update({ tier: newTier, updated_at: new Date().toISOString() })
-      .eq("id", userId)
-      .select();
-
-    console.log("Update result:", { data, error: updateError });
-
-    if (updateError) {
-      console.error("Failed to update tier:", updateError);
-      toast({
-        title: "❌ Error",
-        description: `Failed to update tier: ${updateError.message}`,
-        variant: "destructive",
+  // Delete Account
+  const handleDeleteAccount = async (userId: string) => {
+    try {
+      setActionLoading(true);
+      const { error } = await supabase.rpc("delete_user_account", {
+        target_user_id: userId,
       });
-      setUpgrading(null);
-      return;
+      if (error) throw error;
+      setSuccessMessage("Account deleted permanently");
+      setShowConfirmDialog(false);
+      fetchUsers();
+      setTimeout(() => setSuccessMessage(""), 3000);
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      alert("Failed to delete account");
+    } finally {
+      setActionLoading(false);
     }
-
-    // Log the change (optional - ignore if table doesn't exist)
-    const { error: logError } = await supabase
-      .from("tier_change_logs")
-      .insert({
-        user_id: userId,
-        admin_email: user?.email || "unknown",
-        old_tier: currentUser.tier,
-        new_tier: newTier,
-      });
-
-    if (logError) {
-      console.warn("Failed to log tier change (table may not exist):", logError);
-    }
-
-    toast({
-      title: "✅ Tier Updated",
-      description: `User upgraded to ${getTierLabel(newTier)}`,
-    });
-
-    // Refresh users
-    fetchUsers();
-    setUpgrading(null);
   };
 
-  const getTierLabel = (tier: string) => {
-    const labels: Record<string, string> = {
-      free: "Free",
-      good: "Good",
-      even_better: "Even Better",
-      lots_more: "Lots More",
-    };
-    return labels[tier] || tier;
-  };
-
-  const getTierColor = (tier: string) => {
-    const colors: Record<string, string> = {
-      free: "bg-gray-100 text-gray-700 border-gray-300",
-      good: "bg-blue-100 text-blue-700 border-blue-300",
-      even_better: "bg-primary/10 text-primary border-primary/30",
-      lots_more: "bg-yellow-100 text-yellow-700 border-yellow-300",
-    };
-    return colors[tier] || "bg-gray-100 text-gray-700";
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
-          <p className="text-gray-600 text-lg">Loading admin panel...</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <div className="p-8">Loading users...</div>;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10">
+    <div className="space-y-6 p-8">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate("/dashboard")}
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-              <div>
-                <div className="flex items-center gap-2">
-                  <Shield className="w-6 h-6 text-primary" />
-                  <h1 className="text-2xl font-bold text-gray-900">
-                    Admin Panel
-                  </h1>
-                </div>
-                <p className="text-sm text-gray-600">
-                  Manage user tiers and accounts
-                </p>
-              </div>
-            </div>
-            <Badge variant="outline" className="bg-primary/10 border-primary">
-              <Crown className="w-3 h-3 mr-1" />
-              Admin
-            </Badge>
-          </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Admin Panel</h1>
+          <p className="text-gray-600">Manage user tiers and accounts</p>
         </div>
-      </header>
-
-      <div className="px-4 sm:px-6 lg:px-8 py-8">
-        {/* Search Bar */}
-        <Card className="p-4 mb-6">
-          <div className="flex items-center gap-2">
-            <Search className="w-5 h-5 text-gray-400" />
-            <Input
-              placeholder="Search by email..."
-              value={searchEmail}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="flex-1"
-            />
-          </div>
-        </Card>
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <Card className="p-4">
-            <p className="text-sm text-gray-600">Total Users</p>
-            <p className="text-2xl font-bold text-gray-900">{users.length}</p>
-          </Card>
-          <Card className="p-4">
-            <p className="text-sm text-gray-600">Free Tier</p>
-            <p className="text-2xl font-bold text-gray-900">
-              {users.filter((u) => u.tier === "free").length}
-            </p>
-          </Card>
-          <Card className="p-4">
-            <p className="text-sm text-gray-600">Paid Users</p>
-            <p className="text-2xl font-bold text-primary">
-              {users.filter((u) => u.tier !== "free").length}
-            </p>
-          </Card>
-          <Card className="p-4">
-            <p className="text-sm text-gray-600">Admins</p>
-            <p className="text-2xl font-bold text-gray-900">
-              {users.filter((u) => u.role === "admin").length}
-            </p>
-          </Card>
+        <div className="rounded-lg bg-blue-50 px-4 py-2">
+          <span className="text-sm font-medium text-blue-900">Admin</span>
         </div>
-
-        {/* Users Table */}
-        <Card className="overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Email</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Current Tier</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredUsers.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
-                    <p className="text-gray-500">No users found</p>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredUsers.map((u) => (
-                  <TableRow key={u.id}>
-                    <TableCell className="font-medium">{u.email}</TableCell>
-                    <TableCell>{u.name || "—"}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={getTierColor(u.tier)}
-                      >
-                        {getTierLabel(u.tier)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {u.role === "admin" ? (
-                        <Badge variant="outline" className="bg-primary/10 border-primary">
-                          <Crown className="w-3 h-3 mr-1" />
-                          Admin
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline">User</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {format(new Date(u.created_at), "MMM d, yyyy")}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Select
-                          value={u.tier}
-                          onValueChange={(newTier) =>
-                            handleUpgradeTier(u.id, newTier)
-                          }
-                          disabled={upgrading === u.id}
-                        >
-                          <SelectTrigger className="w-[140px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="free">Free</SelectItem>
-                            <SelectItem value="good">Good</SelectItem>
-                            <SelectItem value="even_better">
-                              Even Better
-                            </SelectItem>
-                            <SelectItem value="lots_more">
-                              Lots More
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                        {upgrading === u.id && (
-                          <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </Card>
       </div>
+
+      {/* Success Message */}
+      {successMessage && (
+        <div className="flex items-center gap-2 rounded-lg bg-green-50 p-4 text-green-800">
+          <Check size={18} />
+          {successMessage}
+        </div>
+      )}
+
+      {/* Stats */}
+      <div className="grid grid-cols-4 gap-4">
+        <div className="rounded-lg border p-4">
+          <p className="text-sm text-gray-600">Total Users</p>
+          <p className="text-2xl font-bold">{users.length}</p>
+        </div>
+        <div className="rounded-lg border p-4">
+          <p className="text-sm text-gray-600">Free Tier</p>
+          <p className="text-2xl font-bold">
+            {users.filter((u) => u.tier === "Free").length}
+          </p>
+        </div>
+        <div className="rounded-lg border p-4">
+          <p className="text-sm text-gray-600">Paid Users</p>
+          <p className="text-2xl font-bold">
+            {users.filter((u) => u.tier !== "Free").length}
+          </p>
+        </div>
+        <div className="rounded-lg border p-4">
+          <p className="text-sm text-gray-600">Admins</p>
+          <p className="text-2xl font-bold">
+            {users.filter((u) => u.is_admin).length}
+          </p>
+        </div>
+      </div>
+
+      {/* Users Table */}
+      <div className="overflow-x-auto rounded-lg border">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b bg-gray-50">
+              <th className="px-6 py-3 text-left text-sm font-semibold">
+                Email
+              </th>
+              <th className="px-6 py-3 text-left text-sm font-semibold">
+                Name
+              </th>
+              <th className="px-6 py-3 text-left text-sm font-semibold">
+                Tier
+              </th>
+              <th className="px-6 py-3 text-left text-sm font-semibold">
+                Role
+              </th>
+              <th className="px-6 py-3 text-left text-sm font-semibold">
+                Status
+              </th>
+              <th className="px-6 py-3 text-left text-sm font-semibold">
+                Created
+              </th>
+              <th className="px-6 py-3 text-right text-sm font-semibold">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((user) => (
+              <tr key={user.id} className="border-b hover:bg-gray-50">
+                <td className="px-6 py-4 text-sm">{user.email}</td>
+                <td className="px-6 py-4 text-sm">{user.name}</td>
+                <td className="px-6 py-4 text-sm">
+                  <span className="inline-block rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-800">
+                    {user.tier}
+                  </span>
+                </td>
+                <td className="px-6 py-4 text-sm">
+                  {user.is_admin ? (
+                    <span className="inline-block rounded-full bg-purple-100 px-3 py-1 text-xs font-medium text-purple-800">
+                      Admin
+                    </span>
+                  ) : (
+                    <span className="inline-block rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-800">
+                      User
+                    </span>
+                  )}
+                </td>
+                <td className="px-6 py-4 text-sm">
+                  {user.is_disabled ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-800">
+                      <AlertCircle size={14} />
+                      Disabled
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">
+                      <Check size={14} />
+                      Active
+                    </span>
+                  )}
+                </td>
+                <td className="px-6 py-4 text-sm text-gray-600">
+                  {new Date(user.created_at).toLocaleDateString()}
+                </td>
+                <td className="px-6 py-4 text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={actionLoading}
+                      >
+                        <MoreVertical size={16} />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuItem
+                        onClick={() => handleSendMagicLink(user.email)}
+                        disabled={actionLoading}
+                      >
+                        <Mail size={14} className="mr-2" />
+                        Send Magic Login Link
+                      </DropdownMenuItem>
+
+                      <DropdownMenuSeparator />
+
+                      {user.is_disabled ? (
+                        <DropdownMenuItem
+                          onClick={() => handleEnableAccount(user.id)}
+                          className="text-green-600"
+                          disabled={actionLoading}
+                        >
+                          <Lock size={14} className="mr-2" />
+                          Enable Account
+                        </DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setActionType("disable");
+                            setShowConfirmDialog(true);
+                          }}
+                          className="text-yellow-600"
+                          disabled={actionLoading}
+                        >
+                          <AlertCircle size={14} className="mr-2" />
+                          Disable Account
+                        </DropdownMenuItem>
+                      )}
+
+                      <DropdownMenuSeparator />
+
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setActionType("clear_data");
+                          setShowConfirmDialog(true);
+                        }}
+                        className="text-orange-600"
+                        disabled={actionLoading}
+                      >
+                        <Trash2 size={14} className="mr-2" />
+                        Clear All Data
+                      </DropdownMenuItem>
+
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setActionType("delete");
+                          setShowConfirmDialog(true);
+                        }}
+                        className="text-red-600"
+                        disabled={actionLoading}
+                      >
+                        <Trash2 size={14} className="mr-2" />
+                        Delete Account
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogTitle>
+            {actionType === "disable" && "Disable Account?"}
+            {actionType === "clear_data" && "Clear All User Data?"}
+            {actionType === "delete" && "Delete Account Permanently?"}
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            {actionType === "disable" &&
+              "This will prevent the user from logging in. They can be re-enabled later."}
+            {actionType === "clear_data" &&
+              "This will delete all lists and items for this user. This cannot be undone."}
+            {actionType === "delete" &&
+              "This will permanently delete the user account and all associated data. This cannot be undone."}
+          </AlertDialogDescription>
+
+          {actionType === "disable" && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Reason (optional)</label>
+              <input
+                type="text"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="e.g., Violation of terms"
+                className="w-full rounded border px-3 py-2 text-sm"
+              />
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <AlertDialogCancel disabled={actionLoading}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (actionType === "disable")
+                  handleDisableAccount(selectedUser!.id);
+                if (actionType === "clear_data")
+                  handleClearData(selectedUser!.id);
+                if (actionType === "delete")
+                  handleDeleteAccount(selectedUser!.id);
+              }}
+              disabled={actionLoading}
+              className={
+                actionType === "delete"
+                  ? "bg-red-600 hover:bg-red-700"
+                  : actionType === "clear_data"
+                    ? "bg-orange-600 hover:bg-orange-700"
+                    : ""
+              }
+            >
+              {actionLoading ? "Processing..." : "Confirm"}
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
