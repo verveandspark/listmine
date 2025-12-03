@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_actions: {
+        Row: {
+          action_type: string
+          admin_id: string
+          created_at: string | null
+          details: Json | null
+          id: string
+          target_user_id: string
+        }
+        Insert: {
+          action_type: string
+          admin_id: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          target_user_id: string
+        }
+        Update: {
+          action_type?: string
+          admin_id?: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          target_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_actions_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       collaborators: {
         Row: {
           added_at: string | null
@@ -588,6 +623,7 @@ export type Database = {
           created_at: string | null
           email: string
           id: string
+          is_admin: boolean | null
           name: string | null
           role: string | null
           tier: string | null
@@ -597,6 +633,7 @@ export type Database = {
           created_at?: string | null
           email: string
           id?: string
+          is_admin?: boolean | null
           name?: string | null
           role?: string | null
           tier?: string | null
@@ -606,6 +643,7 @@ export type Database = {
           created_at?: string | null
           email?: string
           id?: string
+          is_admin?: boolean | null
           name?: string | null
           role?: string | null
           tier?: string | null
@@ -662,6 +700,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      clear_user_data: { Args: { target_user_id: string }; Returns: Json }
+      delete_user_account: { Args: { target_user_id: string }; Returns: Json }
+      disable_user_account: {
+        Args: { reason: string; target_user_id: string }
+        Returns: Json
+      }
+      enable_user_account: { Args: { target_user_id: string }; Returns: Json }
       get_allowed_list_types: { Args: { user_tier: string }; Returns: string[] }
       update_user_name: {
         Args: { new_name: string; user_id: string }

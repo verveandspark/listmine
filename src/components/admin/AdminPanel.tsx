@@ -35,6 +35,8 @@ interface User {
   is_admin: boolean;
   is_disabled?: boolean;
   created_at: string;
+  role?: string;
+  updated_at?: string;
 }
 
 export default function AdminUsersPage() {
@@ -169,6 +171,25 @@ export default function AdminUsersPage() {
     }
   };
 
+  const handleTierChange = async (userId: string, newTier: string) => {
+    try {
+      setActionLoading(true);
+      const { error } = await supabase
+        .from("users")
+        .update({ tier: newTier })
+        .eq("id", userId);
+      if (error) throw error;
+      setSuccessMessage(`Tier updated to ${newTier}`);
+      fetchUsers();
+      setTimeout(() => setSuccessMessage(""), 3000);
+    } catch (error) {
+      console.error("Error updating tier:", error);
+      alert("Failed to update tier");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   if (loading) return <div className="p-8">Loading users...</div>;
 
   return (
@@ -284,80 +305,94 @@ export default function AdminUsersPage() {
                   {new Date(user.created_at).toLocaleDateString()}
                 </td>
                 <td className="px-6 py-4 text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={actionLoading}
-                      >
-                        <MoreVertical size={16} />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56">
-                      <DropdownMenuItem
-                        onClick={() => handleSendMagicLink(user.email)}
-                        disabled={actionLoading}
-                      >
-                        <Mail size={14} className="mr-2" />
-                        Send Magic Login Link
-                      </DropdownMenuItem>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={user.tier}
+                      onChange={(e) => handleTierChange(user.id, e.target.value)}
+                      disabled={actionLoading}
+                      className="rounded border px-2 py-1 text-sm"
+                    >
+                      <option value="Free">Free</option>
+                      <option value="Good">Good</option>
+                      <option value="Even Better">Even Better</option>
+                      <option value="Lots More">Lots More</option>
+                    </select>
 
-                      <DropdownMenuSeparator />
-
-                      {user.is_disabled ? (
-                        <DropdownMenuItem
-                          onClick={() => handleEnableAccount(user.id)}
-                          className="text-green-600"
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           disabled={actionLoading}
                         >
-                          <Lock size={14} className="mr-2" />
-                          Enable Account
+                          <MoreVertical size={16} />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuItem
+                          onClick={() => handleSendMagicLink(user.email)}
+                          disabled={actionLoading}
+                        >
+                          <Mail size={14} className="mr-2" />
+                          Send Magic Login Link
                         </DropdownMenuItem>
-                      ) : (
+
+                        <DropdownMenuSeparator />
+
+                        {user.is_disabled ? (
+                          <DropdownMenuItem
+                            onClick={() => handleEnableAccount(user.id)}
+                            className="text-green-600"
+                            disabled={actionLoading}
+                          >
+                            <Lock size={14} className="mr-2" />
+                            Enable Account
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setActionType("disable");
+                              setShowConfirmDialog(true);
+                            }}
+                            className="text-yellow-600"
+                            disabled={actionLoading}
+                          >
+                            <AlertCircle size={14} className="mr-2" />
+                            Disable Account
+                          </DropdownMenuItem>
+                        )}
+
+                        <DropdownMenuSeparator />
+
                         <DropdownMenuItem
                           onClick={() => {
                             setSelectedUser(user);
-                            setActionType("disable");
+                            setActionType("clear_data");
                             setShowConfirmDialog(true);
                           }}
-                          className="text-yellow-600"
+                          className="text-orange-600"
                           disabled={actionLoading}
                         >
-                          <AlertCircle size={14} className="mr-2" />
-                          Disable Account
+                          <Trash2 size={14} className="mr-2" />
+                          Clear All Data
                         </DropdownMenuItem>
-                      )}
 
-                      <DropdownMenuSeparator />
-
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setSelectedUser(user);
-                          setActionType("clear_data");
-                          setShowConfirmDialog(true);
-                        }}
-                        className="text-orange-600"
-                        disabled={actionLoading}
-                      >
-                        <Trash2 size={14} className="mr-2" />
-                        Clear All Data
-                      </DropdownMenuItem>
-
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setSelectedUser(user);
-                          setActionType("delete");
-                          setShowConfirmDialog(true);
-                        }}
-                        className="text-red-600"
-                        disabled={actionLoading}
-                      >
-                        <Trash2 size={14} className="mr-2" />
-                        Delete Account
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setActionType("delete");
+                            setShowConfirmDialog(true);
+                          }}
+                          className="text-red-600"
+                          disabled={actionLoading}
+                        >
+                          <Trash2 size={14} className="mr-2" />
+                          Delete Account
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </td>
               </tr>
             ))}
