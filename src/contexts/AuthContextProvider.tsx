@@ -50,7 +50,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.log("[Auth] Session:", session);
 
         if (session?.user) {
-          setUserFromAuth(session.user);
+          await setUserFromAuth(session.user);
         } else {
           console.log("[Auth] No session found");
           setLoading(false);
@@ -70,11 +70,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("[Auth] State change:", event, session?.user?.id);
       if (event === "SIGNED_IN" && session?.user) {
-        setUserFromAuth(session.user);
+        await setUserFromAuth(session.user);
       } else if (event === "SIGNED_OUT") {
         setUser(null);
       } else if (event === "TOKEN_REFRESHED" && session?.user) {
-        setUserFromAuth(session.user);
+        await setUserFromAuth(session.user);
       }
     });
 
@@ -83,17 +83,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  const setUserFromAuth = (supabaseUser: SupabaseUser) => {
+  const setUserFromAuth = async (supabaseUser: SupabaseUser) => {
     console.log("[Auth] Setting user from auth:", supabaseUser.id);
 
-    const tierLimits = getTierLimits("free");
+    // Query the users table to get the actual tier
+    const { data: userData, error } = await supabase
+      .from('users')
+      .select('tier')
+      .eq('id', supabaseUser.id)
+      .single();
+
+    const tier = userData?.tier || 'free';
+    const tierLimits = getTierLimits(tier);
 
     setUser({
       id: supabaseUser.id,
       email: supabaseUser.email || "",
       name: supabaseUser.user_metadata?.name || "User",
       createdAt: new Date(supabaseUser.created_at || new Date()),
-      tier: "free",
+      tier: tier,
       listLimit: tierLimits.listLimit,
       itemsPerListLimit: tierLimits.itemsPerListLimit,
     });
@@ -120,7 +128,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (data.user) {
-        setUserFromAuth(data.user);
+        await setUserFromAuth(data.user);
       }
     } catch (error: any) {
       logError("login", error);
@@ -170,7 +178,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw profileError;
       }
 
-      setUserFromAuth(data.user);
+      await setUserFromAuth(data.user);
     } catch (error: any) {
       logError("register", error);
       throw error;
