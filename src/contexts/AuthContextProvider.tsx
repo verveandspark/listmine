@@ -93,7 +93,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .eq('id', supabaseUser.id)
       .single();
 
-    const tier = userData?.tier || 'free';
+    const tier = (userData?.tier || 'free') as 'free' | 'good' | 'even_better' | 'lots_more';
     const tierLimits = getTierLimits(tier);
 
     setUser({
