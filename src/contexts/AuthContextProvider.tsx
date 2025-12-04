@@ -1,4 +1,4 @@
-import { createContext, useState, ReactNode, useEffect } from "react";
+import { createContext, useState, ReactNode, useEffect, useRef, useCallback, useMemo } from "react";
 import { User } from "@/types";
 import { supabase } from "@/lib/supabase";
 import { User as SupabaseUser } from "@supabase/supabase-js";
@@ -14,10 +14,57 @@ const logError = (operation: string, error: any, userId?: string) => {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  console.log("[AuthProvider] Rendering AuthProvider");
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Use a ref to cache the user's tier to prevent flickering
+  // Initialize synchronously from localStorage for persistence across page reloads
+  const cachedTierRef = useRef<string | null>(() => {
+    try {
+      return localStorage.getItem('listmine_user_tier');
+    } catch (e) {
+      return null;
+    }
+  });
+  const userIdRef = useRef<string | null>(() => {
+    try {
+      return localStorage.getItem('listmine_user_id');
+    } catch (e) {
+      return null;
+    }
+  });
+  
+  // Initialize refs on first render (synchronously)
+  if (cachedTierRef.current === null || typeof cachedTierRef.current === 'function') {
+    try {
+      cachedTierRef.current = localStorage.getItem('listmine_user_tier');
+      userIdRef.current = localStorage.getItem('listmine_user_id');
+    } catch (e) {
+      cachedTierRef.current = null;
+      userIdRef.current = null;
+    }
+  }
+
+  // Helper to save tier to localStorage
+  const saveTierToStorage = (userId: string, tier: string) => {
+    try {
+      localStorage.setItem('listmine_user_tier', tier);
+      localStorage.setItem('listmine_user_id', userId);
+    } catch (e) {
+      // localStorage not available
+    }
+  };
+
+  // Helper to clear tier from localStorage
+  const clearTierFromStorage = () => {
+    try {
+      localStorage.removeItem('listmine_user_tier');
+      localStorage.removeItem('listmine_user_id');
+    } catch (e) {
+      // localStorage not available
+    }
+  };
 
   const getTierLimits = (tier: string) => {
     switch (tier) {
@@ -38,11 +85,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let isMounted = true;
     
     const initAuth = async () => {
-      console.log("[Auth] Initializing auth...");
-      
       // Set a global timeout to ensure loading is always cleared
       const globalTimeout = setTimeout(() => {
-        console.error("[Auth] Global timeout reached (10s) - forcing loading to false");
         if (isMounted) {
           setUser(null);
           setLoading(false);
@@ -54,12 +98,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           data: { session },
           error: sessionError,
         } = await supabase.auth.getSession();
-
-        console.log("[Auth] getSession result:", { 
-          hasSession: !!session, 
-          hasUser: !!session?.user,
-          error: sessionError?.message 
-        });
 
         if (sessionError) {
           console.error("[Auth] Session error:", sessionError);
@@ -77,10 +115,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (session?.expires_at) {
           const expiresAt = new Date(session.expires_at * 1000);
           const now = new Date();
-          console.log("[Auth] Session expires at:", expiresAt, "Now:", now);
           
           if (expiresAt < now) {
-            console.log("[Auth] Session expired, signing out");
             await supabase.auth.signOut();
             if (isMounted) {
               setUser(null);
@@ -92,27 +128,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
 
         if (session?.user) {
-          console.log("[Auth] Valid session found, calling setUserFromAuth...");
           try {
-            await setUserFromAuth(session.user);
-            console.log("[Auth] setUserFromAuth completed successfully");
+            await setUserFromAuth(session.user, true);
           } catch (err) {
             console.error("[Auth] setUserFromAuth threw an error:", err);
             // Even if setUserFromAuth fails, we should still set a basic user
+            // Use cached tier if available for the same user
+            const fallbackTier = (session.user.id === userIdRef.current && cachedTierRef.current) 
+              ? cachedTierRef.current as 'free' | 'good' | 'even_better' | 'lots_more'
+              : 'free';
+            const tierLimits = getTierLimits(fallbackTier);
+            
             if (isMounted) {
               setUser({
                 id: session.user.id,
                 email: session.user.email || "",
                 name: session.user.user_metadata?.name || "User",
                 createdAt: new Date(session.user.created_at || new Date()),
-                tier: 'free',
-                listLimit: 5,
-                itemsPerListLimit: 20,
+                tier: fallbackTier,
+                listLimit: tierLimits.listLimit,
+                itemsPerListLimit: tierLimits.itemsPerListLimit,
               });
+              // Update cache and localStorage
+              userIdRef.current = session.user.id;
+              cachedTierRef.current = fallbackTier;
+              saveTierToStorage(session.user.id, fallbackTier);
             }
           }
-        } else {
-          console.log("[Auth] No session found - user not logged in");
         }
       } catch (error: any) {
         console.error("[Auth] Init error:", error);
@@ -123,7 +165,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       } finally {
         clearTimeout(globalTimeout);
-        console.log("[Auth] initAuth finally block - setting loading to false");
         if (isMounted) {
           setLoading(false);
         }
@@ -135,21 +176,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("[Auth] State change:", event, session?.user?.id);
-      
       if (!isMounted) return;
       
       try {
         if (event === "SIGNED_IN" && session?.user) {
-          await setUserFromAuth(session.user);
+          // Only fetch tier if user ID changed
+          if (session.user.id !== userIdRef.current) {
+            await setUserFromAuth(session.user, true);
+          }
         } else if (event === "SIGNED_OUT") {
+          cachedTierRef.current = null;
+          userIdRef.current = null;
+          clearTierFromStorage();
           setUser(null);
           setLoading(false);
         } else if (event === "TOKEN_REFRESHED" && session?.user) {
-          await setUserFromAuth(session.user);
+          // On token refresh, use cached tier to avoid flickering
+          if (session.user.id === userIdRef.current && cachedTierRef.current) {
+            // Same user, use cached tier
+            await setUserFromAuth(session.user, false);
+          } else {
+            // Different user or no cache, fetch tier
+            await setUserFromAuth(session.user, true);
+          }
         } else if (event === "TOKEN_REFRESHED" && !session) {
           // Token refresh failed - session is invalid
-          console.log("[Auth] Token refresh failed - no session");
+          cachedTierRef.current = null;
+          userIdRef.current = null;
+          clearTierFromStorage();
           setUser(null);
           setLoading(false);
         }
@@ -165,49 +219,75 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  const setUserFromAuth = async (supabaseUser: SupabaseUser) => {
-    console.log("[Auth] Setting user from auth:", supabaseUser.id);
-
+  const setUserFromAuth = async (supabaseUser: SupabaseUser, fetchTier: boolean = true) => {
     let tier: 'free' | 'good' | 'even_better' | 'lots_more' = 'free';
+    
+    // Tier priority for comparison (higher = better)
+    const tierPriority: Record<string, number> = {
+      'free': 0,
+      'good': 1,
+      'even_better': 2,
+      'lots_more': 3,
+    };
 
-    try {
-      // Query the users table to get the actual tier with timeout
-      console.log("[Auth] Fetching user tier from database...");
-      
-      // Use Promise.race for timeout handling
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => {
-          console.log("[Auth] Tier fetch timeout after 5s");
-          reject(new Error('Tier fetch timeout after 5s'));
-        }, 5000);
-      });
+    // If we have a cached tier for this user and don't need to fetch, use it
+    if (!fetchTier && supabaseUser.id === userIdRef.current && cachedTierRef.current) {
+      tier = cachedTierRef.current as 'free' | 'good' | 'even_better' | 'lots_more';
+    } else {
+      try {
+        // Query the users table to get the actual tier with timeout
+        // Use Promise.race for timeout handling
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => {
+            reject(new Error('Tier fetch timeout after 5s'));
+          }, 5000);
+        });
 
-      const queryPromise = supabase
-        .from('users')
-        .select('tier')
-        .eq('id', supabaseUser.id)
-        .single();
+        const queryPromise = supabase
+          .from('users')
+          .select('tier')
+          .eq('id', supabaseUser.id)
+          .single();
 
-      const { data: userData, error: tierError } = await Promise.race([queryPromise, timeoutPromise]);
-      
-      console.log("[Auth] User tier query completed:", { userData, tierError });
+        const { data: userData, error: tierError } = await Promise.race([queryPromise, timeoutPromise]);
 
-      if (tierError) {
-        console.error("[Auth] Error fetching user tier:", tierError);
-      } else if (userData) {
-        tier = (userData.tier || 'free') as 'free' | 'good' | 'even_better' | 'lots_more';
-        console.log("[Auth] Got tier from database:", tier);
+        if (tierError) {
+          // If error and we have cached tier for same user, use it
+          if (supabaseUser.id === userIdRef.current && cachedTierRef.current) {
+            tier = cachedTierRef.current as 'free' | 'good' | 'even_better' | 'lots_more';
+          }
+        } else if (userData) {
+          const fetchedTier = (userData.tier || 'free') as 'free' | 'good' | 'even_better' | 'lots_more';
+          
+          // If we have a cached tier for the same user, never downgrade
+          // This prevents race conditions from resetting the tier
+          if (supabaseUser.id === userIdRef.current && cachedTierRef.current) {
+            const cachedPriority = tierPriority[cachedTierRef.current] || 0;
+            const fetchedPriority = tierPriority[fetchedTier] || 0;
+            
+            // Only use fetched tier if it's equal or higher than cached
+            tier = fetchedPriority >= cachedPriority ? fetchedTier : cachedTierRef.current as 'free' | 'good' | 'even_better' | 'lots_more';
+          } else {
+            tier = fetchedTier;
+          }
+        }
+      } catch (err: any) {
+        // If error and we have cached tier for same user, use it
+        if (supabaseUser.id === userIdRef.current && cachedTierRef.current) {
+          tier = cachedTierRef.current as 'free' | 'good' | 'even_better' | 'lots_more';
+        }
       }
-    } catch (err: any) {
-      console.error("[Auth] Exception fetching user tier:", err?.message || err);
-      // Continue with default tier
-    } finally {
-      console.log("[Auth] Tier fetch finished (finally block), proceeding with tier:", tier);
     }
+
+    // Cache the tier and user ID
+    cachedTierRef.current = tier;
+    userIdRef.current = supabaseUser.id;
+    
+    // Also save to localStorage for persistence
+    saveTierToStorage(supabaseUser.id, tier);
 
     const tierLimits = getTierLimits(tier);
 
-    console.log("[Auth] Setting user state with tier:", tier);
     setUser({
       id: supabaseUser.id,
       email: supabaseUser.email || "",
@@ -218,9 +298,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       itemsPerListLimit: tierLimits.itemsPerListLimit,
     });
 
-    console.log("[Auth] About to set loading to false");
     setLoading(false);
-    console.log("[Auth] User set successfully, loading is now false");
   };
 
   const login = async (email: string, password: string) => {
@@ -241,7 +319,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (data.user) {
-        await setUserFromAuth(data.user);
+        await setUserFromAuth(data.user, true);
       }
     } catch (error: any) {
       logError("login", error);
@@ -291,7 +369,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw profileError;
       }
 
-      await setUserFromAuth(data.user);
+      await setUserFromAuth(data.user, true);
     } catch (error: any) {
       logError("register", error);
       throw error;
@@ -300,10 +378,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     try {
+      // Clear cache on logout
+      cachedTierRef.current = null;
+      userIdRef.current = null;
+      clearTierFromStorage();
       supabase.auth.signOut();
       setUser(null);
     } catch (error: any) {
       logError("logout", error, user?.id);
+      cachedTierRef.current = null;
+      userIdRef.current = null;
+      clearTierFromStorage();
       setUser(null);
     }
   };
@@ -314,6 +399,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
 
     const tierLimits = getTierLimits(tier);
+    
+    // Update cache immediately
+    cachedTierRef.current = tier;
+    saveTierToStorage(user.id, tier);
 
     Promise.resolve(
       supabase
@@ -442,7 +531,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const value: AuthContextType = {
+  const value: AuthContextType = useMemo(() => ({
     user,
     login,
     register,
@@ -456,8 +545,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     loading,
     error,
     getTierLimits,
-  };
+  }), [user, loading, error]);
 
-  console.log("[AuthProvider] Returning provider, loading:", loading, "user:", user?.id);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

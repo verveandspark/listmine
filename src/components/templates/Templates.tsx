@@ -1,3 +1,4 @@
+import { TemplatesSkeleton } from "@/components/ui/TemplatesSkeleton";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
@@ -224,14 +225,7 @@ export default function Templates() {
   });
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-gray-600">Loading templates...</p>
-        </div>
-      </div>
-    );
+    return <TemplatesSkeleton />;
   }
 
   if (error) {
@@ -255,7 +249,7 @@ export default function Templates() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10">
+    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 animate-in fade-in duration-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">

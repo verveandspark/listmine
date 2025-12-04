@@ -1,3 +1,4 @@
+import { DashboardSkeleton } from "@/components/ui/DashboardSkeleton";
 import { FirebaseTest } from "@/components/FirebaseTest";
 import { OnboardingTooltips } from "@/components/onboarding/OnboardingTooltips";
 import {
@@ -149,6 +150,7 @@ export default function Dashboard() {
   const { user, logout } = useAuth();
   const {
     lists,
+    hasLoadedOnce,
     addList,
     updateList,
     deleteList,
@@ -173,7 +175,6 @@ export default function Dashboard() {
   >("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<ListType | "all">("all");
-  const [isLoading, setIsLoading] = useState(true);
   const [listSortBy, setListSortBy] = useState<
     "recent" | "name" | "items" | "completion"
   >(() => {
@@ -196,11 +197,14 @@ export default function Dashboard() {
   const [editListTitle, setEditListTitle] = useState("");
   const [editListCategory, setEditListCategory] = useState<ListCategory>("Tasks");
   const [editListType, setEditListType] = useState<ListType>("custom");
+  
+  // Help modal state
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
 
-  // Simulate loading on mount
-  useState(() => {
-    setTimeout(() => setIsLoading(false), 500);
-  });
+  // Use the actual loading state from the lists context
+  // Only show loading skeleton if we haven't loaded once yet AND there are no lists
+  // This prevents flashing when navigating back to dashboard with cached data
+  const isLoading = !hasLoadedOnce && lists.length === 0;
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -388,10 +392,10 @@ export default function Dashboard() {
   };
 
   const getDueToday = (list: any) => {
-    return list.items.filter(
+    return Math.max(0, (list.items || []).filter(
       (item: any) =>
         item.dueDate && isToday(new Date(item.dueDate)) && !item.completed,
-    ).length;
+    ).length);
   };
 
   const handleQuickShare = async (e: React.MouseEvent, listId: string) => {
@@ -437,12 +441,14 @@ export default function Dashboard() {
 
   const getUsagePercentage = () => {
     if (!user || user.listLimit === -1) return 0;
-    return (lists.length / user.listLimit) * 100;
+    const percentage = (lists.length / user.listLimit) * 100;
+    return Math.min(100, Math.max(0, percentage));
   };
 
   const getRemainingLists = () => {
     if (!user || user.listLimit === -1) return "Unlimited";
-    return user.listLimit - lists.length;
+    const remaining = user.listLimit - lists.length;
+    return Math.max(0, remaining);
   };
 
   const getTierName = (tier: string) => {
@@ -495,15 +501,17 @@ export default function Dashboard() {
       case "name":
         return a.title.localeCompare(b.title);
       case "items":
-        return b.items.length - a.items.length;
+        return (b.items?.length || 0) - (a.items?.length || 0);
       case "completion":
+        const aItemCount = a.items?.length || 0;
+        const bItemCount = b.items?.length || 0;
         const aCompletion =
-          a.items.length > 0
-            ? a.items.filter((i) => i.completed).length / a.items.length
+          aItemCount > 0
+            ? (a.items?.filter((i) => i.completed).length || 0) / aItemCount
             : 0;
         const bCompletion =
-          b.items.length > 0
-            ? b.items.filter((i) => i.completed).length / b.items.length
+          bItemCount > 0
+            ? (b.items?.filter((i) => i.completed).length || 0) / bItemCount
             : 0;
         return bCompletion - aCompletion;
       case "recent":
@@ -520,10 +528,10 @@ export default function Dashboard() {
   const getCategoryStats = (category: ListCategory) => {
     const categoryLists = lists.filter((list) => list.category === category);
     const totalItems = categoryLists.reduce(
-      (sum, list) => sum + list.items.length,
+      (sum, list) => sum + Math.max(0, list.items?.length || 0),
       0,
     );
-    return { count: categoryLists.length, items: totalItems };
+    return { count: Math.max(0, categoryLists.length), items: Math.max(0, totalItems) };
   };
 
   // Show error state if loading failed
@@ -548,18 +556,11 @@ export default function Dashboard() {
   }
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
-          <p className="text-gray-600 text-lg">Loading...</p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10">
+    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 animate-in fade-in duration-200">
       {/* Onboarding Tooltips for New Users */}
       <OnboardingTooltips />
 
@@ -615,48 +616,14 @@ export default function Dashboard() {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700"
-                    >
-                      <HelpCircle className="w-4 h-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent
-                    side="bottom"
-                    className="bg-white text-gray-900 shadow-lg border border-gray-200 p-3"
-                    sideOffset={8}
-                  >
-                    <div className="space-y-2 text-sm">
-                      <p className="font-semibold mb-2">Keyboard Shortcuts</p>
-                      <div className="space-y-1.5">
-                        <p className="flex items-center gap-2">
-                          <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono border border-gray-300">
-                            N
-                          </kbd>
-                          <span>Create new list</span>
-                        </p>
-                        <p className="flex items-center gap-2">
-                          <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono border border-gray-300">
-                            /
-                          </kbd>
-                          <span>Search lists</span>
-                        </p>
-                        <p className="flex items-center gap-2">
-                          <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono border border-gray-300">
-                            ESC
-                          </kbd>
-                          <span>Close modal</span>
-                        </p>
-                      </div>
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700"
+                onClick={() => setIsHelpModalOpen(true)}
+              >
+                <HelpCircle className="w-4 h-4" />
+              </Button>
               {user?.tier === "free" && (
                 <Button
                   onClick={() => navigate("/upgrade")}
@@ -882,7 +849,7 @@ export default function Dashboard() {
                   <p className="text-sm text-gray-600">Total Items</p>
                 </div>
                 <p className="text-2xl sm:text-3xl font-bold text-success">
-                  {lists.reduce((sum, list) => sum + list.items.length, 0)}
+                  {Math.max(0, lists.reduce((sum, list) => sum + (list.items?.length || 0), 0))}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
                   {user?.itemsPerListLimit === -1
@@ -1174,9 +1141,10 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {pinnedLists.map((list, index) => {
                 const Icon = categoryIcons[list.category] || ListChecks;
-                const completedItems = list.items.filter(
+                const itemCount = Math.max(0, list.items?.length || 0);
+                const completedItems = Math.max(0, list.items?.filter(
                   (item) => item.completed,
-                ).length;
+                ).length || 0);
                 const dueToday = getDueToday(list);
                 return (
                   <Card
@@ -1306,18 +1274,18 @@ export default function Dashboard() {
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-gray-600">
-                            {list.items.length} items
+                            {itemCount} items
                           </span>
                           <span className="text-gray-600">
                             {completedItems} completed
                           </span>
                         </div>
-                        {list.items.length > 0 && (
+                        {itemCount > 0 && (
                           <div className="w-full bg-gray-200 rounded-full h-1.5">
                             <div
                               className="bg-primary h-1.5 rounded-full transition-all"
                               style={{
-                                width: `${(completedItems / list.items.length) * 100}%`,
+                                width: `${(completedItems / itemCount) * 100}%`,
                               }}
                             />
                           </div>
@@ -1411,9 +1379,10 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {unpinnedLists.map((list, index) => {
                 const Icon = categoryIcons[list.category] || ListChecks;
-                const completedItems = list.items.filter(
+                const itemCount = Math.max(0, list.items?.length || 0);
+                const completedItems = Math.max(0, list.items?.filter(
                   (item) => item.completed,
-                ).length;
+                ).length || 0);
                 const dueToday = getDueToday(list);
                 return (
                   <Card
@@ -1543,18 +1512,18 @@ export default function Dashboard() {
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-gray-600">
-                            {list.items.length} items
+                            {itemCount} items
                           </span>
                           <span className="text-gray-600">
                             {completedItems} completed
                           </span>
                         </div>
-                        {list.items.length > 0 && (
+                        {itemCount > 0 && (
                           <div className="w-full bg-gray-200 rounded-full h-1.5">
                             <div
                               className="bg-primary h-1.5 rounded-full transition-all"
                               style={{
-                                width: `${(completedItems / list.items.length) * 100}%`,
+                                width: `${(completedItems / itemCount) * 100}%`,
                               }}
                             />
                           </div>
@@ -1683,6 +1652,92 @@ export default function Dashboard() {
               <Button onClick={handleEditList} className="flex-1">
                 Save Changes
               </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Help Modal */}
+      <Dialog open={isHelpModalOpen} onOpenChange={setIsHelpModalOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <HelpCircle className="w-5 h-5 text-primary" />
+              Help & Support
+            </DialogTitle>
+            <DialogDescription>
+              Get help with ListMine or contact our support team.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6 py-4">
+            {/* Keyboard Shortcuts */}
+            <div>
+              <h4 className="font-semibold text-sm mb-3">Keyboard Shortcuts</h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-3">
+                  <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono border border-gray-300 min-w-[32px] text-center">
+                    N
+                  </kbd>
+                  <span className="text-gray-600">Create new list</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono border border-gray-300 min-w-[32px] text-center">
+                    /
+                  </kbd>
+                  <span className="text-gray-600">Search lists</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono border border-gray-300 min-w-[32px] text-center">
+                    ESC
+                  </kbd>
+                  <span className="text-gray-600">Close modal</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick FAQ */}
+            <div>
+              <h4 className="font-semibold text-sm mb-3">Quick FAQ</h4>
+              <div className="space-y-3 text-sm">
+                <div>
+                  <p className="font-medium text-gray-900">How do I share a list?</p>
+                  <p className="text-gray-600">Open any list and click the Share button to generate a shareable link or invite collaborators.</p>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">How do I upgrade my plan?</p>
+                  <p className="text-gray-600">Click the "Upgrade" button in the header or visit the Pricing page to see available plans.</p>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">Can I import existing lists?</p>
+                  <p className="text-gray-600">Yes! Use the Import/Export feature to import lists from CSV or TXT files.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Contact Support */}
+            <div className="border-t pt-4">
+              <h4 className="font-semibold text-sm mb-3">Need More Help?</h4>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => window.open('https://listmine.com/how-it-works', '_blank')}
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  How It Works
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => window.location.href = 'mailto:support@listmine.com'}
+                >
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  Contact Support
+                </Button>
+              </div>
             </div>
           </div>
         </DialogContent>

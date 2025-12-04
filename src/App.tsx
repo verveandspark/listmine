@@ -1,4 +1,5 @@
 import SharedListView from "@/components/list/SharedListView";
+import { DashboardSkeleton } from "@/components/ui/DashboardSkeleton";
 import { Suspense, useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContextProvider";
@@ -18,28 +19,15 @@ import AdminPanel from "./components/admin/AdminPanel";
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
 
-  console.log("[ProtectedRoute] loading:", loading, "isAuthenticated:", isAuthenticated);
-
   if (loading) {
-    console.log("[ProtectedRoute] Showing loading spinner");
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
-  console.log("[ProtectedRoute] Rendering children:", isAuthenticated);
   return isAuthenticated ? <>{children}</> : <Navigate to="/" replace />;
 }
 
 function AppRoutes() {
   const { isAuthenticated } = useAuth();
-
-  console.log("[AppRoutes] isAuthenticated:", isAuthenticated);
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
@@ -58,8 +46,6 @@ function AppRoutes() {
     window.addEventListener("keydown", handleGlobalKeyDown);
     return () => window.removeEventListener("keydown", handleGlobalKeyDown);
   }, []);
-
-  console.log("[AppRoutes] Rendering routes");
 
   return (
     <Routes>
@@ -133,33 +119,13 @@ function AppRoutes() {
 function AuthenticatedApp() {
   const { loading, user } = useAuth();
 
-  console.log("[AuthenticatedApp] loading:", loading, "user:", user?.id);
-
   if (loading) {
-    console.log("[AuthenticatedApp] Auth still loading, showing spinner");
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
-  console.log("[AuthenticatedApp] Auth loaded, rendering ListProvider and routes");
   return (
     <ListProvider>
-      <Suspense
-        fallback={
-          <div className="min-h-screen flex items-center justify-center">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading...</p>
-            </div>
-          </div>
-        }
-      >
+      <Suspense fallback={<DashboardSkeleton />}>
         <AppRoutes />
         <Toaster />
       </Suspense>
@@ -168,7 +134,6 @@ function AuthenticatedApp() {
 }
 
 function App() {
-  console.log("[App] Rendering App component");
   return (
     <AuthProvider>
       <AuthenticatedApp />

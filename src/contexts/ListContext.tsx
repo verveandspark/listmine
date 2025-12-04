@@ -4,6 +4,9 @@ import {
   useState,
   ReactNode,
   useContext,
+  useRef,
+  useMemo,
+  useCallback,
 } from "react";
 import { supabase } from "@/lib/supabase";
 import { List, ListItem, ListCategory, ListType, ListItemAttributes } from "@/types";
@@ -47,6 +50,7 @@ const logError = (operation: string, error: any, userId?: string) => {
 
 interface ListContextType {
   lists: List[];
+  hasLoadedOnce: boolean;
   addList: (
     title: string,
     category: ListCategory,
@@ -105,21 +109,74 @@ export const ListContext = createContext<ListContextType | undefined>(
 );
 
 export function ListProvider({ children }: { children: ReactNode }) {
-  console.log("[ListProvider] Rendering ListProvider");
   const [lists, setLists] = useState<List[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  
+  // Use refs to track current user and request ID to prevent race conditions
+  const currentUserIdRef = useRef<string | null>(null);
+  const currentUserTierRef = useRef<string | null>(null);
+  const loadRequestIdRef = useRef(0);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isLoadingRef = useRef(false);
+  const lastLoadTimeRef = useRef(0);
 
-  console.log("[ListProvider] user:", user?.id, "loading:", loading);
+  // Debounced load function to prevent rapid reloads
+  const debouncedLoadLists = (userId: string, userTier: string) => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    // Longer debounce for realtime events to batch multiple changes
+    debounceTimerRef.current = setTimeout(() => {
+      // Skip if we just loaded within the last 500ms
+      const now = Date.now();
+      if (now - lastLoadTimeRef.current < 500) {
+        // Skip - too soon since last load
+        return;
+      }
+      loadLists(userId, userTier);
+    }, 500);
+  };
 
   useEffect(() => {
-    console.log("[ListProvider] useEffect triggered, user:", user?.id);
-    if (user) {
-      loadLists();
+    const userId = user?.id || null;
+    const userTier = user?.tier || 'free';
+    
+    // Only reload if user ID or tier actually changed
+    const userChanged = userId !== currentUserIdRef.current;
+    const tierChanged = userTier !== currentUserTierRef.current && userId === currentUserIdRef.current;
+    
+    if (userChanged || tierChanged) {
+      
+      // Reset hasLoadedOnce when user changes
+      if (userChanged) {
+        setHasLoadedOnce(false);
+        setLists([]); // Clear lists immediately when user changes
+      }
+      
+      currentUserIdRef.current = userId;
+      currentUserTierRef.current = userTier;
+      
+      if (userId) {
+        // Increment request ID to invalidate any in-flight requests
+        loadRequestIdRef.current += 1;
+        loadLists(userId, userTier);
+      } else {
+        setLists([]);
+        setLoading(false);
+        setHasLoadedOnce(false);
+      }
+    }
 
-      const listsChannel = supabase
-        .channel("lists-changes")
+    let listsChannel: ReturnType<typeof supabase.channel> | null = null;
+    
+    if (user) {
+      // Use a stable channel name based only on user ID
+      const channelName = `lists-changes-${user.id}`;
+      listsChannel = supabase
+        .channel(channelName)
         .on(
           "postgres_changes",
           {
@@ -129,39 +186,46 @@ export function ListProvider({ children }: { children: ReactNode }) {
             filter: `user_id=eq.${user.id}`,
           },
           () => {
-            // Don't call loadLists here to avoid double loading
-            // The realtime subscription will trigger a re-render
-          },
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "list_items",
-          },
-          () => {
-            // Reload lists when items change
-            loadLists();
+            // Lists realtime event received
+            // Use debounced reload to prevent rapid updates
+            if (currentUserIdRef.current && currentUserTierRef.current) {
+              debouncedLoadLists(currentUserIdRef.current, currentUserTierRef.current);
+            }
           },
         )
         .subscribe();
-
-      return () => {
-        supabase.removeChannel(listsChannel);
-      };
-    } else {
-      setLists([]);
-      setLoading(false);
     }
-  }, [user]);
 
-  const loadLists = async () => {
-    if (!user) {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+      if (listsChannel) {
+        supabase.removeChannel(listsChannel);
+      }
+    };
+  }, [user?.id, user?.tier]);
+
+  const loadLists = async (targetUserId?: string, targetUserTier?: string) => {
+    const userId = targetUserId || currentUserIdRef.current || user?.id;
+    const userTier = (targetUserTier || currentUserTierRef.current || user?.tier || 'free') as UserTier;
+    
+    if (!userId) {
       setLists([]);
       setLoading(false);
       return;
     }
+
+    // Prevent concurrent loads
+    if (isLoadingRef.current) {
+      // Load already in progress
+      return;
+    }
+
+    // Capture the current request ID at the start
+    const requestId = loadRequestIdRef.current;
+    isLoadingRef.current = true;
+    lastLoadTimeRef.current = Date.now();
 
     try {
       setLoading(true);
@@ -172,18 +236,18 @@ export function ListProvider({ children }: { children: ReactNode }) {
         throw new Error("Supabase client not initialized");
       }
 
-      // Log connection attempt
-      console.log("[ListMine] Attempting to load lists...", {
-        userId: user.id,
-        supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
-        hasAnonKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY,
-      });
-
       const { data: listsData, error: listsError } = await supabase
         .from("lists")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .order("created_at", { ascending: false });
+
+      // Check if this request is still valid (user hasn't changed)
+      if (requestId !== loadRequestIdRef.current || userId !== currentUserIdRef.current) {
+      // Stale request detected
+        isLoadingRef.current = false;
+        return;
+      }
 
       if (listsError) {
         console.error("[ListMine Error]", {
@@ -191,33 +255,38 @@ export function ListProvider({ children }: { children: ReactNode }) {
           error: listsError,
           errorCode: listsError.code,
           errorMessage: listsError.message,
-          errorDetails: listsError.details,
-          userId: user.id,
+          userId: userId,
         });
         throw listsError;
       }
 
-      console.log("[ListMine] Lists loaded successfully:", listsData?.length || 0);
 
-      const { data: itemsData, error: itemsError } = await supabase
-        .from("list_items")
-        .select("*")
-        .in(
-          "list_id",
-          listsData?.map((l) => l.id) || [],
-        );
+      // Only fetch items if we have lists
+      let itemsData: any[] = [];
+      if (listsData && listsData.length > 0) {
+        const { data: items, error: itemsError } = await supabase
+          .from("list_items")
+          .select("*")
+          .in("list_id", listsData.map((l) => l.id));
 
-      if (itemsError) {
-        console.error("[ListMine Error]", {
-          operation: "loadLists - items query",
-          error: itemsError,
-          errorCode: itemsError.code,
-          errorMessage: itemsError.message,
-        });
-        throw itemsError;
+        // Check again if this request is still valid
+        if (requestId !== loadRequestIdRef.current || userId !== currentUserIdRef.current) {
+      // Stale request after items query
+          isLoadingRef.current = false;
+          return;
+        }
+
+        if (itemsError) {
+          console.error("[ListMine Error]", {
+            operation: "loadLists - items query",
+            error: itemsError,
+          });
+          throw itemsError;
+        }
+        
+        itemsData = items || [];
       }
 
-      console.log("[ListMine] Items loaded successfully:", itemsData?.length || 0);
 
       const listsWithItems: List[] = listsData?.map((list) => ({
         id: list.id,
@@ -250,27 +319,40 @@ export function ListProvider({ children }: { children: ReactNode }) {
       })) || [];
 
       // Filter lists based on user tier - only show lists the user has access to
-      const userTier = (user.tier || 'free') as UserTier;
       const filteredLists = listsWithItems.filter((list) => 
         canAccessListType(userTier, list.listType)
       );
 
+      // Final check before setting state
+      if (requestId !== loadRequestIdRef.current || userId !== currentUserIdRef.current) {
+      // Stale request before setLists
+        isLoadingRef.current = false;
+        return;
+      }
+
       setLists(filteredLists);
+      setHasLoadedOnce(true);
     } catch (err: any) {
+      // Don't set error if this is a stale request
+      if (requestId !== loadRequestIdRef.current || userId !== currentUserIdRef.current) {
+      // Stale request error
+        isLoadingRef.current = false;
+        return;
+      }
+      
       const errorMessage = err instanceof Error ? err.message : "Failed to load lists";
       console.error("[ListMine Error]", {
         operation: "loadLists",
         error: err,
         errorMessage,
-        errorName: err?.name,
-        errorStack: err?.stack,
-        supabaseUrl: import.meta.env.VITE_SUPABASE_URL ? "Set" : "Missing",
-        supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY ? "Set" : "Missing",
-        networkOnline: navigator.onLine,
       });
       setError(errorMessage);
     } finally {
-      setLoading(false);
+      isLoadingRef.current = false;
+      // Only set loading to false if this is still the current request
+      if (requestId === loadRequestIdRef.current && userId === currentUserIdRef.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -1462,36 +1544,36 @@ export function ListProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  console.log("[ListProvider] Returning provider, rendering children");
+  const contextValue = useMemo(() => ({
+    lists,
+    hasLoadedOnce,
+    addList,
+    updateList,
+    deleteList,
+    addItemToList,
+    updateListItem,
+    deleteListItem,
+    bulkDeleteItems,
+    bulkUpdateItems,
+    reorderListItems,
+    togglePin,
+    importList,
+    exportList,
+    generateShareLink,
+    addCollaborator,
+    searchLists,
+    filterLists,
+    addTagToList,
+    removeTagFromList,
+    importFromShareLink,
+    importFromWishlist,
+    loading,
+    error,
+    retryLoad: () => loadLists(),
+  }), [lists, hasLoadedOnce, loading, error]);
+
   return (
-    <ListContext.Provider
-      value={{
-        lists,
-        addList,
-        updateList,
-        deleteList,
-        addItemToList,
-        updateListItem,
-        deleteListItem,
-        bulkDeleteItems,
-        bulkUpdateItems,
-        reorderListItems,
-        togglePin,
-        importList,
-        exportList,
-        generateShareLink,
-        addCollaborator,
-        searchLists,
-        filterLists,
-        addTagToList,
-        removeTagFromList,
-        importFromShareLink,
-        importFromWishlist,
-        loading,
-        error,
-        retryLoad: loadLists,
-      }}
-    >
+    <ListContext.Provider value={contextValue}>
       {children}
     </ListContext.Provider>
   );

@@ -1,3 +1,4 @@
+import { ListDetailSkeleton } from "@/components/ui/DashboardSkeleton";
 import { useOpenGraphPreview } from "@/hooks/useOpenGraphPreview";
 import { LinkPreviewCard } from "@/components/list/LinkPreviewCard";
 import { ListSidebar } from "./ListSidebar";
@@ -44,6 +45,7 @@ import {
   HelpCircle,
   FileText,
   Upload,
+  MessageSquare,
   User as UserIcon,
   LogOut,
   GripVertical,
@@ -132,6 +134,7 @@ export default function ListDetail() {
     addTagToList,
     removeTagFromList,
     updateList,
+    hasLoadedOnce,
   } = useLists();
   const { toast } = useToast();
 
@@ -179,7 +182,6 @@ export default function ListDetail() {
   const [collaboratorEmail, setCollaboratorEmail] = useState("");
   const [newTag, setNewTag] = useState("");
   const [newLink, setNewLink] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [isSelectMode, setIsSelectMode] = useState(false);
@@ -203,11 +205,9 @@ export default function ListDetail() {
   
   // Tags section collapsed state
   const [isTagsSectionOpen, setIsTagsSectionOpen] = useState(false);
-
-  // Simulate loading on mount
-  useState(() => {
-    setTimeout(() => setIsLoading(false), 300);
-  });
+  
+  // Help modal state
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -230,15 +230,12 @@ export default function ListDetail() {
     high: "bg-destructive/10 text-destructive border-destructive/20",
   };
 
+  // Only show skeleton if we haven't loaded once yet AND the list isn't found
+  // This prevents flashing when navigating between lists with cached data
+  const isLoading = !hasLoadedOnce && !list;
+
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
-          <p className="text-gray-600 text-lg">Loading...</p>
-        </div>
-      </div>
-    );
+    return <ListDetailSkeleton />;
   }
 
   if (!list) {
@@ -879,7 +876,7 @@ export default function ListDetail() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10">
+    <div className="flex min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 animate-in fade-in duration-200">
       {/* Sidebar - Hidden on mobile, visible on desktop */}
       <div className="hidden md:block">
         <ListSidebar />
@@ -936,8 +933,8 @@ export default function ListDetail() {
                     {list.title}
                   </h1>
                   <p className="text-xs sm:text-sm text-gray-600">
-                    {list.category} · {list.items.length}/
-                    {user?.itemsPerListLimit} items
+                    {list.category} · {Math.max(0, list.items?.length || 0)}/
+                    {user?.itemsPerListLimit === -1 ? "∞" : user?.itemsPerListLimit} items
                   </p>
                 </div>
               </div>
@@ -951,6 +948,7 @@ export default function ListDetail() {
                         variant="ghost"
                         size="icon"
                         className="h-10 w-10"
+                        onClick={() => setIsHelpModalOpen(true)}
                       >
                         <HelpCircle className="w-5 h-5 text-gray-600" />
                       </Button>
@@ -1206,6 +1204,17 @@ export default function ListDetail() {
                     >
                       <Download className="w-4 h-4 mr-2" />
                       Export as TXT
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setIsHelpModalOpen(true);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="w-full justify-start min-h-[44px]"
+                    >
+                      <HelpCircle className="w-4 h-4 mr-2" />
+                      Help & Support
                     </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
@@ -3998,6 +4007,92 @@ export default function ListDetail() {
           onTogglePurchaserInfo={handleTogglePurchaserInfo}
         />
       )}
+
+      {/* Help Modal */}
+      <Dialog open={isHelpModalOpen} onOpenChange={setIsHelpModalOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <HelpCircle className="w-5 h-5 text-primary" />
+              Help & Support
+            </DialogTitle>
+            <DialogDescription>
+              Get help with ListMine or contact our support team.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6 py-4">
+            {/* Keyboard Shortcuts */}
+            <div>
+              <h4 className="font-semibold text-sm mb-3">Keyboard Shortcuts</h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-3">
+                  <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono border border-gray-300 min-w-[32px] text-center">
+                    N
+                  </kbd>
+                  <span className="text-gray-600">Create new list</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono border border-gray-300 min-w-[32px] text-center">
+                    /
+                  </kbd>
+                  <span className="text-gray-600">Search lists</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono border border-gray-300 min-w-[32px] text-center">
+                    ESC
+                  </kbd>
+                  <span className="text-gray-600">Close modal</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick FAQ */}
+            <div>
+              <h4 className="font-semibold text-sm mb-3">Quick FAQ</h4>
+              <div className="space-y-3 text-sm">
+                <div>
+                  <p className="font-medium text-gray-900">How do I share a list?</p>
+                  <p className="text-gray-600">Open any list and click the Share button to generate a shareable link or invite collaborators.</p>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">How do I upgrade my plan?</p>
+                  <p className="text-gray-600">Click the "Upgrade" button in the header or visit the Pricing page to see available plans.</p>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">Can I import existing lists?</p>
+                  <p className="text-gray-600">Yes! Use the Import/Export feature to import lists from CSV or TXT files.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Contact Support */}
+            <div className="border-t pt-4">
+              <h4 className="font-semibold text-sm mb-3">Need More Help?</h4>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => window.open('https://listmine.com/how-it-works', '_blank')}
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  How It Works
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => window.location.href = 'mailto:support@listmine.com'}
+                >
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  Contact Support
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -8,9 +8,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ListPlus, Users, Crown, ChevronRight, X } from "lucide-react";
+import { ListPlus, Users, Crown, ChevronRight, X, Sparkles } from "lucide-react";
 import { useAuth } from "@/contexts/useAuthHook";
 import { useNavigate } from "react-router-dom";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 interface OnboardingStep {
   id: string;
@@ -49,6 +51,7 @@ const ONBOARDING_KEY = "listmine_onboarding_completed";
 export function OnboardingTooltips() {
   const [isOpen, setIsOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -82,20 +85,31 @@ export function OnboardingTooltips() {
   };
 
   const handleComplete = () => {
+    // Always save if "Don't show again" is checked, or if completing the tour
     localStorage.setItem(ONBOARDING_KEY, "true");
+    setIsOpen(false);
+  };
+
+  const handleDismiss = () => {
+    if (dontShowAgain) {
+      localStorage.setItem(ONBOARDING_KEY, "true");
+    }
     setIsOpen(false);
   };
 
   const step = steps[currentStep];
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open) handleDismiss();
+      else setIsOpen(open);
+    }}>
       <DialogContent 
         className="sm:max-w-md animate-pop-in"
         aria-describedby="onboarding-description"
       >
         <button
-          onClick={handleSkip}
+          onClick={handleDismiss}
           aria-label="Skip onboarding tour"
           className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
         >
@@ -132,21 +146,32 @@ export function OnboardingTooltips() {
           {step.id === "upgrade-tier" && (
             <div className="text-center">
               <ul className="text-left mt-2 space-y-1 text-sm text-muted-foreground">
-                <li>• More lists</li>
-                <li>• Collaboration features</li>
-                <li>• Import/Export</li>
-                <li>• Wishlists & Registries</li>
-                <li>• And more</li>
+                <li className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  More lists & items per list
+                </li>
+                <li className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  Collaboration features
+                </li>
+                <li className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  Import/Export capabilities
+                </li>
+                <li className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  Wishlists & Registries
+                </li>
               </ul>
               <Button
                 onClick={() => {
                   handleComplete();
                   navigate("/upgrade");
                 }}
-                variant="link"
-                className="mt-3 text-primary p-0 h-auto"
+                className="mt-4 w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
               >
-                View upgrade options →
+                <Crown className="w-4 h-4 mr-2" />
+                See Plans & Upgrade
               </Button>
             </div>
           )}
@@ -169,24 +194,41 @@ export function OnboardingTooltips() {
           ))}
         </div>
 
-        <DialogFooter className="flex flex-col sm:flex-row gap-2">
-          <Button
-            variant="ghost"
-            onClick={handleSkip}
-            className="text-gray-500 min-h-[44px]"
-          >
-            Skip tour
-          </Button>
-          <Button onClick={handleNext} className="min-h-[44px]">
-            {currentStep < steps.length - 1 ? (
-              <>
-                Next
-                <ChevronRight className="w-4 h-4 ml-1" />
-              </>
-            ) : (
-              "Get Started!"
-            )}
-          </Button>
+        <DialogFooter className="flex flex-col gap-4">
+          {/* Don't show again checkbox */}
+          <div className="flex items-center space-x-2 w-full justify-center">
+            <Checkbox 
+              id="dont-show-again" 
+              checked={dontShowAgain}
+              onCheckedChange={(checked) => setDontShowAgain(checked === true)}
+            />
+            <Label 
+              htmlFor="dont-show-again" 
+              className="text-sm text-gray-500 cursor-pointer"
+            >
+              Don't show this again
+            </Label>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row gap-2 w-full">
+            <Button
+              variant="ghost"
+              onClick={handleDismiss}
+              className="text-gray-500 min-h-[44px]"
+            >
+              {dontShowAgain ? "Dismiss" : "Skip tour"}
+            </Button>
+            <Button onClick={handleNext} className="min-h-[44px]">
+              {currentStep < steps.length - 1 ? (
+                <>
+                  Next
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </>
+              ) : (
+                "Get Started!"
+              )}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

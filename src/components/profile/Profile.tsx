@@ -89,14 +89,15 @@ export default function Profile() {
     return null;
   }
 
-  const totalLists = lists.length;
-  const totalItems = lists.reduce((sum, list) => sum + list.items.length, 0);
-  const completedItems = lists.reduce(
-    (sum, list) => sum + list.items.filter((item) => item.completed).length,
+  // Calculate stats from lists - use cached data if available
+  const totalLists = Math.max(0, lists.length);
+  const totalItems = Math.max(0, lists.reduce((sum, list) => sum + (list.items?.length || 0), 0));
+  const completedItems = Math.max(0, lists.reduce(
+    (sum, list) => sum + (list.items?.filter((item) => item.completed).length || 0),
     0,
-  );
-  const pinnedLists = lists.filter((list) => list.isPinned).length;
-  const sharedLists = lists.filter((list) => list.isShared).length;
+  ));
+  const pinnedLists = Math.max(0, lists.filter((list) => list.isPinned).length);
+  const sharedLists = Math.max(0, lists.filter((list) => list.isShared).length);
 
   const handleEditName = () => {
     setEditName(user.name);
@@ -226,7 +227,7 @@ export default function Profile() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10">
+    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 animate-in fade-in duration-200">
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center gap-4">
@@ -445,18 +446,18 @@ export default function Profile() {
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm font-medium text-gray-700">Lists</p>
                   <p className="text-sm font-medium text-gray-900">
-                    {totalLists} / {user.listLimit}
+                    {totalLists} / {user.listLimit === -1 ? "∞" : user.listLimit}
                   </p>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-3">
                   <div
                     className={`h-3 rounded-full transition-all ${
-                      totalLists >= user.listLimit * 0.9
+                      user.listLimit !== -1 && totalLists >= user.listLimit * 0.9
                         ? "bg-red-500"
                         : "bg-primary"
                     }`}
                     style={{
-                      width: `${Math.min((totalLists / user.listLimit) * 100, 100)}%`,
+                      width: `${user.listLimit === -1 ? 0 : Math.min((totalLists / user.listLimit) * 100, 100)}%`,
                     }}
                   />
                 </div>
@@ -468,7 +469,7 @@ export default function Profile() {
                     Items per List Limit
                   </p>
                   <p className="text-sm font-medium text-gray-900">
-                    {user.itemsPerListLimit}
+                    {user.itemsPerListLimit === -1 ? "∞" : user.itemsPerListLimit}
                   </p>
                 </div>
               </div>
