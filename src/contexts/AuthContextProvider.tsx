@@ -20,31 +20,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   // Use a ref to cache the user's tier to prevent flickering
   // Initialize synchronously from localStorage for persistence across page reloads
-  const cachedTierRef = useRef<string | null>(() => {
+  const getInitialTier = (): string | null => {
     try {
       return localStorage.getItem('listmine_user_tier');
     } catch (e) {
       return null;
     }
-  });
-  const userIdRef = useRef<string | null>(() => {
+  };
+  
+  const getInitialUserId = (): string | null => {
     try {
       return localStorage.getItem('listmine_user_id');
     } catch (e) {
       return null;
     }
-  });
+  };
   
-  // Initialize refs on first render (synchronously)
-  if (cachedTierRef.current === null || typeof cachedTierRef.current === 'function') {
-    try {
-      cachedTierRef.current = localStorage.getItem('listmine_user_tier');
-      userIdRef.current = localStorage.getItem('listmine_user_id');
-    } catch (e) {
-      cachedTierRef.current = null;
-      userIdRef.current = null;
-    }
-  }
+  const cachedTierRef = useRef<string | null>(getInitialTier());
+  const userIdRef = useRef<string | null>(getInitialUserId());
 
   // Helper to save tier to localStorage
   const saveTierToStorage = (userId: string, tier: string) => {
