@@ -535,7 +535,17 @@ export default function AdminUsersPage() {
         return;
       }
       
-      const parsedLogs: AuditLog[] = rawLogs.map((log: Omit<AuditLog, 'details'> & { details: unknown }) => {
+      const parsedLogs: AuditLog[] = rawLogs.map((log: {
+        id: string;
+        admin_id: string;
+        admin_email?: string | null;
+        admin_name?: string | null;
+        action_type: string;
+        target_user_id: string | null;
+        target_user_email: string | null;
+        details: unknown;
+        created_at: string;
+      }) => {
         let parsedDetails: Record<string, any> = {};
         const rawDetails = log.details;
         
@@ -554,8 +564,8 @@ export default function AdminUsersPage() {
         return {
           id: log.id,
           admin_id: log.admin_id,
-          admin_email: log.admin_email,
-          admin_name: log.admin_name,
+          admin_email: log.admin_email ?? null,
+          admin_name: log.admin_name ?? null,
           action_type: log.action_type,
           target_user_id: log.target_user_id,
           target_user_email: log.target_user_email,
