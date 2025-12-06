@@ -81,8 +81,8 @@ interface User {
 interface AuditLog {
   id: string;
   admin_id: string;
-  admin_email: string;
-  admin_name: string;
+  admin_email: string | null;
+  admin_name: string | null;
   action_type: string;
   target_user_id: string | null;
   target_user_email: string | null;
@@ -538,8 +538,8 @@ export default function AdminUsersPage() {
       const parsedLogs: AuditLog[] = rawLogs.map((log: {
         id: string;
         admin_id: string;
-        admin_email: string;
-        admin_name: string;
+        admin_email: string | null;
+        admin_name: string | null;
         action_type: string;
         target_user_id: string | null;
         target_user_email: string | null;
@@ -564,8 +564,8 @@ export default function AdminUsersPage() {
         return {
           id: log.id,
           admin_id: log.admin_id,
-          admin_email: log.admin_email || '',
-          admin_name: log.admin_name || '',
+          admin_email: log.admin_email,
+          admin_name: log.admin_name,
           action_type: log.action_type,
           target_user_id: log.target_user_id,
           target_user_email: log.target_user_email,
