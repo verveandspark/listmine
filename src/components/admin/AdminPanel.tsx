@@ -326,11 +326,27 @@ export default function AdminUsersPage() {
       });
       if (error) throw error;
       
+      // Parse data if it's a JSON string
+      let parsedData: Record<string, any> = {};
+      if (data) {
+        if (typeof data === 'string') {
+          try {
+            parsedData = JSON.parse(data);
+          } catch {
+            parsedData = {};
+          }
+        } else if (typeof data === 'object' && data !== null) {
+          parsedData = data as Record<string, any>;
+        }
+      }
+      
+      const listsDeleted = parsedData.lists_deleted || 0;
+      
       // Log the action
-      await logAdminAction("data_cleared", userId, user?.email, { lists_deleted: data?.lists_deleted });
+      await logAdminAction("data_cleared", userId, user?.email, { lists_deleted: listsDeleted });
       
       setSuccessMessage(
-        `User data cleared for ${user?.email || "user"}. ${data?.lists_deleted || 0} lists deleted.`,
+        `User data cleared for ${user?.email || "user"}. ${listsDeleted} lists deleted.`,
       );
       setShowConfirmDialog(false);
       setSelectedUser(null);
