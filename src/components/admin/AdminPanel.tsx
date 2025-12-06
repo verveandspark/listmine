@@ -134,12 +134,13 @@ export default function AdminUsersPage() {
     fetchUsers();
   }, []);
 
-  // Refetch audit logs when filter or page changes
+  // Refetch audit logs when filter, page, or dialog visibility changes
   useEffect(() => {
     if (showAuditLog) {
+      console.log("[Admin] Audit log dialog opened, fetching logs...");
       fetchAuditLogs();
     }
-  }, [auditLogFilter, auditLogPage]);
+  }, [showAuditLog, auditLogFilter, auditLogPage]);
 
   const fetchUsers = async () => {
     console.log("[Admin] fetchUsers() called");
@@ -501,17 +502,36 @@ export default function AdminUsersPage() {
   const fetchAuditLogs = async () => {
     try {
       setAuditLogsLoading(true);
+      console.log("[Admin] Fetching audit logs with params:", {
+        p_limit: 50,
+        p_offset: auditLogPage * 50,
+        p_action_type: auditLogFilter === "all" ? null : auditLogFilter,
+      });
+      
       const { data, error } = await supabase.rpc("get_admin_audit_logs", {
         p_limit: 50,
         p_offset: auditLogPage * 50,
         p_action_type: auditLogFilter === "all" ? null : auditLogFilter,
       });
       
-      if (error) throw error;
+      console.log("[Admin] Audit logs response:", { data, error, dataLength: data?.length });
+      
+      if (error) {
+        console.error("[Admin] Audit logs error:", error);
+        throw error;
+      }
       
       // Parse details from JSON string to object if needed
       // Supabase Json type can be string | number | boolean | null | object
       const rawLogs = data || [];
+      console.log("[Admin] Raw logs count:", rawLogs.length);
+      
+      if (rawLogs.length === 0) {
+        console.log("[Admin] No audit logs returned from database");
+        setAuditLogs([]);
+        return;
+      }
+      
       const parsedLogs: AuditLog[] = rawLogs.map((log: {
         id: string;
         admin_id: string;
@@ -551,9 +571,10 @@ export default function AdminUsersPage() {
         };
       });
       
+      console.log("[Admin] Parsed logs count:", parsedLogs.length);
       setAuditLogs(parsedLogs);
     } catch (error) {
-      console.error("Error fetching audit logs:", error);
+      console.error("[Admin] Error fetching audit logs:", error);
       setErrorMessage("Failed to load audit logs");
       setTimeout(() => setErrorMessage(""), 5000);
     } finally {
@@ -755,7 +776,6 @@ export default function AdminUsersPage() {
                   variant="outline"
                   onClick={() => {
                     setShowAuditLog(true);
-                    fetchAuditLogs();
                   }}
                   className="flex items-center gap-2 min-h-[44px]"
                 >
@@ -1499,10 +1519,26 @@ export default function AdminUsersPage() {
               {auditLogsLoading ? (
                 <div className="flex items-center justify-center h-full">
                   <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                  <span className="ml-2 text-gray-500">Loading audit logs...</span>
                 </div>
               ) : auditLogs.length === 0 ? (
-                <div className="flex items-center justify-center h-full text-gray-500">
-                  No audit logs found
+                <div className="flex flex-col items-center justify-center h-full text-gray-500 gap-2">
+                  <History className="w-8 h-8 text-gray-300" />
+                  <p>No audit logs found</p>
+                  <p className="text-xs text-gray-400">
+                    {auditLogFilter !== "all" 
+                      ? `No logs matching filter "${auditLogFilter}". Try selecting "All Actions".`
+                      : "Admin actions will appear here once performed."}
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={fetchAuditLogs}
+                    className="mt-2"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Retry
+                  </Button>
                 </div>
               ) : (
                 <div className="p-4 space-y-3">
