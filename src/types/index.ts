@@ -8,6 +8,32 @@ export interface User {
   itemsPerListLimit: number;
 }
 
+export interface Account {
+  id: string;
+  ownerId: string;
+  name: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ListGuest {
+  id: string;
+  listId: string;
+  userId: string;
+  permission: 'view' | 'edit';
+  invitedAt: Date;
+  user?: User;
+}
+
+export interface TeamMember {
+  id: string;
+  accountId: string;
+  userId: string;
+  role: 'member' | 'manager' | 'billing_admin';
+  invitedAt: Date;
+  user?: User;
+}
+
 export interface ListItemAttributes {
   color?: string;
   size?: string;
@@ -58,6 +84,7 @@ export interface List {
   shareLink?: string;
   tags?: string[];
   collaborators?: string[];
+  guests?: ListGuest[];
   createdAt: Date;
   updatedAt: Date;
   showPurchaserInfo?: boolean;

@@ -14,6 +14,77 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_team_members: {
+        Row: {
+          account_id: string
+          id: string
+          invited_at: string | null
+          role: string
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          id?: string
+          invited_at?: string | null
+          role?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          id?: string
+          invited_at?: string | null
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_team_members_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_team_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accounts: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          owner_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          owner_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          owner_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounts_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_actions: {
         Row: {
           action_type: string
@@ -252,6 +323,45 @@ export type Database = {
             columns: ["list_id"]
             isOneToOne: false
             referencedRelation: "lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      list_guests: {
+        Row: {
+          id: string
+          invited_at: string | null
+          list_id: string
+          permission: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          invited_at?: string | null
+          list_id: string
+          permission?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          invited_at?: string | null
+          list_id?: string
+          permission?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "list_guests_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "list_guests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -790,6 +900,19 @@ export type Database = {
         Args: { p_user_email: string }
         Returns: Json
       }
+      can_access_list:
+        | {
+            Args: {
+              p_check_write?: boolean
+              p_list_id: string
+              p_user_id?: string
+            }
+            Returns: boolean
+          }
+        | {
+            Args: { list_id_param: string; user_id_param: string }
+            Returns: boolean
+          }
       clear_user_data: { Args: { target_user_id: string }; Returns: Json }
       delete_user_account: { Args: { target_user_id: string }; Returns: Json }
       disable_user_account: {
@@ -798,18 +921,10 @@ export type Database = {
       }
       enable_user_account: { Args: { target_user_id: string }; Returns: Json }
       get_admin_audit_logs: {
-        Args: {
-          p_action_type?: string
-          p_admin_id?: string
-          p_limit?: number
-          p_offset?: number
-          p_target_user_id?: string
-        }
+        Args: { p_limit: number; p_offset: number }
         Returns: {
           action_type: string
-          admin_email: string
           admin_id: string
-          admin_name: string
           created_at: string
           details: Json
           id: string
@@ -818,6 +933,15 @@ export type Database = {
         }[]
       }
       get_allowed_list_types: { Args: { user_tier: string }; Returns: string[] }
+      get_guest_count_for_list: { Args: { p_list_id: string }; Returns: number }
+      get_team_member_count_for_account: {
+        Args: { p_account_id: string }
+        Returns: number
+      }
+      is_team_member: {
+        Args: { account_id_param: string; user_id_param: string }
+        Returns: boolean
+      }
       log_admin_action: {
         Args: {
           p_action_type: string

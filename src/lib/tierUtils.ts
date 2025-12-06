@@ -132,3 +132,70 @@ export function getAvailableExportFormats(tier: UserTier | string | undefined): 
   if (tier === "good") return ["csv", "txt"];
   return ["csv", "txt", "pdf"];
 }
+
+/**
+ * Guest limits per list by tier
+ */
+export const GUEST_LIMITS: Record<UserTier, number> = {
+  "free": 0,
+  "good": 0,
+  "even_better": 2,
+  "lots_more": -1, // unlimited
+};
+
+/**
+ * Check if user tier can invite guests
+ */
+export function canInviteGuests(tier: UserTier | string | undefined): boolean {
+  if (!tier) return false;
+  return tier === "even_better" || tier === "lots_more";
+}
+
+/**
+ * Get guest limit for a tier (-1 means unlimited)
+ */
+export function getGuestLimit(tier: UserTier | string | undefined): number {
+  if (!tier) return 0;
+  return GUEST_LIMITS[tier as UserTier] ?? 0;
+}
+
+/**
+ * Check if user tier can have team members
+ */
+export function canHaveTeamMembers(tier: UserTier | string | undefined): boolean {
+  if (!tier) return false;
+  return tier === "lots_more";
+}
+
+/**
+ * Team member roles
+ */
+export type TeamMemberRole = "member" | "manager" | "billing_admin";
+
+/**
+ * Get role display name
+ */
+export function getRoleDisplayName(role: TeamMemberRole): string {
+  const names: Record<TeamMemberRole, string> = {
+    "member": "Member",
+    "manager": "Manager",
+    "billing_admin": "Billing Admin",
+  };
+  return names[role] || role;
+}
+
+/**
+ * Check if a role can manage team members
+ */
+export function canManageTeamMembers(role: TeamMemberRole | string | undefined): boolean {
+  if (!role) return false;
+  return role === "manager" || role === "billing_admin";
+}
+
+/**
+ * Check if a role can access billing
+ */
+export function canAccessBilling(role: TeamMemberRole | string | undefined): boolean {
+  if (!role) return false;
+  return role === "billing_admin";
+}

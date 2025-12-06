@@ -108,6 +108,7 @@ interface ListContextType {
   retryLoad: () => Promise<void>;
 }
 
+// ListContext for managing list state across the application
 export const ListContext = createContext<ListContextType | undefined>(
   undefined,
 );
@@ -240,28 +241,53 @@ export function ListProvider({ children }: { children: ReactNode }) {
         throw new Error("Supabase client not initialized");
       }
 
-      const { data: listsData, error: listsError } = await supabase
+      // Fetch owned lists
+      const { data: ownedLists, error: ownedError } = await supabase
         .from("lists")
         .select("*")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
+
+      if (ownedError) {
+        console.error("[ListMine Error]", {
+          operation: "loadLists - owned lists query",
+          error: ownedError,
+          errorCode: ownedError.code,
+          errorMessage: ownedError.message,
+          userId: userId,
+        });
+        throw ownedError;
+      }
+
+      // Fetch lists where user is a guest
+      const { data: guestListIds } = await supabase
+        .from("list_guests")
+        .select("list_id")
+        .eq("user_id", userId);
+
+      let guestLists: any[] = [];
+      if (guestListIds && guestListIds.length > 0) {
+        const { data: guestListsData } = await supabase
+          .from("lists")
+          .select("*")
+          .in("id", guestListIds.map((g) => g.list_id))
+          .order("created_at", { ascending: false });
+        guestLists = guestListsData || [];
+      }
+
+      // Combine and deduplicate lists
+      const ownedIds = new Set((ownedLists || []).map((l) => l.id));
+      const combinedLists = [
+        ...(ownedLists || []),
+        ...guestLists.filter((l) => !ownedIds.has(l.id)),
+      ];
+      const listsData = combinedLists;
 
       // Check if this request is still valid (user hasn't changed)
       if (requestId !== loadRequestIdRef.current || userId !== currentUserIdRef.current) {
       // Stale request detected
         isLoadingRef.current = false;
         return;
-      }
-
-      if (listsError) {
-        console.error("[ListMine Error]", {
-          operation: "loadLists - lists query",
-          error: listsError,
-          errorCode: listsError.code,
-          errorMessage: listsError.message,
-          userId: userId,
-        });
-        throw listsError;
       }
 
 

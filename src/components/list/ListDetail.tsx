@@ -3,6 +3,7 @@ import { useOpenGraphPreview } from "@/hooks/useOpenGraphPreview";
 import { LinkPreviewCard } from "@/components/list/LinkPreviewCard";
 import { ListSidebar } from "./ListSidebar";
 import PurchaseHistoryModal from "./PurchaseHistoryModal";
+import GuestManagement from "./GuestManagement";
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useLists } from "@/contexts/useListsHook";
@@ -56,6 +57,7 @@ import {
   Link as LinkIcon,
   Link2Off,
   Printer,
+  Users,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -218,6 +220,7 @@ export default function ListDetail() {
   const [editListCategory, setEditListCategory] = useState<string>("");
   const [editListType, setEditListType] = useState<string>("");
   const [isPurchaseHistoryOpen, setIsPurchaseHistoryOpen] = useState(false);
+  const [isGuestManagementOpen, setIsGuestManagementOpen] = useState(false);
   
   // Tags section collapsed state
   const [isTagsSectionOpen, setIsTagsSectionOpen] = useState(false);
@@ -1102,6 +1105,10 @@ export default function ListDetail() {
                     <DropdownMenuItem onClick={handleGenerateShareLink}>
                       <Share2 className="w-4 h-4 mr-2" />
                       {list.isShared ? "Copy Share Link" : "Generate Share Link"}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setIsGuestManagementOpen(true)}>
+                      <Users className="w-4 h-4 mr-2" />
+                      Manage Guests
                     </DropdownMenuItem>
                     {list.isShared && (
                       <DropdownMenuItem onClick={handleUnshareList} className="text-red-600">
@@ -4251,6 +4258,22 @@ export default function ListDetail() {
           onTogglePurchaserInfo={handleTogglePurchaserInfo}
         />
       )}
+
+      {/* Guest Management Dialog */}
+      <Dialog open={isGuestManagementOpen} onOpenChange={setIsGuestManagementOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-primary" />
+              Manage Guests
+            </DialogTitle>
+            <DialogDescription>
+              Invite guests to collaborate on this list or manage existing guest access.
+            </DialogDescription>
+          </DialogHeader>
+          <GuestManagement listId={list.id} listOwnerId={user?.id || ""} />
+        </DialogContent>
+      </Dialog>
 
       {/* Help Modal */}
       <Dialog open={isHelpModalOpen} onOpenChange={setIsHelpModalOpen}>

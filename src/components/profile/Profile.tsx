@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/useAuthHook";
 import { useLists } from "@/contexts/useListsHook";
 import { resetOnboarding } from "@/components/onboarding/OnboardingTooltips";
 import { getTierDisplayName, getAvailableListTypes, ALL_LIST_TYPES, type UserTier } from "@/lib/tierUtils";
+import TeamManagement from "@/components/team/TeamManagement";
 import {
   Card,
   CardContent,
@@ -95,6 +96,7 @@ export default function Profile() {
   
   // Plan features collapsible state
   const [isPlanFeaturesOpen, setIsPlanFeaturesOpen] = useState(false);
+  const [isTeamManagementOpen, setIsTeamManagementOpen] = useState(false);
 
   if (!user) {
     navigate("/");
@@ -540,6 +542,16 @@ export default function Profile() {
                             <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
                             <span>3 admin accounts + unlimited guests</span>
                           </li>
+                          <li className="flex items-start gap-2">
+                            <Button
+                              variant="link"
+                              className="p-0 h-auto text-primary"
+                              onClick={() => setIsTeamManagementOpen(true)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Manage Team Members
+                            </Button>
+                          </li>
                         </>
                       )}
                     </ul>
@@ -966,6 +978,22 @@ export default function Profile() {
               </DialogFooter>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Team Management Dialog */}
+      <Dialog open={isTeamManagementOpen} onOpenChange={setIsTeamManagementOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-primary" />
+              Team Management
+            </DialogTitle>
+            <DialogDescription>
+              Manage team members who have account-wide access to all your lists.
+            </DialogDescription>
+          </DialogHeader>
+          <TeamManagement onClose={() => setIsTeamManagementOpen(false)} />
         </DialogContent>
       </Dialog>
     </div>
