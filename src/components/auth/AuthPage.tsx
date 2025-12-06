@@ -42,7 +42,11 @@ export default function AuthPage() {
     // Validate email
     const emailValidation = validateEmail(loginEmail);
     if (!emailValidation.valid) {
-      alert(emailValidation.error);
+      toast({
+        title: "❌ Invalid Email",
+        description: emailValidation.error,
+        variant: "destructive",
+      });
       return;
     }
 
@@ -50,11 +54,12 @@ export default function AuthPage() {
     try {
       await login(emailValidation.value!, loginPassword);
     } catch (error: any) {
-      console.error("Login failed:", error);
-      alert(
-        error.message ||
-          "Hmm, we couldn't log you in. Check your email and password and try again.",
-      );
+      console.error("[Auth] Login failed:", error);
+      toast({
+        title: "❌ Login Failed",
+        description: error.message || "Hmm, we couldn't log you in. Check your email and password and try again.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -66,25 +71,41 @@ export default function AuthPage() {
     // Validate email
     const emailValidation = validateEmail(registerEmail);
     if (!emailValidation.valid) {
-      alert(emailValidation.error);
+      toast({
+        title: "❌ Invalid Email",
+        description: emailValidation.error,
+        variant: "destructive",
+      });
       return;
     }
 
     // Validate password
     const passwordValidation = validatePassword(registerPassword);
     if (!passwordValidation.valid) {
-      alert(passwordValidation.error);
+      toast({
+        title: "❌ Invalid Password",
+        description: passwordValidation.error,
+        variant: "destructive",
+      });
       return;
     }
 
     // Validate name
     if (!registerName || registerName.trim().length === 0) {
-      alert("Name is required");
+      toast({
+        title: "❌ Name Required",
+        description: "Please enter your name",
+        variant: "destructive",
+      });
       return;
     }
 
     if (registerName.length > 100) {
-      alert("Name must be 100 characters or less");
+      toast({
+        title: "❌ Name Too Long",
+        description: "Name must be 100 characters or less",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -96,11 +117,12 @@ export default function AuthPage() {
         registerName.trim(),
       );
     } catch (error: any) {
-      console.error("Registration failed:", error);
-      alert(
-        error.message ||
-          "Something went wrong. Try again, or contact support if this keeps happening.",
-      );
+      console.error("[Auth] Registration failed:", error);
+      toast({
+        title: "❌ Registration Failed",
+        description: error.message || "Something went wrong. Try again, or contact support if this keeps happening.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }

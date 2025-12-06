@@ -6,6 +6,8 @@ import { AuthProvider } from "./contexts/AuthContextProvider";
 import { ListProvider } from "./contexts/ListContext";
 import { useAuth } from "./contexts/useAuthHook";
 import { Toaster } from "./components/ui/toaster";
+import { GlobalBannerProvider } from "./components/ui/GlobalErrorBanner";
+import { ErrorBoundary } from "./components/ui/ErrorBoundary";
 import AuthPage from "./components/auth/AuthPage";
 import ResetPassword from "./components/auth/ResetPassword";
 import Dashboard from "./components/dashboard/Dashboard";
@@ -55,12 +57,14 @@ function AppRoutes() {
       />
       <Route path="/auth" element={<AuthPage />} />
       <Route path="/auth/reset-password" element={<ResetPassword />} />
-      <Route path="/shared/:shareId" element={<SharedListView />} />
+      <Route path="/shared/:shareId" element={<ErrorBoundary><SharedListView /></ErrorBoundary>} />
       <Route
         path="/dashboard"
         element={
           <ProtectedRoute>
-            <Dashboard />
+            <ErrorBoundary>
+              <Dashboard />
+            </ErrorBoundary>
           </ProtectedRoute>
         }
       />
@@ -68,7 +72,9 @@ function AppRoutes() {
         path="/templates"
         element={
           <ProtectedRoute>
-            <Templates />
+            <ErrorBoundary>
+              <Templates />
+            </ErrorBoundary>
           </ProtectedRoute>
         }
       />
@@ -76,7 +82,9 @@ function AppRoutes() {
         path="/list/:id"
         element={
           <ProtectedRoute>
-            <ListDetail />
+            <ErrorBoundary>
+              <ListDetail />
+            </ErrorBoundary>
           </ProtectedRoute>
         }
       />
@@ -84,7 +92,9 @@ function AppRoutes() {
         path="/import-export"
         element={
           <ProtectedRoute>
-            <ImportExport />
+            <ErrorBoundary>
+              <ImportExport />
+            </ErrorBoundary>
           </ProtectedRoute>
         }
       />
@@ -92,7 +102,9 @@ function AppRoutes() {
         path="/profile"
         element={
           <ProtectedRoute>
-            <Profile />
+            <ErrorBoundary>
+              <Profile />
+            </ErrorBoundary>
           </ProtectedRoute>
         }
       />
@@ -100,7 +112,9 @@ function AppRoutes() {
         path="/upgrade"
         element={
           <ProtectedRoute>
-            <Upgrade />
+            <ErrorBoundary>
+              <Upgrade />
+            </ErrorBoundary>
           </ProtectedRoute>
         }
       />
@@ -108,7 +122,9 @@ function AppRoutes() {
         path="/admin/users"
         element={
           <ProtectedRoute>
-            <AdminPanel />
+            <ErrorBoundary>
+              <AdminPanel />
+            </ErrorBoundary>
           </ProtectedRoute>
         }
       />
@@ -124,20 +140,26 @@ function AuthenticatedApp() {
   }
 
   return (
-    <ListProvider>
-      <Suspense fallback={<DashboardSkeleton />}>
-        <AppRoutes />
-        <Toaster />
-      </Suspense>
-    </ListProvider>
+    <GlobalBannerProvider>
+      <ListProvider>
+        <ErrorBoundary>
+          <Suspense fallback={<DashboardSkeleton />}>
+            <AppRoutes />
+            <Toaster />
+          </Suspense>
+        </ErrorBoundary>
+      </ListProvider>
+    </GlobalBannerProvider>
   );
 }
 
 function App() {
   return (
-    <AuthProvider>
-      <AuthenticatedApp />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AuthenticatedApp />
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

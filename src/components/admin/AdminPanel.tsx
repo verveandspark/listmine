@@ -406,9 +406,10 @@ export default function AdminUsersPage() {
       setSuccessMessage(`Tier updated to ${newTier}`);
       await fetchUsers();
       setTimeout(() => setSuccessMessage(""), 3000);
-    } catch (error) {
-      console.error("Error updating tier:", error);
-      alert("Failed to update tier");
+    } catch (error: any) {
+      console.error("[Admin] Error updating tier:", error);
+      setErrorMessage(`Failed to update tier: ${error.message || "Unknown error"}`);
+      setTimeout(() => setErrorMessage(""), 5000);
     } finally {
       setActionLoading(false);
     }
