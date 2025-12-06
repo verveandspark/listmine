@@ -494,19 +494,34 @@ export default function AdminUsersPage() {
       if (error) throw error;
       
       // Parse details from JSON string to object if needed
-      const parsedLogs: AuditLog[] = (data || []).map((log: any) => ({
-        id: log.id,
-        admin_id: log.admin_id,
-        admin_email: log.admin_email || '',
-        admin_name: log.admin_name || '',
-        action_type: log.action_type,
-        target_user_id: log.target_user_id,
-        target_user_email: log.target_user_email,
-        details: typeof log.details === 'string' 
-          ? JSON.parse(log.details) 
-          : (log.details || {}) as Record<string, any>,
-        created_at: log.created_at,
-      }));
+      // Supabase Json type can be string | number | boolean | null | object
+      const parsedLogs: AuditLog[] = (data || []).map((log) => {
+        let parsedDetails: Record<string, any> = {};
+        
+        if (log.details) {
+          if (typeof log.details === 'string') {
+            try {
+              parsedDetails = JSON.parse(log.details);
+            } catch {
+              parsedDetails = { raw: log.details };
+            }
+          } else if (typeof log.details === 'object' && log.details !== null) {
+            parsedDetails = log.details as Record<string, any>;
+          }
+        }
+        
+        return {
+          id: log.id,
+          admin_id: log.admin_id,
+          admin_email: log.admin_email || '',
+          admin_name: log.admin_name || '',
+          action_type: log.action_type,
+          target_user_id: log.target_user_id,
+          target_user_email: log.target_user_email,
+          details: parsedDetails,
+          created_at: log.created_at,
+        };
+      });
       
       setAuditLogs(parsedLogs);
     } catch (error) {
