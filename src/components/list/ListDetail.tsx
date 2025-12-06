@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useLists } from "@/contexts/useListsHook";
 import { useAuth } from "@/contexts/useAuthHook";
+import { useUndoAction } from "@/hooks/useUndoAction";
 import { ListItem as ListItemType, ListCategory, ListType } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,6 +55,7 @@ import {
   Flag,
   Link as LinkIcon,
   Link2Off,
+  Printer,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -143,8 +145,12 @@ export default function ListDetail() {
     removeTagFromList,
     updateList,
     hasLoadedOnce,
+    restoreList,
+    restoreListItem,
+    restoreBulkItems,
   } = useLists();
   const { toast } = useToast();
+  const { executeWithUndo } = useUndoAction();
 
   const list = lists.find((l) => l.id === id);
   const [shareLink, setShareLink] = useState<string | null>(null);
@@ -544,13 +550,29 @@ export default function ListDetail() {
     setDropPosition(null);
   };
 
-  const handleDeleteList = () => {
-    deleteList(list.id);
+  const handleDeleteList = async () => {
+    // Store the list data for potential undo
+    const listData = {
+      ...list,
+      items: list.items.map(item => ({ ...item })),
+    };
+    
+    await executeWithUndo(
+      `delete-list-${list.id}`,
+      listData,
+      async () => {
+        await deleteList(list.id);
+      },
+      async (data) => {
+        await restoreList(data);
+      },
+      {
+        title: "List deleted",
+        description: `"${list.title}" has been removed`,
+        undoDescription: `"${list.title}" has been restored`,
+      }
+    );
     navigate("/dashboard");
-    toast({
-      title: "List deleted",
-      description: "The list has been removed",
-    });
   };
 
   const toggleItemSelection = (itemId: string) => {
@@ -573,13 +595,28 @@ export default function ListDetail() {
     }
   };
 
-  const handleBulkDelete = () => {
-    bulkDeleteItems(list.id, Array.from(selectedItems));
+  const handleBulkDelete = async () => {
+    // Store the items data for potential undo
+    const itemsToDelete = list.items.filter(item => selectedItems.has(item.id));
+    const itemsData = itemsToDelete.map(item => ({ ...item }));
+    const itemCount = selectedItems.size;
+    
+    await executeWithUndo(
+      `bulk-delete-${list.id}-${Date.now()}`,
+      itemsData,
+      async () => {
+        await bulkDeleteItems(list.id, Array.from(selectedItems));
+      },
+      async (data) => {
+        await restoreBulkItems(list.id, data);
+      },
+      {
+        title: "Items deleted",
+        description: `${itemCount} items removed`,
+        undoDescription: `${itemCount} items have been restored`,
+      }
+    );
     setSelectedItems(new Set());
-    toast({
-      title: "Items deleted",
-      description: `${selectedItems.size} items removed`,
-    });
   };
 
   const handleBulkComplete = () => {
@@ -835,6 +872,19 @@ export default function ListDetail() {
     }
   };
 
+  const handlePrint = () => {
+    toast({
+      title: "🖨️ Opening print dialog",
+      description: "Preparing your list for printing...",
+      className: "bg-blue-50 border-blue-200",
+    });
+    
+    // Small delay to show toast before print dialog
+    setTimeout(() => {
+      window.print();
+    }, 300);
+  };
+
   const getDueDateColor = (dueDate: Date | undefined) => {
     if (!dueDate) return "";
     const date = new Date(dueDate);
@@ -951,15 +1001,15 @@ export default function ListDetail() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 animate-in fade-in duration-200">
-      {/* Sidebar - Hidden on mobile, visible on desktop */}
-      <div className="hidden md:block">
+    <div className="flex min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 animate-in fade-in duration-200 print:bg-white print:min-h-0">
+      {/* Sidebar - Hidden on mobile, visible on desktop, hidden on print */}
+      <div className="hidden md:block print:hidden">
         <ListSidebar />
       </div>
 
       {/* Mobile Sidebar Overlay */}
       <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
-        <SheetContent side="left" className="w-[280px] p-0">
+        <SheetContent side="left" className="w-[280px] p-0 print:hidden">
           <ListSidebar />
         </SheetContent>
       </Sheet>
@@ -967,7 +1017,7 @@ export default function ListDetail() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <header className="bg-white border-b border-gray-200 sticky top-0 z-10 print:hidden">
           <div className="px-4 sm:px-6 lg:px-8 py-4">
             {/* Breadcrumbs */}
             <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
@@ -1124,46 +1174,53 @@ export default function ListDetail() {
                   <CheckCircle className="w-4 h-4 mr-2" />
                   {isSelectMode ? "Done" : "Select Multiple"}
                 </Button>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm" disabled={isExporting} className="h-10">
-                      {isExporting ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : (
-                        <Download className="w-4 h-4 mr-2" />
-                      )}
-                      Export
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-48">
-                    <div className="space-y-2">
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start"
-                        onClick={() => handleExport("csv")}
-                        disabled={isExporting}
-                      >
-                        Export as CSV
+                {user?.tier === "free" ? (
+                  <Button variant="outline" size="sm" onClick={handlePrint} className="h-10 print:hidden">
+                    <Printer className="w-4 h-4 mr-2" />
+                    Print
+                  </Button>
+                ) : (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" disabled={isExporting} className="h-10">
+                        {isExporting ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Download className="w-4 h-4 mr-2" />
+                        )}
+                        Export
                       </Button>
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start"
-                        onClick={() => handleExport("txt")}
-                        disabled={isExporting}
-                      >
-                        Export as TXT
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start"
-                        onClick={() => handleExport("pdf")}
-                        disabled={isExporting}
-                      >
-                        Export as PDF
-                      </Button>
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-48">
+                      <div className="space-y-2">
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-start"
+                          onClick={() => handleExport("csv")}
+                          disabled={isExporting}
+                        >
+                          Export as CSV
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-start"
+                          onClick={() => handleExport("txt")}
+                          disabled={isExporting}
+                        >
+                          Export as TXT
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-start"
+                          onClick={() => handleExport("pdf")}
+                          disabled={isExporting}
+                        >
+                          Export as PDF
+                        </Button>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )}
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="destructive" size="sm" className="h-10">
@@ -1175,8 +1232,8 @@ export default function ListDetail() {
                     <AlertDialogHeader>
                       <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Are you sure you want to delete this list? This action
-                        cannot be undone.
+                        Are you sure you want to delete this list? You can
+                        undo this action for a few seconds after deletion.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -1280,30 +1337,46 @@ export default function ListDetail() {
                       <CheckCircle className="w-4 h-4 mr-2" />
                       {isSelectMode ? "Done Selecting" : "Select Multiple"}
                     </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        handleExport("csv");
-                        setIsMobileMenuOpen(false);
-                      }}
-                      disabled={isExporting}
-                      className="w-full justify-start min-h-[44px]"
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      Export as CSV
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        handleExport("txt");
-                        setIsMobileMenuOpen(false);
-                      }}
-                      disabled={isExporting}
-                      className="w-full justify-start min-h-[44px]"
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      Export as TXT
-                    </Button>
+                    {user?.tier === "free" ? (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          handlePrint();
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="w-full justify-start min-h-[44px] print:hidden"
+                      >
+                        <Printer className="w-4 h-4 mr-2" />
+                        Print List
+                      </Button>
+                    ) : (
+                      <>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            handleExport("csv");
+                            setIsMobileMenuOpen(false);
+                          }}
+                          disabled={isExporting}
+                          className="w-full justify-start min-h-[44px]"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Export as CSV
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            handleExport("txt");
+                            setIsMobileMenuOpen(false);
+                          }}
+                          disabled={isExporting}
+                          className="w-full justify-start min-h-[44px]"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Export as TXT
+                        </Button>
+                      </>
+                    )}
                     <Button
                       variant="outline"
                       onClick={() => {
@@ -1329,8 +1402,8 @@ export default function ListDetail() {
                         <AlertDialogHeader>
                           <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Are you sure you want to delete this list? This
-                            action cannot be undone.
+                            Are you sure you want to delete this list? You can
+                            undo this action for a few seconds after deletion.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -1353,9 +1426,20 @@ export default function ListDetail() {
           </div>
         </header>
 
+        {/* Print-only header with list title */}
+        <div className="hidden print:block px-8 py-6 border-b border-gray-200">
+          <h1 className="text-2xl font-bold text-gray-900">{list.title}</h1>
+          {list.description && (
+            <p className="text-gray-600 mt-2">{list.description}</p>
+          )}
+          <p className="text-sm text-gray-500 mt-2">
+            {list.items.length} items • Printed on {new Date().toLocaleDateString()}
+          </p>
+        </div>
+
         <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
           {/* Tags Section - Collapsible */}
-          <Card className="p-3 sm:p-4 mb-4">
+          <Card className="p-3 sm:p-4 mb-4 print:hidden">
             <button
               onClick={() => setIsTagsSectionOpen(!isTagsSectionOpen)}
               className="w-full flex items-center justify-between text-left"
@@ -1425,7 +1509,7 @@ export default function ListDetail() {
 
           {/* Bulk Actions Toolbar */}
           {isSelectMode && (
-            <Card className="p-3 sm:p-4 mb-4 bg-primary/10 border-primary/20">
+            <Card className="p-3 sm:p-4 mb-4 bg-primary/10 border-primary/20 print:hidden">
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <p className="text-sm font-semibold text-primary">
@@ -1480,7 +1564,7 @@ export default function ListDetail() {
           )}
 
           {/* Add Item */}
-          <Card className="p-0 mb-4 sm:mb-6">
+          <Card className="p-0 mb-4 sm:mb-6 print:hidden">
             <div className="p-3 sm:p-4">
               <div className="space-y-3">
                 {/* Mode Toggle */}
@@ -3057,8 +3141,8 @@ export default function ListDetail() {
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Are you sure you want to delete this item? This
-                                    action cannot be undone.
+                                    Are you sure you want to delete this item? You can
+                                    undo this action for a few seconds after deletion.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -3066,13 +3150,26 @@ export default function ListDetail() {
                                     Cancel
                                   </AlertDialogCancel>
                                   <AlertDialogAction
-                                    onClick={() => {
-                                      deleteListItem(list.id, item.id);
+                                    onClick={async () => {
+                                      const itemData = { ...item };
+                                      const itemText = item.text;
+                                      
+                                      await executeWithUndo(
+                                        `delete-item-${item.id}`,
+                                        itemData,
+                                        async () => {
+                                          await deleteListItem(list.id, item.id);
+                                        },
+                                        async (data) => {
+                                          await restoreListItem(list.id, data);
+                                        },
+                                        {
+                                          title: "Item deleted",
+                                          description: `"${itemText}" removed from list`,
+                                          undoDescription: `"${itemText}" has been restored`,
+                                        }
+                                      );
                                       setItemToDelete(null);
-                                      toast({
-                                        title: "Item deleted",
-                                        description: "Item removed from list",
-                                      });
                                     }}
                                     className="bg-red-600 hover:bg-red-700"
                                   >
@@ -4015,8 +4112,8 @@ export default function ListDetail() {
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Are you sure you want to delete this item? This
-                                    action cannot be undone.
+                                    Are you sure you want to delete this item? You can
+                                    undo this action for a few seconds after deletion.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -4024,13 +4121,26 @@ export default function ListDetail() {
                                     Cancel
                                   </AlertDialogCancel>
                                   <AlertDialogAction
-                                    onClick={() => {
-                                      deleteListItem(list.id, item.id);
+                                    onClick={async () => {
+                                      const itemData = { ...item };
+                                      const itemText = item.text;
+                                      
+                                      await executeWithUndo(
+                                        `delete-item-${item.id}`,
+                                        itemData,
+                                        async () => {
+                                          await deleteListItem(list.id, item.id);
+                                        },
+                                        async (data) => {
+                                          await restoreListItem(list.id, data);
+                                        },
+                                        {
+                                          title: "Item deleted",
+                                          description: `"${itemText}" removed from list`,
+                                          undoDescription: `"${itemText}" has been restored`,
+                                        }
+                                      );
                                       setItemToDelete(null);
-                                      toast({
-                                        title: "Item deleted",
-                                        description: "Item removed from list",
-                                      });
                                     }}
                                     className="bg-red-600 hover:bg-red-700"
                                   >

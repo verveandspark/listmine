@@ -1,6 +1,7 @@
 import { DashboardSkeleton } from "@/components/ui/DashboardSkeleton";
 import { FirebaseTest } from "@/components/FirebaseTest";
 import { OnboardingTooltips } from "@/components/onboarding/OnboardingTooltips";
+import { useUndoAction } from "@/hooks/useUndoAction";
 import {
   Plus,
   Search,
@@ -165,9 +166,11 @@ export default function Dashboard() {
     generateShareLink,
     unshareList,
     exportList,
+    restoreList,
   } = useList();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { executeWithUndo } = useUndoAction();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [newListTitle, setNewListTitle] = useState("");
@@ -1367,19 +1370,34 @@ export default function Dashboard() {
                           <AlertDialogHeader>
                             <AlertDialogTitle>Delete list?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              This will permanently delete "{list.title}" and
-                              all its items.
+                              This will delete "{list.title}" and all its items.
+                              You can undo this action for a few seconds.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
-                              onClick={() => {
-                                deleteList(list.id);
-                                toast({
-                                  title: "List deleted",
-                                  description: "The list has been removed",
-                                });
+                              onClick={async () => {
+                                const listData = {
+                                  ...list,
+                                  items: list.items.map(item => ({ ...item })),
+                                };
+                                
+                                await executeWithUndo(
+                                  `delete-list-${list.id}`,
+                                  listData,
+                                  async () => {
+                                    await deleteList(list.id);
+                                  },
+                                  async (data) => {
+                                    await restoreList(data);
+                                  },
+                                  {
+                                    title: "List deleted",
+                                    description: `"${list.title}" has been removed`,
+                                    undoDescription: `"${list.title}" has been restored`,
+                                  }
+                                );
                               }}
                               className="bg-red-600 hover:bg-red-700"
                             >
@@ -1655,19 +1673,34 @@ export default function Dashboard() {
                           <AlertDialogHeader>
                             <AlertDialogTitle>Delete list?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              This will permanently delete "{list.title}" and
-                              all its items.
+                              This will delete "{list.title}" and all its items.
+                              You can undo this action for a few seconds.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
-                              onClick={() => {
-                                deleteList(list.id);
-                                toast({
-                                  title: "List deleted",
-                                  description: "The list has been removed",
-                                });
+                              onClick={async () => {
+                                const listData = {
+                                  ...list,
+                                  items: list.items.map(item => ({ ...item })),
+                                };
+                                
+                                await executeWithUndo(
+                                  `delete-list-${list.id}`,
+                                  listData,
+                                  async () => {
+                                    await deleteList(list.id);
+                                  },
+                                  async (data) => {
+                                    await restoreList(data);
+                                  },
+                                  {
+                                    title: "List deleted",
+                                    description: `"${list.title}" has been removed`,
+                                    undoDescription: `"${list.title}" has been restored`,
+                                  }
+                                );
                               }}
                               className="bg-red-600 hover:bg-red-700"
                             >

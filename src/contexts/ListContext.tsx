@@ -58,6 +58,7 @@ interface ListContextType {
   ) => Promise<string>;
   updateList: (id: string, updates: Partial<List>) => Promise<void>;
   deleteList: (id: string) => Promise<void>;
+  restoreList: (listData: any) => Promise<void>;
   addItemToList: (
     listId: string,
     item: Omit<ListItem, "id" | "order">,
@@ -68,7 +69,9 @@ interface ListContextType {
     updates: Partial<ListItem>,
   ) => Promise<void>;
   deleteListItem: (listId: string, itemId: string) => Promise<void>;
+  restoreListItem: (listId: string, itemData: any) => Promise<void>;
   bulkDeleteItems: (listId: string, itemIds: string[]) => Promise<void>;
+  restoreBulkItems: (listId: string, itemsData: any[]) => Promise<void>;
   bulkUpdateItems: (
     listId: string,
     itemIds: string[],
@@ -520,6 +523,63 @@ export function ListProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Restore a deleted list with all its items
+  const restoreList = async (listData: any) => {
+    try {
+      // First restore the list
+      const { data: restoredList, error: listError } = await supabase
+        .from("lists")
+        .insert({
+          id: listData.id,
+          user_id: listData.user_id,
+          title: listData.title,
+          category: listData.category,
+          list_type: listData.list_type,
+          is_pinned: listData.is_pinned,
+          tags: listData.tags,
+          share_id: listData.share_id,
+          show_purchaser_info: listData.show_purchaser_info,
+          created_at: listData.created_at,
+          updated_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (listError) throw listError;
+
+      // Then restore all items if any
+      if (listData.items && listData.items.length > 0) {
+        const itemsToInsert = listData.items.map((item: any) => ({
+          id: item.id,
+          list_id: listData.id,
+          text: item.text,
+          quantity: item.quantity,
+          priority: item.priority,
+          due_date: item.due_date,
+          notes: item.notes,
+          assigned_to: item.assigned_to,
+          completed: item.completed,
+          links: item.links,
+          attributes: item.attributes,
+          item_order: item.item_order,
+          created_at: item.created_at,
+          updated_at: new Date().toISOString(),
+        }));
+
+        const { error: itemsError } = await supabase
+          .from("list_items")
+          .insert(itemsToInsert);
+
+        if (itemsError) throw itemsError;
+      }
+
+      await loadLists();
+    } catch (error: any) {
+      logError("restoreList", error, user?.id);
+      throw new Error("Couldn't restore list. Try again or contact support.");
+    }
+  };
+
   const addItemToList = async (
     listId: string,
     item: Omit<ListItem, "id" | "order">,
@@ -678,6 +738,64 @@ export function ListProvider({ children }: { children: ReactNode }) {
     } catch (error: any) {
       logError("bulkDeleteItems", error, user?.id);
       throw error;
+    }
+  };
+
+  // Restore a single deleted item
+  const restoreListItem = async (listId: string, itemData: any) => {
+    try {
+      const { error } = await supabase.from("list_items").insert({
+        id: itemData.id,
+        list_id: listId,
+        text: itemData.text,
+        quantity: itemData.quantity,
+        priority: itemData.priority,
+        due_date: itemData.due_date,
+        notes: itemData.notes,
+        assigned_to: itemData.assigned_to,
+        completed: itemData.completed,
+        links: itemData.links,
+        attributes: itemData.attributes,
+        item_order: itemData.item_order,
+        created_at: itemData.created_at,
+        updated_at: new Date().toISOString(),
+      });
+
+      if (error) throw error;
+      await loadLists();
+    } catch (error: any) {
+      logError("restoreListItem", error, user?.id);
+      throw new Error("Couldn't restore item. Try again or contact support.");
+    }
+  };
+
+  // Restore multiple deleted items
+  const restoreBulkItems = async (listId: string, itemsData: any[]) => {
+    try {
+      const itemsToInsert = itemsData.map((item) => ({
+        id: item.id,
+        list_id: listId,
+        text: item.text,
+        quantity: item.quantity,
+        priority: item.priority,
+        due_date: item.due_date,
+        notes: item.notes,
+        assigned_to: item.assigned_to,
+        completed: item.completed,
+        links: item.links,
+        attributes: item.attributes,
+        item_order: item.item_order,
+        created_at: item.created_at,
+        updated_at: new Date().toISOString(),
+      }));
+
+      const { error } = await supabase.from("list_items").insert(itemsToInsert);
+
+      if (error) throw error;
+      await loadLists();
+    } catch (error: any) {
+      logError("restoreBulkItems", error, user?.id);
+      throw new Error("Couldn't restore items. Try again or contact support.");
     }
   };
 
@@ -1584,10 +1702,13 @@ export function ListProvider({ children }: { children: ReactNode }) {
     addList,
     updateList,
     deleteList,
+    restoreList,
     addItemToList,
     updateListItem,
     deleteListItem,
+    restoreListItem,
     bulkDeleteItems,
+    restoreBulkItems,
     bulkUpdateItems,
     reorderListItems,
     togglePin,
