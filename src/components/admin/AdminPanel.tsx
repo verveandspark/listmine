@@ -712,19 +712,28 @@ export default function AdminUsersPage() {
                 </td>
                 <td className="px-4 sm:px-6 py-4">
                   <div className="flex items-center justify-end gap-2">
-                    <select
-                      value={user.tier}
-                      onChange={(e) =>
-                        handleTierChange(user.id, e.target.value)
-                      }
-                      disabled={actionLoading}
-                      className="rounded border px-2 py-1 text-sm min-h-[36px]"
-                    >
-                      <option value="free">Free</option>
-                      <option value="good">Good</option>
-                      <option value="even_better">Even Better</option>
-                      <option value="lots_more">Lots More</option>
-                    </select>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <select
+                            value={user.tier}
+                            onChange={(e) =>
+                              handleTierChange(user.id, e.target.value)
+                            }
+                            disabled={actionLoading}
+                            className="rounded border px-2 py-1 text-sm min-h-[36px] cursor-pointer"
+                          >
+                            <option value="free">Free</option>
+                            <option value="good">Good</option>
+                            <option value="even_better">Even Better</option>
+                            <option value="lots_more">Lots More</option>
+                          </select>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Change user's subscription tier</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
 
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -823,6 +832,7 @@ export default function AdminUsersPage() {
             ))}
           </tbody>
         </table>
+        )}
       </div>
 
       {/* Confirmation Dialog */}
