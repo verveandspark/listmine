@@ -47,41 +47,43 @@ export function useUndoAction() {
       pendingActionsRef.current.set(actionId, action);
 
       // Show toast with undo action
+      const handleUndo = async () => {
+        const pendingAction = pendingActionsRef.current.get(actionId);
+        if (pendingAction) {
+          // Clear the timeout
+          if (pendingAction.timeoutId) {
+            clearTimeout(pendingAction.timeoutId);
+          }
+          pendingActionsRef.current.delete(actionId);
+
+          try {
+            await pendingAction.undoFn(pendingAction.data);
+            toast({
+              title: "✅ Undone!",
+              description: pendingAction.description,
+              className: "bg-green-50 border-green-200",
+            });
+          } catch (error: any) {
+            toast({
+              title: "❌ Undo failed",
+              description: error.message || "Could not undo the action",
+              variant: "destructive",
+            });
+          }
+        }
+      };
+
       toast({
         title: options.title,
         description: options.description,
         action: React.createElement(
           ToastAction,
           {
-            altText: "Undo",
-            onClick: async () => {
-              const pendingAction = pendingActionsRef.current.get(actionId);
-              if (pendingAction) {
-                // Clear the timeout
-                if (pendingAction.timeoutId) {
-                  clearTimeout(pendingAction.timeoutId);
-                }
-                pendingActionsRef.current.delete(actionId);
-
-                try {
-                  await pendingAction.undoFn(pendingAction.data);
-                  toast({
-                    title: "✅ Undone!",
-                    description: pendingAction.description,
-                    className: "bg-green-50 border-green-200",
-                  });
-                } catch (error: any) {
-                  toast({
-                    title: "❌ Undo failed",
-                    description: error.message || "Could not undo the action",
-                    variant: "destructive",
-                  });
-                }
-              }
-            },
+            altText: "Undo action",
+            onClick: handleUndo,
           },
           "Undo"
-        ),
+        ) as React.ReactElement<typeof ToastAction>,
         duration: UNDO_TIMEOUT,
       });
     },

@@ -49,6 +49,7 @@ export interface ListItem {
 export interface List {
   id: string;
   title: string;
+  description?: string;
   category: ListCategory;
   listType: ListType;
   items: ListItem[];
