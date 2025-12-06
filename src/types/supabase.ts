@@ -913,6 +913,7 @@ export type Database = {
             Args: { list_id_param: string; user_id_param: string }
             Returns: boolean
           }
+      check_list_limit: { Args: { tier: string }; Returns: number }
       clear_user_data: { Args: { target_user_id: string }; Returns: Json }
       delete_user_account: { Args: { target_user_id: string }; Returns: Json }
       disable_user_account: {
