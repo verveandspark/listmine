@@ -83,7 +83,7 @@ export function useUndoAction() {
             onClick: handleUndo,
           },
           "Undo"
-        ) as React.ReactElement<typeof ToastAction>,
+        ) as unknown as React.ReactElement<typeof ToastAction>,
         duration: UNDO_TIMEOUT,
       });
     },
