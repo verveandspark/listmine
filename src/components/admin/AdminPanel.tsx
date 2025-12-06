@@ -495,18 +495,30 @@ export default function AdminUsersPage() {
       
       // Parse details from JSON string to object if needed
       // Supabase Json type can be string | number | boolean | null | object
-      const parsedLogs: AuditLog[] = (data || []).map((log) => {
+      const rawLogs = data || [];
+      const parsedLogs: AuditLog[] = rawLogs.map((log: {
+        id: string;
+        admin_id: string;
+        admin_email: string;
+        admin_name: string;
+        action_type: string;
+        target_user_id: string | null;
+        target_user_email: string | null;
+        details: unknown;
+        created_at: string;
+      }) => {
         let parsedDetails: Record<string, any> = {};
+        const rawDetails = log.details;
         
-        if (log.details) {
-          if (typeof log.details === 'string') {
+        if (rawDetails) {
+          if (typeof rawDetails === 'string') {
             try {
-              parsedDetails = JSON.parse(log.details);
+              parsedDetails = JSON.parse(rawDetails);
             } catch {
-              parsedDetails = { raw: log.details };
+              parsedDetails = { raw: rawDetails };
             }
-          } else if (typeof log.details === 'object' && log.details !== null) {
-            parsedDetails = log.details as Record<string, any>;
+          } else if (typeof rawDetails === 'object' && rawDetails !== null && !Array.isArray(rawDetails)) {
+            parsedDetails = rawDetails as Record<string, any>;
           }
         }
         
