@@ -58,7 +58,7 @@ export default function SharedListView() {
 
         if (listError || !listData) {
           console.error("SharedListView: List not found or error:", listError);
-          setError("List not found or has been removed");
+          setError("This list is no longer shared or has been removed");
           setIsLoading(false);
           return;
         }
@@ -627,16 +627,42 @@ export default function SharedListView() {
         </div>
 
         <Card className="mt-8 p-6 sm:p-8 bg-gradient-to-r from-primary/10 to-secondary/10 border-primary/20">
-          <div className="text-center max-w-md mx-auto">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <div className="max-w-lg mx-auto">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2 text-center">
               Like this list?
             </h3>
-            <p className="text-gray-600 mb-4">
-              Sign up to create your own lists and import this one.
+            <p className="text-gray-600 mb-4 text-center">
+              Create a free account to start organizing your own lists!
             </p>
+            <ul className="text-sm text-gray-600 mb-4 space-y-1.5">
+              <li className="flex items-center gap-2">
+                <span className="text-green-500">✓</span> Up to 5 lists (To-Do and Custom only)
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-green-500">✓</span> 20 items per list
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-green-500">✓</span> Categorize, search, and filter lists
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-green-500">✓</span> Import from multiple sources
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-green-500">✓</span> Print lists
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-green-500">✓</span> Share read-only links
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-green-500">✓</span> No credit card required
+              </li>
+            </ul>
             <Button onClick={() => navigate("/auth")} className="w-full">
               Sign Up Free
             </Button>
+            <p className="text-xs text-gray-500 mt-3 text-center">
+              Upgrade anytime for additional list types, export formats, collaboration, and advanced templates.
+            </p>
           </div>
         </Card>
       </div>

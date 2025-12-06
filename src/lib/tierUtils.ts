@@ -93,3 +93,42 @@ export function getTierPricing(tier: UserTier): string {
   };
   return pricing[tier] || "";
 }
+
+/**
+ * Check if user tier is paid (non-free)
+ */
+export function isPaidTier(tier: UserTier | string | undefined): boolean {
+  if (!tier) return false;
+  return tier !== "free";
+}
+
+/**
+ * Get tier level for comparison
+ */
+export function getTierLevel(tier: UserTier | string | undefined): number {
+  if (!tier) return 0;
+  return TIER_HIERARCHY[tier as UserTier] ?? 0;
+}
+
+/**
+ * Check if user can share lists
+ */
+export function canShareLists(tier: UserTier | string | undefined): boolean {
+  return isPaidTier(tier);
+}
+
+/**
+ * Check if user can export lists
+ */
+export function canExportLists(tier: UserTier | string | undefined): boolean {
+  return isPaidTier(tier);
+}
+
+/**
+ * Get available export formats for a tier
+ */
+export function getAvailableExportFormats(tier: UserTier | string | undefined): string[] {
+  if (!tier || tier === "free") return [];
+  if (tier === "good") return ["csv", "txt"];
+  return ["csv", "txt", "pdf"];
+}

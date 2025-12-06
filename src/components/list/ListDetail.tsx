@@ -53,7 +53,14 @@ import {
   ExternalLink,
   Flag,
   Link as LinkIcon,
+  Link2Off,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -130,6 +137,7 @@ export default function ListDetail() {
     exportList,
     togglePin,
     generateShareLink,
+    unshareList,
     addCollaborator,
     addTagToList,
     removeTagFromList,
@@ -587,7 +595,7 @@ export default function ListDetail() {
     try {
       const link = await generateShareLink(list.id);
       setShareLink(link);
-      navigator.clipboard.writeText(link);
+      await copyToClipboard(link);
       toast({
         title: "✅ Share link copied!",
         description: link,
@@ -596,6 +604,42 @@ export default function ListDetail() {
     } catch (error: any) {
       toast({
         title: "❌ Failed to generate share link",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Fallback clipboard function for environments where Clipboard API is blocked
+  const copyToClipboard = async (text: string): Promise<void> => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-999999px";
+      textArea.style.top = "-999999px";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      document.execCommand("copy");
+      textArea.remove();
+    }
+  };
+
+  const handleUnshareList = async () => {
+    try {
+      await unshareList(list.id);
+      setShareLink(null);
+      toast({
+        title: "✅ List unshared",
+        description: "This list is no longer shared. Previous share links will no longer work.",
+        className: "bg-green-50 border-green-200",
+      });
+    } catch (error: any) {
+      toast({
+        title: "❌ Failed to unshare list",
         description: error.message,
         variant: "destructive",
       });
@@ -987,39 +1031,52 @@ export default function ListDetail() {
                     <TooltipContent>Help</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
+                <DropdownMenu>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <DropdownMenuTrigger asChild>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className={`h-10 w-10 ${list.isShared ? "bg-blue-50 border-blue-200" : ""}`}
+                          >
+                            <Share2 className={`w-4 h-4 ${list.isShared ? "text-blue-600" : ""}`} />
+                          </Button>
+                        </TooltipTrigger>
+                      </DropdownMenuTrigger>
+                      <TooltipContent>{list.isShared ? "Sharing options" : "Share this list"}</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem onClick={handleGenerateShareLink}>
+                      <Share2 className="w-4 h-4 mr-2" />
+                      {list.isShared ? "Copy Share Link" : "Generate Share Link"}
+                    </DropdownMenuItem>
+                    {list.isShared && (
+                      <DropdownMenuItem onClick={handleUnshareList} className="text-red-600">
+                        <Link2Off className="w-4 h-4 mr-2" />
+                        Unshare List
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 {(list.listType === "registry-list" || list.listType === "shopping-list") && (
-                  <>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={handleGenerateShareLink}
-                            className="h-10 w-10"
-                          >
-                            <Share2 className="w-4 h-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Share this list</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => setIsPurchaseHistoryOpen(true)}
-                            className="h-10 w-10"
-                          >
-                            <ShoppingCart className="w-4 h-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Purchase History</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setIsPurchaseHistoryOpen(true)}
+                          className="h-10 w-10"
+                        >
+                          <ShoppingCart className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Purchase History</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 )}
                 <TooltipProvider>
                   <Tooltip>
@@ -1150,31 +1207,42 @@ export default function ListDetail() {
                 </SheetTrigger>
                 <SheetContent side="right" className="w-[280px]">
                   <div className="flex flex-col gap-3 mt-8">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        handleGenerateShareLink();
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`w-full justify-start min-h-[44px] ${list.isShared ? "bg-blue-50 border-blue-200" : ""}`}
+                    >
+                      <Share2 className={`w-4 h-4 mr-2 ${list.isShared ? "text-blue-600" : ""}`} />
+                      {list.isShared ? "Copy Share Link" : "Share List"}
+                    </Button>
+                    {list.isShared && (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          handleUnshareList();
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="w-full justify-start min-h-[44px] text-red-600 border-red-200 hover:bg-red-50"
+                      >
+                        <Link2Off className="w-4 h-4 mr-2" />
+                        Unshare List
+                      </Button>
+                    )}
                     {(list.listType === "registry-list" || list.listType === "shopping-list") && (
-                      <>
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            handleGenerateShareLink();
-                            setIsMobileMenuOpen(false);
-                          }}
-                          className="w-full justify-start min-h-[44px]"
-                        >
-                          <Share2 className="w-4 h-4 mr-2" />
-                          Share List
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            setIsPurchaseHistoryOpen(true);
-                            setIsMobileMenuOpen(false);
-                          }}
-                          className="w-full justify-start min-h-[44px]"
-                        >
-                          <ShoppingCart className="w-4 h-4 mr-2" />
-                          Purchase History
-                        </Button>
-                      </>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setIsPurchaseHistoryOpen(true);
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="w-full justify-start min-h-[44px]"
+                      >
+                        <ShoppingCart className="w-4 h-4 mr-2" />
+                        Purchase History
+                      </Button>
                     )}
                     <Button
                       variant="outline"

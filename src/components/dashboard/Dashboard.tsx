@@ -33,6 +33,7 @@ import {
   User,
   LogOut,
   MessageSquare,
+  Link2Off,
 } from "lucide-react";
 
 import { useState } from "react";
@@ -101,6 +102,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { isPaidTier, canShareLists, canExportLists, getAvailableExportFormats, type UserTier } from "@/lib/tierUtils";
 import {
   validateListName,
   validateCategory,
@@ -161,6 +163,7 @@ export default function Dashboard() {
     error,
     retryLoad,
     generateShareLink,
+    unshareList,
     exportList,
   } = useList();
   const navigate = useNavigate();
@@ -200,6 +203,13 @@ export default function Dashboard() {
   
   // Help modal state
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  
+  // Share dialog state
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [shareListId, setShareListId] = useState<string | null>(null);
+  
+  // Export dropdown state
+  const [exportDropdownOpen, setExportDropdownOpen] = useState<string | null>(null);
 
   // Use the actual loading state from the lists context
   // Only show loading skeleton if we haven't loaded once yet AND there are no lists
@@ -398,16 +408,77 @@ export default function Dashboard() {
     ).length);
   };
 
-  const handleQuickShare = async (e: React.MouseEvent, listId: string) => {
+  const handleQuickShare = async (e: React.MouseEvent, listId: string, isAlreadyShared: boolean) => {
     e.stopPropagation();
+    
+    // Check if user can share
+    if (!canShareLists(user?.tier)) {
+      toast({
+        title: "⭐ Upgrade Required",
+        description: "Sharing is available on paid plans. Upgrade to share your lists!",
+        variant: "default",
+      });
+      navigate("/upgrade");
+      return;
+    }
+    
+    // If already shared, copy the existing link
+    if (isAlreadyShared) {
+      try {
+        const link = await generateShareLink(listId);
+        await copyToClipboard(link);
+        toast({
+          title: "✅ Share link copied!",
+          description: "Link copied to clipboard",
+          className: "bg-blue-50 border-blue-200",
+        });
+      } catch (error: any) {
+        toast({
+          title: "❌ Failed to copy link",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+      return;
+    }
+    
+    // Open share dialog for new shares
+    setShareListId(listId);
+    setIsShareDialogOpen(true);
+  };
+
+  // Fallback clipboard function for environments where Clipboard API is blocked
+  const copyToClipboard = async (text: string): Promise<void> => {
     try {
-      const link = await generateShareLink(listId);
-      navigator.clipboard.writeText(link);
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Fallback: create a temporary textarea element
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-999999px";
+      textArea.style.top = "-999999px";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      document.execCommand("copy");
+      textArea.remove();
+    }
+  };
+
+  const handleShareDialogConfirm = async () => {
+    if (!shareListId) return;
+    
+    try {
+      const link = await generateShareLink(shareListId);
+      await copyToClipboard(link);
       toast({
         title: "✅ Share link copied!",
         description: "Link copied to clipboard",
         className: "bg-blue-50 border-blue-200",
       });
+      setIsShareDialogOpen(false);
+      setShareListId(null);
     } catch (error: any) {
       toast({
         title: "❌ Failed to generate share link",
@@ -417,18 +488,50 @@ export default function Dashboard() {
     }
   };
 
-  const handleQuickExport = (e: React.MouseEvent, listId: string) => {
+  const handleQuickExport = (e: React.MouseEvent, listId: string, format: string) => {
     e.stopPropagation();
+    
+    // Check if user can export
+    if (!canExportLists(user?.tier)) {
+      toast({
+        title: "⭐ Upgrade Required",
+        description: "Export is available on paid plans. Upgrade to export your lists!",
+        variant: "default",
+      });
+      navigate("/upgrade");
+      return;
+    }
+    
     try {
-      exportList(listId, "csv");
+      exportList(listId, format as "csv" | "txt" | "pdf");
       toast({
         title: "✅ List exported!",
-        description: "CSV file downloaded successfully",
+        description: `${format.toUpperCase()} file downloaded successfully`,
+        className: "bg-green-50 border-green-200",
+      });
+      setExportDropdownOpen(null);
+    } catch (error: any) {
+      toast({
+        title: "❌ Export failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleQuickUnshare = async (e: React.MouseEvent, listId: string) => {
+    e.stopPropagation();
+    
+    try {
+      await unshareList(listId);
+      toast({
+        title: "✅ List unshared",
+        description: "This list is no longer shared. Previous share links will no longer work.",
         className: "bg-green-50 border-green-200",
       });
     } catch (error: any) {
       toast({
-        title: "❌ Export failed",
+        title: "❌ Failed to unshare list",
         description: error.message,
         variant: "destructive",
       });
@@ -1176,30 +1279,70 @@ export default function Dashboard() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 rounded-full bg-gray-100 hover:bg-gray-200"
-                              onClick={(e) => handleQuickShare(e, list.id)}
+                              className={`h-8 w-8 rounded-full ${list.isShared ? "bg-blue-100 hover:bg-blue-200" : "bg-gray-100 hover:bg-gray-200"}`}
+                              onClick={(e) => handleQuickShare(e, list.id, list.isShared || false)}
                             >
-                              <Share2 className="w-4 h-4" />
+                              <Share2 className={`w-4 h-4 ${list.isShared ? "text-blue-600" : ""}`} />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>Share</TooltipContent>
+                          <TooltipContent>{list.isShared ? "Copy Share Link" : "Share"}</TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 rounded-full bg-gray-100 hover:bg-gray-200"
-                              onClick={(e) => handleQuickExport(e, list.id)}
-                            >
-                              <Download className="w-4 h-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Export</TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      {list.isShared && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-full bg-red-100 hover:bg-red-200"
+                                onClick={(e) => handleQuickUnshare(e, list.id)}
+                              >
+                                <Link2Off className="w-4 h-4 text-red-600" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Unshare</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                      <DropdownMenu open={exportDropdownOpen === list.id} onOpenChange={(open) => setExportDropdownOpen(open ? list.id : null)}>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <DropdownMenuTrigger asChild>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 rounded-full bg-gray-100 hover:bg-gray-200"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Download className="w-4 h-4" />
+                                </Button>
+                              </TooltipTrigger>
+                            </DropdownMenuTrigger>
+                            <TooltipContent>Export</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <DropdownMenuContent onClick={(e) => e.stopPropagation()}>
+                          {canExportLists(user?.tier) ? (
+                            <>
+                              {getAvailableExportFormats(user?.tier).map((format) => (
+                                <DropdownMenuItem
+                                  key={format}
+                                  onClick={(e) => handleQuickExport(e as any, list.id, format)}
+                                >
+                                  Export as {format.toUpperCase()}
+                                </DropdownMenuItem>
+                              ))}
+                            </>
+                          ) : (
+                            <DropdownMenuItem onClick={() => navigate("/upgrade")}>
+                              <Crown className="w-4 h-4 mr-2" />
+                              Upgrade to Export
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                       <AlertDialog>
                         <TooltipProvider>
                           <Tooltip>
@@ -1306,13 +1449,23 @@ export default function Dashboard() {
                               </Badge>
                             )}
                             {list.isShared && (
-                              <Badge
-                                variant="outline"
-                                className="bg-blue-50 border-blue-200 text-xs"
-                              >
-                                <Share2 className="w-3 h-3 mr-1 text-primary" />
-                                <span className="text-primary underline">Shared</span>
-                              </Badge>
+                              <div className="flex items-center gap-1">
+                                <Badge
+                                  variant="outline"
+                                  className="bg-blue-50 border-blue-200 text-xs cursor-pointer hover:bg-blue-100"
+                                  onClick={(e) => handleQuickShare(e, list.id, true)}
+                                >
+                                  <Share2 className="w-3 h-3 mr-1 text-primary" />
+                                  <span className="text-primary underline">Shared</span>
+                                </Badge>
+                                <Badge
+                                  variant="outline"
+                                  className="bg-red-50 border-red-200 text-xs cursor-pointer hover:bg-red-100"
+                                  onClick={(e) => handleQuickUnshare(e, list.id)}
+                                >
+                                  <Link2Off className="w-3 h-3 text-red-600" />
+                                </Badge>
+                              </div>
                             )}
                           </div>
                         </div>
@@ -1414,30 +1567,70 @@ export default function Dashboard() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 rounded-full bg-gray-100 hover:bg-gray-200"
-                              onClick={(e) => handleQuickShare(e, list.id)}
+                              className={`h-8 w-8 rounded-full ${list.isShared ? "bg-blue-100 hover:bg-blue-200" : "bg-gray-100 hover:bg-gray-200"}`}
+                              onClick={(e) => handleQuickShare(e, list.id, list.isShared || false)}
                             >
-                              <Share2 className="w-4 h-4" />
+                              <Share2 className={`w-4 h-4 ${list.isShared ? "text-blue-600" : ""}`} />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>Share</TooltipContent>
+                          <TooltipContent>{list.isShared ? "Copy Share Link" : "Share"}</TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 rounded-full bg-gray-100 hover:bg-gray-200"
-                              onClick={(e) => handleQuickExport(e, list.id)}
-                            >
-                              <Download className="w-4 h-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Export</TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      {list.isShared && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-full bg-red-100 hover:bg-red-200"
+                                onClick={(e) => handleQuickUnshare(e, list.id)}
+                              >
+                                <Link2Off className="w-4 h-4 text-red-600" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Unshare</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                      <DropdownMenu open={exportDropdownOpen === list.id} onOpenChange={(open) => setExportDropdownOpen(open ? list.id : null)}>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <DropdownMenuTrigger asChild>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 rounded-full bg-gray-100 hover:bg-gray-200"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Download className="w-4 h-4" />
+                                </Button>
+                              </TooltipTrigger>
+                            </DropdownMenuTrigger>
+                            <TooltipContent>Export</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <DropdownMenuContent onClick={(e) => e.stopPropagation()}>
+                          {canExportLists(user?.tier) ? (
+                            <>
+                              {getAvailableExportFormats(user?.tier).map((format) => (
+                                <DropdownMenuItem
+                                  key={format}
+                                  onClick={(e) => handleQuickExport(e as any, list.id, format)}
+                                >
+                                  Export as {format.toUpperCase()}
+                                </DropdownMenuItem>
+                              ))}
+                            </>
+                          ) : (
+                            <DropdownMenuItem onClick={() => navigate("/upgrade")}>
+                              <Crown className="w-4 h-4 mr-2" />
+                              Upgrade to Export
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                       <AlertDialog>
                         <TooltipProvider>
                           <Tooltip>
@@ -1544,13 +1737,23 @@ export default function Dashboard() {
                               </Badge>
                             )}
                             {list.isShared && (
-                              <Badge
-                                variant="outline"
-                                className="bg-blue-50 border-blue-200 text-xs"
-                              >
-                                <Share2 className="w-3 h-3 mr-1 text-primary" />
-                                <span className="text-primary underline">Shared</span>
-                              </Badge>
+                              <div className="flex items-center gap-1">
+                                <Badge
+                                  variant="outline"
+                                  className="bg-blue-50 border-blue-200 text-xs cursor-pointer hover:bg-blue-100"
+                                  onClick={(e) => handleQuickShare(e, list.id, true)}
+                                >
+                                  <Share2 className="w-3 h-3 mr-1 text-primary" />
+                                  <span className="text-primary underline">Shared</span>
+                                </Badge>
+                                <Badge
+                                  variant="outline"
+                                  className="bg-red-50 border-red-200 text-xs cursor-pointer hover:bg-red-100"
+                                  onClick={(e) => handleQuickUnshare(e, list.id)}
+                                >
+                                  <Link2Off className="w-3 h-3 text-red-600" />
+                                </Badge>
+                              </div>
                             )}
                           </div>
                         </div>
@@ -1810,6 +2013,32 @@ export default function Dashboard() {
           </div>
         </div>
       </footer>
+
+      {/* Share Dialog */}
+      <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Share List</DialogTitle>
+            <DialogDescription>
+              Generate a shareable link for this list. Anyone with the link can view it.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Click "Generate Link" to create a shareable link that you can send to others.
+            </p>
+            <div className="flex gap-2">
+              <Button onClick={handleShareDialogConfirm} className="flex-1">
+                <Share2 className="w-4 h-4 mr-2" />
+                Generate & Copy Link
+              </Button>
+              <Button variant="outline" onClick={() => setIsShareDialogOpen(false)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

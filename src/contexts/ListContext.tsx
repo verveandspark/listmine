@@ -84,6 +84,7 @@ interface ListContextType {
   ) => Promise<void>;
   exportList: (listId: string, format: "csv" | "txt" | "pdf") => void;
   generateShareLink: (listId: string) => Promise<string>;
+  unshareList: (listId: string) => Promise<void>;
   addCollaborator: (listId: string, email: string) => Promise<void>;
   searchLists: (query: string) => List[];
   filterLists: (filters: {
@@ -1164,9 +1165,49 @@ export function ListProvider({ children }: { children: ReactNode }) {
         error.message.includes("fetch")
       ) {
         throw new Error("Connection lost. Check your internet and try again.");
+      } else if (
+        error.message.includes("not available for your tier") ||
+        error.message.includes("Please upgrade")
+      ) {
+        throw new Error(error.message);
       } else {
         throw new Error(
           "Couldn't generate share link. Try again or contact support.",
+        );
+      }
+    }
+  };
+
+  const unshareList = async (listId: string): Promise<void> => {
+    try {
+      const result = (await withTimeout(
+        supabase
+          .from("lists")
+          .update({
+            share_link: null,
+            is_shared: false,
+          } as any)
+          .eq("id", listId),
+      )) as any;
+      const { error } = result;
+
+      if (error) throw error;
+      await loadLists();
+    } catch (error: any) {
+      logError("unshareList", error, user?.id);
+
+      if (error.message === "Operation timed out") {
+        throw new Error(
+          "This is taking longer than expected. Try again in a moment.",
+        );
+      } else if (
+        error.message.includes("network") ||
+        error.message.includes("fetch")
+      ) {
+        throw new Error("Connection lost. Check your internet and try again.");
+      } else {
+        throw new Error(
+          "Couldn't unshare list. Try again or contact support.",
         );
       }
     }
@@ -1553,6 +1594,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
     importList,
     exportList,
     generateShareLink,
+    unshareList,
     addCollaborator,
     searchLists,
     filterLists,
