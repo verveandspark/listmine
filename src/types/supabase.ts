@@ -672,9 +672,12 @@ export type Database = {
       users: {
         Row: {
           created_at: string | null
+          disabled_at: string | null
+          disabled_reason: string | null
           email: string
           id: string
           is_admin: boolean | null
+          is_disabled: boolean | null
           name: string | null
           role: string | null
           tier: string | null
@@ -682,9 +685,12 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          disabled_at?: string | null
+          disabled_reason?: string | null
           email: string
           id?: string
           is_admin?: boolean | null
+          is_disabled?: boolean | null
           name?: string | null
           role?: string | null
           tier?: string | null
@@ -692,9 +698,12 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          disabled_at?: string | null
+          disabled_reason?: string | null
           email?: string
           id?: string
           is_admin?: boolean | null
+          is_disabled?: boolean | null
           name?: string | null
           role?: string | null
           tier?: string | null
@@ -755,9 +764,12 @@ export type Database = {
         Args: never
         Returns: {
           created_at: string | null
+          disabled_at: string | null
+          disabled_reason: string | null
           email: string
           id: string
           is_admin: boolean | null
+          is_disabled: boolean | null
           name: string | null
           role: string | null
           tier: string | null
@@ -781,7 +793,7 @@ export type Database = {
       clear_user_data: { Args: { target_user_id: string }; Returns: Json }
       delete_user_account: { Args: { target_user_id: string }; Returns: Json }
       disable_user_account: {
-        Args: { reason: string; target_user_id: string }
+        Args: { reason?: string; target_user_id: string }
         Returns: Json
       }
       enable_user_account: { Args: { target_user_id: string }; Returns: Json }

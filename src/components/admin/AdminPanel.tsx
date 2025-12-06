@@ -274,14 +274,16 @@ export default function AdminUsersPage() {
       // Log the action
       await logAdminAction("account_disabled", userId, user?.email, { reason: reason || "Admin action" });
       
-      setSuccessMessage("Account disabled");
+      setSuccessMessage(`Account disabled successfully for ${user?.email || "user"}`);
       setShowConfirmDialog(false);
+      setSelectedUser(null);
       setReason("");
       fetchUsers();
-      setTimeout(() => setSuccessMessage(""), 3000);
-    } catch (error) {
+      setTimeout(() => setSuccessMessage(""), 5000);
+    } catch (error: any) {
       console.error("Error disabling account:", error);
-      alert("Failed to disable account");
+      setErrorMessage(`Failed to disable account: ${error.message || "Unknown error"}`);
+      setTimeout(() => setErrorMessage(""), 5000);
     } finally {
       setActionLoading(false);
     }
@@ -328,14 +330,16 @@ export default function AdminUsersPage() {
       await logAdminAction("data_cleared", userId, user?.email, { lists_deleted: data?.lists_deleted });
       
       setSuccessMessage(
-        `User data cleared. \${data.lists_deleted} lists deleted.`,
+        `User data cleared for ${user?.email || "user"}. ${data?.lists_deleted || 0} lists deleted.`,
       );
       setShowConfirmDialog(false);
+      setSelectedUser(null);
       fetchUsers();
-      setTimeout(() => setSuccessMessage(""), 3000);
-    } catch (error) {
+      setTimeout(() => setSuccessMessage(""), 5000);
+    } catch (error: any) {
       console.error("Error clearing data:", error);
-      alert("Failed to clear data");
+      setErrorMessage(`Failed to clear data: ${error.message || "Unknown error"}`);
+      setTimeout(() => setErrorMessage(""), 5000);
     } finally {
       setActionLoading(false);
     }
@@ -354,13 +358,15 @@ export default function AdminUsersPage() {
       // Log the action
       await logAdminAction("account_deleted", userId, user?.email);
       
-      setSuccessMessage("Account deleted permanently");
+      setSuccessMessage(`Account deleted permanently for ${user?.email || "user"}`);
       setShowConfirmDialog(false);
+      setSelectedUser(null);
       fetchUsers();
-      setTimeout(() => setSuccessMessage(""), 3000);
-    } catch (error) {
+      setTimeout(() => setSuccessMessage(""), 5000);
+    } catch (error: any) {
       console.error("Error deleting account:", error);
-      alert("Failed to delete account");
+      setErrorMessage(`Failed to delete account: ${error.message || "Unknown error"}`);
+      setTimeout(() => setErrorMessage(""), 5000);
     } finally {
       setActionLoading(false);
     }
@@ -591,39 +597,48 @@ export default function AdminUsersPage() {
       setImpersonating(true);
       setErrorMessage("");
       
+      // Get current admin session
+      const { data: { session } } = await supabase.auth.getSession();
+      const adminEmail = session?.user?.email;
+      
+      if (!adminEmail) {
+        throw new Error("Admin session not found");
+      }
+      
       // Log the impersonation action
       await logAdminAction(
         "user_impersonation_started",
         user.id,
         user.email,
-        { admin_action: "impersonate" }
+        { admin_action: "impersonate", admin_email: adminEmail }
       );
       
       // Store admin session info in localStorage for return
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        localStorage.setItem("admin_return_session", JSON.stringify({
-          adminId: session.user.id,
-          adminEmail: session.user.email,
-          timestamp: new Date().toISOString(),
-        }));
-      }
+      localStorage.setItem("admin_return_session", JSON.stringify({
+        adminId: session.user.id,
+        adminEmail: adminEmail,
+        targetUserId: user.id,
+        targetUserEmail: user.email,
+        timestamp: new Date().toISOString(),
+      }));
       
-      // Send magic link to impersonate user
+      // Send magic link to admin's email but for the target user's account
+      // Note: Supabase Auth requires the magic link to go to the target user's email
+      // So we'll send it to the admin's email with instructions
       const { error } = await supabase.auth.signInWithOtp({
-        email: user.email,
+        email: adminEmail,
         options: {
-          emailRedirectTo: `${window.location.origin}/app?impersonated=true`,
+          emailRedirectTo: `${window.location.origin}/app?impersonating=${user.id}`,
           shouldCreateUser: false,
         },
       });
       
       if (error) throw error;
       
-      setSuccessMessage(`Impersonation link sent. Check ${user.email}'s inbox or use the magic link to login as this user.`);
+      setSuccessMessage(`Impersonation initiated. A verification link has been sent to your admin email (${adminEmail}). After clicking the link, you'll be logged in as yourself but can view ${user.email}'s data in read-only mode.`);
       setShowImpersonateDialog(false);
       setImpersonateUser(null);
-      setTimeout(() => setSuccessMessage(""), 8000);
+      setTimeout(() => setSuccessMessage(""), 10000);
     } catch (error: any) {
       console.error("Error impersonating user:", error);
       setErrorMessage(`Failed to impersonate user: ${error.message || "Unknown error"}`);
@@ -1326,8 +1341,8 @@ export default function AdminUsersPage() {
                 <div className="flex items-start gap-2">
                   <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5" />
                   <div className="text-sm text-yellow-800">
-                    <p className="font-medium">Important</p>
-                    <p>This action will be logged. A magic link will be sent to the user's email.</p>
+                    <p className="font-medium">How it works</p>
+                    <p>A verification link will be sent to <strong>your admin email</strong>. After clicking it, you'll be able to view this user's data for troubleshooting. This action is logged.</p>
                   </div>
                 </div>
               </div>
@@ -1356,7 +1371,7 @@ export default function AdminUsersPage() {
                   ) : (
                     <>
                       <Eye className="w-4 h-4 mr-2" />
-                      Send Impersonation Link
+                      Send Link to My Email
                     </>
                   )}
                 </Button>
