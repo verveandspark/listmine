@@ -506,14 +506,14 @@ export default function AdminUsersPage() {
       const offsetParam = auditLogPage * 50;
       
       console.log("[Admin] Fetching audit logs with params:", {
-        limit_param: limitParam,
-        offset_param: offsetParam,
+        p_limit: limitParam,
+        p_offset: offsetParam,
       });
       
-      // Call RPC with only limit_param and offset_param
+      // Call RPC with correct parameter names
       const { data, error } = await supabase.rpc("get_admin_audit_logs", {
-        limit_param: limitParam,
-        offset_param: offsetParam,
+        p_limit: limitParam,
+        p_offset: offsetParam,
       });
       
       console.log("[Admin] Audit logs response:", { data, error, dataLength: data?.length });
