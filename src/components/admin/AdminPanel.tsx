@@ -504,21 +504,16 @@ export default function AdminUsersPage() {
       setAuditLogsLoading(true);
       const limitParam = 50;
       const offsetParam = auditLogPage * 50;
-      const actionTypeParam = auditLogFilter === "all" ? null : auditLogFilter;
       
       console.log("[Admin] Fetching audit logs with params:", {
-        p_limit: limitParam,
-        p_offset: offsetParam,
-        p_action_type: actionTypeParam,
+        limit_param: limitParam,
+        offset_param: offsetParam,
       });
       
-      // Use explicit named parameters to avoid RPC ambiguity
+      // Call RPC with only limit_param and offset_param
       const { data, error } = await supabase.rpc("get_admin_audit_logs", {
-        p_limit: limitParam,
-        p_offset: offsetParam,
-        p_action_type: actionTypeParam,
-        p_admin_id: null,
-        p_target_user_id: null,
+        limit_param: limitParam,
+        offset_param: offsetParam,
       });
       
       console.log("[Admin] Audit logs response:", { data, error, dataLength: data?.length });
