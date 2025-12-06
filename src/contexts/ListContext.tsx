@@ -393,6 +393,54 @@ export function ListProvider({ children }: { children: ReactNode }) {
   ): Promise<string> => {
     if (!user) throw new Error("User not authenticated");
 
+    // Verify session is valid before making the request
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError) {
+      console.error("[ListContext] Session error before list creation:", sessionError);
+      throw new Error("Session error. Please log in again.");
+    }
+    
+    if (!sessionData?.session) {
+      console.error("[ListContext] No active session found before list creation");
+      throw new Error("Your session has expired. Please log in again.");
+    }
+    
+    // Check if session is expired
+    if (sessionData.session.expires_at) {
+      const expiresAt = new Date(sessionData.session.expires_at * 1000);
+      const now = new Date();
+      
+      if (expiresAt < now) {
+        console.error("[ListContext] Session expired:", { expiresAt, now });
+        // Try to refresh the session
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        
+        if (refreshError || !refreshData?.session) {
+          console.error("[ListContext] Failed to refresh session:", refreshError);
+          throw new Error("Your session has expired. Please log in again.");
+        }
+        
+        console.log("[ListContext] Session refreshed successfully");
+      }
+    }
+    
+    // Verify user ID matches
+    if (sessionData.session.user.id !== user.id) {
+      console.error("[ListContext] User ID mismatch:", { 
+        sessionUserId: sessionData.session.user.id, 
+        contextUserId: user.id 
+      });
+      throw new Error("Session mismatch. Please log in again.");
+    }
+    
+    console.log("[ListContext] Session verified for list creation:", {
+      userId: user.id,
+      sessionUserId: sessionData.session.user.id,
+      expiresAt: sessionData.session.expires_at,
+      accessToken: sessionData.session.access_token ? "present" : "missing"
+    });
+
     const nameValidation = validateListName(title);
     if (!nameValidation.valid) {
       throw new Error(nameValidation.error);
@@ -446,8 +494,33 @@ export function ListProvider({ children }: { children: ReactNode }) {
       const { data: newList, error } = result;
 
       if (error) {
+        console.error("[ListContext] List creation error:", error);
         if (error.message.includes("unique")) {
           throw new Error("This list name already exists. Try another name.");
+        }
+        // Handle RLS violation specifically
+        if (error.message.includes("row-level security") || error.code === "42501") {
+          console.error("[ListContext] RLS violation - attempting session refresh");
+          // Try to refresh session and retry once
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+          if (refreshError || !refreshData?.session) {
+            throw new Error("Your session has expired. Please log in again.");
+          }
+          // Retry the insert after refresh
+          const retryResult = await supabase.from("lists").insert({
+            user_id: user.id,
+            title: nameValidation.value,
+            category: categoryValidation.value,
+            list_type: listType,
+          }).select().single();
+          
+          if (retryResult.error) {
+            console.error("[ListContext] Retry after refresh failed:", retryResult.error);
+            throw new Error("Unable to create list. Please log out and log back in.");
+          }
+          
+          await loadLists();
+          return retryResult.data.id;
         }
         throw error;
       }
@@ -476,8 +549,14 @@ export function ListProvider({ children }: { children: ReactNode }) {
       ) {
         throw new Error("Your session has expired. Please log in again.");
       } else if (
+        error.message.includes("row-level security") ||
+        error.code === "42501"
+      ) {
+        throw new Error("Session error. Please log out and log back in.");
+      } else if (
         !error.message.includes("already exists") &&
-        !error.message.includes("limit")
+        !error.message.includes("limit") &&
+        !error.message.includes("session")
       ) {
         throw new Error("Couldn't create list. Try again or contact support.");
       }

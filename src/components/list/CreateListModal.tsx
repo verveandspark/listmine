@@ -78,6 +78,11 @@ export default function CreateListModal({
       return;
     }
 
+    if (!user) {
+      setError("You must be logged in to create a list. Please refresh the page and try again.");
+      return;
+    }
+
     setIsCreating(true);
     setError(null);
 
@@ -92,6 +97,7 @@ export default function CreateListModal({
       resetForm();
       onOpenChange(false);
     } catch (err: any) {
+      console.error("[CreateListModal] Error creating list:", err);
       setError(err.message || "Failed to create list");
       setIsCreating(false);
     }
