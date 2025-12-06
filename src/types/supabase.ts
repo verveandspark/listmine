@@ -49,6 +49,57 @@ export type Database = {
           },
         ]
       }
+      admin_audit_log: {
+        Row: {
+          action_type: string
+          admin_id: string
+          created_at: string | null
+          details: Json | null
+          id: string
+          ip_address: string | null
+          target_user_email: string | null
+          target_user_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action_type: string
+          admin_id: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          target_user_email?: string | null
+          target_user_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action_type?: string
+          admin_id?: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          target_user_email?: string | null
+          target_user_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_audit_log_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_audit_log_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       collaborators: {
         Row: {
           added_at: string | null
@@ -719,6 +770,14 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      admin_resend_welcome_email: {
+        Args: { p_user_email: string }
+        Returns: Json
+      }
+      admin_send_password_reset: {
+        Args: { p_user_email: string }
+        Returns: Json
+      }
       clear_user_data: { Args: { target_user_id: string }; Returns: Json }
       delete_user_account: { Args: { target_user_id: string }; Returns: Json }
       disable_user_account: {
@@ -726,7 +785,36 @@ export type Database = {
         Returns: Json
       }
       enable_user_account: { Args: { target_user_id: string }; Returns: Json }
+      get_admin_audit_logs: {
+        Args: {
+          p_action_type?: string
+          p_admin_id?: string
+          p_limit?: number
+          p_offset?: number
+          p_target_user_id?: string
+        }
+        Returns: {
+          action_type: string
+          admin_email: string
+          admin_id: string
+          admin_name: string
+          created_at: string
+          details: Json
+          id: string
+          target_user_email: string
+          target_user_id: string
+        }[]
+      }
       get_allowed_list_types: { Args: { user_tier: string }; Returns: string[] }
+      log_admin_action: {
+        Args: {
+          p_action_type: string
+          p_details?: Json
+          p_target_user_email?: string
+          p_target_user_id?: string
+        }
+        Returns: string
+      }
       update_user_name: {
         Args: { new_name: string; user_id: string }
         Returns: undefined

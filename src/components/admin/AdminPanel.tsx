@@ -32,6 +32,14 @@ import {
   HelpCircle,
   X,
   Filter,
+  History,
+  KeyRound,
+  UserCog,
+  Send,
+  Eye,
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
@@ -48,6 +56,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface User {
   id: string;
@@ -59,6 +76,18 @@ interface User {
   created_at: string;
   role?: string;
   updated_at?: string;
+}
+
+interface AuditLog {
+  id: string;
+  admin_id: string;
+  admin_email: string;
+  admin_name: string;
+  action_type: string;
+  target_user_id: string | null;
+  target_user_email: string | null;
+  details: Record<string, any>;
+  created_at: string;
 }
 
 export default function AdminUsersPage() {
@@ -80,11 +109,37 @@ export default function AdminUsersPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [exportLoading, setExportLoading] = useState(false);
+  
+  // Audit log state
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [auditLogsLoading, setAuditLogsLoading] = useState(false);
+  const [showAuditLog, setShowAuditLog] = useState(false);
+  const [auditLogPage, setAuditLogPage] = useState(0);
+  const [auditLogFilter, setAuditLogFilter] = useState<string>("all");
+  
+  // Password reset state
+  const [showPasswordResetDialog, setShowPasswordResetDialog] = useState(false);
+  const [passwordResetUser, setPasswordResetUser] = useState<User | null>(null);
+  
+  // Impersonation state
+  const [showImpersonateDialog, setShowImpersonateDialog] = useState(false);
+  const [impersonateUser, setImpersonateUser] = useState<User | null>(null);
+  const [impersonating, setImpersonating] = useState(false);
+  
+  // Active tab
+  const [activeTab, setActiveTab] = useState("users");
 
   useEffect(() => {
     console.log("[Admin] useEffect triggered - calling fetchUsers");
     fetchUsers();
   }, []);
+
+  // Refetch audit logs when filter or page changes
+  useEffect(() => {
+    if (showAuditLog) {
+      fetchAuditLogs();
+    }
+  }, [auditLogFilter, auditLogPage]);
 
   const fetchUsers = async () => {
     console.log("[Admin] fetchUsers() called");
@@ -164,6 +219,8 @@ export default function AdminUsersPage() {
       setActionLoading(true);
       setErrorMessage("");
       
+      const user = users.find(u => u.email === email);
+      
       // Use signInWithOtp which sends a magic link email
       const { error } = await supabase.auth.signInWithOtp({
         email: email,
@@ -174,6 +231,10 @@ export default function AdminUsersPage() {
       });
       
       if (error) throw error;
+      
+      // Log the action
+      await logAdminAction("magic_link_sent", user?.id, email);
+      
       setSuccessMessage(`Magic link sent to ${email}`);
       setTimeout(() => setSuccessMessage(""), 5000);
     } catch (error: any) {
@@ -203,11 +264,16 @@ export default function AdminUsersPage() {
   const handleDisableAccount = async (userId: string) => {
     try {
       setActionLoading(true);
+      const user = users.find(u => u.id === userId);
       const { error } = await supabase.rpc("disable_user_account", {
         target_user_id: userId,
         reason: reason || "Admin action",
       });
       if (error) throw error;
+      
+      // Log the action
+      await logAdminAction("account_disabled", userId, user?.email, { reason: reason || "Admin action" });
+      
       setSuccessMessage("Account disabled");
       setShowConfirmDialog(false);
       setReason("");
@@ -221,20 +287,28 @@ export default function AdminUsersPage() {
     }
   };
 
-  // Enable Account
+  // Enable Account (Re-activate)
   const handleEnableAccount = async (userId: string) => {
     try {
       setActionLoading(true);
+      const user = users.find(u => u.id === userId);
       const { error } = await supabase.rpc("enable_user_account", {
         target_user_id: userId,
       });
       if (error) throw error;
-      setSuccessMessage("Account enabled");
+      
+      // Log the action
+      await logAdminAction("account_enabled", userId, user?.email);
+      
+      setSuccessMessage(`Account re-activated successfully for ${user?.email || "user"}`);
+      setShowConfirmDialog(false);
+      setSelectedUser(null);
       fetchUsers();
-      setTimeout(() => setSuccessMessage(""), 3000);
-    } catch (error) {
+      setTimeout(() => setSuccessMessage(""), 5000);
+    } catch (error: any) {
       console.error("Error enabling account:", error);
-      alert("Failed to enable account");
+      setErrorMessage(`Failed to re-activate account: ${error.message || "Unknown error"}`);
+      setTimeout(() => setErrorMessage(""), 5000);
     } finally {
       setActionLoading(false);
     }
@@ -244,10 +318,15 @@ export default function AdminUsersPage() {
   const handleClearData = async (userId: string) => {
     try {
       setActionLoading(true);
+      const user = users.find(u => u.id === userId);
       const { data, error } = await supabase.rpc("clear_user_data", {
         target_user_id: userId,
       });
       if (error) throw error;
+      
+      // Log the action
+      await logAdminAction("data_cleared", userId, user?.email, { lists_deleted: data?.lists_deleted });
+      
       setSuccessMessage(
         `User data cleared. \${data.lists_deleted} lists deleted.`,
       );
@@ -266,10 +345,15 @@ export default function AdminUsersPage() {
   const handleDeleteAccount = async (userId: string) => {
     try {
       setActionLoading(true);
+      const user = users.find(u => u.id === userId);
       const { error } = await supabase.rpc("delete_user_account", {
         target_user_id: userId,
       });
       if (error) throw error;
+      
+      // Log the action
+      await logAdminAction("account_deleted", userId, user?.email);
+      
       setSuccessMessage("Account deleted permanently");
       setShowConfirmDialog(false);
       fetchUsers();
@@ -285,11 +369,17 @@ export default function AdminUsersPage() {
   const handleTierChange = async (userId: string, newTier: string) => {
     try {
       setActionLoading(true);
+      const user = users.find(u => u.id === userId);
+      const oldTier = user?.tier;
       const { error } = await supabase
         .from("users")
         .update({ tier: newTier })
         .eq("id", userId);
       if (error) throw error;
+      
+      // Log the action
+      await logAdminAction("tier_changed", userId, user?.email, { old_tier: oldTier, new_tier: newTier });
+      
       setSuccessMessage(`Tier updated to ${newTier}`);
       await fetchUsers();
       setTimeout(() => setSuccessMessage(""), 3000);
@@ -385,6 +475,182 @@ export default function AdminUsersPage() {
 
   const hasActiveFilters = searchQuery !== "" || tierFilter !== "all" || statusFilter !== "all" || roleFilter !== "all";
 
+  // Fetch audit logs
+  const fetchAuditLogs = async () => {
+    try {
+      setAuditLogsLoading(true);
+      const { data, error } = await supabase.rpc("get_admin_audit_logs", {
+        p_limit: 50,
+        p_offset: auditLogPage * 50,
+        p_action_type: auditLogFilter === "all" ? null : auditLogFilter,
+      });
+      
+      if (error) throw error;
+      setAuditLogs(data || []);
+    } catch (error) {
+      console.error("Error fetching audit logs:", error);
+      setErrorMessage("Failed to load audit logs");
+      setTimeout(() => setErrorMessage(""), 5000);
+    } finally {
+      setAuditLogsLoading(false);
+    }
+  };
+
+  // Log admin action helper
+  const logAdminAction = async (
+    actionType: string,
+    targetUserId?: string,
+    targetUserEmail?: string,
+    details?: Record<string, any>
+  ) => {
+    try {
+      await supabase.rpc("log_admin_action", {
+        p_action_type: actionType,
+        p_target_user_id: targetUserId || null,
+        p_target_user_email: targetUserEmail || null,
+        p_details: details || {},
+      });
+    } catch (error) {
+      console.error("Error logging admin action:", error);
+    }
+  };
+
+  // Handle password reset
+  const handlePasswordReset = async (email: string) => {
+    try {
+      setActionLoading(true);
+      setErrorMessage("");
+      
+      // Send password reset email via Supabase Auth
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      
+      if (error) throw error;
+      
+      // Log the action
+      await logAdminAction(
+        "password_reset_sent",
+        passwordResetUser?.id,
+        email,
+        { initiated_by: "admin" }
+      );
+      
+      setSuccessMessage(`Password reset email sent to ${email}`);
+      setShowPasswordResetDialog(false);
+      setPasswordResetUser(null);
+      setTimeout(() => setSuccessMessage(""), 5000);
+    } catch (error: any) {
+      console.error("Error sending password reset:", error);
+      setErrorMessage(`Failed to send password reset: ${error.message || "Unknown error"}`);
+      setTimeout(() => setErrorMessage(""), 5000);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Handle resend welcome email (magic link for new/inactive users)
+  const handleResendWelcomeEmail = async (email: string, userId: string) => {
+    try {
+      setActionLoading(true);
+      setErrorMessage("");
+      
+      // Send magic link as welcome email
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/app`,
+          shouldCreateUser: false,
+        },
+      });
+      
+      if (error) throw error;
+      
+      // Log the action
+      await logAdminAction(
+        "welcome_email_resent",
+        userId,
+        email,
+        { initiated_by: "admin" }
+      );
+      
+      setSuccessMessage(`Welcome email sent to ${email}`);
+      setTimeout(() => setSuccessMessage(""), 5000);
+    } catch (error: any) {
+      console.error("Error sending welcome email:", error);
+      setErrorMessage(`Failed to send welcome email: ${error.message || "Unknown error"}`);
+      setTimeout(() => setErrorMessage(""), 5000);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Handle user impersonation
+  const handleImpersonateUser = async (user: User) => {
+    try {
+      setImpersonating(true);
+      setErrorMessage("");
+      
+      // Log the impersonation action
+      await logAdminAction(
+        "user_impersonation_started",
+        user.id,
+        user.email,
+        { admin_action: "impersonate" }
+      );
+      
+      // Store admin session info in localStorage for return
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        localStorage.setItem("admin_return_session", JSON.stringify({
+          adminId: session.user.id,
+          adminEmail: session.user.email,
+          timestamp: new Date().toISOString(),
+        }));
+      }
+      
+      // Send magic link to impersonate user
+      const { error } = await supabase.auth.signInWithOtp({
+        email: user.email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/app?impersonated=true`,
+          shouldCreateUser: false,
+        },
+      });
+      
+      if (error) throw error;
+      
+      setSuccessMessage(`Impersonation link sent. Check ${user.email}'s inbox or use the magic link to login as this user.`);
+      setShowImpersonateDialog(false);
+      setImpersonateUser(null);
+      setTimeout(() => setSuccessMessage(""), 8000);
+    } catch (error: any) {
+      console.error("Error impersonating user:", error);
+      setErrorMessage(`Failed to impersonate user: ${error.message || "Unknown error"}`);
+      setTimeout(() => setErrorMessage(""), 5000);
+    } finally {
+      setImpersonating(false);
+    }
+  };
+
+  // Format action type for display
+  const formatActionType = (actionType: string): string => {
+    return actionType
+      .split("_")
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
+  // Get action type color
+  const getActionTypeColor = (actionType: string): string => {
+    if (actionType.includes("delete")) return "bg-red-100 text-red-800";
+    if (actionType.includes("disable")) return "bg-yellow-100 text-yellow-800";
+    if (actionType.includes("enable")) return "bg-green-100 text-green-800";
+    if (actionType.includes("tier")) return "bg-blue-100 text-blue-800";
+    if (actionType.includes("impersonation")) return "bg-purple-100 text-purple-800";
+    return "bg-gray-100 text-gray-800";
+  };
+
   if (loading) {
     console.log("[Admin] Rendering loading state...");
     return (
@@ -408,6 +674,26 @@ export default function AdminUsersPage() {
           <p className="text-gray-600 text-sm sm:text-base">Manage user tiers and accounts</p>
         </div>
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowAuditLog(true);
+                    fetchAuditLogs();
+                  }}
+                  className="flex items-center gap-2 min-h-[44px]"
+                >
+                  <History className="w-4 h-4" />
+                  <span className="hidden sm:inline">Audit Log</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>View admin action history</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -759,17 +1045,65 @@ export default function AdminUsersPage() {
                           </div>
                         </DropdownMenuItem>
 
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setPasswordResetUser(user);
+                            setShowPasswordResetDialog(true);
+                          }}
+                          disabled={actionLoading}
+                          className="min-h-[44px]"
+                        >
+                          <KeyRound size={14} className="mr-2" />
+                          <div className="flex flex-col">
+                            <span>Reset Password</span>
+                            <span className="text-xs text-gray-500">Send password reset email</span>
+                          </div>
+                        </DropdownMenuItem>
+
+                        <DropdownMenuItem
+                          onClick={() => handleResendWelcomeEmail(user.email, user.id)}
+                          disabled={actionLoading}
+                          className="min-h-[44px]"
+                        >
+                          <Send size={14} className="mr-2" />
+                          <div className="flex flex-col">
+                            <span>Resend Welcome Email</span>
+                            <span className="text-xs text-gray-500">For new or inactive users</span>
+                          </div>
+                        </DropdownMenuItem>
+
+                        <DropdownMenuSeparator />
+
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setImpersonateUser(user);
+                            setShowImpersonateDialog(true);
+                          }}
+                          disabled={actionLoading || user.is_admin}
+                          className="min-h-[44px] text-purple-600"
+                        >
+                          <UserCog size={14} className="mr-2" />
+                          <div className="flex flex-col">
+                            <span>Login as User</span>
+                            <span className="text-xs text-purple-500">Impersonate for troubleshooting</span>
+                          </div>
+                        </DropdownMenuItem>
+
                         <DropdownMenuSeparator />
 
                         {user.is_disabled ? (
                           <DropdownMenuItem
-                            onClick={() => handleEnableAccount(user.id)}
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setActionType("enable");
+                              setShowConfirmDialog(true);
+                            }}
                             className="text-green-600 min-h-[44px]"
                             disabled={actionLoading}
                           >
                             <Lock size={14} className="mr-2" />
                             <div className="flex flex-col">
-                              <span>Enable Account</span>
+                              <span>Re-activate Account</span>
                               <span className="text-xs text-green-500">Allow user to log in again</span>
                             </div>
                           </DropdownMenuItem>
@@ -839,11 +1173,14 @@ export default function AdminUsersPage() {
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <AlertDialogContent className="max-w-[90vw] sm:max-w-lg">
           <AlertDialogTitle>
+            {actionType === "enable" && "Re-activate Account?"}
             {actionType === "disable" && "Disable Account?"}
             {actionType === "clear_data" && "Clear All User Data?"}
             {actionType === "delete" && "Delete Account Permanently?"}
           </AlertDialogTitle>
           <AlertDialogDescription>
+            {actionType === "enable" &&
+              "This will re-activate the user's account and allow them to log in again."}
             {actionType === "disable" &&
               "This will prevent the user from logging in. They can be re-enabled later."}
             {actionType === "clear_data" &&
@@ -851,6 +1188,16 @@ export default function AdminUsersPage() {
             {actionType === "delete" &&
               "This will permanently delete the user account and all associated data. This cannot be undone."}
           </AlertDialogDescription>
+
+          {actionType === "enable" && selectedUser && (
+            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+              <p className="text-sm text-green-600">User to re-activate</p>
+              <p className="font-medium text-green-800">{selectedUser.email}</p>
+              {selectedUser.name && (
+                <p className="text-sm text-green-600">{selectedUser.name}</p>
+              )}
+            </div>
+          )}
 
           {actionType === "disable" && (
             <div className="space-y-2">
@@ -871,6 +1218,8 @@ export default function AdminUsersPage() {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
+                if (actionType === "enable")
+                  handleEnableAccount(selectedUser!.id);
                 if (actionType === "disable")
                   handleDisableAccount(selectedUser!.id);
                 if (actionType === "clear_data")
@@ -884,14 +1233,263 @@ export default function AdminUsersPage() {
                   ? "bg-red-600 hover:bg-red-700"
                   : actionType === "clear_data"
                     ? "bg-orange-600 hover:bg-orange-700"
-                    : ""
+                    : actionType === "enable"
+                      ? "bg-green-600 hover:bg-green-700"
+                      : ""
               }`}
             >
-              {actionLoading ? "Processing..." : "Confirm"}
+              {actionLoading ? "Processing..." : actionType === "enable" ? "Re-activate" : "Confirm"}
             </AlertDialogAction>
           </div>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Password Reset Dialog */}
+      <Dialog open={showPasswordResetDialog} onOpenChange={setShowPasswordResetDialog}>
+        <DialogContent className="max-w-[90vw] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="w-5 h-5" />
+              Reset User Password
+            </DialogTitle>
+            <DialogDescription>
+              Send a password reset email to this user. They will receive a link to create a new password.
+            </DialogDescription>
+          </DialogHeader>
+          {passwordResetUser && (
+            <div className="space-y-4">
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600">User</p>
+                <p className="font-medium">{passwordResetUser.email}</p>
+                {passwordResetUser.name && (
+                  <p className="text-sm text-gray-500">{passwordResetUser.name}</p>
+                )}
+              </div>
+              <div className="flex flex-col-reverse sm:flex-row gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowPasswordResetDialog(false);
+                    setPasswordResetUser(null);
+                  }}
+                  disabled={actionLoading}
+                  className="min-h-[44px]"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => handlePasswordReset(passwordResetUser.email)}
+                  disabled={actionLoading}
+                  className="min-h-[44px]"
+                >
+                  {actionLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="w-4 h-4 mr-2" />
+                      Send Reset Email
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Impersonation Dialog */}
+      <Dialog open={showImpersonateDialog} onOpenChange={setShowImpersonateDialog}>
+        <DialogContent className="max-w-[90vw] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-purple-600">
+              <UserCog className="w-5 h-5" />
+              Login as User
+            </DialogTitle>
+            <DialogDescription>
+              This will send a magic link to impersonate this user. Use this feature responsibly for troubleshooting purposes only.
+            </DialogDescription>
+          </DialogHeader>
+          {impersonateUser && (
+            <div className="space-y-4">
+              <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                <p className="text-sm text-purple-600">Target User</p>
+                <p className="font-medium">{impersonateUser.email}</p>
+                {impersonateUser.name && (
+                  <p className="text-sm text-purple-500">{impersonateUser.name}</p>
+                )}
+                <p className="text-xs text-purple-400 mt-2">Tier: {impersonateUser.tier}</p>
+              </div>
+              <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5" />
+                  <div className="text-sm text-yellow-800">
+                    <p className="font-medium">Important</p>
+                    <p>This action will be logged. A magic link will be sent to the user's email.</p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col-reverse sm:flex-row gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowImpersonateDialog(false);
+                    setImpersonateUser(null);
+                  }}
+                  disabled={impersonating}
+                  className="min-h-[44px]"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => handleImpersonateUser(impersonateUser)}
+                  disabled={impersonating}
+                  className="min-h-[44px] bg-purple-600 hover:bg-purple-700"
+                >
+                  {impersonating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="w-4 h-4 mr-2" />
+                      Send Impersonation Link
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Audit Log Dialog */}
+      <Dialog open={showAuditLog} onOpenChange={setShowAuditLog}>
+        <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="w-5 h-5" />
+              Admin Audit Log
+            </DialogTitle>
+            <DialogDescription>
+              View history of all admin actions for accountability and tracking.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Audit Log Filters */}
+            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+              <Select value={auditLogFilter} onValueChange={(value) => {
+                setAuditLogFilter(value);
+                setAuditLogPage(0);
+              }}>
+                <SelectTrigger className="w-full sm:w-[200px] min-h-[44px]">
+                  <SelectValue placeholder="Filter by action" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Actions</SelectItem>
+                  <SelectItem value="tier_changed">Tier Changes</SelectItem>
+                  <SelectItem value="account_disabled">Account Disabled</SelectItem>
+                  <SelectItem value="account_enabled">Account Enabled</SelectItem>
+                  <SelectItem value="password_reset_sent">Password Resets</SelectItem>
+                  <SelectItem value="user_impersonation_started">Impersonations</SelectItem>
+                  <SelectItem value="welcome_email_resent">Welcome Emails</SelectItem>
+                  <SelectItem value="data_cleared">Data Cleared</SelectItem>
+                  <SelectItem value="account_deleted">Account Deleted</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                onClick={fetchAuditLogs}
+                disabled={auditLogsLoading}
+                className="min-h-[44px]"
+              >
+                {auditLogsLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
+                <span className="ml-2 hidden sm:inline">Refresh</span>
+              </Button>
+            </div>
+
+            {/* Audit Log Table */}
+            <ScrollArea className="h-[400px] rounded-lg border">
+              {auditLogsLoading ? (
+                <div className="flex items-center justify-center h-full">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                </div>
+              ) : auditLogs.length === 0 ? (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                  No audit logs found
+                </div>
+              ) : (
+                <div className="p-4 space-y-3">
+                  {auditLogs.map((log) => (
+                    <div key={log.id} className="p-3 bg-gray-50 rounded-lg border">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getActionTypeColor(log.action_type)}`}>
+                            {formatActionType(log.action_type)}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {new Date(log.created_at).toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-2 text-sm">
+                        <p>
+                          <span className="text-gray-500">Admin:</span>{" "}
+                          <span className="font-medium">{log.admin_email || "Unknown"}</span>
+                        </p>
+                        {log.target_user_email && (
+                          <p>
+                            <span className="text-gray-500">Target:</span>{" "}
+                            <span className="font-medium">{log.target_user_email}</span>
+                          </p>
+                        )}
+                        {log.details && Object.keys(log.details).length > 0 && (
+                          <p className="text-xs text-gray-400 mt-1">
+                            Details: {JSON.stringify(log.details)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+
+            {/* Pagination */}
+            <div className="flex items-center justify-between">
+              <Button
+                variant="outline"
+                onClick={() => setAuditLogPage(Math.max(0, auditLogPage - 1))}
+                disabled={auditLogPage === 0 || auditLogsLoading}
+                className="min-h-[44px]"
+              >
+                <ChevronLeft className="w-4 h-4 mr-1" />
+                Previous
+              </Button>
+              <span className="text-sm text-gray-500">Page {auditLogPage + 1}</span>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setAuditLogPage(auditLogPage + 1);
+                  fetchAuditLogs();
+                }}
+                disabled={auditLogs.length < 50 || auditLogsLoading}
+                className="min-h-[44px]"
+              >
+                Next
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
