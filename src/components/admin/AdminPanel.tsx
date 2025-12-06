@@ -492,7 +492,16 @@ export default function AdminUsersPage() {
       });
       
       if (error) throw error;
-      setAuditLogs(data || []);
+      
+      // Parse details from JSON string to object if needed
+      const parsedLogs = (data || []).map((log: any) => ({
+        ...log,
+        details: typeof log.details === 'string' 
+          ? JSON.parse(log.details) 
+          : (log.details || {}),
+      }));
+      
+      setAuditLogs(parsedLogs);
     } catch (error) {
       console.error("Error fetching audit logs:", error);
       setErrorMessage("Failed to load audit logs");
@@ -622,23 +631,23 @@ export default function AdminUsersPage() {
         timestamp: new Date().toISOString(),
       }));
       
-      // Send magic link to admin's email but for the target user's account
+      // Send magic link to the target user's email
       // Note: Supabase Auth requires the magic link to go to the target user's email
-      // So we'll send it to the admin's email with instructions
+      // The admin will need to coordinate with the user to get the link
       const { error } = await supabase.auth.signInWithOtp({
-        email: adminEmail,
+        email: user.email,
         options: {
-          emailRedirectTo: `${window.location.origin}/app?impersonating=${user.id}`,
+          emailRedirectTo: `${window.location.origin}/app?impersonated=true`,
           shouldCreateUser: false,
         },
       });
       
       if (error) throw error;
       
-      setSuccessMessage(`Impersonation initiated. A verification link has been sent to your admin email (${adminEmail}). After clicking the link, you'll be logged in as yourself but can view ${user.email}'s data in read-only mode.`);
+      setSuccessMessage(`Impersonation link sent to ${user.email}. Please ask the user to share the magic link from their email, or access their email directly to click the link and log in as them.`);
       setShowImpersonateDialog(false);
       setImpersonateUser(null);
-      setTimeout(() => setSuccessMessage(""), 10000);
+      setTimeout(() => setSuccessMessage(""), 12000);
     } catch (error: any) {
       console.error("Error impersonating user:", error);
       setErrorMessage(`Failed to impersonate user: ${error.message || "Unknown error"}`);
@@ -1100,7 +1109,7 @@ export default function AdminUsersPage() {
                           <UserCog size={14} className="mr-2" />
                           <div className="flex flex-col">
                             <span>Login as User</span>
-                            <span className="text-xs text-purple-500">Impersonate for troubleshooting</span>
+                            <span className="text-xs text-purple-500">Send link to user's email</span>
                           </div>
                         </DropdownMenuItem>
 
@@ -1324,7 +1333,7 @@ export default function AdminUsersPage() {
               Login as User
             </DialogTitle>
             <DialogDescription>
-              This will send a magic link to impersonate this user. Use this feature responsibly for troubleshooting purposes only.
+              Send a magic link to impersonate this user for troubleshooting purposes.
             </DialogDescription>
           </DialogHeader>
           {impersonateUser && (
@@ -1342,7 +1351,12 @@ export default function AdminUsersPage() {
                   <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5" />
                   <div className="text-sm text-yellow-800">
                     <p className="font-medium">How it works</p>
-                    <p>A verification link will be sent to <strong>your admin email</strong>. After clicking it, you'll be able to view this user's data for troubleshooting. This action is logged.</p>
+                    <p>A magic link will be sent to <strong>the user's email ({impersonateUser.email})</strong>. To log in as this user, you'll need to either:</p>
+                    <ul className="list-disc ml-4 mt-1 space-y-1">
+                      <li>Ask the user to share the magic link with you</li>
+                      <li>Access the user's email directly (if authorized)</li>
+                    </ul>
+                    <p className="mt-2 text-xs text-yellow-600">This action is logged for security purposes.</p>
                   </div>
                 </div>
               </div>
@@ -1371,7 +1385,7 @@ export default function AdminUsersPage() {
                   ) : (
                     <>
                       <Eye className="w-4 h-4 mr-2" />
-                      Send Link to My Email
+                      Send Link to User's Email
                     </>
                   )}
                 </Button>
