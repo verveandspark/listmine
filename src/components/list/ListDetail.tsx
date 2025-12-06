@@ -177,6 +177,8 @@ export default function ListDetail() {
   const [showNewItemPreview, setShowNewItemPreview] = useState(false);
 
   const [draggedItem, setDraggedItem] = useState<ListItemType | null>(null);
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
+  const [dropPosition, setDropPosition] = useState<"before" | "after" | null>(null);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [collaboratorEmail, setCollaboratorEmail] = useState("");
@@ -251,7 +253,7 @@ export default function ListDetail() {
     );
   }
 
-  const handleAddItem = () => {
+  const handleAddItem = async () => {
     // Validate item name
     const nameValidation = validateItemName(newItemText);
     if (!nameValidation.valid) {
@@ -313,20 +315,6 @@ export default function ListDetail() {
         });
         return;
       }
-    }
-
-    // Check for duplicate item
-    const existingItem = list.items.find(
-      (i) => i.text.toLowerCase() === nameValidation.value!.toLowerCase(),
-    );
-    if (existingItem) {
-      toast({
-        title: "⚠️ This item already exists",
-        description:
-          "This item is already in your list. Add it anyway or choose a different name?",
-        variant: "destructive",
-      });
-      // Allow user to continue if they want
     }
 
     // Check item limit
@@ -397,7 +385,7 @@ export default function ListDetail() {
         }
       }
 
-      addItemToList(list.id, {
+      await addItemToList(list.id, {
         text: nameValidation.value!,
         quantity: newItemQuantity,
         priority: newItemPriority,
@@ -472,12 +460,37 @@ export default function ListDetail() {
   const handleDragOver = (e: React.DragEvent, targetItem: ListItemType) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
+    
+    if (!draggedItem || draggedItem.id === targetItem.id) {
+      setDropTargetId(null);
+      setDropPosition(null);
+      return;
+    }
+    
+    // Calculate if dropping before or after based on mouse position
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const midpoint = rect.top + rect.height / 2;
+    const position = e.clientY < midpoint ? "before" : "after";
+    
+    setDropTargetId(targetItem.id);
+    setDropPosition(position);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Only clear if leaving the card entirely (not entering a child)
+    const relatedTarget = e.relatedTarget as HTMLElement;
+    if (!e.currentTarget.contains(relatedTarget)) {
+      setDropTargetId(null);
+      setDropPosition(null);
+    }
   };
 
   const handleDrop = (e: React.DragEvent, targetItem: ListItemType) => {
     e.preventDefault();
     if (!draggedItem || draggedItem.id === targetItem.id) {
       setDraggedItem(null);
+      setDropTargetId(null);
+      setDropPosition(null);
       return;
     }
 
@@ -487,14 +500,30 @@ export default function ListDetail() {
 
     if (draggedIndex === -1 || targetIndex === -1) {
       setDraggedItem(null);
+      setDropTargetId(null);
+      setDropPosition(null);
       return;
     }
 
+    // Remove dragged item
     items.splice(draggedIndex, 1);
-    items.splice(targetIndex, 0, draggedItem);
+    
+    // Calculate new index based on drop position
+    let newIndex = targetIndex;
+    if (draggedIndex < targetIndex) {
+      // If dragging down, account for the removed item
+      newIndex = dropPosition === "after" ? targetIndex : targetIndex - 1;
+    } else {
+      // If dragging up
+      newIndex = dropPosition === "after" ? targetIndex + 1 : targetIndex;
+    }
+    
+    items.splice(newIndex, 0, draggedItem);
 
     reorderListItems(list.id, items);
     setDraggedItem(null);
+    setDropTargetId(null);
+    setDropPosition(null);
   };
 
   const handleDragEnd = (e: React.DragEvent) => {
@@ -503,6 +532,8 @@ export default function ListDetail() {
       e.currentTarget.style.opacity = "1";
     }
     setDraggedItem(null);
+    setDropTargetId(null);
+    setDropPosition(null);
   };
 
   const handleDeleteList = () => {
@@ -2038,9 +2069,18 @@ export default function ListDetail() {
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-medium text-gray-700">Items</h3>
               {itemSortBy === "manual" && (
-                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-                  Drag to reorder
-                </span>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full cursor-help">
+                        Drag to reorder
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs">
+                      <p>Drag items up or down. A blue line shows where the item will be placed.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
             </div>
             <Select value={itemSortBy} onValueChange={handleItemSortChange}>
@@ -2097,17 +2137,25 @@ export default function ListDetail() {
                   </div>
                   {categoryItems.map((item, index) => {
                     const isPurchased = item.attributes?.purchaseStatus === "purchased";
+                    const isDropTarget = dropTargetId === item.id;
                     
                     return (
+                    <div key={item.id} className="relative">
+                      {/* Drop indicator - before */}
+                      {isDropTarget && dropPosition === "before" && itemSortBy === "manual" && (
+                        <div className="absolute -top-1 left-0 right-0 h-1 bg-primary rounded-full z-10 animate-pulse" />
+                      )}
                     <Card
-                      key={item.id}
-                      className={`p-3 sm:p-4 hover:shadow-md transition-all ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2" : ""}`}
+                      className={`p-3 sm:p-4 hover:shadow-md transition-all ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2 opacity-50" : ""} ${isDropTarget && itemSortBy === "manual" ? "ring-2 ring-primary/30" : ""}`}
                       draggable={itemSortBy === "manual"}
                       onDragStart={(e) =>
                         itemSortBy === "manual" && handleDragStart(e, item)
                       }
                       onDragOver={(e) =>
                         itemSortBy === "manual" && handleDragOver(e, item)
+                      }
+                      onDragLeave={(e) =>
+                        itemSortBy === "manual" && handleDragLeave(e)
                       }
                       onDrop={(e) =>
                         itemSortBy === "manual" && handleDrop(e, item)
@@ -2969,6 +3017,11 @@ export default function ListDetail() {
                         )}
                       </div>
                     </Card>
+                    {/* Drop indicator - after */}
+                    {isDropTarget && dropPosition === "after" && itemSortBy === "manual" && (
+                      <div className="absolute -bottom-1 left-0 right-0 h-1 bg-primary rounded-full z-10 animate-pulse" />
+                    )}
+                    </div>
                     );
                   })}
                 </div>
@@ -2985,9 +3038,10 @@ export default function ListDetail() {
                 // Calculate continuous numbering for registry/wishlist
                 const showNumbering = list.listType === "registry-list" || list.listType === "shopping-list";
                 const itemNumber = index + 1;
+                const isDropTarget = dropTargetId === item.id;
                 
                 return (
-                  <div key={item.id}>
+                  <div key={item.id} className="relative">
                     {/* Divider before first purchased item */}
                     {isFirstPurchased && (
                       <div className="flex items-center gap-3 my-6">
@@ -2999,14 +3053,22 @@ export default function ListDetail() {
                       </div>
                     )}
                     
+                    {/* Drop indicator - before */}
+                    {isDropTarget && dropPosition === "before" && itemSortBy === "manual" && (
+                      <div className="absolute -top-1 left-0 right-0 h-1 bg-primary rounded-full z-10 animate-pulse" />
+                    )}
+                    
                     <Card
-                      className={`p-3 sm:p-4 hover:shadow-md transition-all ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${isPurchased ? "border-success/20 bg-success/5" : ""} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2" : ""}`}
+                      className={`p-3 sm:p-4 hover:shadow-md transition-all ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${isPurchased ? "border-success/20 bg-success/5" : ""} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2 opacity-50" : ""} ${isDropTarget && itemSortBy === "manual" ? "ring-2 ring-primary/30" : ""}`}
                       draggable={itemSortBy === "manual"}
                       onDragStart={(e) =>
                         itemSortBy === "manual" && handleDragStart(e, item)
                       }
                       onDragOver={(e) =>
                         itemSortBy === "manual" && handleDragOver(e, item)
+                      }
+                      onDragLeave={(e) =>
+                        itemSortBy === "manual" && handleDragLeave(e)
                       }
                       onDrop={(e) =>
                         itemSortBy === "manual" && handleDrop(e, item)
@@ -3913,6 +3975,10 @@ export default function ListDetail() {
                         )}
                       </div>
                     </Card>
+                    {/* Drop indicator - after */}
+                    {isDropTarget && dropPosition === "after" && itemSortBy === "manual" && (
+                      <div className="absolute -bottom-1 left-0 right-0 h-1 bg-primary rounded-full z-10 animate-pulse" />
+                    )}
                   </div>
                 )
               })

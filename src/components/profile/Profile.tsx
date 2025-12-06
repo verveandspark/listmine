@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/useAuthHook";
 import { useLists } from "@/contexts/useListsHook";
 import { resetOnboarding } from "@/components/onboarding/OnboardingTooltips";
-import { getTierDisplayName } from "@/lib/tierUtils";
+import { getTierDisplayName, getAvailableListTypes, ALL_LIST_TYPES, type UserTier } from "@/lib/tierUtils";
 import {
   Card,
   CardContent,
@@ -30,6 +30,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
   ArrowLeft,
   User,
   Mail,
@@ -52,6 +57,10 @@ import {
   Loader2,
   Eye,
   EyeOff,
+  ChevronDown,
+  Upload,
+  Download,
+  Users,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -83,6 +92,9 @@ export default function Profile() {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
+  
+  // Plan features collapsible state
+  const [isPlanFeaturesOpen, setIsPlanFeaturesOpen] = useState(false);
 
   if (!user) {
     navigate("/");
@@ -438,28 +450,178 @@ export default function Profile() {
         <Card>
           <CardHeader>
             <CardTitle>Account Limits</CardTitle>
-            <CardDescription>Your current plan limits</CardDescription>
+            <CardDescription>Your current plan limits and features</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-medium text-gray-700">Lists</p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {totalLists} / {user.listLimit === -1 ? "∞" : user.listLimit}
-                  </p>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-3">
-                  <div
-                    className={`h-3 rounded-full transition-all ${
-                      user.listLimit !== -1 && totalLists >= user.listLimit * 0.9
-                        ? "bg-red-500"
-                        : "bg-primary"
-                    }`}
-                    style={{
-                      width: `${user.listLimit === -1 ? 0 : Math.min((totalLists / user.listLimit) * 100, 100)}%`,
-                    }}
-                  />
+              {/* Plan Features Summary */}
+              <Collapsible open={isPlanFeaturesOpen} onOpenChange={setIsPlanFeaturesOpen}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between">
+                    <span className="flex items-center gap-2">
+                      <Crown className="w-4 h-4 text-primary" />
+                      What's included in your {getTierDisplayName(user.tier as UserTier)} plan?
+                    </span>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${isPlanFeaturesOpen ? "rotate-180" : ""}`} />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-4 space-y-4">
+                  {/* List Types */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <ListChecks className="w-4 h-4 text-primary" />
+                      <h4 className="font-semibold text-sm">Available List Types</h4>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {ALL_LIST_TYPES.map((listType) => {
+                        const available = getAvailableListTypes(user.tier as UserTier).includes(listType.value);
+                        return (
+                          <Badge 
+                            key={listType.value} 
+                            variant={available ? "default" : "secondary"}
+                            className={available ? "" : "opacity-50"}
+                          >
+                            {available && <Check className="w-3 h-3 mr-1" />}
+                            {listType.label}
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                    {user.tier === "free" && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Upgrade to unlock Grocery, Idea, Registry, and Wishlist templates
+                      </p>
+                    )}
+                    {user.tier === "good" && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Upgrade to Even Better for Registry & Wishlist templates
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Collaboration Features */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Users className="w-4 h-4 text-primary" />
+                      <h4 className="font-semibold text-sm">Collaboration</h4>
+                    </div>
+                    <ul className="space-y-2 text-sm">
+                      {user.tier === "free" && (
+                        <li className="flex items-start gap-2 text-muted-foreground">
+                          <X className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                          <span>Collaboration not available on Free plan</span>
+                        </li>
+                      )}
+                      {user.tier === "good" && (
+                        <li className="flex items-start gap-2">
+                          <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                          <span>Share read-only links</span>
+                        </li>
+                      )}
+                      {user.tier === "even_better" && (
+                        <>
+                          <li className="flex items-start gap-2">
+                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                            <span>Share read-only links</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                            <span>Invite up to 2 guests to edit</span>
+                          </li>
+                        </>
+                      )}
+                      {user.tier === "lots_more" && (
+                        <>
+                          <li className="flex items-start gap-2">
+                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                            <span>Share read-only links</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                            <span>3 admin accounts + unlimited guests</span>
+                          </li>
+                        </>
+                      )}
+                    </ul>
+                  </div>
+
+                  {/* Import/Export Features */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="flex items-center gap-1">
+                        <Upload className="w-4 h-4 text-primary" />
+                        <Download className="w-4 h-4 text-primary" />
+                      </div>
+                      <h4 className="font-semibold text-sm">Import & Export</h4>
+                    </div>
+                    <ul className="space-y-2 text-sm">
+                      {user.tier === "free" && (
+                        <li className="flex items-start gap-2 text-muted-foreground">
+                          <X className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                          <span>Import/Export not available on Free plan</span>
+                        </li>
+                      )}
+                      {user.tier === "good" && (
+                        <>
+                          <li className="flex items-start gap-2">
+                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                            <span>Import from multiple sources</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                            <span>Export to CSV/TXT</span>
+                          </li>
+                        </>
+                      )}
+                      {(user.tier === "even_better" || user.tier === "lots_more") && (
+                        <>
+                          <li className="flex items-start gap-2">
+                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                            <span>Import from multiple sources</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                            <span>Export to CSV/TXT/PDF</span>
+                          </li>
+                        </>
+                      )}
+                    </ul>
+                  </div>
+
+                  {/* Upgrade CTA for non-premium users */}
+                  {user.tier !== "lots_more" && (
+                    <Button
+                      onClick={() => navigate("/upgrade")}
+                      className="w-full"
+                      variant="default"
+                    >
+                      <Crown className="w-4 h-4 mr-2" />
+                      Upgrade to unlock more features
+                    </Button>
+                  )}
+                </CollapsibleContent>
+              </Collapsible>
+
+              <div className="border-t pt-4">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium text-gray-700">Lists</p>
+                    <p className="text-sm font-medium text-gray-900">
+                      {totalLists} / {user.listLimit === -1 ? "∞" : user.listLimit}
+                    </p>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div
+                      className={`h-3 rounded-full transition-all ${
+                        user.listLimit !== -1 && totalLists >= user.listLimit * 0.9
+                          ? "bg-red-500"
+                          : "bg-primary"
+                      }`}
+                      style={{
+                        width: `${user.listLimit === -1 ? 0 : Math.min((totalLists / user.listLimit) * 100, 100)}%`,
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
 

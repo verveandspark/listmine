@@ -545,14 +545,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    const existingItem = list.items.find(
-      (i) => i.text.toLowerCase() === nameValidation.value!.toLowerCase(),
-    );
-    if (existingItem) {
-      throw new Error(
-        `This item already exists in your list. Add it anyway or choose a different name?`,
-      );
-    }
+    // Note: Duplicate items are allowed - users may want multiple of the same item
 
     if (
       user &&
