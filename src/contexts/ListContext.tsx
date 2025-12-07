@@ -502,6 +502,40 @@ export function ListProvider({ children }: { children: ReactNode }) {
       console.log("[ListContext] Using user_id:", insertUserId);
       console.log("[ListContext] User IDs match:", authUser.id === user.id);
       
+      // Debug: Check auth state from database
+      try {
+        const { data: authDebug, error: debugError } = await supabase.rpc('debug_auth_state');
+        console.log("[ListContext] Database auth state:", authDebug, debugError);
+      } catch (e) {
+        console.log("[ListContext] Debug auth state not available:", e);
+      }
+      
+      // Verify user exists in public.users table
+      const { data: userExists, error: userCheckError } = await supabase
+        .from("users")
+        .select("id")
+        .eq("id", insertUserId)
+        .single();
+      
+      if (userCheckError || !userExists) {
+        console.error("[ListContext] User not found in public.users table:", userCheckError);
+        // Try to create the user profile if it doesn't exist
+        const { error: createUserError } = await supabase.from("users").insert({
+          id: authUser.id,
+          email: authUser.email || "",
+          name: authUser.email?.split("@")[0] || "User",
+          tier: "free",
+          list_limit: 50,
+          items_per_list_limit: 150,
+        });
+        
+        if (createUserError) {
+          console.error("[ListContext] Failed to create user profile:", createUserError);
+          throw new Error("Failed to create user profile. Please try logging out and back in.");
+        }
+        console.log("[ListContext] Created missing user profile");
+      }
+      
       const result = (await withTimeout(
         supabase.from("lists").insert(insertPayload).select().single(),
       )) as any;
