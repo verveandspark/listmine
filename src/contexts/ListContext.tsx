@@ -536,10 +536,11 @@ export function ListProvider({ children }: { children: ReactNode }) {
         console.log("[ListContext] Created missing user profile");
       }
       
-      const result = (await withTimeout(
-        supabase.from("lists").insert(insertPayload).select().single(),
-      )) as any;
-      const { data: newList, error } = result;
+      const { data: newList, error } = await supabase
+        .from("lists")
+        .insert([insertPayload])
+        .select()
+        .single();
 
       if (error) {
         console.error("[ListContext] List creation error:", error);
