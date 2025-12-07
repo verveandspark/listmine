@@ -109,6 +109,7 @@ interface ListContextType {
 }
 
 // ListContext for managing list state across the application
+// Context must be stable across hot module reloads
 export const ListContext = createContext<ListContextType | undefined>(
   undefined,
 );
@@ -483,13 +484,29 @@ export function ListProvider({ children }: { children: ReactNode }) {
     }
 
     try {
+      // Get the current session to ensure we use the correct user ID from auth
+      const { data: currentSession } = await supabase.auth.getSession();
+      const authUserId = currentSession?.session?.user?.id;
+      
+      // Use the auth user ID if available, otherwise fall back to context user ID
+      const insertUserId = authUserId || user.id;
+      
+      // Log the exact payload being sent
+      const insertPayload = {
+        user_id: insertUserId,
+        title: nameValidation.value,
+        category: categoryValidation.value,
+        list_type: listType,
+      };
+      
+      console.log("[ListContext] Insert payload:", insertPayload);
+      console.log("[ListContext] Auth user ID:", authUserId);
+      console.log("[ListContext] Context user ID:", user.id);
+      console.log("[ListContext] Using user_id:", insertUserId);
+      console.log("[ListContext] Session access token present:", !!currentSession?.session?.access_token);
+      
       const result = (await withTimeout(
-        supabase.from("lists").insert({
-          user_id: user.id,
-          title: nameValidation.value,
-          category: categoryValidation.value,
-          list_type: listType,
-        }).select().single(),
+        supabase.from("lists").insert(insertPayload).select().single(),
       )) as any;
       const { data: newList, error } = result;
 
@@ -506,9 +523,14 @@ export function ListProvider({ children }: { children: ReactNode }) {
           if (refreshError || !refreshData?.session) {
             throw new Error("Your session has expired. Please log in again.");
           }
+          
+          // Use the refreshed session's user ID
+          const refreshedUserId = refreshData.session.user.id;
+          console.log("[ListContext] Retrying with refreshed user ID:", refreshedUserId);
+          
           // Retry the insert after refresh
           const retryResult = await supabase.from("lists").insert({
-            user_id: user.id,
+            user_id: refreshedUserId,
             title: nameValidation.value,
             category: categoryValidation.value,
             list_type: listType,
@@ -1146,11 +1168,17 @@ export function ListProvider({ children }: { children: ReactNode }) {
     }
 
     try {
+      // Get the current session to ensure we use the correct user ID from auth
+      const { data: currentSession } = await supabase.auth.getSession();
+      const authUserId = currentSession?.session?.user?.id || user.id;
+      
+      console.log("[ListContext] Import list - using user_id:", authUserId);
+      
       const result = (await withTimeout(
         supabase
           .from("lists")
           .insert({
-            user_id: user.id,
+            user_id: authUserId,
             title: `Imported ${category} List`,
             category,
             list_type: listType,
@@ -1643,11 +1671,18 @@ export function ListProvider({ children }: { children: ReactNode }) {
 
       // Create a new list with "Copy of" prefix
       const newListTitle = `Copy of ${sharedList.title}`;
+      
+      // Get the current session to ensure we use the correct user ID from auth
+      const { data: currentSession } = await supabase.auth.getSession();
+      const authUserId = currentSession?.session?.user?.id || user.id;
+      
+      console.log("[ListContext] Copy shared list - using user_id:", authUserId);
+      
       const newListResult = (await withTimeout(
         supabase
           .from("lists")
           .insert({
-            user_id: user.id,
+            user_id: authUserId,
             title: newListTitle,
             category: sharedList.category,
             list_type: sharedList.list_type,
@@ -1746,11 +1781,17 @@ export function ListProvider({ children }: { children: ReactNode }) {
     }
 
     try {
+      // Get the current session to ensure we use the correct user ID from auth
+      const { data: currentSession } = await supabase.auth.getSession();
+      const authUserId = currentSession?.session?.user?.id || user.id;
+      
+      console.log("[ListContext] Create from scraped items - using user_id:", authUserId);
+      
       const result = (await withTimeout(
         supabase
           .from("lists")
           .insert({
-            user_id: user.id,
+            user_id: authUserId,
             title: nameValidation.value,
             category: categoryValidation.value,
             list_type: "shopping-list",
