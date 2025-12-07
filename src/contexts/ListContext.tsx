@@ -504,7 +504,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
       
       // Debug: Check auth state from database
       try {
-        const { data: authDebug, error: debugError } = await supabase.rpc('debug_auth_state');
+        const { data: authDebug, error: debugError } = await supabase.rpc('debug_auth_state', {});
         console.log("[ListContext] Database auth state:", authDebug, debugError);
       } catch (e) {
         console.log("[ListContext] Debug auth state not available:", e);

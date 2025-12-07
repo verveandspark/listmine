@@ -915,6 +915,15 @@ export type Database = {
           }
       check_list_limit: { Args: { tier: string }; Returns: number }
       clear_user_data: { Args: { target_user_id: string }; Returns: Json }
+      debug_auth_state: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          auth_email: string | null
+          auth_role: string | null
+          auth_uid: string | null
+          is_authenticated: boolean
+        }[]
+      }
       delete_user_account: { Args: { target_user_id: string }; Returns: Json }
       disable_user_account: {
         Args: { reason?: string; target_user_id: string }
