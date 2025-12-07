@@ -394,52 +394,40 @@ export function ListProvider({ children }: { children: ReactNode }) {
   ): Promise<string> => {
     if (!user) throw new Error("User not authenticated");
 
-    // Verify session is valid before making the request
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    // Use getUser() to validate the JWT token server-side - this is the most reliable method
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
     
-    if (sessionError) {
-      console.error("[ListContext] Session error before list creation:", sessionError);
-      throw new Error("Session error. Please log in again.");
+    if (authError) {
+      console.error("[ListContext] Auth error before list creation:", authError);
+      // Try to refresh the session
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      
+      if (refreshError || !refreshData?.session) {
+        console.error("[ListContext] Failed to refresh session:", refreshError);
+        throw new Error("Your session has expired. Please log in again.");
+      }
+      
+      console.log("[ListContext] Session refreshed successfully after auth error");
     }
     
-    if (!sessionData?.session) {
-      console.error("[ListContext] No active session found before list creation");
+    if (!authUser) {
+      console.error("[ListContext] No authenticated user found before list creation");
       throw new Error("Your session has expired. Please log in again.");
     }
     
-    // Check if session is expired
-    if (sessionData.session.expires_at) {
-      const expiresAt = new Date(sessionData.session.expires_at * 1000);
-      const now = new Date();
-      
-      if (expiresAt < now) {
-        console.error("[ListContext] Session expired:", { expiresAt, now });
-        // Try to refresh the session
-        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-        
-        if (refreshError || !refreshData?.session) {
-          console.error("[ListContext] Failed to refresh session:", refreshError);
-          throw new Error("Your session has expired. Please log in again.");
-        }
-        
-        console.log("[ListContext] Session refreshed successfully");
-      }
-    }
-    
-    // Verify user ID matches
-    if (sessionData.session.user.id !== user.id) {
+    // Verify user ID matches between context and auth
+    if (authUser.id !== user.id) {
       console.error("[ListContext] User ID mismatch:", { 
-        sessionUserId: sessionData.session.user.id, 
+        authUserId: authUser.id, 
         contextUserId: user.id 
       });
       throw new Error("Session mismatch. Please log in again.");
     }
     
-    console.log("[ListContext] Session verified for list creation:", {
+    console.log("[ListContext] User verified for list creation:", {
       userId: user.id,
-      sessionUserId: sessionData.session.user.id,
-      expiresAt: sessionData.session.expires_at,
-      accessToken: sessionData.session.access_token ? "present" : "missing"
+      authUserId: authUser.id,
+      userIdsMatch: authUser.id === user.id
     });
 
     const nameValidation = validateListName(title);
@@ -484,12 +472,21 @@ export function ListProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // Get the current session to ensure we use the correct user ID from auth
-      const { data: currentSession } = await supabase.auth.getSession();
-      const authUserId = currentSession?.session?.user?.id;
+      // Use getUser() to validate the JWT token server-side and get the authenticated user
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
       
-      // Use the auth user ID if available, otherwise fall back to context user ID
-      const insertUserId = authUserId || user.id;
+      if (authError) {
+        console.error("[ListContext] Auth error before list creation:", authError);
+        throw new Error("Authentication error. Please log in again.");
+      }
+      
+      if (!authUser) {
+        console.error("[ListContext] No authenticated user found");
+        throw new Error("You must be logged in to create a list. Please log in again.");
+      }
+      
+      // Always use the authenticated user's ID from getUser() - this is validated server-side
+      const insertUserId = authUser.id;
       
       // Log the exact payload being sent
       const insertPayload = {
@@ -500,10 +497,10 @@ export function ListProvider({ children }: { children: ReactNode }) {
       };
       
       console.log("[ListContext] Insert payload:", insertPayload);
-      console.log("[ListContext] Auth user ID:", authUserId);
+      console.log("[ListContext] Auth user ID (from getUser):", authUser.id);
       console.log("[ListContext] Context user ID:", user.id);
       console.log("[ListContext] Using user_id:", insertUserId);
-      console.log("[ListContext] Session access token present:", !!currentSession?.session?.access_token);
+      console.log("[ListContext] User IDs match:", authUser.id === user.id);
       
       const result = (await withTimeout(
         supabase.from("lists").insert(insertPayload).select().single(),
@@ -517,16 +514,22 @@ export function ListProvider({ children }: { children: ReactNode }) {
         }
         // Handle RLS violation specifically
         if (error.message.includes("row-level security") || error.code === "42501") {
-          console.error("[ListContext] RLS violation - attempting session refresh");
+          console.error("[ListContext] RLS violation - attempting session refresh and re-auth");
           // Try to refresh session and retry once
           const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
           if (refreshError || !refreshData?.session) {
             throw new Error("Your session has expired. Please log in again.");
           }
           
-          // Use the refreshed session's user ID
-          const refreshedUserId = refreshData.session.user.id;
-          console.log("[ListContext] Retrying with refreshed user ID:", refreshedUserId);
+          // Re-validate user after refresh using getUser()
+          const { data: { user: refreshedUser }, error: refreshedUserError } = await supabase.auth.getUser();
+          if (refreshedUserError || !refreshedUser) {
+            console.error("[ListContext] Failed to get user after refresh:", refreshedUserError);
+            throw new Error("Your session has expired. Please log in again.");
+          }
+          
+          const refreshedUserId = refreshedUser.id;
+          console.log("[ListContext] Retrying with refreshed user ID (from getUser):", refreshedUserId);
           
           // Retry the insert after refresh
           const retryResult = await supabase.from("lists").insert({
@@ -1168,11 +1171,17 @@ export function ListProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // Get the current session to ensure we use the correct user ID from auth
-      const { data: currentSession } = await supabase.auth.getSession();
-      const authUserId = currentSession?.session?.user?.id || user.id;
+      // Use getUser() to validate the JWT token server-side and get the authenticated user
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
       
-      console.log("[ListContext] Import list - using user_id:", authUserId);
+      if (authError || !authUser) {
+        console.error("[ListContext] Auth error before import:", authError);
+        throw new Error("Authentication error. Please log in again.");
+      }
+      
+      const authUserId = authUser.id;
+      
+      console.log("[ListContext] Import list - using user_id (from getUser):", authUserId);
       
       const result = (await withTimeout(
         supabase
@@ -1672,11 +1681,17 @@ export function ListProvider({ children }: { children: ReactNode }) {
       // Create a new list with "Copy of" prefix
       const newListTitle = `Copy of ${sharedList.title}`;
       
-      // Get the current session to ensure we use the correct user ID from auth
-      const { data: currentSession } = await supabase.auth.getSession();
-      const authUserId = currentSession?.session?.user?.id || user.id;
+      // Use getUser() to validate the JWT token server-side and get the authenticated user
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
       
-      console.log("[ListContext] Copy shared list - using user_id:", authUserId);
+      if (authError || !authUser) {
+        console.error("[ListContext] Auth error before copy:", authError);
+        throw new Error("Authentication error. Please log in again.");
+      }
+      
+      const authUserId = authUser.id;
+      
+      console.log("[ListContext] Copy shared list - using user_id (from getUser):", authUserId);
       
       const newListResult = (await withTimeout(
         supabase
@@ -1781,11 +1796,17 @@ export function ListProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // Get the current session to ensure we use the correct user ID from auth
-      const { data: currentSession } = await supabase.auth.getSession();
-      const authUserId = currentSession?.session?.user?.id || user.id;
+      // Use getUser() to validate the JWT token server-side and get the authenticated user
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
       
-      console.log("[ListContext] Create from scraped items - using user_id:", authUserId);
+      if (authError || !authUser) {
+        console.error("[ListContext] Auth error before creating from scraped items:", authError);
+        throw new Error("Authentication error. Please log in again.");
+      }
+      
+      const authUserId = authUser.id;
+      
+      console.log("[ListContext] Create from scraped items - using user_id (from getUser):", authUserId);
       
       const result = (await withTimeout(
         supabase
