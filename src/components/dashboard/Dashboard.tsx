@@ -1,5 +1,4 @@
 import { DashboardSkeleton } from "@/components/ui/DashboardSkeleton";
-import { FirebaseTest } from "@/components/FirebaseTest";
 import { OnboardingTooltips } from "@/components/onboarding/OnboardingTooltips";
 import { useUndoAction } from "@/hooks/useUndoAction";
 import {
@@ -39,7 +38,7 @@ import {
 
 import { useState } from "react";
 import { useAuth } from "@/contexts/useAuthHook";
-import { useList } from "@/contexts/ListContext";
+import { useLists } from "@/contexts/useListsHook";
 import { ListCategory, ListType } from "@/types";
 import {
   Card,
@@ -167,7 +166,7 @@ export default function Dashboard() {
     unshareList,
     exportList,
     restoreList,
-  } = useList();
+  } = useLists();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { executeWithUndo } = useUndoAction();

@@ -488,6 +488,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
       // Always use the authenticated user's ID from getUser() - this is validated server-side
       const insertUserId = authUser.id;
       
+      console.log("Type of insertUserId:", typeof insertUserId);
+      console.log("Value of insertUserId:", insertUserId);
+      
       // Log the exact payload being sent
       const insertPayload = {
         user_id: insertUserId,
@@ -549,38 +552,53 @@ export function ListProvider({ children }: { children: ReactNode }) {
         }
         // Handle RLS violation specifically
         if (error.message.includes("row-level security") || error.code === "42501") {
-          console.error("[ListContext] RLS violation - attempting session refresh and re-auth");
-          // Try to refresh session and retry once
-          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-          if (refreshError || !refreshData?.session) {
-            throw new Error("Your session has expired. Please log in again.");
+          console.error("[ListContext] RLS violation - attempting SECURITY DEFINER function fallback");
+          
+          // Use the SECURITY DEFINER function as fallback
+          const { data: newListId, error: rpcError } = await supabase.rpc('create_list_for_user', {
+            p_user_id: insertUserId,
+            p_title: nameValidation.value,
+            p_category: categoryValidation.value,
+            p_list_type: listType,
+          });
+          
+          if (rpcError) {
+            console.error("[ListContext] RPC fallback failed:", rpcError);
+            // Try session refresh as last resort
+            const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+            if (refreshError || !refreshData?.session) {
+              throw new Error("Your session has expired. Please log in again.");
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 150));
+            
+            // Re-validate user after refresh using getUser()
+            const { data: { user: refreshedUser }, error: refreshedUserError } = await supabase.auth.getUser();
+            if (refreshedUserError || !refreshedUser) {
+              console.error("[ListContext] Failed to get user after refresh:", refreshedUserError);
+              throw new Error("Your session has expired. Please log in again.");
+            }
+            
+            // Retry with RPC after refresh
+            const { data: retryListId, error: retryRpcError } = await supabase.rpc('create_list_for_user', {
+              p_user_id: refreshedUser.id,
+              p_title: nameValidation.value,
+              p_category: categoryValidation.value,
+              p_list_type: listType,
+            });
+            
+            if (retryRpcError) {
+              console.error("[ListContext] Retry RPC after refresh failed:", retryRpcError);
+              throw new Error("Unable to create list. Please log out and log back in.");
+            }
+            
+            await loadLists();
+            return retryListId;
           }
           
-          // Re-validate user after refresh using getUser()
-          const { data: { user: refreshedUser }, error: refreshedUserError } = await supabase.auth.getUser();
-          if (refreshedUserError || !refreshedUser) {
-            console.error("[ListContext] Failed to get user after refresh:", refreshedUserError);
-            throw new Error("Your session has expired. Please log in again.");
-          }
-          
-          const refreshedUserId = refreshedUser.id;
-          console.log("[ListContext] Retrying with refreshed user ID (from getUser):", refreshedUserId);
-          
-          // Retry the insert after refresh
-          const retryResult = await supabase.from("lists").insert({
-            user_id: refreshedUserId,
-            title: nameValidation.value,
-            category: categoryValidation.value,
-            list_type: listType,
-          }).select().single();
-          
-          if (retryResult.error) {
-            console.error("[ListContext] Retry after refresh failed:", retryResult.error);
-            throw new Error("Unable to create list. Please log out and log back in.");
-          }
-          
+          console.log("[ListContext] List created via RPC fallback:", newListId);
           await loadLists();
-          return retryResult.data.id;
+          return newListId;
         }
         throw error;
       }

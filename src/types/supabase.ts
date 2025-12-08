@@ -915,12 +915,29 @@ export type Database = {
           }
       check_list_limit: { Args: { tier: string }; Returns: number }
       clear_user_data: { Args: { target_user_id: string }; Returns: Json }
-      debug_auth_state: {
-        Args: Record<PropertyKey, never>
+      create_list_for_user: {
+        Args: {
+          p_category: string
+          p_list_type?: string
+          p_title: string
+          p_user_id: string
+        }
+        Returns: string
+      }
+      debug_all: {
+        Args: never
         Returns: {
-          auth_email: string | null
-          auth_role: string | null
-          auth_uid: string | null
+          auth_uid: string
+          current_user_name: unknown
+          jwt_claims: Json
+        }[]
+      }
+      debug_auth_state: {
+        Args: never
+        Returns: {
+          auth_email: string
+          auth_role: string
+          auth_uid: string
           is_authenticated: boolean
         }[]
       }
