@@ -34,7 +34,6 @@ import {
   LogOut,
   MessageSquare,
   Link2Off,
-  Diamond,
 } from "lucide-react";
 
 import { useState } from "react";
@@ -919,7 +918,11 @@ export default function Dashboard() {
           <div className="flex flex-wrap items-center gap-3 sm:gap-6">
             {/* Tier */}
             <div className="flex items-center gap-2">
-              <Diamond className="w-5 h-5 text-primary" />
+              <img 
+                src="/assets/listmine-icon.png" 
+                alt="ListMine" 
+                className="h-5 w-5"
+              />
               <span className="text-sm font-semibold text-gray-900">
                 {getTierName(user?.tier || "free")} Tier
               </span>
