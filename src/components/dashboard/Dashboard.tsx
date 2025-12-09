@@ -34,6 +34,7 @@ import {
   LogOut,
   MessageSquare,
   Link2Off,
+  Diamond,
 } from "lucide-react";
 
 import { useState } from "react";
@@ -915,86 +916,77 @@ export default function Dashboard() {
 
         {/* Usage Stats */}
         <div className="mb-4 sm:mb-6 bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-8 w-full sm:w-auto">
-              <div className="w-full sm:w-auto">
-                <div className="flex items-center gap-2 mb-1">
-                  <FileText className="w-5 h-5 text-primary" />
-                  <p className="text-sm text-gray-600">
-                    Lists · <span className="font-semibold">{getTierName(user?.tier || "free")} Tier</span>
-                  </p>
+          <div className="flex flex-wrap items-center gap-3 sm:gap-6">
+            {/* Tier */}
+            <div className="flex items-center gap-2">
+              <Diamond className="w-5 h-5 text-primary" />
+              <span className="text-sm font-semibold text-gray-900">
+                {getTierName(user?.tier || "free")} Tier
+              </span>
+            </div>
+
+            {/* Divider */}
+            <div className="hidden sm:block h-6 w-px bg-gray-200" />
+
+            {/* Total Lists */}
+            <div className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-primary" />
+              <span className="text-sm text-gray-600">
+                Total Lists:{" "}
+                <span className="font-semibold text-gray-900">
+                  {lists.length}
                   {user?.listLimit !== -1 && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="max-w-xs">
-                            You're using {lists.length} of your{" "}
-                            {user?.listLimit} lists on the{" "}
-                            {getTierName(user?.tier || "free")} tier. Upgrade
-                            for more lists.
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
-                </div>
-                <p className="text-2xl sm:text-3xl font-bold text-primary">
-                  {lists.length}{" "}
-                  {user?.listLimit !== -1 && (
-                    <span className="text-lg sm:text-xl text-gray-400">
-                      / {user?.listLimit}
-                    </span>
+                    <span className="text-gray-400"> / {user?.listLimit}</span>
                   )}
                   {user?.listLimit === -1 && (
-                    <span className="text-lg sm:text-xl text-gray-400">
-                      Unlimited
-                    </span>
+                    <span className="text-gray-400"> / Unlimited</span>
                   )}
-                </p>
-                {user?.listLimit !== -1 && (
-                  <>
-                    <div className="w-full sm:w-48 bg-gray-200 rounded-full h-2 mt-2">
-                      <div
-                        className={`h-2 rounded-full transition-all ${
-                          getUsagePercentage() >= 80
-                            ? "bg-warning"
-                            : "bg-primary"
-                        }`}
-                        style={{ width: `${getUsagePercentage()}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {getRemainingLists()} lists remaining
-                    </p>
-                  </>
-                )}
-              </div>
-              <div className="hidden sm:block h-16 w-px bg-gray-200" />
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <Package className="w-5 h-5 text-success" />
-                  <p className="text-sm text-gray-600">Total Items</p>
-                </div>
-                <p className="text-2xl sm:text-3xl font-bold text-success">
-                  {Math.max(0, lists.reduce((sum, list) => sum + (list.items?.length || 0), 0))}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {user?.itemsPerListLimit === -1
-                    ? "Unlimited"
-                    : `${user?.itemsPerListLimit} per list`}
-                </p>
-              </div>
+                </span>
+              </span>
+              {user?.listLimit !== -1 && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">
+                        You're using {lists.length} of your{" "}
+                        {user?.listLimit} lists on the{" "}
+                        {getTierName(user?.tier || "free")} tier. Upgrade
+                        for more lists.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
             </div>
+
+            {/* Divider */}
+            <div className="hidden sm:block h-6 w-px bg-gray-200" />
+
+            {/* Total Items */}
+            <div className="flex items-center gap-2">
+              <Package className="w-5 h-5 text-success" />
+              <span className="text-sm text-gray-600">
+                Total Items:{" "}
+                <span className="font-semibold text-gray-900">
+                  {Math.max(0, lists.reduce((sum, list) => sum + (list.items?.length || 0), 0))}
+                </span>
+                <span className="text-gray-400">
+                  {" "}/ {user?.itemsPerListLimit === -1 ? "Unlimited" : `${user?.itemsPerListLimit} per list`}
+                </span>
+              </span>
+            </div>
+
+            {/* Capacity Warning Badge */}
             {user?.listLimit !== -1 && getUsagePercentage() >= 80 && (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Badge
                       variant="outline"
-                      className="bg-warning/10 text-warning border-warning/30"
+                      className="bg-warning/10 text-warning border-warning/30 ml-auto"
                     >
                       <AlertCircle className="w-3 h-3 mr-1" />
                       {Math.round(getUsagePercentage())}% capacity
