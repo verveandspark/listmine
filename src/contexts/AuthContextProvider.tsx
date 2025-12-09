@@ -141,6 +141,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 tier: fallbackTier,
                 listLimit: tierLimits.listLimit,
                 itemsPerListLimit: tierLimits.itemsPerListLimit,
+                avatarUrl: session.user.user_metadata?.avatar_url || undefined,
               });
               // Update cache and localStorage
               userIdRef.current = session.user.id;
@@ -214,6 +215,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const setUserFromAuth = async (supabaseUser: SupabaseUser, fetchTier: boolean = true) => {
     let tier: 'free' | 'good' | 'even_better' | 'lots_more' = 'free';
+    let avatarUrl: string | undefined = supabaseUser.user_metadata?.avatar_url || undefined;
     
     // Tier priority for comparison (higher = better)
     const tierPriority: Record<string, number> = {
@@ -238,7 +240,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         const queryPromise = supabase
           .from('users')
-          .select('tier')
+          .select('tier, avatar_url')
           .eq('id', supabaseUser.id)
           .single();
 
@@ -251,6 +253,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         } else if (userData) {
           const fetchedTier = (userData.tier || 'free') as 'free' | 'good' | 'even_better' | 'lots_more';
+          
+          // Get avatar_url from database (prioritize over auth metadata)
+          if (userData.avatar_url) {
+            avatarUrl = userData.avatar_url;
+          }
           
           // If we have a cached tier for the same user, never downgrade
           // This prevents race conditions from resetting the tier
@@ -289,6 +296,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       tier: tier,
       listLimit: tierLimits.listLimit,
       itemsPerListLimit: tierLimits.itemsPerListLimit,
+      avatarUrl: avatarUrl,
     });
 
     setLoading(false);
@@ -524,6 +532,76 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updateAvatar = async (file: File): Promise<string> => {
+    if (!user) throw new Error("User not authenticated");
+
+    try {
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        throw new Error('Please upload a valid image file (JPEG, PNG, GIF, or WebP)');
+      }
+
+      // Validate file size (max 5MB)
+      const maxSize = 5 * 1024 * 1024;
+      if (file.size > maxSize) {
+        throw new Error('Image must be less than 5MB');
+      }
+
+      // Generate unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: true,
+        });
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw new Error('Failed to upload image');
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      const avatarUrl = urlData.publicUrl;
+
+      // Update user metadata in auth
+      const { error: authError } = await supabase.auth.updateUser({
+        data: { avatar_url: avatarUrl },
+      });
+
+      if (authError) {
+        console.warn("Could not update auth metadata:", authError.message);
+      }
+
+      // Update avatar_url in users table using RPC function
+      const { error: dbError } = await supabase.rpc('update_user_avatar', {
+        user_id: user.id,
+        new_avatar_url: avatarUrl,
+      });
+
+      if (dbError) {
+        console.error('Error updating avatar in database:', dbError);
+        throw new Error('Failed to save avatar');
+      }
+
+      // Update local user state
+      setUser({ ...user, avatarUrl });
+
+      return avatarUrl;
+    } catch (error: any) {
+      logError("updateAvatar", error, user.id);
+      throw error;
+    }
+  };
+
   const value: AuthContextType = useMemo(() => ({
     user,
     login,
@@ -535,6 +613,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     updateEmail,
     updatePassword,
     updateProfile,
+    updateAvatar,
     loading,
     error,
     getTierLimits,

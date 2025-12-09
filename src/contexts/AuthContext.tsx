@@ -11,6 +11,7 @@ export interface AuthContextType {
   updateProfile: (updates: any) => void;
   updateEmail: (newEmail: string) => Promise<void>;
   updatePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  updateAvatar: (file: File) => Promise<string>;
   loading: boolean;
   error: string | null;
   getTierLimits: (tier: string) => {

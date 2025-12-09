@@ -754,9 +754,17 @@ export default function Dashboard() {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="min-h-[44px] min-w-[44px]"
+                    className="min-h-[44px] min-w-[44px] rounded-full overflow-hidden p-0"
                   >
-                    <User className="w-4 h-4" />
+                    {user?.avatarUrl ? (
+                      <img 
+                        src={user.avatarUrl} 
+                        alt={user.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <User className="w-4 h-4" />
+                    )}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -786,8 +794,25 @@ export default function Dashboard() {
               <SheetContent side="right" className="w-[280px]">
                 <div className="flex flex-col gap-4 mt-8">
                   <div className="pb-4 border-b">
-                    <p className="text-sm text-gray-600 mb-1">Signed in as</p>
-                    <p className="font-semibold">{user?.name}</p>
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
+                        {user?.avatarUrl ? (
+                          <img 
+                            src={user.avatarUrl} 
+                            alt={user.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-primary flex items-center justify-center">
+                            <User className="w-6 h-6 text-primary-foreground" />
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Signed in as</p>
+                        <p className="font-semibold">{user?.name}</p>
+                      </div>
+                    </div>
                     {user?.tier === "premium" && (
                       <Badge variant="secondary" className="mt-2">
                         <Crown className="w-3 h-3 mr-1" />

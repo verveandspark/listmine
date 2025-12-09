@@ -781,6 +781,7 @@ export type Database = {
       }
       users: {
         Row: {
+          avatar_url: string | null
           created_at: string | null
           disabled_at: string | null
           disabled_reason: string | null
@@ -789,11 +790,13 @@ export type Database = {
           is_admin: boolean | null
           is_disabled: boolean | null
           name: string | null
+          profile_picture_url: string | null
           role: string | null
           tier: string | null
           updated_at: string | null
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string | null
           disabled_at?: string | null
           disabled_reason?: string | null
@@ -802,11 +805,13 @@ export type Database = {
           is_admin?: boolean | null
           is_disabled?: boolean | null
           name?: string | null
+          profile_picture_url?: string | null
           role?: string | null
           tier?: string | null
           updated_at?: string | null
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string | null
           disabled_at?: string | null
           disabled_reason?: string | null
@@ -815,6 +820,7 @@ export type Database = {
           is_admin?: boolean | null
           is_disabled?: boolean | null
           name?: string | null
+          profile_picture_url?: string | null
           role?: string | null
           tier?: string | null
           updated_at?: string | null
@@ -873,6 +879,7 @@ export type Database = {
       admin_get_all_users: {
         Args: never
         Returns: {
+          avatar_url: string | null
           created_at: string | null
           disabled_at: string | null
           disabled_reason: string | null
@@ -881,6 +888,7 @@ export type Database = {
           is_admin: boolean | null
           is_disabled: boolean | null
           name: string | null
+          profile_picture_url: string | null
           role: string | null
           tier: string | null
           updated_at: string | null
@@ -902,15 +910,15 @@ export type Database = {
       }
       can_access_list:
         | {
+            Args: { list_id_param: string; user_id_param: string }
+            Returns: boolean
+          }
+        | {
             Args: {
               p_check_write?: boolean
               p_list_id: string
               p_user_id?: string
             }
-            Returns: boolean
-          }
-        | {
-            Args: { list_id_param: string; user_id_param: string }
             Returns: boolean
           }
       check_list_limit: { Args: { tier: string }; Returns: number }
@@ -977,6 +985,10 @@ export type Database = {
           p_target_user_id?: string
         }
         Returns: string
+      }
+      update_user_avatar: {
+        Args: { new_avatar_url: string; user_id: string }
+        Returns: undefined
       }
       update_user_name: {
         Args: { new_name: string; user_id: string }

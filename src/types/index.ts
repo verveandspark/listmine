@@ -6,6 +6,7 @@ export interface User {
   tier: 'free' | 'good' | 'even_better' | 'lots_more';
   listLimit: number;
   itemsPerListLimit: number;
+  avatarUrl?: string;
 }
 
 export interface Account {

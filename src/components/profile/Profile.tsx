@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/useAuthHook";
 import { useLists } from "@/contexts/useListsHook";
@@ -62,12 +62,14 @@ import {
   Upload,
   Download,
   Users,
+  Camera,
 } from "lucide-react";
 import { format } from "date-fns";
+import { Progress } from "@/components/ui/progress";
 
 export default function Profile() {
   const navigate = useNavigate();
-  const { user, updateProfile, updateEmail, updatePassword } = useAuth();
+  const { user, updateProfile, updateEmail, updatePassword, updateAvatar } = useAuth();
   const { lists } = useLists();
 
   // Edit states
@@ -81,6 +83,13 @@ export default function Profile() {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [nameSuccess, setNameSuccess] = useState(false);
   const [emailSuccess, setEmailSuccess] = useState(false);
+
+  // Avatar upload states
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const [avatarSuccess, setAvatarSuccess] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Password change states
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -240,6 +249,48 @@ export default function Profile() {
     setShowConfirmPassword(false);
   };
 
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingAvatar(true);
+    setAvatarError(null);
+    setAvatarSuccess(false);
+    setUploadProgress(0);
+
+    // Simulate progress for better UX
+    const progressInterval = setInterval(() => {
+      setUploadProgress((prev) => {
+        if (prev >= 90) {
+          clearInterval(progressInterval);
+          return prev;
+        }
+        return prev + 10;
+      });
+    }, 100);
+
+    try {
+      await updateAvatar(file);
+      setUploadProgress(100);
+      setAvatarSuccess(true);
+      setTimeout(() => setAvatarSuccess(false), 3000);
+    } catch (error: any) {
+      setAvatarError(error.message || "Failed to upload avatar");
+    } finally {
+      clearInterval(progressInterval);
+      setIsUploadingAvatar(false);
+      setUploadProgress(0);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 animate-in fade-in duration-200">
       <header className="bg-white border-b border-gray-200">
@@ -271,14 +322,60 @@ export default function Profile() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-4 mb-6">
-              <div className="w-20 h-20 bg-primary rounded-full flex items-center justify-center">
-                <User className="w-10 h-10 text-primary-foreground" />
+              <div className="relative group">
+                <div 
+                  className="w-20 h-20 rounded-full flex items-center justify-center overflow-hidden cursor-pointer transition-all hover:ring-2 hover:ring-primary hover:ring-offset-2"
+                  onClick={handleAvatarClick}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAvatarClick()}
+                  aria-label="Change profile picture"
+                >
+                  {user.avatarUrl ? (
+                    <img 
+                      src={user.avatarUrl} 
+                      alt={user.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-primary flex items-center justify-center">
+                      <User className="w-10 h-10 text-primary-foreground" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-full flex items-center justify-center">
+                    <Camera className="w-6 h-6 text-white" />
+                  </div>
+                  {isUploadingAvatar && (
+                    <div className="absolute inset-0 bg-black/70 rounded-full flex items-center justify-center">
+                      <Loader2 className="w-6 h-6 text-white animate-spin" />
+                    </div>
+                  )}
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  onChange={handleAvatarChange}
+                  className="hidden"
+                  aria-label="Upload profile picture"
+                />
               </div>
-              <div>
+              <div className="flex-1">
                 <h2 className="text-2xl font-bold text-gray-900">
                   {user.name}
                 </h2>
                 <p className="text-gray-600">{user.email}</p>
+                {avatarError && (
+                  <p className="text-sm text-red-600 mt-1">{avatarError}</p>
+                )}
+                {avatarSuccess && (
+                  <p className="text-sm text-green-600 mt-1">Profile picture updated!</p>
+                )}
+                {isUploadingAvatar && (
+                  <div className="mt-2 w-32">
+                    <Progress value={uploadProgress} className="h-1" />
+                  </div>
+                )}
                 {user.tier !== "free" ? (
                   <div className="mt-2 space-y-2">
                     <Badge className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-yellow-900 text-base px-4 py-1">
