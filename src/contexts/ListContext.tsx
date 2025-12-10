@@ -1976,6 +1976,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
       const listType = canUseShoppingList ? 'shopping-list' : 'custom';
       
       console.log("[ListContext] User tier:", userTier, "Using list type:", listType);
+      console.log("Inserting list with user_id:", authUserId);
+      console.log("authUserId before insert:", authUserId);
+      console.log("Supabase auth user ID:", supabase.auth.user()?.id);
       
       const result = (await withTimeout(
         supabase
