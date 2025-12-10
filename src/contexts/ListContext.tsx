@@ -1977,8 +1977,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
       
       console.log("[ListContext] User tier:", userTier, "Using list type:", listType);
       console.log("Inserting list with user_id:", authUserId);
+      const { data: { user } } = await supabase.auth.getUser();
       console.log("authUserId before insert:", authUserId);
-      console.log("Supabase auth user ID:", supabase.auth.user()?.id);
+      console.log("Supabase auth user ID:", user?.id);
       
       const result = (await withTimeout(
         supabase
