@@ -377,14 +377,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     try {
       // Clear cache on logout
       cachedTierRef.current = null;
       userIdRef.current = null;
       clearTierFromStorage();
-      supabase.auth.signOut();
+      // Set user to null first to trigger immediate UI update
       setUser(null);
+      // Then sign out from Supabase (await to ensure it completes)
+      await supabase.auth.signOut();
     } catch (error: any) {
       logError("logout", error, user?.id);
       cachedTierRef.current = null;
@@ -607,6 +609,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     login,
     register,
     logout,
+    signOut: logout,
     isAuthenticated: !!user,
     updateUserTier,
     resetPassword,

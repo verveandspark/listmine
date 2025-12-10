@@ -4,7 +4,8 @@ export interface AuthContextType {
   user: any | null;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
+  signOut: () => Promise<void>;
   isAuthenticated: boolean;
   updateUserTier: (tier: "free" | "good" | "even_better" | "lots_more") => void;
   resetPassword: (email: string) => Promise<void>;

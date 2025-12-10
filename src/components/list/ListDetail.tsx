@@ -32,7 +32,6 @@ import {
   Share2,
   Download,
   Trash2,
-  Pin,
   X,
   ChevronDown,
   ChevronRight,
@@ -141,7 +140,6 @@ export default function ListDetail() {
     reorderListItems,
     deleteList,
     exportList,
-    togglePin,
     generateShareLink,
     unshareList,
     addCollaborator,
@@ -1233,25 +1231,6 @@ export default function ListDetail() {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => togglePin(list.id)}
-                          className="h-9 w-9"
-                        >
-                          <Pin
-                            className={`w-4 h-4 ${list.isPinned ? "fill-current text-primary" : "text-gray-600"}`}
-                          />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {list.isPinned ? "Unpin list" : "Pin list"}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
                           variant={isSelectMode ? "default" : "ghost"}
                           size="icon"
                           onClick={() => {
@@ -1486,19 +1465,6 @@ export default function ListDetail() {
                         Unshare List
                       </Button>
                     )}
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        togglePin(list.id);
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="w-full justify-start min-h-[44px]"
-                    >
-                      <Pin
-                        className={`w-4 h-4 mr-2 ${list.isPinned ? "fill-current text-primary" : ""}`}
-                      />
-                      {list.isPinned ? "Unpin List" : "Pin List"}
-                    </Button>
                     <Button
                       variant={isSelectMode ? "default" : "outline"}
                       onClick={() => {
@@ -3419,7 +3385,7 @@ export default function ListDetail() {
                       {index === 0 && isRegistryOrWishlist && hasPurchasedItems && hasUnpurchasedItems && !isPurchased && (
                         <div className="flex items-center gap-3 mb-4">
                           <div className="flex-1 h-px bg-gray-300"></div>
-                          <Badge className="bg-blue-50 text-blue-700 border-blue-200 px-3 py-1">
+                          <Badge className="bg-success/10 text-success border-success/30 px-3 py-1">
                             📋 Unpurchased Items
                           </Badge>
                           <div className="flex-1 h-px bg-gray-300"></div>

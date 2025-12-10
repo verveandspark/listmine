@@ -40,6 +40,11 @@ export function ListSidebar() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const { signOut } = useAuth();
 
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/", { replace: true });
+  };
+
   // Group lists by category
   const groupedLists = lists.reduce(
     (acc, list) => {
@@ -125,7 +130,7 @@ export function ListSidebar() {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                onClick={signOut}
+                onClick={handleLogout}
                 variant="outline"
                 className="w-full border-gray-300 text-gray-700 hover:bg-gray-100 min-h-[44px]"
               >

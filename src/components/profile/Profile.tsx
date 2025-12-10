@@ -47,7 +47,7 @@ import {
   FileText,
   Package,
   CheckCircle,
-  Pin,
+  Star,
   Share2,
   MessageSquare,
   RotateCcw,
@@ -119,7 +119,7 @@ export default function Profile() {
     (sum, list) => sum + (list.items?.filter((item) => item.completed).length || 0),
     0,
   ));
-  const pinnedLists = Math.max(0, lists.filter((list) => list.isPinned).length);
+  const favoriteLists = Math.max(0, lists.filter((list) => list.isFavorite).length);
   const sharedLists = Math.max(0, lists.filter((list) => list.isShared).length);
 
   const handleEditName = () => {
@@ -815,18 +815,18 @@ export default function Profile() {
                 </p>
               </div>
 
-              <div className="bg-warning/10 border border-warning/20 rounded-lg p-4">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <Pin className="w-5 h-5 text-warning" />
-                    <p className="text-sm font-medium text-warning">
-                      Pinned
+                    <Star className="w-5 h-5 text-yellow-500" />
+                    <p className="text-sm font-medium text-yellow-600">
+                      Favorites
                     </p>
                   </div>
-                  <TrendingDown className="w-4 h-4 text-warning" />
+                  <TrendingUp className="w-4 h-4 text-yellow-500" />
                 </div>
-                <p className="text-3xl font-bold text-warning">
-                  {pinnedLists}
+                <p className="text-3xl font-bold text-yellow-600">
+                  {favoriteLists}
                 </p>
               </div>
 

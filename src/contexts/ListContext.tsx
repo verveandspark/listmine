@@ -78,7 +78,6 @@ interface ListContextType {
     updates: Partial<ListItem>,
   ) => Promise<void>;
   reorderListItems: (listId: string, items: ListItem[]) => Promise<void>;
-  togglePin: (listId: string) => Promise<void>;
   toggleFavorite: (listId: string) => Promise<void>;
   importList: (
     data: string,
@@ -277,6 +276,16 @@ export function ListProvider({ children }: { children: ReactNode }) {
         .order("created_at", { ascending: false });
 
       if (ownedError) {
+        // Check if it's a network error - don't throw, just log and retry later
+        if (ownedError.message?.includes("Failed to fetch") || ownedError.message?.includes("NetworkError")) {
+          console.warn("[ListMine Warning]", {
+            operation: "loadLists - owned lists query",
+            message: "Network error fetching lists, will retry on next load",
+          });
+          isLoadingRef.current = false;
+          setLoading(false);
+          return;
+        }
         console.error("[ListMine Error]", {
           operation: "loadLists - owned lists query",
           error: ownedError,
@@ -449,13 +458,21 @@ export function ListProvider({ children }: { children: ReactNode }) {
         return;
       }
       
+      // Check if it's a network error - don't show error to user, just log
       const errorMessage = err instanceof Error ? err.message : "Failed to load lists";
-      console.error("[ListMine Error]", {
-        operation: "loadLists",
-        error: err,
-        errorMessage,
-      });
-      setError(errorMessage);
+      if (errorMessage.includes("Failed to fetch") || errorMessage.includes("NetworkError")) {
+        console.warn("[ListMine Warning]", {
+          operation: "loadLists",
+          message: "Network error, will retry on next load",
+        });
+      } else {
+        console.error("[ListMine Error]", {
+          operation: "loadLists",
+          error: err,
+          errorMessage,
+        });
+        setError(errorMessage);
+      }
     } finally {
       isLoadingRef.current = false;
       // Only set loading to false if this is still the current request
@@ -1111,27 +1128,6 @@ export function ListProvider({ children }: { children: ReactNode }) {
       // Reload lists to restore correct state on error
       await loadLists();
       throw error;
-    }
-  };
-
-  const togglePin = async (listId: string) => {
-    const list = lists.find((l) => l.id === listId);
-    if (!list) return;
-
-    try {
-      const result = (await withTimeout(
-        supabase
-          .from("lists")
-          .update({ is_pinned: !list.isPinned })
-          .eq("id", listId),
-      )) as any;
-      const { error } = result;
-
-      if (error) throw error;
-      await loadLists();
-    } catch (error: any) {
-      logError("togglePin", error, user?.id);
-      throw new Error("Couldn't update pin status. Try again.");
     }
   };
 
@@ -2043,7 +2039,6 @@ export function ListProvider({ children }: { children: ReactNode }) {
     restoreBulkItems,
     bulkUpdateItems,
     reorderListItems,
-    togglePin,
     toggleFavorite,
     importList,
     exportList,

@@ -49,11 +49,23 @@ function AppRoutes() {
     return () => window.removeEventListener("keydown", handleGlobalKeyDown);
   }, []);
 
+  // Determine where to redirect based on saved view mode
+  const getRedirectPath = () => {
+    const viewMode = localStorage.getItem("dashboardViewMode");
+    if (viewMode === "list") {
+      const lastListId = localStorage.getItem("last_list_id");
+      if (lastListId) {
+        return `/list/${lastListId}`;
+      }
+    }
+    return "/dashboard";
+  };
+
   return (
     <Routes>
       <Route 
         path="/" 
-        element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <AuthPage />} 
+        element={isAuthenticated ? <Navigate to={getRedirectPath()} replace /> : <AuthPage />} 
       />
       <Route path="/auth" element={<AuthPage />} />
       <Route path="/auth/reset-password" element={<ResetPassword />} />
