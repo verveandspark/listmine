@@ -1356,9 +1356,24 @@ export function ListProvider({ children }: { children: ReactNode }) {
           .select()
           .single(),
       )) as any;
-      const { data: newList, error: listError } = result;
+      let { data: newList, error: listError } = result;
 
-      if (listError) throw listError;
+      if (listError && (listError.code === "42501" || listError.message.includes("row-level security"))) {
+        console.error("[ListContext] RLS violation - attempting SECURITY DEFINER function fallback");
+        const { data: newListId, error: rpcError } = await supabase.rpc('create_list_for_user', {
+          p_user_id: authUserId,
+          p_title: `Imported ${category} List`,
+          p_category: category,
+          p_list_type: listType,
+        });
+        if (rpcError) {
+          console.error("[ListContext] RPC fallback failed:", rpcError);
+          throw rpcError;
+        }
+        newList = newListId;
+      } else if (listError) {
+        throw listError;
+      }
 
       const itemsToInsert = items.map((item, index) => ({
         list_id: newList.id,
