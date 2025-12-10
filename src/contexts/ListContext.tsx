@@ -1972,7 +1972,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
       // Determine the appropriate list type based on user's tier
       // shopping-list is only available for even_better and lots_more tiers
       const userTier = (user?.tier || 'free') as UserTier;
-      const canUseShoppingList = canAccessListType('shopping-list', userTier);
+      const canUseShoppingList = canAccessListType(userTier, 'shopping-list');
       const listType = canUseShoppingList ? 'shopping-list' : 'custom';
       
       console.log("[ListContext] User tier:", userTier, "Using list type:", listType);
