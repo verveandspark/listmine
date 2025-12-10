@@ -79,6 +79,7 @@ interface ListContextType {
   ) => Promise<void>;
   reorderListItems: (listId: string, items: ListItem[]) => Promise<void>;
   togglePin: (listId: string) => Promise<void>;
+  toggleFavorite: (listId: string) => Promise<void>;
   importList: (
     data: string,
     format: "csv" | "txt",
@@ -340,6 +341,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
           assignedTo: item.assigned_to || undefined,
         })),
         isPinned: list.is_pinned || false,
+        isFavorite: list.is_favorite || false,
         isShared: list.is_shared || false,
         shareLink: list.share_link || undefined,
         tags: (list.tags as string[]) || [],
@@ -652,6 +654,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
             category: updates.category,
             list_type: updates.listType,
             is_pinned: updates.isPinned,
+            is_favorite: updates.isFavorite,
             tags: updates.tags,
             updated_at: new Date().toISOString(),
           })
@@ -1053,6 +1056,39 @@ export function ListProvider({ children }: { children: ReactNode }) {
     } catch (error: any) {
       logError("togglePin", error, user?.id);
       throw new Error("Couldn't update pin status. Try again.");
+    }
+  };
+
+  const toggleFavorite = async (listId: string) => {
+    const list = lists.find((l) => l.id === listId);
+    if (!list) return;
+
+    // Optimistically update local state first for smooth UX
+    setLists((prevLists) =>
+      prevLists.map((l) =>
+        l.id === listId ? { ...l, isFavorite: !l.isFavorite } : l
+      )
+    );
+
+    try {
+      const result = (await withTimeout(
+        supabase
+          .from("lists")
+          .update({ is_favorite: !list.isFavorite })
+          .eq("id", listId),
+      )) as any;
+      const { error } = result;
+
+      if (error) throw error;
+    } catch (error: any) {
+      // Revert optimistic update on error
+      setLists((prevLists) =>
+        prevLists.map((l) =>
+          l.id === listId ? { ...l, isFavorite: list.isFavorite } : l
+        )
+      );
+      logError("toggleFavorite", error, user?.id);
+      throw new Error("Couldn't update favorite status. Try again.");
     }
   };
 
@@ -1932,6 +1968,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
     bulkUpdateItems,
     reorderListItems,
     togglePin,
+    toggleFavorite,
     importList,
     exportList,
     generateShareLink,

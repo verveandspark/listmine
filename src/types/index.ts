@@ -81,6 +81,7 @@ export interface List {
   listType: ListType;
   items: ListItem[];
   isPinned: boolean;
+  isFavorite: boolean;
   isShared: boolean;
   shareLink?: string;
   tags?: string[];

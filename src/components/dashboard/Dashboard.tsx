@@ -34,6 +34,12 @@ import {
   LogOut,
   MessageSquare,
   Link2Off,
+  Star,
+  LayoutDashboard,
+  List,
+  Archive,
+  Layers,
+  ChevronRight,
 } from "lucide-react";
 
 import { useState } from "react";
@@ -157,6 +163,7 @@ export default function Dashboard() {
     updateList,
     deleteList,
     togglePin,
+    toggleFavorite,
     searchLists,
     filterLists,
     loading,
@@ -187,6 +194,10 @@ export default function Dashboard() {
   });
   const [showCompleted, setShowCompleted] = useState(true);
   const [showArchived, setShowArchived] = useState(false);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [viewMode, setViewMode] = useState<"dashboard" | "list">(() => {
+    return (localStorage.getItem("dashboardViewMode") as "dashboard" | "list") || "dashboard";
+  });
   const [dueDateFilter, setDueDateFilter] = useState<
     "all" | "today" | "week" | "overdue"
   >("all");
@@ -195,6 +206,7 @@ export default function Dashboard() {
   >("all");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [selectedList, setSelectedList] = useState<any>(null);
   
   // Edit list state
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -202,6 +214,10 @@ export default function Dashboard() {
   const [editListTitle, setEditListTitle] = useState("");
   const [editListCategory, setEditListCategory] = useState<ListCategory>("Tasks");
   const [editListType, setEditListType] = useState<ListType>("custom");
+  
+  // Category modal state
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [selectedCategoryForModal, setSelectedCategoryForModal] = useState<ListCategory | null>(null);
   
   // Help modal state
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
@@ -384,10 +400,59 @@ export default function Dashboard() {
     localStorage.setItem("listSortBy", value);
   };
 
+  const handleViewModeChange = (mode: "dashboard" | "list") => {
+    setViewMode(mode);
+    localStorage.setItem("dashboardViewMode", mode);
+    
+    if (mode === "list") {
+      const lastListId = localStorage.getItem("last_list_id");
+      if (lastListId) {
+        const listExists = lists.find(l => l.id === lastListId);
+        if (listExists) {
+          navigate(`/list/${lastListId}`);
+        } else if (lists.length > 0) {
+          // Last list not found, open first list
+          const firstList = lists[0];
+          localStorage.setItem("last_list_id", firstList.id);
+          navigate(`/list/${firstList.id}`);
+        } else {
+          toast({
+            title: "No lists available",
+            description: "Create a new list to get started.",
+          });
+        }
+      } else if (lists.length > 0) {
+        // No last_list_id exists, open first list
+        const firstList = lists[0];
+        localStorage.setItem("last_list_id", firstList.id);
+        navigate(`/list/${firstList.id}`);
+      } else {
+        toast({
+          title: "No lists available",
+          description: "Create a new list to get started.",
+        });
+      }
+    }
+  };
+
+  const handleToggleFavorite = async (e: React.MouseEvent, listId: string) => {
+    e.stopPropagation();
+    try {
+      await toggleFavorite(listId);
+    } catch (error: any) {
+      toast({
+        title: "❌ Failed to update favorite",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const getActiveFilterCount = () => {
     let count = 0;
     if (!showCompleted) count++;
     if (showArchived) count++;
+    if (showFavoritesOnly) count++;
     if (dueDateFilter !== "all") count++;
     if (priorityFilter !== "all") count++;
     return count;
@@ -600,6 +665,11 @@ export default function Dashboard() {
     displayLists = displayLists.filter((list) => list.listType === filterType);
   }
 
+  // Apply favorites filter
+  if (showFavoritesOnly) {
+    displayLists = displayLists.filter((list) => list.isFavorite);
+  }
+
   // Apply sorting
   displayLists = [...displayLists].sort((a, b) => {
     switch (listSortBy) {
@@ -629,6 +699,7 @@ export default function Dashboard() {
 
   const pinnedLists = displayLists.filter((list) => list.isPinned);
   const unpinnedLists = displayLists.filter((list) => !list.isPinned);
+  const favoriteLists = lists.filter((list) => list.isFavorite);
 
   const getCategoryStats = (category: ListCategory) => {
     const categoryLists = lists.filter((list) => list.category === category);
@@ -721,6 +792,27 @@ export default function Dashboard() {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-2">
+              {/* View Mode Toggle */}
+              <div className="flex items-center bg-gray-100 rounded-lg p-1">
+                <Button
+                  variant={viewMode === "dashboard" ? "default" : "ghost"}
+                  size="sm"
+                  className="h-8 px-3"
+                  onClick={() => handleViewModeChange("dashboard")}
+                >
+                  <LayoutDashboard className="w-4 h-4 mr-1" />
+                  Dashboard
+                </Button>
+                <Button
+                  variant={viewMode === "list" ? "default" : "ghost"}
+                  size="sm"
+                  className="h-8 px-3"
+                  onClick={() => handleViewModeChange("list")}
+                >
+                  <List className="w-4 h-4 mr-1" />
+                  List
+                </Button>
+              </div>
               <Button
                 variant="ghost"
                 size="icon"
@@ -740,15 +832,6 @@ export default function Dashboard() {
                   Upgrade
                 </Button>
               )}
-              <Button
-                onClick={() => navigate("/import-export")}
-                variant="outline"
-                size="sm"
-                className="min-h-[44px]"
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                Import/Export
-              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -833,17 +916,6 @@ export default function Dashboard() {
                       Upgrade to Premium
                     </Button>
                   )}
-                  <Button
-                    onClick={() => {
-                      navigate("/import-export");
-                      setIsMobileMenuOpen(false);
-                    }}
-                    variant="outline"
-                    className="w-full justify-start min-h-[44px]"
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    Import/Export
-                  </Button>
                   <Button
                     onClick={() => {
                       navigate("/profile");
@@ -1091,6 +1163,19 @@ export default function Dashboard() {
                         Show archived lists
                       </label>
                     </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="showFavoritesOnly"
+                        checked={showFavoritesOnly}
+                        onCheckedChange={(checked) =>
+                          setShowFavoritesOnly(checked as boolean)
+                        }
+                      />
+                      <label htmlFor="showFavoritesOnly" className="text-sm">
+                        <Star className="w-3 h-3 inline mr-1" />
+                        Favorites only
+                      </label>
+                    </div>
                   </div>
                 </div>
 
@@ -1188,72 +1273,333 @@ export default function Dashboard() {
               </div>
             </PopoverContent>
           </Popover>
+          <Select value={listSortBy} onValueChange={handleListSortChange}>
+            <SelectTrigger className="w-[140px] h-12 min-h-[44px]">
+              <SortAsc className="w-4 h-4 mr-2" />
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="recent">Recent</SelectItem>
+              <SelectItem value="name">Name (A-Z)</SelectItem>
+              <SelectItem value="items">Most Items</SelectItem>
+              <SelectItem value="completion">Completion %</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
-        {/* Action Bar with Category Pills */}
-        <div className="flex flex-col gap-4 mb-6">
-          {/* Top Row: Sort and Create Button */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <Select value={listSortBy} onValueChange={handleListSortChange}>
-                <SelectTrigger className="w-[180px] h-[44px]">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="recent">Recent</SelectItem>
-                  <SelectItem value="name">Name (A-Z)</SelectItem>
-                  <SelectItem value="items">Most Items</SelectItem>
-                  <SelectItem value="completion">Completion %</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+        {/* Action Bar */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-end justify-end gap-3 mb-6">
+          <div className="flex items-center gap-2 flex-wrap sm:justify-end">
             <Button 
-              className="w-full sm:w-auto min-h-[44px]"
+              variant="outline"
+              className="min-h-[44px]"
+              onClick={() => navigate("/import-export")}
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Import/Export
+            </Button>
+            <Select 
+              value="" 
+              onValueChange={(listId) => {
+                if (listId) {
+                  localStorage.setItem("last_list_id", listId);
+                  navigate(`/list/${listId}`);
+                }
+              }}
+            >
+              <SelectTrigger className="w-[180px] h-[44px]">
+                <SelectValue placeholder="Jump to list..." />
+              </SelectTrigger>
+              <SelectContent>
+                {lists.map((list) => (
+                  <SelectItem key={list.id} value={list.id}>
+                    {list.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button 
+              className="min-h-[44px]"
               onClick={() => setIsCreateDialogOpen(true)}
             >
               <Plus className="w-4 h-4 mr-2" />
               New List
             </Button>
           </div>
+        </div>
 
-          {/* Category Pills - Horizontal Row */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            <Button
-              variant={selectedCategory === "All" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSelectedCategory("All")}
-              className="min-h-[36px] whitespace-nowrap"
-            >
-              All
-            </Button>
-            {(categories.filter((c) => c !== "All") as ListCategory[]).map(
-              (category) => {
-                const Icon = categoryIcons[category] || ListChecks;
-                const stats = getCategoryStats(category);
+        {/* Favorites Row */}
+        <div className="mb-6 sm:mb-8">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+            Favorites
+          </h2>
+          {favoriteLists.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-2">
+              {favoriteLists.map((list, index) => {
+                const Icon = categoryIcons[list.category] || ListChecks;
+                const itemCount = Math.max(0, list.items?.length || 0);
+                const completedItems = Math.max(0, list.items?.filter(
+                  (item) => item.completed,
+                ).length || 0);
                 return (
-                  <Button
-                    key={category}
-                    variant={selectedCategory === category ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedCategory(category)}
-                    className={`min-h-[36px] whitespace-nowrap ${
-                      selectedCategory === category 
-                        ? "" 
-                        : categoryColors[category]
-                    }`}
+                  <Card
+                    key={list.id}
+                    className="hover:shadow-lg hover:bg-gray-50 transition-all cursor-pointer group relative animate-slide-up"
+                    style={{ animationDelay: `${index * 50}ms` }}
+                    onClick={() => {
+                      localStorage.setItem("last_list_id", list.id);
+                      navigate(`/list/${list.id}`);
+                    }}
                   >
-                    <Icon className="w-4 h-4 mr-1.5" />
-                    {category}
-                    {stats.count > 0 && (
-                      <span className="ml-1.5 h-5 px-1.5 text-xs bg-secondary text-secondary-foreground rounded-md inline-flex items-center">
-                        {stats.count}
-                      </span>
-                    )}
-                  </Button>
+                    {/* Quick Actions - shown on hover */}
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-200 flex flex-wrap gap-1.5 z-10 bg-white/95 backdrop-blur-sm rounded-lg p-1.5 shadow-lg border border-gray-100 max-w-[140px] justify-end">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 rounded-full bg-yellow-100 hover:bg-yellow-200 transition-colors"
+                              onClick={(e) => handleToggleFavorite(e, list.id)}
+                            >
+                              <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Remove from Favorites</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                              onClick={(e) => openEditDialog(list, e)}
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Edit</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className={`h-7 w-7 rounded-full transition-colors ${list.isShared ? "bg-blue-100 hover:bg-blue-200" : "bg-gray-100 hover:bg-gray-200"}`}
+                              onClick={(e) => handleQuickShare(e, list.id, list.isShared || false)}
+                            >
+                              <Share2 className={`w-3.5 h-3.5 ${list.isShared ? "text-blue-600" : ""}`} />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>{list.isShared ? "Copy Share Link" : "Share"}</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      {list.isShared && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 rounded-full bg-red-100 hover:bg-red-200 transition-colors"
+                                onClick={(e) => handleQuickUnshare(e, list.id)}
+                              >
+                                <Link2Off className="w-3.5 h-3.5 text-red-600" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Unshare</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                      <DropdownMenu open={exportDropdownOpen === `fav-${list.id}`} onOpenChange={(open) => setExportDropdownOpen(open ? `fav-${list.id}` : null)}>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <DropdownMenuTrigger asChild>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Download className="w-3.5 h-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                            </DropdownMenuTrigger>
+                            <TooltipContent>Export</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <DropdownMenuContent onClick={(e) => e.stopPropagation()}>
+                          {canExportLists(user?.tier) ? (
+                            <>
+                              {getAvailableExportFormats(user?.tier).map((format) => (
+                                <DropdownMenuItem
+                                  key={format}
+                                  onClick={(e) => handleQuickExport(e as any, list.id, format)}
+                                >
+                                  Export as {format.toUpperCase()}
+                                </DropdownMenuItem>
+                              ))}
+                            </>
+                          ) : (
+                            <DropdownMenuItem onClick={() => navigate("/upgrade")}>
+                              <Crown className="w-4 h-4 mr-2" />
+                              Upgrade to Export
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      <AlertDialog>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <AlertDialogTrigger asChild>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 rounded-full bg-gray-100 hover:bg-red-100 transition-colors"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                                </Button>
+                              </TooltipTrigger>
+                            </AlertDialogTrigger>
+                            <TooltipContent>Delete</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <AlertDialogContent
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete list?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will delete "{list.title}" and all its items.
+                              You can undo this action for a few seconds.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={async () => {
+                                const listData = {
+                                  ...list,
+                                  items: list.items.map(item => ({ ...item })),
+                                };
+                                
+                                await executeWithUndo(
+                                  `delete-list-${list.id}`,
+                                  listData,
+                                  async () => {
+                                    await deleteList(list.id);
+                                  },
+                                  async (data) => {
+                                    await restoreList(data);
+                                  },
+                                  {
+                                    title: "List deleted",
+                                    description: `"${list.title}" has been removed`,
+                                    undoDescription: `"${list.title}" has been restored`,
+                                  }
+                                );
+                              }}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className={`w-10 h-10 rounded-lg ${categoryColors[list.category]} flex items-center justify-center`}
+                          >
+                            <Icon className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <CardTitle className="text-lg flex items-center gap-2">
+                              {list.title}
+                              {list.isPinned && (
+                                <Pin className="w-3 h-3 text-primary flex-shrink-0" />
+                              )}
+                            </CardTitle>
+                            <CardDescription>
+                              {list.category} ·{" "}
+                              {
+                                listTypes.find((t) => t.value === list.listType)
+                                  ?.label
+                              }
+                            </CardDescription>
+                          </div>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-600">
+                            {itemCount} items
+                          </span>
+                          <span className="text-gray-600">
+                            {completedItems} completed
+                          </span>
+                        </div>
+                        {itemCount > 0 && (
+                          <div className="w-full bg-gray-200 rounded-full h-1.5">
+                            <div
+                              className="bg-primary h-1.5 rounded-full transition-all"
+                              style={{
+                                width: `${(completedItems / itemCount) * 100}%`,
+                              }}
+                            />
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between pt-2">
+                          <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <Clock className="w-3 h-3" />
+                            <span>Updated {getTimeAgo(list.updatedAt)}</span>
+                          </div>
+                          <div className="flex gap-1">
+                            {list.isShared && (
+                              <div className="flex items-center gap-1">
+                                <Badge
+                                  variant="outline"
+                                  className="bg-blue-50 border-blue-200 text-xs cursor-pointer hover:bg-blue-100"
+                                  onClick={(e) => handleQuickShare(e, list.id, true)}
+                                >
+                                  <Share2 className="w-3 h-3 mr-1 text-primary" />
+                                  <span className="text-primary underline">Shared</span>
+                                </Badge>
+                                <Badge
+                                  variant="outline"
+                                  className="bg-red-50 border-red-200 text-xs cursor-pointer hover:bg-red-100"
+                                  onClick={(e) => handleQuickUnshare(e, list.id)}
+                                >
+                                  <Link2Off className="w-3 h-3 text-red-600" />
+                                </Badge>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 );
-              }
-            )}
-          </div>
+              })}
+            </div>
+          ) : (
+            <p className="text-gray-500 text-base">
+              No favorite lists selected yet. Favorite a list to see yours here.
+            </p>
+          )}
         </div>
 
         {/* Pinned Lists */}
@@ -1276,10 +1622,28 @@ export default function Dashboard() {
                     key={list.id}
                     className="hover:shadow-lg hover:bg-gray-50 transition-all cursor-pointer group relative animate-slide-up"
                     style={{ animationDelay: `${index * 50}ms` }}
-                    onClick={() => navigate(`/list/${list.id}`)}
+                    onClick={() => {
+                      localStorage.setItem("last_list_id", list.id);
+                      navigate(`/list/${list.id}`);
+                    }}
                   >
                     {/* Quick Actions */}
                     <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className={`h-8 w-8 rounded-full ${list.isFavorite ? "bg-yellow-100 hover:bg-yellow-200" : "bg-gray-100 hover:bg-gray-200"}`}
+                              onClick={(e) => handleToggleFavorite(e, list.id)}
+                            >
+                              <Star className={`w-4 h-4 ${list.isFavorite ? "text-yellow-500 fill-yellow-500" : ""}`} />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>{list.isFavorite ? "Remove from Favorites" : "Add to Favorites"}</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -1528,309 +1892,149 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* All Lists */}
-        <div>
-          <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
-            {selectedCategory === "All"
-              ? "All Lists"
-              : `${selectedCategory} Lists`}
+        {/* Categories Section - Only visible in Dashboard view */}
+        {viewMode === "dashboard" && (
+        <div className="mb-6 sm:mb-8 mt-8">{/* Added mt-8 for vertical spacing */}
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Layers className="w-5 h-5" />
+            Categories
           </h2>
-          {unpinnedLists.length === 0 ? (
-            <Card className="p-8 sm:p-16 text-center bg-gradient-to-br from-gray-50 to-white">
-              <div className="max-w-md mx-auto">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <ListChecks className="w-8 h-8 text-primary" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  {searchQuery
-                    ? "No results found"
-                    : selectedCategory === "All"
-                      ? "No lists yet"
-                      : `No ${selectedCategory} lists`}
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  {searchQuery
-                    ? "No results found. Try a different search term or create a new list."
-                    : "You don't have any lists yet. Click 'New List' to create your first one!"}
-                </p>
-                {!searchQuery && (
-                  <Button
-                    onClick={() => setIsCreateDialogOpen(true)}
-                    size="lg"
-                    className="min-h-[44px]"
-                  >
-                    <Plus className="w-5 h-5 mr-2" />
-                    Create Your First List
-                  </Button>
-                )}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {(categories.filter((c) => c !== "All") as ListCategory[]).map((category) => {
+              const Icon = categoryIcons[category] || ListChecks;
+              const stats = getCategoryStats(category);
+              const descriptions: Record<ListCategory, string> = {
+                Tasks: "Track your to-dos",
+                Groceries: "Shopping essentials",
+                Ideas: "Capture inspiration",
+                Shopping: "Wishlist & purchases",
+                Travel: "Trip planning",
+                Work: "Professional tasks",
+                Home: "Household items",
+                School: "Academic & learning",
+                Other: "Miscellaneous lists",
+              };
+              return (
+                <Card
+                  key={category}
+                  className="hover:shadow-md transition-all cursor-pointer"
+                  onClick={() => {
+                    setSelectedCategoryForModal(category);
+                    setCategoryModalOpen(true);
+                  }}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-lg ${categoryColors[category]} flex items-center justify-center`}>
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-gray-900 text-sm truncate">
+                          {category}
+                        </h3>
+                        <p className="text-xs text-gray-500">
+                          {stats.count} {stats.count === 1 ? "list" : "lists"}
+                        </p>
+                        <p className="text-xs text-gray-400 truncate">
+                          {descriptions[category]}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+        )}
+      </div>
+
+      {/* Category Lists Modal */}
+      <Dialog open={categoryModalOpen} onOpenChange={setCategoryModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {selectedCategoryForModal && (
+                <>
+                  {(() => {
+                    const Icon = categoryIcons[selectedCategoryForModal] || ListChecks;
+                    return (
+                      <div className={`w-8 h-8 rounded-lg ${categoryColors[selectedCategoryForModal]} flex items-center justify-center`}>
+                        <Icon className="w-4 h-4" />
+                      </div>
+                    );
+                  })()}
+                  {selectedCategoryForModal} Lists
+                </>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              Click on a list to view its details
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 mt-4">
+            {selectedCategoryForModal && lists.filter(l => l.category === selectedCategoryForModal).length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <ListChecks className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                <p>No lists in this category yet.</p>
+                <Button
+                  variant="outline"
+                  className="mt-4"
+                  onClick={() => {
+                    setCategoryModalOpen(false);
+                    setIsCreateDialogOpen(true);
+                  }}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create a List
+                </Button>
               </div>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-              {unpinnedLists.map((list, index) => {
+            ) : (
+              selectedCategoryForModal && lists.filter(l => l.category === selectedCategoryForModal).map((list) => {
                 const Icon = categoryIcons[list.category] || ListChecks;
-                const itemCount = Math.max(0, list.items?.length || 0);
-                const completedItems = Math.max(0, list.items?.filter(
-                  (item) => item.completed,
-                ).length || 0);
-                const dueToday = getDueToday(list);
+                const itemCount = list.items?.length || 0;
+                const completedItems = list.items?.filter(item => item.completed).length || 0;
                 return (
                   <Card
                     key={list.id}
-                    className="hover:shadow-lg hover:bg-gray-50 transition-all cursor-pointer group relative animate-slide-up"
-                    style={{ animationDelay: `${index * 50}ms` }}
-                    onClick={() => navigate(`/list/${list.id}`)}
+                    className="hover:shadow-md transition-all cursor-pointer"
+                    onClick={() => {
+                      setCategoryModalOpen(false);
+                      localStorage.setItem("last_list_id", list.id);
+                      navigate(`/list/${list.id}`);
+                    }}
                   >
-                    {/* Quick Actions - same as pinned lists */}
-                    <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 rounded-full bg-gray-100 hover:bg-gray-200"
-                              onClick={(e) => openEditDialog(list, e)}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Edit</TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className={`h-8 w-8 rounded-full ${list.isShared ? "bg-blue-100 hover:bg-blue-200" : "bg-gray-100 hover:bg-gray-200"}`}
-                              onClick={(e) => handleQuickShare(e, list.id, list.isShared || false)}
-                            >
-                              <Share2 className={`w-4 h-4 ${list.isShared ? "text-blue-600" : ""}`} />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>{list.isShared ? "Copy Share Link" : "Share"}</TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                      {list.isShared && (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 rounded-full bg-red-100 hover:bg-red-200"
-                                onClick={(e) => handleQuickUnshare(e, list.id)}
-                              >
-                                <Link2Off className="w-4 h-4 text-red-600" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Unshare</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      )}
-                      <DropdownMenu open={exportDropdownOpen === list.id} onOpenChange={(open) => setExportDropdownOpen(open ? list.id : null)}>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <DropdownMenuTrigger asChild>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 rounded-full bg-gray-100 hover:bg-gray-200"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <Download className="w-4 h-4" />
-                                </Button>
-                              </TooltipTrigger>
-                            </DropdownMenuTrigger>
-                            <TooltipContent>Export</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        <DropdownMenuContent onClick={(e) => e.stopPropagation()}>
-                          {canExportLists(user?.tier) ? (
-                            <>
-                              {getAvailableExportFormats(user?.tier).map((format) => (
-                                <DropdownMenuItem
-                                  key={format}
-                                  onClick={(e) => handleQuickExport(e as any, list.id, format)}
-                                >
-                                  Export as {format.toUpperCase()}
-                                </DropdownMenuItem>
-                              ))}
-                            </>
-                          ) : (
-                            <DropdownMenuItem onClick={() => navigate("/upgrade")}>
-                              <Crown className="w-4 h-4 mr-2" />
-                              Upgrade to Export
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                      <AlertDialog>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <AlertDialogTrigger asChild>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 rounded-full bg-gray-100 hover:bg-red-100"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <Trash2 className="w-4 h-4 text-red-600" />
-                                </Button>
-                              </TooltipTrigger>
-                            </AlertDialogTrigger>
-                            <TooltipContent>Delete</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        <AlertDialogContent
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete list?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will delete "{list.title}" and all its items.
-                              You can undo this action for a few seconds.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={async () => {
-                                const listData = {
-                                  ...list,
-                                  items: list.items.map(item => ({ ...item })),
-                                };
-                                
-                                await executeWithUndo(
-                                  `delete-list-${list.id}`,
-                                  listData,
-                                  async () => {
-                                    await deleteList(list.id);
-                                  },
-                                  async (data) => {
-                                    await restoreList(data);
-                                  },
-                                  {
-                                    title: "List deleted",
-                                    description: `"${list.title}" has been removed`,
-                                    undoDescription: `"${list.title}" has been restored`,
-                                  }
-                                );
-                              }}
-                              className="bg-red-600 hover:bg-red-700"
-                            >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className={`w-10 h-10 rounded-lg ${categoryColors[list.category]} flex items-center justify-center`}
-                          >
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-lg ${categoryColors[list.category]} flex items-center justify-center`}>
                             <Icon className="w-5 h-5" />
                           </div>
                           <div>
-                            <CardTitle className="text-lg">
-                              {list.title}
-                            </CardTitle>
-                            <CardDescription>
-                              {list.category} ·{" "}
-                              {
-                                listTypes.find((t) => t.value === list.listType)
-                                  ?.label
-                              }
-                            </CardDescription>
+                            <h3 className="font-semibold text-gray-900">{list.title}</h3>
+                            <p className="text-sm text-gray-500">
+                              {itemCount} items · {completedItems} completed
+                            </p>
                           </div>
                         </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600">
-                            {itemCount} items
-                          </span>
-                          <span className="text-gray-600">
-                            {completedItems} completed
-                          </span>
+                        <div className="flex items-center gap-2">
+                          {list.isFavorite && (
+                            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                          )}
+                          {list.isShared && (
+                            <Share2 className="w-4 h-4 text-blue-500" />
+                          )}
+                          <ChevronRight className="w-5 h-5 text-gray-400" />
                         </div>
-                        {itemCount > 0 && (
-                          <div className="w-full bg-gray-200 rounded-full h-1.5">
-                            <div
-                              className="bg-primary h-1.5 rounded-full transition-all"
-                              style={{
-                                width: `${(completedItems / itemCount) * 100}%`,
-                              }}
-                            />
-                          </div>
-                        )}
-                        <div className="flex items-center justify-between pt-2">
-                          <div className="flex items-center gap-2 text-xs text-gray-500">
-                            <Clock className="w-3 h-3" />
-                            <span>Updated {getTimeAgo(list.updatedAt)}</span>
-                          </div>
-                          <div className="flex gap-1">
-                            {dueToday > 0 && (
-                              <Badge
-                                variant="outline"
-                                className="bg-orange-50 text-orange-700 border-orange-200 text-xs"
-                              >
-                                <AlertCircle className="w-3 h-3 mr-1" />
-                                {dueToday} due today
-                              </Badge>
-                            )}
-                            {list.isShared && (
-                              <div className="flex items-center gap-1">
-                                <Badge
-                                  variant="outline"
-                                  className="bg-blue-50 border-blue-200 text-xs cursor-pointer hover:bg-blue-100"
-                                  onClick={(e) => handleQuickShare(e, list.id, true)}
-                                >
-                                  <Share2 className="w-3 h-3 mr-1 text-primary" />
-                                  <span className="text-primary underline">Shared</span>
-                                </Badge>
-                                <Badge
-                                  variant="outline"
-                                  className="bg-red-50 border-red-200 text-xs cursor-pointer hover:bg-red-100"
-                                  onClick={(e) => handleQuickUnshare(e, list.id)}
-                                >
-                                  <Link2Off className="w-3 h-3 text-red-600" />
-                                </Badge>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        {list.tags && list.tags.length > 0 && (
-                          <div className="flex gap-1 flex-wrap mt-2">
-                            {list.tags.map((tag) => (
-                              <Badge
-                                key={tag}
-                                variant="outline"
-                                className="text-xs"
-                              >
-                                {tag}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
                       </div>
                     </CardContent>
                   </Card>
                 );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
+              })
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Create List Modal */}
       <CreateListModal 

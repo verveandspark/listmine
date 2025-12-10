@@ -453,6 +453,7 @@ export type Database = {
           description: string | null
           id: string
           is_archived: boolean | null
+          is_favorite: boolean | null
           is_pinned: boolean | null
           is_public: boolean | null
           is_shared: boolean | null
@@ -471,6 +472,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_archived?: boolean | null
+          is_favorite?: boolean | null
           is_pinned?: boolean | null
           is_public?: boolean | null
           is_shared?: boolean | null
@@ -489,6 +491,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_archived?: boolean | null
+          is_favorite?: boolean | null
           is_pinned?: boolean | null
           is_public?: boolean | null
           is_shared?: boolean | null
@@ -783,14 +786,15 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string | null
+          default_landing_view: string | null
           disabled_at: string | null
           disabled_reason: string | null
           email: string
           id: string
           is_admin: boolean | null
           is_disabled: boolean | null
+          last_list_id: string | null
           name: string | null
-          profile_picture_url: string | null
           role: string | null
           tier: string | null
           updated_at: string | null
@@ -798,14 +802,15 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string | null
+          default_landing_view?: string | null
           disabled_at?: string | null
           disabled_reason?: string | null
           email: string
           id?: string
           is_admin?: boolean | null
           is_disabled?: boolean | null
+          last_list_id?: string | null
           name?: string | null
-          profile_picture_url?: string | null
           role?: string | null
           tier?: string | null
           updated_at?: string | null
@@ -813,14 +818,15 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string | null
+          default_landing_view?: string | null
           disabled_at?: string | null
           disabled_reason?: string | null
           email?: string
           id?: string
           is_admin?: boolean | null
           is_disabled?: boolean | null
+          last_list_id?: string | null
           name?: string | null
-          profile_picture_url?: string | null
           role?: string | null
           tier?: string | null
           updated_at?: string | null
@@ -881,14 +887,15 @@ export type Database = {
         Returns: {
           avatar_url: string | null
           created_at: string | null
+          default_landing_view: string | null
           disabled_at: string | null
           disabled_reason: string | null
           email: string
           id: string
           is_admin: boolean | null
           is_disabled: boolean | null
+          last_list_id: string | null
           name: string | null
-          profile_picture_url: string | null
           role: string | null
           tier: string | null
           updated_at: string | null

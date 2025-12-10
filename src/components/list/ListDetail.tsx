@@ -58,6 +58,9 @@ import {
   Link2Off,
   Printer,
   Users,
+  Star,
+  LayoutDashboard,
+  List as ListIcon,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -155,6 +158,12 @@ export default function ListDetail() {
   const { executeWithUndo } = useUndoAction();
 
   const list = lists.find((l) => l.id === id);
+  
+  // Save last opened list ID for "List View" toggle
+  if (id) {
+    localStorage.setItem("last_list_id", id);
+  }
+  
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [newItemText, setNewItemText] = useState("");
   const [newItemQuantity, setNewItemQuantity] = useState<number | undefined>();
@@ -1067,8 +1076,58 @@ export default function ListDetail() {
                 </div>
               </div>
 
+              {/* View Mode Toggle */}
+              <div className="hidden sm:flex items-center bg-gray-100 rounded-lg p-1">
+                <Button
+                  variant={localStorage.getItem("dashboardViewMode") === "dashboard" || !localStorage.getItem("dashboardViewMode") ? "default" : "ghost"}
+                  size="sm"
+                  className="h-8 px-3"
+                  onClick={() => {
+                    localStorage.setItem("dashboardViewMode", "dashboard");
+                    navigate("/dashboard");
+                  }}
+                >
+                  <LayoutDashboard className="w-4 h-4 mr-1" />
+                  Dashboard
+                </Button>
+                <Button
+                  variant={localStorage.getItem("dashboardViewMode") === "list" ? "default" : "ghost"}
+                  size="sm"
+                  className="h-8 px-3"
+                  onClick={() => {
+                    localStorage.setItem("dashboardViewMode", "list");
+                    navigate("/dashboard");
+                  }}
+                >
+                  <ListIcon className="w-4 h-4 mr-1" />
+                  List
+                </Button>
+              </div>
+
               {/* Desktop Actions */}
               <div className="hidden md:flex items-center gap-2">
+                {/* Favorite Toggle */}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={`h-10 w-10 ${list.isFavorite ? "bg-yellow-100 hover:bg-yellow-200" : ""}`}
+                        onClick={async () => {
+                          await updateList(list.id, { isFavorite: !list.isFavorite });
+                          toast({
+                            title: list.isFavorite ? "Removed from favorites" : "Added to favorites",
+                            description: list.isFavorite ? `"${list.title}" removed from favorites` : `"${list.title}" added to favorites`,
+                          });
+                        }}
+                      >
+                        <Star className={`w-5 h-5 ${list.isFavorite ? "text-yellow-500 fill-yellow-500" : "text-gray-600"}`} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{list.isFavorite ? "Remove from Favorites" : "Add to Favorites"}</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -1271,6 +1330,51 @@ export default function ListDetail() {
                 </SheetTrigger>
                 <SheetContent side="right" className="w-[280px]">
                   <div className="flex flex-col gap-3 mt-8">
+                    {/* View Mode Toggle - Mobile */}
+                    <div className="flex items-center bg-gray-100 rounded-lg p-1 mb-2">
+                      <Button
+                        variant={localStorage.getItem("dashboardViewMode") === "dashboard" || !localStorage.getItem("dashboardViewMode") ? "default" : "ghost"}
+                        size="sm"
+                        className="h-8 flex-1"
+                        onClick={() => {
+                          localStorage.setItem("dashboardViewMode", "dashboard");
+                          setIsMobileMenuOpen(false);
+                          navigate("/dashboard");
+                        }}
+                      >
+                        <LayoutDashboard className="w-4 h-4 mr-1" />
+                        Dashboard
+                      </Button>
+                      <Button
+                        variant={localStorage.getItem("dashboardViewMode") === "list" ? "default" : "ghost"}
+                        size="sm"
+                        className="h-8 flex-1"
+                        onClick={() => {
+                          localStorage.setItem("dashboardViewMode", "list");
+                          setIsMobileMenuOpen(false);
+                          navigate("/dashboard");
+                        }}
+                      >
+                        <ListIcon className="w-4 h-4 mr-1" />
+                        List
+                      </Button>
+                    </div>
+                    {/* Favorite Toggle - Mobile */}
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        await updateList(list.id, { isFavorite: !list.isFavorite });
+                        toast({
+                          title: list.isFavorite ? "Removed from favorites" : "Added to favorites",
+                          description: list.isFavorite ? `"${list.title}" removed from favorites` : `"${list.title}" added to favorites`,
+                        });
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`w-full justify-start min-h-[44px] ${list.isFavorite ? "bg-yellow-100 border-yellow-300" : ""}`}
+                    >
+                      <Star className={`w-4 h-4 mr-2 ${list.isFavorite ? "text-yellow-500 fill-yellow-500" : ""}`} />
+                      {list.isFavorite ? "Remove from Favorites" : "Add to Favorites"}
+                    </Button>
                     <Button
                       variant="outline"
                       onClick={() => {
