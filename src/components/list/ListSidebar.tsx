@@ -1,4 +1,4 @@
-import { Plus, Download, MessageSquare } from "lucide-react";
+import { Plus, Download, MessageSquare, LogOut } from "lucide-react";
 import { useLists } from "@/contexts/useListsHook";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ import {
 import { ListCategory } from "@/types";
 import { useState } from "react";
 import CreateListModal from "./CreateListModal";
+import { useAuth } from "@/contexts/useAuthHook";
 
 const categoryIcons: Record<string, any> = {
   Tasks: CheckSquare,
@@ -37,6 +38,7 @@ export function ListSidebar() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const { signOut } = useAuth();
 
   // Group lists by category
   const groupedLists = lists.reduce(
@@ -117,8 +119,25 @@ export function ListSidebar() {
         </div>
       </div>
 
-      {/* Feedback Button */}
-      <div className="p-4 border-t border-gray-200 mt-auto">
+      {/* Logout and Feedback Buttons */}
+      <div className="p-4 border-t border-gray-200 mt-auto space-y-2">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={signOut}
+                variant="outline"
+                className="w-full border-gray-300 text-gray-700 hover:bg-gray-100 min-h-[44px]"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Sign out of your account</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>

@@ -49,7 +49,6 @@ import {
   Upload,
   MessageSquare,
   User as UserIcon,
-  LogOut,
   GripVertical,
   Tag,
   ExternalLink,
@@ -153,6 +152,7 @@ export default function ListDetail() {
     restoreList,
     restoreListItem,
     restoreBulkItems,
+    refreshLists,
   } = useLists();
   const { toast } = useToast();
   const { executeWithUndo } = useUndoAction();
@@ -1104,217 +1104,258 @@ export default function ListDetail() {
                 </Button>
               </div>
 
-              {/* Desktop Actions */}
-              <div className="hidden md:flex items-center gap-2">
-                {/* Favorite Toggle */}
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={`h-10 w-10 ${list.isFavorite ? "bg-yellow-100 hover:bg-yellow-200" : ""}`}
-                        onClick={async () => {
-                          await updateList(list.id, { isFavorite: !list.isFavorite });
-                          toast({
-                            title: list.isFavorite ? "Removed from favorites" : "Added to favorites",
-                            description: list.isFavorite ? `"${list.title}" removed from favorites` : `"${list.title}" added to favorites`,
-                          });
-                        }}
-                      >
-                        <Star className={`w-5 h-5 ${list.isFavorite ? "text-yellow-500 fill-yellow-500" : "text-gray-600"}`} />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>{list.isFavorite ? "Remove from Favorites" : "Add to Favorites"}</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-10 w-10"
-                        onClick={() => setIsHelpModalOpen(true)}
-                      >
-                        <HelpCircle className="w-5 h-5 text-gray-600" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Help</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                <DropdownMenu>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <DropdownMenuTrigger asChild>
+              {/* Desktop Actions - Grouped logically */}
+              <div className="hidden md:flex items-center gap-1">
+                {/* Primary Actions Group */}
+                <div className="flex items-center gap-1 pr-2 border-r border-gray-200">
+                  {user?.tier === "free" ? (
+                    <TooltipProvider>
+                      <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className={`h-10 w-10 ${list.isShared ? "bg-blue-50 border-blue-200" : ""}`}
-                          >
-                            <Share2 className={`w-4 h-4 ${list.isShared ? "text-blue-600" : ""}`} />
+                          <Button variant="outline" size="sm" onClick={handlePrint} className="h-9 print:hidden">
+                            <Printer className="w-4 h-4 mr-2" />
+                            Print
                           </Button>
                         </TooltipTrigger>
-                      </DropdownMenuTrigger>
-                      <TooltipContent>{list.isShared ? "Sharing options" : "Share this list"}</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem onClick={handleGenerateShareLink}>
-                      <Share2 className="w-4 h-4 mr-2" />
-                      {list.isShared ? "Copy Share Link" : "Generate Share Link"}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setIsGuestManagementOpen(true)}>
-                      <Users className="w-4 h-4 mr-2" />
-                      Manage Guests
-                    </DropdownMenuItem>
-                    {list.isShared && (
-                      <DropdownMenuItem onClick={handleUnshareList} className="text-red-600">
-                        <Link2Off className="w-4 h-4 mr-2" />
-                        Unshare List
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                {(list.listType === "registry-list" || list.listType === "shopping-list") && (
+                        <TooltipContent>Print this list</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : (
+                    <Popover>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <PopoverTrigger asChild>
+                            <TooltipTrigger asChild>
+                              <Button variant="outline" size="sm" disabled={isExporting} className="h-9">
+                                {isExporting ? (
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                ) : (
+                                  <Download className="w-4 h-4 mr-2" />
+                                )}
+                                Export
+                              </Button>
+                            </TooltipTrigger>
+                          </PopoverTrigger>
+                          <TooltipContent>Export this list</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <PopoverContent className="w-48">
+                        <div className="space-y-2">
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start"
+                            onClick={() => handleExport("csv")}
+                            disabled={isExporting}
+                          >
+                            Export as CSV
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start"
+                            onClick={() => handleExport("txt")}
+                            disabled={isExporting}
+                          >
+                            Export as TXT
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start"
+                            onClick={() => handleExport("pdf")}
+                            disabled={isExporting}
+                          >
+                            Export as PDF
+                          </Button>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                </div>
+
+                {/* Secondary Actions Group */}
+                <div className="flex items-center gap-1 px-2 border-r border-gray-200">
+                  {/* Favorite Toggle */}
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
-                          variant="outline"
+                          variant="ghost"
                           size="icon"
-                          onClick={() => setIsPurchaseHistoryOpen(true)}
-                          className="h-10 w-10"
+                          className={`h-9 w-9 ${list.isFavorite ? "bg-yellow-100 hover:bg-yellow-200" : ""}`}
+                          onClick={async () => {
+                            await updateList(list.id, { isFavorite: !list.isFavorite });
+                            toast({
+                              title: list.isFavorite ? "Removed from favorites" : "Added to favorites",
+                              description: list.isFavorite ? `"${list.title}" removed from favorites` : `"${list.title}" added to favorites`,
+                            });
+                          }}
                         >
-                          <ShoppingCart className="w-4 h-4" />
+                          <Star className={`w-4 h-4 ${list.isFavorite ? "text-yellow-500 fill-yellow-500" : "text-gray-600"}`} />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent>Purchase History</TooltipContent>
+                      <TooltipContent>{list.isFavorite ? "Remove from Favorites" : "Add to Favorites"}</TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
-                )}
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={openEditListDialog}
-                        className="h-10 w-10"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Edit list</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => togglePin(list.id)}
-                        className="h-10 w-10"
-                      >
-                        <Pin
-                          className={`w-4 h-4 ${list.isPinned ? "fill-current" : ""}`}
-                        />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      {list.isPinned ? "Unpin list" : "Pin list"}
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                <Button
-                  variant={isSelectMode ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => {
-                    setIsSelectMode(!isSelectMode);
-                    if (isSelectMode) setSelectedItems(new Set());
-                  }}
-                  className="h-10"
-                >
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  {isSelectMode ? "Done" : "Select Multiple"}
-                </Button>
-                {user?.tier === "free" ? (
-                  <Button variant="outline" size="sm" onClick={handlePrint} className="h-10 print:hidden">
-                    <Printer className="w-4 h-4 mr-2" />
-                    Print
-                  </Button>
-                ) : (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" disabled={isExporting} className="h-10">
-                        {isExporting ? (
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        ) : (
-                          <Download className="w-4 h-4 mr-2" />
-                        )}
-                        Export
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-48">
-                      <div className="space-y-2">
+                  <DropdownMenu>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <DropdownMenuTrigger asChild>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className={`h-9 w-9 ${list.isShared ? "bg-blue-50" : ""}`}
+                            >
+                              <Share2 className={`w-4 h-4 ${list.isShared ? "text-blue-600" : "text-gray-600"}`} />
+                            </Button>
+                          </TooltipTrigger>
+                        </DropdownMenuTrigger>
+                        <TooltipContent>{list.isShared ? "Sharing options" : "Share this list"}</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onClick={handleGenerateShareLink}>
+                        <Share2 className="w-4 h-4 mr-2" />
+                        {list.isShared ? "Copy Share Link" : "Generate Share Link"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setIsGuestManagementOpen(true)}>
+                        <Users className="w-4 h-4 mr-2" />
+                        Manage Guests
+                      </DropdownMenuItem>
+                      {list.isShared && (
+                        <DropdownMenuItem onClick={handleUnshareList} className="text-red-600">
+                          <Link2Off className="w-4 h-4 mr-2" />
+                          Unshare List
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
                         <Button
                           variant="ghost"
-                          className="w-full justify-start"
-                          onClick={() => handleExport("csv")}
-                          disabled={isExporting}
+                          size="icon"
+                          onClick={() => togglePin(list.id)}
+                          className="h-9 w-9"
                         >
-                          Export as CSV
+                          <Pin
+                            className={`w-4 h-4 ${list.isPinned ? "fill-current text-primary" : "text-gray-600"}`}
+                          />
                         </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {list.isPinned ? "Unpin list" : "Pin list"}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant={isSelectMode ? "default" : "ghost"}
+                          size="icon"
+                          onClick={() => {
+                            setIsSelectMode(!isSelectMode);
+                            if (isSelectMode) setSelectedItems(new Set());
+                          }}
+                          className="h-9 w-9"
+                        >
+                          <CheckCircle className={`w-4 h-4 ${isSelectMode ? "" : "text-gray-600"}`} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>{isSelectMode ? "Done selecting" : "Select Multiple"}</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+
+                {/* Utility Actions Group */}
+                <div className="flex items-center gap-1 px-2 border-r border-gray-200">
+                  {(list.listType === "registry-list" || list.listType === "shopping-list") && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setIsPurchaseHistoryOpen(true)}
+                            className="h-9 w-9"
+                          >
+                            <ShoppingCart className="w-4 h-4 text-gray-600" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Purchase History</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
                         <Button
                           variant="ghost"
-                          className="w-full justify-start"
-                          onClick={() => handleExport("txt")}
-                          disabled={isExporting}
+                          size="icon"
+                          onClick={openEditListDialog}
+                          className="h-9 w-9"
                         >
-                          Export as TXT
+                          <Edit className="w-4 h-4 text-gray-600" />
                         </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Edit list</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
                         <Button
                           variant="ghost"
-                          className="w-full justify-start"
-                          onClick={() => handleExport("pdf")}
-                          disabled={isExporting}
+                          size="icon"
+                          className="h-9 w-9"
+                          onClick={() => setIsHelpModalOpen(true)}
                         >
-                          Export as PDF
+                          <HelpCircle className="w-4 h-4 text-gray-600" />
                         </Button>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                )}
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive" size="sm" className="h-10">
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to delete this list? You can
-                        undo this action for a few seconds after deletion.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel className="bg-gray-100">
-                        Cancel
-                      </AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={handleDeleteList}
-                        className="bg-red-600 hover:bg-red-700"
-                      >
-                        Delete
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                      </TooltipTrigger>
+                      <TooltipContent>Help</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+
+                {/* Destructive Actions - Separated */}
+                <div className="flex items-center gap-1 pl-2">
+                  <AlertDialog>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <AlertDialogTrigger asChild>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-red-50">
+                              <Trash2 className="w-4 h-4 text-red-600" />
+                            </Button>
+                          </TooltipTrigger>
+                        </AlertDialogTrigger>
+                        <TooltipContent>Delete list</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete this list? You can
+                          undo this action for a few seconds after deletion.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel className="bg-gray-100">
+                          Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleDeleteList}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               </div>
 
               {/* Mobile Menu */}
@@ -1328,8 +1369,8 @@ export default function ListDetail() {
                     <Menu className="w-6 h-6" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="w-[280px]">
-                  <div className="flex flex-col gap-3 mt-8">
+                <SheetContent side="right" className="w-[280px] overflow-y-auto">
+                  <div className="flex flex-col gap-2 mt-8">
                     {/* View Mode Toggle - Mobile */}
                     <div className="flex items-center bg-gray-100 rounded-lg p-1 mb-2">
                       <Button
@@ -1359,6 +1400,52 @@ export default function ListDetail() {
                         List
                       </Button>
                     </div>
+
+                    {/* Primary Actions */}
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1">Primary</p>
+                    {user?.tier === "free" ? (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          handlePrint();
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="w-full justify-start min-h-[44px] print:hidden"
+                      >
+                        <Printer className="w-4 h-4 mr-2" />
+                        Print List
+                      </Button>
+                    ) : (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="outline"
+                            disabled={isExporting}
+                            className="w-full justify-start min-h-[44px]"
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            Export
+                            <ChevronDown className="w-4 h-4 ml-auto" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuItem onClick={() => { handleExport("csv"); setIsMobileMenuOpen(false); }}>
+                            Export as CSV
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => { handleExport("txt"); setIsMobileMenuOpen(false); }}>
+                            Export as TXT
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => { handleExport("pdf"); setIsMobileMenuOpen(false); }}>
+                            Export as PDF
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+
+                    {/* Secondary Actions */}
+                    <div className="border-t border-gray-200 my-2" />
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1">Actions</p>
+                    
                     {/* Favorite Toggle - Mobile */}
                     <Button
                       variant="outline"
@@ -1399,6 +1486,36 @@ export default function ListDetail() {
                         Unshare List
                       </Button>
                     )}
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        togglePin(list.id);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="w-full justify-start min-h-[44px]"
+                    >
+                      <Pin
+                        className={`w-4 h-4 mr-2 ${list.isPinned ? "fill-current text-primary" : ""}`}
+                      />
+                      {list.isPinned ? "Unpin List" : "Pin List"}
+                    </Button>
+                    <Button
+                      variant={isSelectMode ? "default" : "outline"}
+                      onClick={() => {
+                        setIsSelectMode(!isSelectMode);
+                        if (isSelectMode) setSelectedItems(new Set());
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="w-full justify-start min-h-[44px]"
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      {isSelectMode ? "Done Selecting" : "Select Multiple"}
+                    </Button>
+
+                    {/* Utility Actions */}
+                    <div className="border-t border-gray-200 my-2" />
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1">More</p>
+                    
                     {(list.listType === "registry-list" || list.listType === "shopping-list") && (
                       <Button
                         variant="outline"
@@ -1426,71 +1543,6 @@ export default function ListDetail() {
                     <Button
                       variant="outline"
                       onClick={() => {
-                        togglePin(list.id);
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="w-full justify-start min-h-[44px]"
-                    >
-                      <Pin
-                        className={`w-4 h-4 mr-2 ${list.isPinned ? "fill-current" : ""}`}
-                      />
-                      {list.isPinned ? "Unpin List" : "Pin List"}
-                    </Button>
-                    <Button
-                      variant={isSelectMode ? "default" : "outline"}
-                      onClick={() => {
-                        setIsSelectMode(!isSelectMode);
-                        if (isSelectMode) setSelectedItems(new Set());
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="w-full justify-start min-h-[44px]"
-                    >
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      {isSelectMode ? "Done Selecting" : "Select Multiple"}
-                    </Button>
-                    {user?.tier === "free" ? (
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          handlePrint();
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className="w-full justify-start min-h-[44px] print:hidden"
-                      >
-                        <Printer className="w-4 h-4 mr-2" />
-                        Print List
-                      </Button>
-                    ) : (
-                      <>
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            handleExport("csv");
-                            setIsMobileMenuOpen(false);
-                          }}
-                          disabled={isExporting}
-                          className="w-full justify-start min-h-[44px]"
-                        >
-                          <Download className="w-4 h-4 mr-2" />
-                          Export as CSV
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            handleExport("txt");
-                            setIsMobileMenuOpen(false);
-                          }}
-                          disabled={isExporting}
-                          className="w-full justify-start min-h-[44px]"
-                        >
-                          <Download className="w-4 h-4 mr-2" />
-                          Export as TXT
-                        </Button>
-                      </>
-                    )}
-                    <Button
-                      variant="outline"
-                      onClick={() => {
                         setIsHelpModalOpen(true);
                         setIsMobileMenuOpen(false);
                       }}
@@ -1499,6 +1551,9 @@ export default function ListDetail() {
                       <HelpCircle className="w-4 h-4 mr-2" />
                       Help & Support
                     </Button>
+
+                    {/* Destructive Actions */}
+                    <div className="border-t border-gray-200 my-2" />
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button
@@ -1548,84 +1603,23 @@ export default function ListDetail() {
           </p>
         </div>
 
-        <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
-          {/* Tags Section - Collapsible */}
-          <Card className="p-3 sm:p-4 mb-4 print:hidden">
-            <button
-              onClick={() => setIsTagsSectionOpen(!isTagsSectionOpen)}
-              className="w-full flex items-center justify-between text-left"
-            >
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-medium text-gray-700">Tags</h3>
-                <Badge variant="outline" className="text-xs">
-                  {list.tags?.length || 0}
-                </Badge>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="max-w-xs">
-                        Add keywords to organize and filter items
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-              <ChevronDown 
-                className={`w-4 h-4 transition-transform ${isTagsSectionOpen ? 'rotate-180' : ''}`} 
-              />
-            </button>
-            
-            {isTagsSectionOpen && (
-              <div className="mt-3 space-y-3">
-                <div className="flex flex-wrap gap-2">
-                  {list.tags && list.tags.length > 0 ? (
-                    list.tags.map((tag) => (
-                      <Badge key={tag} variant="outline" className="text-xs">
-                        {tag}
-                        <button
-                          onClick={() => removeTagFromList(list.id, tag)}
-                          className="ml-1 hover:text-red-600"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </Badge>
-                    ))
-                  ) : (
-                    <p className="text-xs text-gray-500">No tags yet</p>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="e.g., urgent, work, personal, home"
-                    value={newTag}
-                    onChange={(e) => setNewTag(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleAddTag();
-                      }
-                    }}
-                    className="flex-1 min-h-[44px]"
-                  />
-                  <Button onClick={handleAddTag} size="sm" className="min-h-[44px]">
-                    <Tag className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
-          </Card>
-
-          {/* Bulk Actions Toolbar */}
+        <div className="flex-1 overflow-y-auto">
+          {/* Sticky Add Item Section */}
+          <div className="sticky top-0 z-10 bg-gradient-to-br from-primary/10 via-white to-secondary/10 px-4 sm:px-6 lg:px-8 pt-4 pb-2 print:hidden">
+            {/* Bulk Actions Toolbar */}
           {isSelectMode && (
             <Card className="p-3 sm:p-4 mb-4 bg-primary/10 border-primary/20 print:hidden">
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <p className="text-sm font-semibold text-primary">
-                    {selectedItems.size} item
-                    {selectedItems.size !== 1 ? "s" : ""} selected
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                    <p className="text-sm font-semibold text-primary">
+                      {selectedItems.size} item
+                      {selectedItems.size !== 1 ? "s" : ""} selected
+                    </p>
+                  </div>
+                  <p className="text-xs text-gray-600 hidden sm:block">
+                    Click items to select, then use actions below
                   </p>
                   <Button
                     size="sm"
@@ -1640,14 +1634,40 @@ export default function ListDetail() {
                 </div>
                 {selectedItems.size > 0 && (
                   <div className="flex flex-col sm:flex-row gap-2">
-                    <Button
-                      size="sm"
-                      onClick={handleBulkComplete}
-                      className="min-h-[44px] w-full sm:w-auto bg-success hover:bg-success/90 text-white"
-                    >
-                      <CheckSquare className="w-4 h-4 mr-2" />
-                      Mark Complete
-                    </Button>
+                    {(() => {
+                      const selectedItemsList = list.items.filter(item => selectedItems.has(item.id));
+                      const hasIncompleteItems = selectedItemsList.some(item => !item.completed);
+                      const allCompleted = selectedItemsList.every(item => item.completed);
+                      
+                      return (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="w-full sm:w-auto">
+                                <Button
+                                  size="sm"
+                                  onClick={handleBulkComplete}
+                                  disabled={allCompleted}
+                                  className={`min-h-[44px] w-full sm:w-auto ${
+                                    allCompleted 
+                                      ? "bg-gray-300 text-gray-500 cursor-not-allowed" 
+                                      : "bg-success hover:bg-success/90 text-white"
+                                  }`}
+                                >
+                                  <CheckSquare className="w-4 h-4 mr-2" />
+                                  Mark Complete
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            {allCompleted && (
+                              <TooltipContent>
+                                <p>All selected items are already completed</p>
+                              </TooltipContent>
+                            )}
+                          </Tooltip>
+                        </TooltipProvider>
+                      );
+                    })()}
                     <Button
                       size="sm"
                       onClick={handleBulkDelete}
@@ -2326,8 +2346,80 @@ export default function ListDetail() {
               </div>
             </div>
           </Card>
+          </div>
 
-          {/* Sort Items Dropdown */}
+          {/* Scrollable Content Area */}
+          <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+            {/* Tags Section - Collapsible */}
+            <Card className="p-3 sm:p-4 mb-4 print:hidden">
+              <button
+                onClick={() => setIsTagsSectionOpen(!isTagsSectionOpen)}
+                className="w-full flex items-center justify-between text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-medium text-gray-700">Tags</h3>
+                  <Badge variant="outline" className="text-xs">
+                    {list.tags?.length || 0}
+                  </Badge>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">
+                          Add keywords to organize and filter items
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <ChevronDown 
+                  className={`w-4 h-4 transition-transform ${isTagsSectionOpen ? 'rotate-180' : ''}`} 
+                />
+              </button>
+              
+              {isTagsSectionOpen && (
+                <div className="mt-3 space-y-3">
+                  <div className="flex flex-wrap gap-2">
+                    {list.tags && list.tags.length > 0 ? (
+                      list.tags.map((tag) => (
+                        <Badge key={tag} variant="outline" className="text-xs">
+                          {tag}
+                          <button
+                            onClick={() => removeTagFromList(list.id, tag)}
+                            className="ml-1 hover:text-red-600"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </Badge>
+                      ))
+                    ) : (
+                      <p className="text-xs text-gray-500">No tags yet</p>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="e.g., urgent, work, personal, home"
+                      value={newTag}
+                      onChange={(e) => setNewTag(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleAddTag();
+                        }
+                      }}
+                      className="flex-1 min-h-[44px]"
+                    />
+                    <Button onClick={handleAddTag} size="sm" className="min-h-[44px]">
+                      <Tag className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </Card>
+
+            {/* Sort Items Dropdown */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-medium text-gray-700">Items</h3>
@@ -3304,30 +3396,46 @@ export default function ListDetail() {
               ))
             ) : (
               // Regular display for non-grocery lists
-              getSortedItems().map((item, index) => {
-                const isPurchased = item.attributes?.purchaseStatus === "purchased";
-                const isFirstPurchased = index > 0 && 
-                  !getSortedItems()[index - 1].attributes?.purchaseStatus && 
-                  isPurchased && 
-                  (list.listType === "registry-list" || list.listType === "shopping-list");
+              (() => {
+                const sortedItems = getSortedItems();
+                const isRegistryOrWishlist = list.listType === "registry-list" || list.listType === "shopping-list";
+                const hasPurchasedItems = isRegistryOrWishlist && sortedItems.some(item => item.attributes?.purchaseStatus === "purchased");
+                const hasUnpurchasedItems = isRegistryOrWishlist && sortedItems.some(item => item.attributes?.purchaseStatus !== "purchased");
                 
-                // Calculate continuous numbering for registry/wishlist
-                const showNumbering = list.listType === "registry-list" || list.listType === "shopping-list";
-                const itemNumber = index + 1;
-                const isDropTarget = dropTargetId === item.id;
-                
-                return (
-                  <div key={item.id} className="relative">
-                    {/* Divider before first purchased item */}
-                    {isFirstPurchased && (
-                      <div className="flex items-center gap-3 my-6">
-                        <div className="flex-1 h-px bg-gray-300"></div>
-                        <Badge className="bg-success/10 text-success border-success/30 px-3 py-1">
-                          ✓ Purchased Items
-                        </Badge>
-                        <div className="flex-1 h-px bg-gray-300"></div>
-                      </div>
-                    )}
+                return sortedItems.map((item, index) => {
+                  const isPurchased = item.attributes?.purchaseStatus === "purchased";
+                  const prevItem = index > 0 ? sortedItems[index - 1] : null;
+                  const prevIsPurchased = prevItem?.attributes?.purchaseStatus === "purchased";
+                  const isFirstPurchased = isPurchased && !prevIsPurchased && isRegistryOrWishlist;
+                  
+                  // Calculate continuous numbering for registry/wishlist
+                  const showNumbering = isRegistryOrWishlist;
+                  const itemNumber = index + 1;
+                  const isDropTarget = dropTargetId === item.id;
+                  
+                  return (
+                    <div key={item.id} className="relative">
+                      {/* Unpurchased Items header - show at the very beginning if there are both purchased and unpurchased items */}
+                      {index === 0 && isRegistryOrWishlist && hasPurchasedItems && hasUnpurchasedItems && !isPurchased && (
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="flex-1 h-px bg-gray-300"></div>
+                          <Badge className="bg-blue-50 text-blue-700 border-blue-200 px-3 py-1">
+                            📋 Unpurchased Items
+                          </Badge>
+                          <div className="flex-1 h-px bg-gray-300"></div>
+                        </div>
+                      )}
+                      
+                      {/* Divider before first purchased item */}
+                      {isFirstPurchased && (
+                        <div className="flex items-center gap-3 my-6">
+                          <div className="flex-1 h-px bg-gray-300"></div>
+                          <Badge className="bg-success/10 text-success border-success/30 px-3 py-1">
+                            ✓ Purchased Items
+                          </Badge>
+                          <div className="flex-1 h-px bg-gray-300"></div>
+                        </div>
+                      )}
                     
                     {/* Drop indicator - before */}
                     {isDropTarget && dropPosition === "before" && itemSortBy === "manual" && (
@@ -4269,9 +4377,11 @@ export default function ListDetail() {
                       <div className="absolute -bottom-1 left-0 right-0 h-1 bg-primary rounded-full z-10 animate-pulse" />
                     )}
                   </div>
-                )
-              })
+                );
+              });
+              })()
             )}
+          </div>
           </div>
         </div>
       </div>
@@ -4355,7 +4465,13 @@ export default function ListDetail() {
       {(list.listType === "registry-list" || list.listType === "shopping-list") && (
         <PurchaseHistoryModal
           open={isPurchaseHistoryOpen}
-          onOpenChange={setIsPurchaseHistoryOpen}
+          onOpenChange={(open) => {
+            setIsPurchaseHistoryOpen(open);
+            // Refresh lists when modal closes to sync purchase statuses
+            if (!open) {
+              refreshLists();
+            }
+          }}
           listId={list.id}
           listItems={list.items.map((item) => ({ id: item.id, text: item.text }))}
           showPurchaserInfo={list.showPurchaserInfo || false}

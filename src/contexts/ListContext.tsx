@@ -107,6 +107,7 @@ interface ListContextType {
   loading: boolean;
   error: string | null;
   retryLoad: () => Promise<void>;
+  refreshLists: () => Promise<void>;
 }
 
 // ListContext for managing list state across the application
@@ -178,6 +179,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
     }
 
     let listsChannel: ReturnType<typeof supabase.channel> | null = null;
+    let itemsChannel: ReturnType<typeof supabase.channel> | null = null;
     
     if (user) {
       // Use a stable channel name based only on user ID
@@ -201,6 +203,27 @@ export function ListProvider({ children }: { children: ReactNode }) {
           },
         )
         .subscribe();
+
+      // Also listen for list_items changes to catch purchase status updates
+      const itemsChannelName = `list-items-changes-${user.id}`;
+      itemsChannel = supabase
+        .channel(itemsChannelName)
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "list_items",
+          },
+          () => {
+            // List items realtime event received
+            // Use debounced reload to prevent rapid updates
+            if (currentUserIdRef.current && currentUserTierRef.current) {
+              debouncedLoadLists(currentUserIdRef.current, currentUserTierRef.current);
+            }
+          },
+        )
+        .subscribe();
     }
 
     return () => {
@@ -209,6 +232,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
       }
       if (listsChannel) {
         supabase.removeChannel(listsChannel);
+      }
+      if (itemsChannel) {
+        supabase.removeChannel(itemsChannel);
       }
     };
   }, [user?.id, user?.tier]);
@@ -309,14 +335,64 @@ export function ListProvider({ children }: { children: ReactNode }) {
         }
 
         if (itemsError) {
-          console.error("[ListMine Error]", {
-            operation: "loadLists - items query",
-            error: itemsError,
-          });
-          throw itemsError;
+          // Check if it's a network error - don't throw, just log and continue with empty items
+          if (itemsError.message?.includes("Failed to fetch") || itemsError.message?.includes("NetworkError")) {
+            console.warn("[ListMine Warning]", {
+              operation: "loadLists - items query",
+              message: "Network error fetching items, will retry on next load",
+            });
+            // Continue with empty items - the realtime subscription will trigger a reload
+          } else {
+            console.error("[ListMine Error]", {
+              operation: "loadLists - items query",
+              error: itemsError,
+            });
+            throw itemsError;
+          }
         }
         
         itemsData = items || [];
+
+        // Sync purchase statuses from purchases table for registry/shopping lists
+        const registryShoppingListIds = listsData
+          .filter((l) => l.list_type === "registry-list" || l.list_type === "shopping-list")
+          .map((l) => l.id);
+
+        if (registryShoppingListIds.length > 0) {
+          try {
+            const { data: purchases } = await supabase
+              .from("purchases")
+              .select("item_id")
+              .in("list_id", registryShoppingListIds);
+
+            if (purchases && purchases.length > 0) {
+              const purchasedItemIds = new Set(purchases.map((p) => p.item_id));
+              
+              // Update items that have purchases but don't have purchaseStatus set
+              itemsData = itemsData.map((item) => {
+                if (purchasedItemIds.has(item.id)) {
+                  const currentAttributes = item.attributes || {};
+                  if (currentAttributes.purchaseStatus !== "purchased") {
+                    return {
+                      ...item,
+                      attributes: {
+                        ...currentAttributes,
+                        purchaseStatus: "purchased",
+                      },
+                    };
+                  }
+                }
+                return item;
+              });
+            }
+          } catch (purchaseError) {
+            // Non-critical - just log and continue without purchase sync
+            console.warn("[ListMine Warning]", {
+              operation: "loadLists - purchases sync",
+              message: "Failed to sync purchase statuses, will retry on next load",
+            });
+          }
+        }
       }
 
 
@@ -1983,6 +2059,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
     loading,
     error,
     retryLoad: () => loadLists(),
+    refreshLists: () => loadLists(),
   }), [lists, hasLoadedOnce, loading, error]);
 
   return (

@@ -1082,7 +1082,7 @@ export default function Dashboard() {
                   Need more lists? Upgrade to unlock unlimited lists and premium features.
                 </p>
                 <Button
-                  onClick={() => window.open('https://listmine.com/pricing', '_blank')}
+                  onClick={() => navigate('/upgrade')}
                   variant="outline"
                   size="sm"
                   className="border-primary text-primary hover:bg-primary/10 min-h-[36px] ml-4"
@@ -2225,14 +2225,12 @@ export default function Dashboard() {
               >
                 About ListMine
               </a>
-              <a
-                href="https://listmine.com/pricing"
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onClick={() => navigate('/upgrade')}
                 className="text-gray-600 hover:text-primary underline"
               >
                 Pricing
-              </a>
+              </button>
               <a
                 href="https://listmine.com/how-it-works"
                 target="_blank"
