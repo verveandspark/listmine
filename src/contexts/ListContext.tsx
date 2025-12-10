@@ -1969,6 +1969,14 @@ export function ListProvider({ children }: { children: ReactNode }) {
       
       console.log("[ListContext] Create from scraped items - using user_id (from getUser):", authUserId);
       
+      // Determine the appropriate list type based on user's tier
+      // shopping-list is only available for even_better and lots_more tiers
+      const userTier = (user?.tier || 'free') as UserTier;
+      const canUseShoppingList = canAccessListType('shopping-list', userTier);
+      const listType = canUseShoppingList ? 'shopping-list' : 'custom';
+      
+      console.log("[ListContext] User tier:", userTier, "Using list type:", listType);
+      
       const result = (await withTimeout(
         supabase
           .from("lists")
@@ -1976,7 +1984,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
             user_id: authUserId,
             title: nameValidation.value,
             category: categoryValidation.value,
-            list_type: "shopping-list",
+            list_type: listType,
           })
           .select()
           .single(),
@@ -2020,6 +2028,8 @@ export function ListProvider({ children }: { children: ReactNode }) {
         throw new Error("Connection lost. Check your internet and try again.");
       } else if (errorMessage.includes("limit")) {
         throw error;
+      } else if (errorMessage.includes("list type") || errorMessage.includes("not available for your tier")) {
+        throw new Error("Unable to create this list type with your current plan. The list will be created as a custom list.");
       } else {
         throw new Error("Couldn't import wishlist. Try again or contact support.");
       }
