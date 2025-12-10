@@ -309,6 +309,7 @@ export default function ImportExport() {
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error('API error response:', errorData);
         
         // Detect retailer from URL for better error messages
         const lowerUrl = wishlistUrl.toLowerCase();
@@ -319,7 +320,10 @@ export default function ImportExport() {
         } else if (lowerUrl.includes('target.com')) {
           errorMessage = "Target wishlists are not yet supported. Currently works with: Amazon wishlists";
         } else if (lowerUrl.includes('amazon.com')) {
-          errorMessage = "This Amazon wishlist is not accessible. Please check the URL and try again.";
+          // Use the API error message if available, otherwise provide a helpful default
+          if (!errorMessage || errorMessage.includes('not properly configured')) {
+            errorMessage = errorData.error || "Unable to access this Amazon wishlist. Please ensure: 1) The URL is correct, 2) The wishlist is set to PUBLIC (not private), 3) You're using a direct wishlist URL (e.g., amazon.com/hz/wishlist/ls/...)";
+          }
         } else if (!lowerUrl.includes('amazon.com') && !lowerUrl.includes('walmart.com') && !lowerUrl.includes('target.com')) {
           errorMessage = "This URL is not supported. Currently works with: Amazon wishlists";
         }

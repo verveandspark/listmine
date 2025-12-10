@@ -200,11 +200,13 @@ export default async function handler(
     let html: string;
     const scraperApiKey = process.env.SCRAPER_API_KEY;
     console.log('ScraperAPI key available:', !!scraperApiKey);
+    console.log('ScraperAPI key length:', scraperApiKey?.length || 0);
 
     if (!scraperApiKey) {
+      console.error('SCRAPER_API_KEY environment variable is not set');
       res.status(400).json({
         success: false,
-        error: 'Amazon scraping requires ScraperAPI key. Please contact support.'
+        error: 'Amazon scraping is temporarily unavailable. The service is not properly configured. Please contact support or try again later.'
       });
       return;
     }
@@ -237,11 +239,14 @@ export default async function handler(
     console.error('Error:', error);
     console.error('Error message:', error.message);
     console.error('Error stack:', error.stack);
+    console.error('Error name:', error.name);
+    console.error('Error code:', error.code);
+    console.error('Error response status:', error.response?.status);
 
     if (error.name === 'AbortError' || error.code === 'ECONNABORTED') {
       res.status(408).json({ 
         success: false, 
-        error: 'Request timed out. The page took too long to load.' 
+        error: 'Request timed out. The page took too long to load. Try again in a moment.' 
       });
       return;
     }
@@ -249,14 +254,30 @@ export default async function handler(
     if (error.response?.status === 404) {
       res.status(404).json({ 
         success: false, 
-        error: 'List not found. Make sure the URL is correct and the list is public.' 
+        error: 'Wishlist not found. Make sure the URL is correct and the wishlist is set to public (not private).' 
+      });
+      return;
+    }
+
+    if (error.response?.status === 403 || error.response?.status === 401) {
+      res.status(403).json({ 
+        success: false, 
+        error: 'Access denied. This wishlist may be private. Make sure it\'s set to public and try again.' 
+      });
+      return;
+    }
+
+    if (error.message?.includes('ScraperAPI')) {
+      res.status(500).json({ 
+        success: false, 
+        error: 'Scraping service error. Please try again in a few minutes or contact support.' 
       });
       return;
     }
 
     res.status(500).json({ 
       success: false, 
-      error: error.message || 'Failed to scrape wishlist. Please try again or check if the list is public.' 
+      error: error.message || 'Failed to import wishlist. Please verify the URL is correct and the wishlist is public, then try again.' 
     });
   }
 }

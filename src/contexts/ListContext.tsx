@@ -2007,16 +2007,18 @@ export function ListProvider({ children }: { children: ReactNode }) {
     } catch (error: any) {
       logError("importFromWishlist", error, user?.id);
 
-      if (error.message === "Operation timed out") {
+      const errorMessage = error?.message || "";
+      
+      if (errorMessage === "Operation timed out") {
         throw new Error(
           "This is taking longer than expected. Try again in a moment.",
         );
       } else if (
-        error.message.includes("network") ||
-        error.message.includes("fetch")
+        errorMessage.includes("network") ||
+        errorMessage.includes("fetch")
       ) {
         throw new Error("Connection lost. Check your internet and try again.");
-      } else if (error.message.includes("limit")) {
+      } else if (errorMessage.includes("limit")) {
         throw error;
       } else {
         throw new Error("Couldn't import wishlist. Try again or contact support.");
