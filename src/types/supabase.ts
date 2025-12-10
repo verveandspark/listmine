@@ -451,6 +451,7 @@ export type Database = {
           category: string
           created_at: string | null
           description: string | null
+          favorited: boolean | null
           id: string
           is_archived: boolean | null
           is_favorite: boolean | null
@@ -470,6 +471,7 @@ export type Database = {
           category: string
           created_at?: string | null
           description?: string | null
+          favorited?: boolean | null
           id?: string
           is_archived?: boolean | null
           is_favorite?: boolean | null
@@ -489,6 +491,7 @@ export type Database = {
           category?: string
           created_at?: string | null
           description?: string | null
+          favorited?: boolean | null
           id?: string
           is_archived?: boolean | null
           is_favorite?: boolean | null
@@ -962,6 +965,7 @@ export type Database = {
         Returns: Json
       }
       enable_user_account: { Args: { target_user_id: string }; Returns: Json }
+      ensure_user_exists: { Args: never; Returns: string }
       get_admin_audit_logs: {
         Args: { p_limit: number; p_offset: number }
         Returns: {

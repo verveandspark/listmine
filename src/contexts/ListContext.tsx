@@ -1994,21 +1994,27 @@ export function ListProvider({ children }: { children: ReactNode }) {
       console.log("Supabase auth user ID:", authUser?.id);
       console.log("[ListContext] User tier:", userTier, "Using list type:", listType);
       
-      const result = (await withTimeout(
-        supabase
-          .from("lists")
-          .insert({
-            user_id: authUserId,
-            title: nameValidation.value,
-            category: categoryValidation.value,
-            list_type: listType,
-          })
-          .select()
-          .single(),
-      )) as any;
-      const { data: newList, error: listError } = result;
+      // Use RPC function to ensure user exists and create list
+      const { data: newListId, error: rpcError } = await supabase.rpc('create_list_for_user', {
+        p_user_id: authUserId,
+        p_title: nameValidation.value,
+        p_category: categoryValidation.value,
+        p_list_type: listType,
+      });
 
-      if (listError) throw listError;
+      if (rpcError) {
+        console.error("[ListContext] RPC create_list_for_user error:", rpcError);
+        throw rpcError;
+      }
+
+      // Fetch the created list
+      const { data: newList, error: fetchError } = await supabase
+        .from("lists")
+        .select()
+        .eq("id", newListId)
+        .single();
+
+      if (fetchError) throw fetchError;
 
       const itemsToInsert = items.map((item, index) => ({
         list_id: newList.id,
