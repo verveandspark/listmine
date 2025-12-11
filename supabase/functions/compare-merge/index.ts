@@ -6,9 +6,11 @@ const corsHeaders = {
 }
 
 // Helper function to normalize item keys
-const normalizeKey = (item: { id?: string; name?: string }) => {
+const normalizeKey = (item: { id?: string; name?: string; text?: string }) => {
   if (item.id) return item.id.toLowerCase()
-  return (item.name || '').trim().toLowerCase()
+  // Support both 'name' (retailer items) and 'text' (ListMine items)
+  const itemName = item.name || item.text || ''
+  return itemName.trim().toLowerCase()
 }
 
 Deno.serve(async (req) => {
