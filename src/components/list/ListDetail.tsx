@@ -4489,7 +4489,7 @@ export default function ListDetail() {
               await addItemToList(list.id, {
                 text: item.text || "",
                 completed: item.completed || false,
-                order: item.order,
+                order: item.order ?? list.items.length,
                 attributes: item.attributes,
               });
             }

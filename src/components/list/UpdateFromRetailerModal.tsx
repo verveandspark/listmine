@@ -117,11 +117,11 @@ export default function UpdateFromRetailerModal({
       setCompareResult(compareData);
       
       // Select all new items by default
-      const newItemIndices = new Set(compareData.newItems.map((_: any, i: number) => i));
+      const newItemIndices = new Set<number>(compareData.newItems.map((_: any, i: number) => i));
       setSelectedNewItems(newItemIndices);
       
       // Select all updates by default
-      const updateIndices = new Set(compareData.updatedItems.map((_: any, i: number) => i));
+      const updateIndices = new Set<number>(compareData.updatedItems.map((_: any, i: number) => i));
       setSelectedUpdates(updateIndices);
 
       toast({
@@ -237,18 +237,18 @@ export default function UpdateFromRetailerModal({
   const toggleAllNewItems = () => {
     if (!compareResult) return;
     if (selectedNewItems.size === compareResult.newItems.length) {
-      setSelectedNewItems(new Set());
+      setSelectedNewItems(new Set<number>());
     } else {
-      setSelectedNewItems(new Set(compareResult.newItems.map((_, i) => i)));
+      setSelectedNewItems(new Set<number>(compareResult.newItems.map((_, i) => i)));
     }
   };
 
   const toggleAllUpdates = () => {
     if (!compareResult) return;
     if (selectedUpdates.size === compareResult.updatedItems.length) {
-      setSelectedUpdates(new Set());
+      setSelectedUpdates(new Set<number>());
     } else {
-      setSelectedUpdates(new Set(compareResult.updatedItems.map((_, i) => i)));
+      setSelectedUpdates(new Set<number>(compareResult.updatedItems.map((_, i) => i)));
     }
   };
 
