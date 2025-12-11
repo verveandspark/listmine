@@ -14,6 +14,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
+import { supabase } from "@/lib/supabase";
 
 interface ScrapedItem {
   name: string;
@@ -53,43 +54,19 @@ export default function ScrapeWishlistModal({
     setScrapedItems([]);
 
     try {
-      console.log('Calling API with URL:', url.trim());
-      
-      const response = await fetch('/api/scrape-wishlist', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ url: url.trim() }),
-      });
-
-      console.log('Response status:', response.status);
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        
-        // Detect retailer from URL for better error messages
-        const lowerUrl = url.toLowerCase();
-        let errorMessage = errorData.error;
-        
-        if (lowerUrl.includes('walmart.com')) {
-          errorMessage = "Walmart wishlists are not yet supported. Currently works with: Amazon wishlists";
-        } else if (lowerUrl.includes('target.com')) {
-          errorMessage = "Target wishlists are not yet supported. Currently works with: Amazon wishlists";
-        } else if (lowerUrl.includes('amazon.com')) {
-          errorMessage = "This Amazon wishlist is not accessible. Please check the URL and try again.";
-        } else if (!lowerUrl.includes('amazon.com') && !lowerUrl.includes('walmart.com') && !lowerUrl.includes('target.com')) {
-          errorMessage = "This URL is not supported. Currently works with: Amazon wishlists";
+      const { data, error } = await supabase.functions.invoke(
+        "supabase-functions-scrape-wishlist",
+        {
+          body: { url: url.trim() },
         }
-        
-        throw new Error(errorMessage || `HTTP error! status: ${response.status}`);
+      );
+
+      if (error) {
+        throw new Error(error.message || "Failed to scrape wishlist");
       }
 
-      const data = await response.json();
-      console.log('API response:', data);
-
       if (!data.success) {
-        throw new Error(data.error || 'Failed to scrape wishlist');
+        throw new Error(data.error || "Failed to scrape wishlist");
       }
 
       const itemsWithSelection = data.items.map((item: ScrapedItem) => ({
@@ -107,7 +84,7 @@ export default function ScrapeWishlistModal({
         className: "bg-green-50 border-green-200",
       });
     } catch (err: any) {
-      console.error('Error:', err);
+      console.error("Error:", err);
       setError(
         err.message || "Failed to scrape wishlist. Please check the URL and try again."
       );
@@ -138,6 +115,29 @@ export default function ScrapeWishlistModal({
     }
 
     try {
+      // Transform scraped items to match edge function format
+      const retailerList = selectedItems.map((item) => ({
+        name: item.name,
+        price: item.price,
+        link: item.link,
+        image: item.image,
+      }));
+
+      // Call the compare-merge edge function for validation
+      const { data, error } = await supabase.functions.invoke(
+        "supabase-functions-compare-merge",
+        {
+          body: {
+            listMineListId: null,
+            retailerList,
+          },
+        }
+      );
+
+      if (error) {
+        throw new Error(error.message || "Failed to process items");
+      }
+
       await onImport(selectedItems, listName);
       handleClose();
     } catch (err: any) {

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLists } from "@/contexts/useListsHook";
+import { supabase } from "@/lib/supabase";
 import { ListCategory, ListType } from "@/types";
 import {
   Card,
@@ -295,47 +296,19 @@ export default function ImportExport() {
     setScrapedItems([]);
 
     try {
-      console.log('Calling API with URL:', wishlistUrl.trim());
-      
-      const response = await fetch('/api/scrape-wishlist', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ url: wishlistUrl.trim() }),
-      });
-
-      console.log('Response status:', response.status);
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('API error response:', errorData);
-        
-        // Detect retailer from URL for better error messages
-        const lowerUrl = wishlistUrl.toLowerCase();
-        let errorMessage = errorData.error;
-        
-        if (lowerUrl.includes('walmart.com')) {
-          errorMessage = "Walmart wishlists are not yet supported. Currently works with: Amazon wishlists";
-        } else if (lowerUrl.includes('target.com')) {
-          errorMessage = "Target wishlists are not yet supported. Currently works with: Amazon wishlists";
-        } else if (lowerUrl.includes('amazon.com')) {
-          // Use the API error message if available, otherwise provide a helpful default
-          if (!errorMessage || errorMessage.includes('not properly configured')) {
-            errorMessage = errorData.error || "Unable to access this Amazon wishlist. Please ensure: 1) The URL is correct, 2) The wishlist is set to PUBLIC (not private), 3) You're using a direct wishlist URL (e.g., amazon.com/hz/wishlist/ls/...)";
-          }
-        } else if (!lowerUrl.includes('amazon.com') && !lowerUrl.includes('walmart.com') && !lowerUrl.includes('target.com')) {
-          errorMessage = "This URL is not supported. Currently works with: Amazon wishlists";
+      const { data, error } = await supabase.functions.invoke(
+        "supabase-functions-scrape-wishlist",
+        {
+          body: { url: wishlistUrl.trim() },
         }
-        
-        throw new Error(errorMessage || `HTTP error! status: ${response.status}`);
+      );
+
+      if (error) {
+        throw new Error(error.message || "Failed to scrape wishlist");
       }
 
-      const data = await response.json();
-      console.log('API response:', data);
-
       if (!data.success) {
-        throw new Error(data.error || 'Failed to scrape wishlist');
+        throw new Error(data.error || "Failed to scrape wishlist");
       }
 
       const itemsWithSelection = data.items.map((item: ScrapedItem) => ({
@@ -353,7 +326,7 @@ export default function ImportExport() {
         className: "bg-green-50 border-green-200",
       });
     } catch (err: any) {
-      console.error('Error:', err);
+      console.error("Error:", err);
       setWishlistError(
         err.message || "Failed to scrape wishlist. Please check the URL and try again."
       );
