@@ -28,10 +28,28 @@ Deno.serve(async (req) => {
     const { listMineListId, retailerList } = await req.json()
     console.log('Request received:', { listMineListId, retailerListLength: retailerList?.length })
 
-    if (!listMineListId || !Array.isArray(retailerList)) {
+    // retailerList is required, but listMineListId can be null for new list creation
+    if (!Array.isArray(retailerList)) {
       return new Response(
-        JSON.stringify({ error: 'Invalid request body' }),
+        JSON.stringify({ error: 'Invalid request body: retailerList must be an array' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+
+    // If listMineListId is null, this is a new list creation - just return the items as new
+    if (!listMineListId) {
+      return new Response(
+        JSON.stringify({
+          existingItems: [],
+          newItems: retailerList,
+          updatedItems: [],
+          summary: {
+            existingCount: 0,
+            newCount: retailerList.length,
+            updatedCount: 0,
+          },
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       )
     }
 

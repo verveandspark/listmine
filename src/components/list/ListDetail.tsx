@@ -4,6 +4,7 @@ import { LinkPreviewCard } from "@/components/list/LinkPreviewCard";
 import { ListSidebar } from "./ListSidebar";
 import PurchaseHistoryModal from "./PurchaseHistoryModal";
 import GuestManagement from "./GuestManagement";
+import UpdateFromRetailerModal from "./UpdateFromRetailerModal";
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useLists } from "@/contexts/useListsHook";
@@ -59,6 +60,7 @@ import {
   Star,
   LayoutDashboard,
   List as ListIcon,
+  RefreshCw,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -228,6 +230,7 @@ export default function ListDetail() {
   const [editListType, setEditListType] = useState<string>("");
   const [isPurchaseHistoryOpen, setIsPurchaseHistoryOpen] = useState(false);
   const [isGuestManagementOpen, setIsGuestManagementOpen] = useState(false);
+  const [isUpdateFromRetailerOpen, setIsUpdateFromRetailerOpen] = useState(false);
   
   // Tags section collapsed state
   const [isTagsSectionOpen, setIsTagsSectionOpen] = useState(false);
@@ -1250,21 +1253,38 @@ export default function ListDetail() {
                 {/* Utility Actions Group */}
                 <div className="flex items-center gap-1 px-2 border-r border-gray-200">
                   {(list.listType === "registry-list" || list.listType === "shopping-list") && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setIsPurchaseHistoryOpen(true)}
-                            className="h-9 w-9"
-                          >
-                            <ShoppingCart className="w-4 h-4 text-gray-600" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Purchase History</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setIsPurchaseHistoryOpen(true)}
+                              className="h-9 w-9"
+                            >
+                              <ShoppingCart className="w-4 h-4 text-gray-600" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Purchase History</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setIsUpdateFromRetailerOpen(true)}
+                              className="h-9 w-9"
+                            >
+                              <RefreshCw className="w-4 h-4 text-gray-600" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Update from Retailer</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </>
                   )}
                   <TooltipProvider>
                     <Tooltip>
@@ -1483,17 +1503,30 @@ export default function ListDetail() {
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1">More</p>
                     
                     {(list.listType === "registry-list" || list.listType === "shopping-list") && (
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setIsPurchaseHistoryOpen(true);
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className="w-full justify-start min-h-[44px]"
-                      >
-                        <ShoppingCart className="w-4 h-4 mr-2" />
-                        Purchase History
-                      </Button>
+                      <>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setIsPurchaseHistoryOpen(true);
+                            setIsMobileMenuOpen(false);
+                          }}
+                          className="w-full justify-start min-h-[44px]"
+                        >
+                          <ShoppingCart className="w-4 h-4 mr-2" />
+                          Purchase History
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setIsUpdateFromRetailerOpen(true);
+                            setIsMobileMenuOpen(false);
+                          }}
+                          className="w-full justify-start min-h-[44px]"
+                        >
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          Update from Retailer
+                        </Button>
+                      </>
                     )}
                     <Button
                       variant="outline"
@@ -4442,6 +4475,32 @@ export default function ListDetail() {
           listItems={list.items.map((item) => ({ id: item.id, text: item.text }))}
           showPurchaserInfo={list.showPurchaserInfo || false}
           onTogglePurchaserInfo={handleTogglePurchaserInfo}
+        />
+      )}
+
+      {/* Update from Retailer Modal */}
+      {(list.listType === "registry-list" || list.listType === "shopping-list") && (
+        <UpdateFromRetailerModal
+          open={isUpdateFromRetailerOpen}
+          onOpenChange={setIsUpdateFromRetailerOpen}
+          list={list}
+          onAddItems={async (items) => {
+            for (const item of items) {
+              await addItemToList(list.id, {
+                text: item.text || "",
+                completed: item.completed || false,
+                order: item.order,
+                attributes: item.attributes,
+              });
+            }
+            await refreshLists();
+          }}
+          onUpdateItems={async (updates) => {
+            for (const update of updates) {
+              await updateListItem(list.id, update.id, update.updates);
+            }
+            await refreshLists();
+          }}
         />
       )}
 
