@@ -140,8 +140,10 @@ Deno.serve(async (req) => {
     }
 
     const scraperApiKey = Deno.env.get("SCRAPER_API_KEY");
+    console.log("SCRAPER_API_KEY available:", !!scraperApiKey);
 
     if (!scraperApiKey) {
+      console.error("SCRAPER_API_KEY is not set in environment variables");
       return new Response(
         JSON.stringify({
           success: false,
@@ -155,9 +157,12 @@ Deno.serve(async (req) => {
       );
     }
 
+    console.log("Fetching URL via ScraperAPI:", url);
     const html = await fetchWithScraperAPI(url, scraperApiKey);
+    console.log("HTML fetched, length:", html?.length || 0);
     const $ = load(html);
     const items: ScrapedItem[] = scrapeAmazon($);
+    console.log("Items scraped:", items.length);
 
     if (items.length === 0) {
       return new Response(
