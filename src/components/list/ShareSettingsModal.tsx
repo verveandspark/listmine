@@ -153,11 +153,56 @@ export default function ShareSettingsModal({
       if (list.isShared) {
         // Update share mode
         await onUpdateShareMode(shareMode);
-        toast({
-          title: "✅ Share settings updated",
-          description: `Link is now ${shareMode === 'view_only' ? 'view-only' : shareMode === 'importable' ? 'importable' : 'view and importable'}`,
-          className: "bg-green-50 border-green-200",
-        });
+        
+        // Also copy the link
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        if (isMobile && navigator.share) {
+          try {
+            await navigator.share({
+              title: list.title,
+              text: `Check out my list: ${list.title}`,
+              url: shareLink,
+            });
+            toast({
+              title: "✅ Settings saved and link shared!",
+              className: "bg-blue-50 border-blue-200",
+            });
+            return;
+          } catch (shareErr: any) {
+            if (shareErr.name !== 'AbortError') {
+              // Fall through to copy
+            }
+          }
+        }
+        
+        const copied = await copyToClipboard(shareLink);
+        if (copied) {
+          toast({
+            title: "✅ Settings saved and link copied!",
+            description: `Link is now ${shareMode === 'view_only' ? 'view-only' : shareMode === 'importable' ? 'importable' : 'view and importable'}`,
+            className: "bg-green-50 border-green-200",
+          });
+        } else {
+          toast({
+            title: "✅ Share settings updated",
+            description: (
+              <div className="flex flex-col gap-2">
+                <span>Tap and hold to copy:</span>
+                <input 
+                  type="text" 
+                  readOnly 
+                  value={shareLink} 
+                  className="bg-gray-100 p-2 rounded text-xs break-all w-full border-0"
+                  onClick={(e) => {
+                    (e.target as HTMLInputElement).select();
+                  }}
+                />
+              </div>
+            ),
+            className: "bg-yellow-50 border-yellow-200",
+            duration: 15000,
+          });
+        }
       } else {
         // Generate new link
         const link = await onGenerateLink(shareMode);

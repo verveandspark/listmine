@@ -2564,7 +2564,7 @@ export default function ListDetail() {
               )}
             </div>
             
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-start gap-2 flex-wrap min-w-0">
               {/* Tags Dropdown */}
               <Popover open={isTagsSectionOpen} onOpenChange={setIsTagsSectionOpen}>
                 <PopoverTrigger asChild>
@@ -2717,7 +2717,7 @@ export default function ListDetail() {
                         itemSortBy === "manual" && handleDragEnd(e)
                       }
                     >
-                      <div className="flex items-start gap-2 sm:gap-3">
+                      <div className="flex items-start gap-2 sm:gap-3 w-full">
                         {isSelectMode && (
                           <Checkbox
                             checked={selectedItems.has(item.id)}
@@ -2740,9 +2740,9 @@ export default function ListDetail() {
                           className={`mt-1 h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform ${item.completed ? "animate-check-bounce" : ""}`}
                         />
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
+                          <div className="flex items-start gap-2 flex-wrap min-w-0">
                             <p
-                              className={`text-sm sm:text-base text-gray-900 transition-all duration-200 ${item.completed ? "line-through opacity-50" : ""} break-words`}
+                              className={`text-sm sm:text-base text-gray-900 transition-all duration-200 ${item.completed ? "line-through opacity-50" : ""} break-words overflow-hidden`}
                             >
                               {item.quantity && (
                                 <span className="font-semibold text-blue-600">
@@ -3659,7 +3659,7 @@ export default function ListDetail() {
                         itemSortBy === "manual" && handleDragEnd(e)
                       }
                     >
-                      <div className="flex items-start gap-2 sm:gap-3">
+                      <div className="flex items-start gap-2 sm:gap-3 w-full">
                         {isSelectMode && (
                           <Checkbox
                             checked={selectedItems.has(item.id)}
@@ -3687,9 +3687,9 @@ export default function ListDetail() {
                           className={`mt-1 h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform ${item.completed ? "animate-check-bounce" : ""}`}
                         />
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
+                          <div className="flex items-start gap-2 flex-wrap min-w-0">
                             <p
-                              className={`text-sm sm:text-base text-gray-900 transition-all duration-200 ${item.completed ? "line-through opacity-50" : ""} break-words`}
+                              className={`text-sm sm:text-base text-gray-900 transition-all duration-200 ${item.completed ? "line-through opacity-50" : ""} break-words overflow-hidden`}
                             >
                               {item.quantity && (
                                 <span className="font-semibold text-blue-600">
