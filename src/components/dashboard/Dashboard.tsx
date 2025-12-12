@@ -317,7 +317,7 @@ export default function Dashboard() {
       try {
         const results = await searchAllLists(searchQuery, {
           includeArchived: showArchived,
-          favoritesOnly: activeTab === "favorites",
+          favoritesOnly: showFavoritesOnly,
           category: categoryFilter !== "all" ? categoryFilter as any : undefined,
         });
         setSearchResults(results);
@@ -334,7 +334,7 @@ export default function Dashboard() {
         clearTimeout(searchDebounceRef.current);
       }
     };
-  }, [searchQuery, showArchived, activeTab, categoryFilter, searchAllLists]);
+  }, [searchQuery, showArchived, showFavoritesOnly, categoryFilter, searchAllLists]);
 
   const handleCreateList = () => {
     // Validate list name
