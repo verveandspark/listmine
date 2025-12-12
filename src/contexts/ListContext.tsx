@@ -1821,9 +1821,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
         isShared: list.is_shared || false,
         shareLink: list.share_link,
         tags: list.tags || [],
-        collaborators: list.collaborators || [],
-        createdAt: list.created_at,
-        updatedAt: list.updated_at,
+        collaborators: [],
+        createdAt: new Date(list.created_at),
+        updatedAt: new Date(list.updated_at),
         isFavorite: list.is_favorite || false,
         isArchived: list.is_archived || list.title?.startsWith("[Archived]") || false,
       }));
