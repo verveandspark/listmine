@@ -179,7 +179,7 @@ export default function ShareSettingsModal({
         if (copied) {
           toast({
             title: "✅ Settings saved and link copied!",
-            description: `Link is now ${shareMode === 'view_only' ? 'view-only' : shareMode === 'importable' ? 'importable' : 'view and importable'}`,
+            description: `Link is now ${shareMode === 'view_only' ? 'view-only' : 'importable'}`,
             className: "bg-green-50 border-green-200",
           });
         } else {
@@ -331,21 +331,6 @@ export default function ShareSettingsModal({
                     </div>
                     <p className="text-xs text-gray-500 mt-0.5">
                       Others can import a copy (requires sign in)
-                    </p>
-                  </div>
-                </label>
-
-                <label className="flex items-start gap-3 p-2.5 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                  <RadioGroupItem value="both" id="both" className="mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <Eye className="w-4 h-4 text-[#1f628e] flex-shrink-0" />
-                      <span className="text-gray-400">+</span>
-                      <Download className="w-4 h-4 text-[#00a8a8] flex-shrink-0" />
-                      <span className="font-medium text-sm">View & Import</span>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      Others can view and optionally import a copy
                     </p>
                   </div>
                 </label>

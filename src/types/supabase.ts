@@ -1029,9 +1029,9 @@ export type Database = {
           id: string
           item_id: string
           list_id: string
-          purchaser_email: string
+          purchase_date: string
+          purchase_note: string
           purchaser_name: string
-          quantity: number
         }[]
       }
       get_team_member_count_for_account: {

@@ -50,6 +50,23 @@ export default function SharedListView() {
   const [shareMode, setShareMode] = useState<string>('view_only');
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // Check if user is logged in
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsLoggedIn(!!session);
+    };
+    checkAuth();
+    
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setIsLoggedIn(!!session);
+    });
+    
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     const fetchSharedList = async () => {
@@ -316,7 +333,7 @@ export default function SharedListView() {
     return listType === "registry-list" || listType === "shopping-list";
   };
 
-  const canImport = shareMode === 'importable' || shareMode === 'both';
+  const canImport = shareMode === 'importable';
 
   const handleImportClick = () => {
     setShowImportDialog(true);
@@ -327,9 +344,16 @@ export default function SharedListView() {
     
     setIsImporting(true);
     try {
-      // Navigate to auth page with import intent if not logged in
-      // Or navigate to dashboard with import action
-      navigate(`/auth?redirect=/dashboard&importShareId=${shareId}`);
+      // Check if user is already logged in
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session) {
+        // User is logged in, navigate directly to dashboard with import action
+        navigate(`/dashboard?importShareId=${shareId}`);
+      } else {
+        // User not logged in, redirect to auth with import intent
+        navigate(`/auth?redirect=/dashboard&importShareId=${shareId}`);
+      }
     } catch (error: any) {
       toast({
         title: "❌ Import failed",
@@ -486,10 +510,12 @@ export default function SharedListView() {
                 <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate">
                   {list.title}
                 </h1>
-                <Badge variant="outline" className="bg-[#c7d8e3] text-[#1f628e] border-[#8fb1c7] flex items-center gap-1">
-                  <Eye className="w-3 h-3" />
-                  View Only
-                </Badge>
+                {shareMode === 'view_only' && (
+                  <Badge variant="outline" className="bg-[#c7d8e3] text-[#1f628e] border-[#8fb1c7] flex items-center gap-1">
+                    <Eye className="w-3 h-3" />
+                    View Only
+                  </Badge>
+                )}
                 {canImport && (
                   <Badge variant="outline" className="bg-[#bfe9e9] text-[#00a8a8] border-[#80d4d4] flex items-center gap-1">
                     <Download className="w-3 h-3" />
@@ -809,6 +835,8 @@ export default function SharedListView() {
           )}
         </div>
 
+        {/* Only show sign-up promo for view-only lists */}
+        {shareMode === 'view_only' && (
         <Card className="mt-8 p-6 sm:p-8 bg-gradient-to-r from-primary/10 to-secondary/10 border-primary/20">
           <div className="max-w-lg mx-auto">
             <h3 className="text-lg font-semibold text-gray-900 mb-2 text-center">
@@ -848,6 +876,7 @@ export default function SharedListView() {
             </p>
           </div>
         </Card>
+        )}
       </div>
 
       {/* Purchase Modal */}
@@ -887,9 +916,11 @@ export default function SharedListView() {
                   </div>
                 </div>
               </div>
-              <p className="text-sm text-gray-500">
-                You'll need to sign in or create an account to import this list.
-              </p>
+              {!isLoggedIn && (
+                <p className="text-sm text-gray-500">
+                  You'll need to sign in or create an account to import this list.
+                </p>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col sm:flex-row gap-2">
@@ -907,7 +938,7 @@ export default function SharedListView() {
               ) : (
                 <>
                   <Download className="w-4 h-4 mr-2" />
-                  Continue to Import
+                  {isLoggedIn ? "Import Now" : "Continue to Import"}
                 </>
               )}
             </AlertDialogAction>
