@@ -607,19 +607,10 @@ export default function ListDetail() {
       
       if (error) throw error;
       
-      // Refresh the list data
-      const { data: updatedList } = await supabase
-        .from("lists")
-        .select("*")
-        .eq("id", list.id)
-        .single();
-      
-      if (updatedList) {
-        setList(updatedList);
-      }
+      // Refresh lists context
+      await refreshLists();
       
       // Show toast
-      const { toast } = await import("@/components/ui/use-toast");
       toast({
         title: "List archived",
         description: `"${list.title}" has been archived and hidden from your dashboard`,
@@ -628,7 +619,6 @@ export default function ListDetail() {
       navigate("/dashboard");
     } catch (error) {
       console.error("Error archiving list:", error);
-      const { toast } = await import("@/components/ui/use-toast");
       toast({
         title: "Error",
         description: "Failed to archive list",
