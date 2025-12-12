@@ -483,12 +483,12 @@ export default function SharedListView() {
                 <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate">
                   {list.title}
                 </h1>
-                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 flex items-center gap-1">
+                <Badge variant="outline" className="bg-[#c7d8e3] text-[#1f628e] border-[#8fb1c7] flex items-center gap-1">
                   <Eye className="w-3 h-3" />
                   View Only
                 </Badge>
                 {canImport && (
-                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1">
+                  <Badge variant="outline" className="bg-[#bfe9e9] text-[#00a8a8] border-[#80d4d4] flex items-center gap-1">
                     <Download className="w-3 h-3" />
                     Importable
                   </Badge>
@@ -516,7 +516,7 @@ export default function SharedListView() {
                   onClick={handleImportClick}
                   variant="default"
                   size="sm"
-                  className="min-h-[40px] bg-green-600 hover:bg-green-700"
+                  className="min-h-[40px] bg-[#00a8a8] hover:bg-[#008888]"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Import to My Lists
@@ -537,14 +537,14 @@ export default function SharedListView() {
       </header>
 
       {/* Info Banner */}
-      <div className="bg-blue-50 border-b border-blue-200 px-4 sm:px-6 lg:px-8 py-3">
+      <div className="bg-[#c7d8e3] border-b border-[#8fb1c7] px-4 sm:px-6 lg:px-8 py-3">
         <div className="max-w-4xl mx-auto flex items-start sm:items-center gap-3">
-          <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5 sm:mt-0" />
-          <div className="flex-1 text-sm text-blue-800">
+          <Info className="w-5 h-5 text-[#1f628e] flex-shrink-0 mt-0.5 sm:mt-0" />
+          <div className="flex-1 text-sm text-[#174a6b]">
             <span className="font-medium">You're viewing a shared list.</span>{" "}
             {canImport ? (
               <span>
-                You can browse items here or <button onClick={handleImportClick} className="underline font-medium hover:text-blue-900">import a copy</button> to your account.
+                You can browse items here or <button onClick={handleImportClick} className="underline font-medium hover:text-[#1f628e]">import a copy</button> to your account.
               </span>
             ) : (
               <span>This list is view-only and cannot be imported.</span>
@@ -863,19 +863,19 @@ export default function SharedListView() {
         <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <Download className="w-5 h-5 text-green-600" />
+              <Download className="w-5 h-5 text-[#00a8a8]" />
               Import This List?
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-3">
               <p>
                 You're about to create a <strong>copy</strong> of "{list.title}" in your account.
               </p>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
+              <div className="bg-[#c7d8e3] border border-[#8fb1c7] rounded-lg p-3 text-sm">
                 <div className="flex items-start gap-2">
-                  <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                  <div className="text-blue-800">
+                  <Info className="w-4 h-4 text-[#1f628e] mt-0.5 flex-shrink-0" />
+                  <div className="text-[#174a6b]">
                     <p className="font-medium mb-1">What happens when you import:</p>
-                    <ul className="list-disc list-inside space-y-1 text-blue-700">
+                    <ul className="list-disc list-inside space-y-1 text-[#174a6b]">
                       <li>A new list is created in your account</li>
                       <li>All items are copied to your new list</li>
                       <li>Changes you make won't affect the original</li>
@@ -894,7 +894,7 @@ export default function SharedListView() {
             <AlertDialogAction 
               onClick={handleConfirmImport}
               disabled={isImporting}
-              className="min-h-[44px] bg-green-600 hover:bg-green-700"
+              className="min-h-[44px] bg-[#00a8a8] hover:bg-[#008888]"
             >
               {isImporting ? (
                 <>

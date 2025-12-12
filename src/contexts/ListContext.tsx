@@ -1874,7 +1874,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
         isPinned: list.is_pinned || false,
         isShared: list.is_shared || false,
         shareLink: list.share_link,
-        shareMode: list.share_mode || 'view_only',
+        shareMode: (list.share_mode as 'view_only' | 'importable' | 'both') || 'view_only',
         tags: list.tags || [],
         collaborators: [],
         createdAt: new Date(list.created_at),

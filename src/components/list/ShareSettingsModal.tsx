@@ -247,10 +247,10 @@ export default function ShareSettingsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Link2 className="w-5 h-5 text-primary" />
+            <Link2 className="w-5 h-5 text-[#1f628e]" />
             Share Settings
           </DialogTitle>
           <DialogDescription>
@@ -258,49 +258,49 @@ export default function ShareSettingsModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        <div className="space-y-4 py-2">
           {/* Share Mode Selection */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <Label className="text-sm font-medium">Share Mode</Label>
             <RadioGroup value={shareMode} onValueChange={(v) => setShareMode(v as ShareMode)}>
-              <div className="space-y-3">
-                <label className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                  <RadioGroupItem value="view_only" id="view_only" className="mt-1" />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <Eye className="w-4 h-4 text-blue-600" />
-                      <span className="font-medium">View Only</span>
+              <div className="space-y-2">
+                <label className="flex items-start gap-3 p-2.5 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                  <RadioGroupItem value="view_only" id="view_only" className="mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <Eye className="w-4 h-4 text-[#1f628e] flex-shrink-0" />
+                      <span className="font-medium text-sm">View Only</span>
                     </div>
-                    <p className="text-sm text-gray-500 mt-1">
-                      Others can view your list but cannot import or copy it to their account
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Others can view but cannot import to their account
                     </p>
                   </div>
                 </label>
 
-                <label className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                  <RadioGroupItem value="importable" id="importable" className="mt-1" />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <Download className="w-4 h-4 text-green-600" />
-                      <span className="font-medium">Importable Only</span>
+                <label className="flex items-start gap-3 p-2.5 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                  <RadioGroupItem value="importable" id="importable" className="mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <Download className="w-4 h-4 text-[#00a8a8] flex-shrink-0" />
+                      <span className="font-medium text-sm">Importable Only</span>
                     </div>
-                    <p className="text-sm text-gray-500 mt-1">
-                      Others can import a copy to their account (they'll be prompted to sign in)
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Others can import a copy (requires sign in)
                     </p>
                   </div>
                 </label>
 
-                <label className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                  <RadioGroupItem value="both" id="both" className="mt-1" />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <Eye className="w-4 h-4 text-blue-600" />
-                      <span className="mr-1">+</span>
-                      <Download className="w-4 h-4 text-green-600" />
-                      <span className="font-medium">View & Import</span>
+                <label className="flex items-start gap-3 p-2.5 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                  <RadioGroupItem value="both" id="both" className="mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <Eye className="w-4 h-4 text-[#1f628e] flex-shrink-0" />
+                      <span className="text-gray-400">+</span>
+                      <Download className="w-4 h-4 text-[#00a8a8] flex-shrink-0" />
+                      <span className="font-medium text-sm">View & Import</span>
                     </div>
-                    <p className="text-sm text-gray-500 mt-1">
-                      Others can view your list and optionally import a copy to their account
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Others can view and optionally import a copy
                     </p>
                   </div>
                 </label>
@@ -308,83 +308,86 @@ export default function ShareSettingsModal({
             </RadioGroup>
           </div>
 
-          {/* Info Box */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <div className="flex items-start gap-2">
-              <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-              <div className="text-sm text-blue-800">
-                <p className="font-medium mb-1">How sharing works:</p>
-                <ul className="list-disc list-inside space-y-1 text-blue-700">
-                  <li>Anyone with the link can access based on your settings</li>
-                  <li>Imported copies are independent - changes don't sync</li>
-                  <li>You can change settings or unshare anytime</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
           {/* Current Link Display */}
           {list.isShared && shareLink && (
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Current Share Link</Label>
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">Share Link</Label>
               <div className="flex gap-2">
                 <input
                   type="text"
                   readOnly
                   value={shareLink}
-                  className="flex-1 bg-gray-100 p-2 rounded text-sm break-all border border-gray-200"
+                  className="flex-1 bg-gray-100 px-3 py-2 rounded-md text-sm border border-gray-200 truncate"
                   onClick={(e) => (e.target as HTMLInputElement).select()}
                 />
-                <Button variant="outline" size="sm" onClick={handleCopyLink} className="min-h-[40px]">
+                <Button variant="outline" size="sm" onClick={handleCopyLink} className="min-h-[40px] px-3">
                   <Copy className="w-4 h-4" />
                 </Button>
               </div>
             </div>
           )}
+
+          {/* Info Box - Collapsible on mobile */}
+          <details className="bg-[#c7d8e3] border border-[#8fb1c7] rounded-lg">
+            <summary className="p-2.5 cursor-pointer text-sm font-medium text-[#1f628e] flex items-center gap-2">
+              <Info className="w-4 h-4 text-[#1f628e] flex-shrink-0" />
+              How sharing works
+            </summary>
+            <div className="px-2.5 pb-2.5">
+              <ul className="list-disc list-inside space-y-0.5 text-xs text-[#174a6b]">
+                <li>Anyone with the link can access based on your settings</li>
+                <li>Imported copies are independent - changes don't sync</li>
+                <li>You can change settings or unshare anytime</li>
+              </ul>
+            </div>
+          </details>
         </div>
 
-        <DialogFooter className="flex-col sm:flex-row gap-2">
-          {list.isShared && (
-            <Button
-              variant="destructive"
-              onClick={handleUnshare}
-              disabled={isLoading}
-              className="min-h-[44px] w-full sm:w-auto"
-            >
-              <Link2Off className="w-4 h-4 mr-2" />
-              Unshare List
-            </Button>
-          )}
-          <div className="flex-1" />
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            className="min-h-[44px]"
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleGenerateOrUpdate}
-            disabled={isLoading}
-            className="min-h-[44px]"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                {list.isShared ? "Updating..." : "Creating..."}
-              </>
-            ) : list.isShared ? (
-              <>
-                <Copy className="w-4 h-4 mr-2" />
-                Update & Copy Link
-              </>
-            ) : (
-              <>
-                <Link2 className="w-4 h-4 mr-2" />
-                Create Share Link
-              </>
+        <DialogFooter className="flex-col-reverse sm:flex-row gap-2 pt-2">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            {list.isShared && (
+              <Button
+                variant="destructive"
+                onClick={handleUnshare}
+                disabled={isLoading}
+                className="min-h-[44px] w-full sm:w-auto"
+              >
+                <Link2Off className="w-4 h-4 mr-2" />
+                Unshare
+              </Button>
             )}
-          </Button>
+          </div>
+          <div className="flex gap-2 w-full sm:w-auto sm:ml-auto">
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="min-h-[44px] flex-1 sm:flex-none"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleGenerateOrUpdate}
+              disabled={isLoading}
+              className="min-h-[44px] flex-1 sm:flex-none"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {list.isShared ? "Saving..." : "Creating..."}
+                </>
+              ) : list.isShared ? (
+                <>
+                  <Copy className="w-4 h-4 mr-2" />
+                  Save & Copy
+                </>
+              ) : (
+                <>
+                  <Link2 className="w-4 h-4 mr-2" />
+                  Create Link
+                </>
+              )}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

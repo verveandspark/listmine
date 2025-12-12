@@ -117,6 +117,7 @@ import {
 } from "@/lib/validation";
 import CreateListModal from "@/components/list/CreateListModal";
 import MergeListsModal from "@/components/list/MergeListsModal";
+import ShareSettingsModal from "@/components/list/ShareSettingsModal";
 
 const categoryIcons: Record<string, any> = {
   Tasks: CheckSquare,
@@ -172,6 +173,7 @@ export default function Dashboard() {
     error,
     retryLoad,
     generateShareLink,
+    updateShareMode,
     unshareList,
     exportList,
     restoreList,
@@ -592,182 +594,9 @@ export default function Dashboard() {
       return;
     }
     
-    // If already shared, copy the existing link
-    if (isAlreadyShared) {
-      try {
-        const link = await generateShareLink(listId);
-        
-        // Check if we're on mobile and Web Share API is available
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        
-        if (isMobile && navigator.share) {
-          // Use Web Share API on mobile - more reliable than clipboard
-          try {
-            await navigator.share({
-              title: "Shared List",
-              text: "Check out my list!",
-              url: link,
-            });
-            toast({
-              title: "✅ Share link ready!",
-              description: "Link shared successfully",
-              className: "bg-blue-50 border-blue-200",
-            });
-            return;
-          } catch (shareErr: any) {
-            // User cancelled or share failed, fall through to clipboard
-            if (shareErr.name === 'AbortError') {
-              // User cancelled, still show the link
-              showLinkToast(link);
-              return;
-            }
-          }
-        }
-        
-        const copied = await copyToClipboard(link);
-        if (copied) {
-          toast({
-            title: "✅ Share link copied!",
-            description: "Link copied to clipboard",
-            className: "bg-blue-50 border-blue-200",
-          });
-        } else {
-          showLinkToast(link);
-        }
-      } catch (error: any) {
-        toast({
-          title: "❌ Failed to copy link",
-          description: error.message,
-          variant: "destructive",
-        });
-      }
-      return;
-    }
-    
-    // Open share dialog for new shares
+    // Always open share settings modal - for both new and existing shares
     setShareListId(listId);
     setIsShareDialogOpen(true);
-  };
-
-  // Show toast with copyable link
-  const showLinkToast = (link: string) => {
-    toast({
-      title: "📋 Share link generated",
-      description: (
-        <div className="flex flex-col gap-2">
-          <span>Tap and hold to copy:</span>
-          <input 
-            type="text" 
-            readOnly 
-            value={link} 
-            className="bg-gray-100 p-2 rounded text-xs break-all w-full border-0"
-            onClick={(e) => {
-              (e.target as HTMLInputElement).select();
-            }}
-          />
-        </div>
-      ),
-      className: "bg-yellow-50 border-yellow-200",
-      duration: 15000,
-    });
-  };
-
-  // Fallback clipboard function for environments where Clipboard API is blocked
-  const copyToClipboard = async (text: string): Promise<boolean> => {
-    // First try the modern Clipboard API
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      try {
-        await navigator.clipboard.writeText(text);
-        return true;
-      } catch (err) {
-        console.warn("Clipboard API failed:", err);
-      }
-    }
-    
-    // Fallback to execCommand - works better on some mobile browsers
-    try {
-      const textArea = document.createElement("textarea");
-      textArea.value = text;
-      textArea.setAttribute("readonly", ""); // Prevent keyboard on mobile
-      textArea.style.position = "fixed";
-      textArea.style.left = "0";
-      textArea.style.top = "0";
-      textArea.style.width = "2em";
-      textArea.style.height = "2em";
-      textArea.style.padding = "0";
-      textArea.style.border = "none";
-      textArea.style.outline = "none";
-      textArea.style.boxShadow = "none";
-      textArea.style.background = "transparent";
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
-      
-      // For iOS
-      textArea.setSelectionRange(0, text.length);
-      
-      const success = document.execCommand("copy");
-      document.body.removeChild(textArea);
-      return success;
-    } catch (err) {
-      console.warn("execCommand fallback failed:", err);
-      return false;
-    }
-  };
-
-  const handleShareDialogConfirm = async () => {
-    if (!shareListId) return;
-    
-    try {
-      const link = await generateShareLink(shareListId);
-      
-      // Check if we're on mobile and Web Share API is available
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      
-      if (isMobile && navigator.share) {
-        try {
-          await navigator.share({
-            title: "Shared List",
-            text: "Check out my list!",
-            url: link,
-          });
-          toast({
-            title: "✅ Share link ready!",
-            description: "Link shared successfully",
-            className: "bg-blue-50 border-blue-200",
-          });
-          setIsShareDialogOpen(false);
-          setShareListId(null);
-          return;
-        } catch (shareErr: any) {
-          if (shareErr.name === 'AbortError') {
-            showLinkToast(link);
-            setIsShareDialogOpen(false);
-            setShareListId(null);
-            return;
-          }
-        }
-      }
-      
-      const copied = await copyToClipboard(link);
-      if (copied) {
-        toast({
-          title: "✅ Share link copied!",
-          description: "Link copied to clipboard",
-          className: "bg-blue-50 border-blue-200",
-        });
-      } else {
-        showLinkToast(link);
-      }
-      setIsShareDialogOpen(false);
-      setShareListId(null);
-    } catch (error: any) {
-      toast({
-        title: "❌ Failed to generate share link",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
   };
 
   const handleQuickExport = (e: React.MouseEvent, listId: string, format: string) => {
@@ -2468,31 +2297,30 @@ export default function Dashboard() {
         </div>
       </footer>
 
-      {/* Share Dialog */}
-      <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Share List</DialogTitle>
-            <DialogDescription>
-              Generate a shareable link for this list. Anyone with the link can view it.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col gap-4 py-4">
-            <p className="text-sm text-muted-foreground">
-              Click "Generate Link" to create a shareable link that you can send to others.
-            </p>
-            <div className="flex gap-2">
-              <Button onClick={handleShareDialogConfirm} className="flex-1">
-                <Share2 className="w-4 h-4 mr-2" />
-                Generate & Copy Link
-              </Button>
-              <Button variant="outline" onClick={() => setIsShareDialogOpen(false)}>
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Share Settings Modal */}
+      {shareListId && (() => {
+        const shareList = lists.find(l => l.id === shareListId);
+        if (!shareList) return null;
+        return (
+          <ShareSettingsModal
+            open={isShareDialogOpen}
+            onOpenChange={(open) => {
+              setIsShareDialogOpen(open);
+              if (!open) setShareListId(null);
+            }}
+            list={{
+              id: shareList.id,
+              title: shareList.title,
+              isShared: shareList.isShared,
+              shareLink: shareList.shareLink,
+              shareMode: shareList.shareMode,
+            }}
+            onGenerateLink={(shareMode) => generateShareLink(shareList.id, shareMode)}
+            onUpdateShareMode={(shareMode) => updateShareMode(shareList.id, shareMode)}
+            onUnshare={() => unshareList(shareList.id)}
+          />
+        );
+      })()}
     </div>
   );
 }

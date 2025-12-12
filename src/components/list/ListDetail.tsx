@@ -1365,12 +1365,6 @@ export default function ListDetail() {
                         <Share2 className="w-4 h-4 mr-2" />
                         {list.isShared ? "Share Settings" : "Share List"}
                       </DropdownMenuItem>
-                      {list.isShared && (
-                        <DropdownMenuItem onClick={handleGenerateShareLink}>
-                          <Share2 className="w-4 h-4 mr-2" />
-                          Copy Share Link
-                        </DropdownMenuItem>
-                      )}
                       <DropdownMenuItem onClick={() => setIsGuestManagementOpen(true)}>
                         <Users className="w-4 h-4 mr-2" />
                         Manage Guests
@@ -1674,32 +1668,7 @@ export default function ListDetail() {
                       <Share2 className={`w-4 h-4 mr-2 ${list.isShared ? "text-blue-600" : ""}`} />
                       {list.isShared ? "Share Settings" : "Share List"}
                     </Button>
-                    {list.isShared && (
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          handleGenerateShareLink();
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className="w-full justify-start min-h-[44px]"
-                      >
-                        <Share2 className="w-4 h-4 mr-2" />
-                        Copy Share Link
-                      </Button>
-                    )}
-                    {list.isShared && (
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          handleUnshareList();
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className="w-full justify-start min-h-[44px] text-red-600 border-red-200 hover:bg-red-50"
-                      >
-                        <Link2Off className="w-4 h-4 mr-2" />
-                        Unshare List
-                      </Button>
-                    )}
+
                     <Button
                       variant={isSelectMode ? "default" : "outline"}
                       onClick={() => {
