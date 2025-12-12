@@ -90,6 +90,12 @@ interface ListContextType {
   unshareList: (listId: string) => Promise<void>;
   addCollaborator: (listId: string, email: string) => Promise<void>;
   searchLists: (query: string) => List[];
+  searchAllLists: (query: string, filters?: {
+    includeArchived?: boolean;
+    favoritesOnly?: boolean;
+    category?: ListCategory;
+    type?: ListType;
+  }) => Promise<List[]>;
   filterLists: (filters: {
     category?: ListCategory;
     type?: ListType;
@@ -428,6 +434,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
         isPinned: list.is_pinned || false,
         isFavorite: list.is_favorite || false,
         isShared: list.is_shared || false,
+        isArchived: list.is_archived || list.title?.startsWith("[Archived]") || false,
         shareLink: list.share_link || undefined,
         tags: (list.tags as string[]) || [],
         collaborators: [],
@@ -1724,6 +1731,151 @@ export function ListProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  const searchAllLists = useCallback(async (
+    query: string,
+    filters?: {
+      includeArchived?: boolean;
+      favoritesOnly?: boolean;
+      category?: ListCategory;
+      type?: ListType;
+    }
+  ): Promise<List[]> => {
+    if (!user) return [];
+    
+    const lowerQuery = query.toLowerCase().trim();
+    
+    try {
+      // Build the query
+      let dbQuery = supabase
+        .from("lists")
+        .select("*")
+        .eq("user_id", user.id);
+      
+      // Apply category filter
+      if (filters?.category) {
+        dbQuery = dbQuery.eq("category", filters.category);
+      }
+      
+      // Apply type filter
+      if (filters?.type) {
+        dbQuery = dbQuery.eq("list_type", filters.type);
+      }
+      
+      // Apply favorites filter
+      if (filters?.favoritesOnly) {
+        dbQuery = dbQuery.eq("is_favorite", true);
+      }
+      
+      // Search by title using ilike for case-insensitive search
+      if (lowerQuery) {
+        dbQuery = dbQuery.ilike("title", `%${lowerQuery}%`);
+      }
+      
+      dbQuery = dbQuery.order("updated_at", { ascending: false });
+      
+      const { data: listsData, error: listsError } = await dbQuery;
+      
+      if (listsError) throw listsError;
+      
+      if (!listsData || listsData.length === 0) {
+        return [];
+      }
+      
+      // Fetch items for all found lists
+      const listIds = listsData.map((l) => l.id);
+      const { data: itemsData } = await supabase
+        .from("list_items")
+        .select("*")
+        .in("list_id", listIds)
+        .order("item_order", { ascending: true });
+      
+      // Map items to lists
+      const itemsByListId: Record<string, any[]> = {};
+      (itemsData || []).forEach((item) => {
+        if (!itemsByListId[item.list_id]) {
+          itemsByListId[item.list_id] = [];
+        }
+        itemsByListId[item.list_id].push(item);
+      });
+      
+      // Transform to List format
+      const transformedLists: List[] = listsData.map((list) => ({
+        id: list.id,
+        title: list.title,
+        category: list.category as ListCategory,
+        listType: (list.list_type || "custom") as ListType,
+        items: (itemsByListId[list.id] || []).map((item) => ({
+          id: item.id,
+          text: item.name,
+          completed: item.is_completed || false,
+          priority: item.priority as "low" | "medium" | "high" | undefined,
+          dueDate: item.due_date,
+          notes: item.notes,
+          link: item.link,
+          price: item.price,
+          quantity: item.quantity || 1,
+          order: item.item_order,
+          imageUrl: item.image_url,
+        })),
+        isPinned: list.is_pinned || false,
+        isShared: list.is_shared || false,
+        shareLink: list.share_link,
+        tags: list.tags || [],
+        collaborators: list.collaborators || [],
+        createdAt: list.created_at,
+        updatedAt: list.updated_at,
+        isFavorite: list.is_favorite || false,
+        isArchived: list.is_archived || list.title?.startsWith("[Archived]") || false,
+      }));
+      
+      // Filter by archived status
+      let results = transformedLists;
+      if (!filters?.includeArchived) {
+        results = results.filter((list) => !list.isArchived && !list.title.startsWith("[Archived]"));
+      }
+      
+      // If query exists, also search in items and tags (already filtered by title in DB)
+      if (lowerQuery) {
+        // Also include lists where items or tags match (even if title doesn't)
+        const additionalMatches = lists.filter((list) => {
+          // Skip if already in results
+          if (results.some((r) => r.id === list.id)) return false;
+          
+          // Check items
+          const itemMatch = list.items.some((item) =>
+            item.text.toLowerCase().includes(lowerQuery)
+          );
+          
+          // Check tags
+          const tagMatch = list.tags?.some((tag) =>
+            tag.toLowerCase().includes(lowerQuery)
+          );
+          
+          // Check category
+          const categoryMatch = list.category.toLowerCase().includes(lowerQuery);
+          
+          return itemMatch || tagMatch || categoryMatch;
+        });
+        
+        // Apply filters to additional matches
+        const filteredAdditional = additionalMatches.filter((list) => {
+          if (filters?.category && list.category !== filters.category) return false;
+          if (filters?.type && list.listType !== filters.type) return false;
+          if (filters?.favoritesOnly && !list.isFavorite) return false;
+          if (!filters?.includeArchived && (list.isArchived || list.title.startsWith("[Archived]"))) return false;
+          return true;
+        });
+        
+        results = [...results, ...filteredAdditional];
+      }
+      
+      return results;
+    } catch (error) {
+      console.error("Error searching all lists:", error);
+      return [];
+    }
+  }, [user, lists]);
+
   const filterLists = (filters: {
     category?: ListCategory;
     type?: ListType;
@@ -1812,28 +1964,23 @@ export function ListProvider({ children }: { children: ReactNode }) {
     if (!user) throw new Error("User not authenticated");
 
     try {
-      // Fetch the shared list
+      // Fetch the shared list using RPC function (bypasses RLS issues)
       const listResult = (await withTimeout(
         supabase
-          .from("lists")
-          .select("*")
-          .eq("share_link", shareId)
-          .eq("is_shared", true)
-          .single(),
+          .rpc("get_shared_list_by_share_link", { p_share_link: shareId }),
       )) as any;
-      const { data: sharedList, error: listError } = listResult;
+      const { data: sharedListArray, error: listError } = listResult;
 
-      if (listError || !sharedList) {
+      if (listError || !sharedListArray || sharedListArray.length === 0) {
         throw new Error("List not found or not shared. Please check the link and try again.");
       }
 
-      // Fetch the list items
+      const sharedList = sharedListArray[0];
+
+      // Fetch the list items using RPC function
       const itemsResult = (await withTimeout(
         supabase
-          .from("list_items")
-          .select("*")
-          .eq("list_id", sharedList.id)
-          .order("item_order", { ascending: true }),
+          .rpc("get_shared_list_items", { p_list_id: sharedList.id }),
       )) as any;
       const { data: sharedItems, error: itemsError } = itemsResult;
 
@@ -2081,6 +2228,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
     unshareList,
     addCollaborator,
     searchLists,
+    searchAllLists,
     filterLists,
     addTagToList,
     removeTagFromList,

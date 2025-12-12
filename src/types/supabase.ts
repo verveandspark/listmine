@@ -980,6 +980,58 @@ export type Database = {
       }
       get_allowed_list_types: { Args: { user_tier: string }; Returns: string[] }
       get_guest_count_for_list: { Args: { p_list_id: string }; Returns: number }
+      get_shared_list_by_share_link: {
+        Args: { p_share_link: string }
+        Returns: {
+          category: string
+          collaborators: string[]
+          created_at: string
+          id: string
+          is_archived: boolean
+          is_favorite: boolean
+          is_pinned: boolean
+          is_shared: boolean
+          list_type: string
+          share_link: string
+          show_purchaser_info: boolean
+          tags: string[]
+          title: string
+          updated_at: string
+          user_id: string
+        }[]
+      }
+      get_shared_list_items: {
+        Args: { p_list_id: string }
+        Returns: {
+          created_at: string
+          description: string
+          due_date: string
+          id: string
+          image_url: string
+          is_completed: boolean
+          item_order: number
+          link: string
+          list_id: string
+          name: string
+          notes: string
+          price: string
+          priority: string
+          quantity: number
+          updated_at: string
+        }[]
+      }
+      get_shared_list_purchases: {
+        Args: { p_list_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          item_id: string
+          list_id: string
+          purchaser_email: string
+          purchaser_name: string
+          quantity: number
+        }[]
+      }
       get_team_member_count_for_account: {
         Args: { p_account_id: string }
         Returns: number

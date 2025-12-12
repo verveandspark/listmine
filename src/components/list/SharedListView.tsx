@@ -46,32 +46,27 @@ export default function SharedListView() {
 
         console.log("SharedListView: Fetching list with shareId:", shareId);
 
-        // Fetch list by share_link
-        const { data: listData, error: listError } = await supabase
-          .from("lists")
-          .select("*")
-          .eq("share_link", shareId)
-          .eq("is_shared", true)
-          .single();
+        // Use RPC function to fetch shared list (bypasses RLS issues)
+        const { data: listDataArray, error: listError } = await supabase
+          .rpc("get_shared_list_by_share_link", { p_share_link: shareId });
 
-        console.log("SharedListView: List query result:", { listData, listError });
+        console.log("SharedListView: List query result:", { listDataArray, listError });
 
-        if (listError || !listData) {
+        if (listError || !listDataArray || listDataArray.length === 0) {
           console.error("SharedListView: List not found or error:", listError);
           setError("This list is no longer shared or has been removed");
           setIsLoading(false);
           return;
         }
 
+        const listData = listDataArray[0];
+
         // Set the show_purchaser_info setting
         setShowPurchaserInfo(listData.show_purchaser_info || false);
 
-        // Fetch items for this list using correct table name
+        // Use RPC function to fetch items for shared list
         const { data: itemsData, error: itemsError } = await supabase
-          .from("list_items")
-          .select("*")
-          .eq("list_id", listData.id)
-          .order("item_order", { ascending: true });
+          .rpc("get_shared_list_items", { p_list_id: listData.id });
 
         console.log("SharedListView: Items query result:", { itemsData, itemsError });
 
@@ -82,11 +77,9 @@ export default function SharedListView() {
           return;
         }
 
-        // Fetch purchases for this list
+        // Fetch purchases for this list using RPC function
         const { data: purchasesData, error: purchasesError } = await supabase
-          .from("purchases")
-          .select("*")
-          .eq("list_id", listData.id);
+          .rpc("get_shared_list_purchases", { p_list_id: listData.id });
 
         console.log("SharedListView: Purchases query result:", { purchasesData, purchasesError });
 

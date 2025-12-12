@@ -83,6 +83,7 @@ export interface List {
   isPinned: boolean;
   isFavorite: boolean;
   isShared: boolean;
+  isArchived?: boolean;
   shareLink?: string;
   tags?: string[];
   collaborators?: string[];

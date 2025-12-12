@@ -165,6 +165,7 @@ export default function Dashboard() {
     deleteList,
     toggleFavorite,
     searchLists,
+    searchAllLists,
     filterLists,
     loading,
     error,
@@ -214,6 +215,11 @@ export default function Dashboard() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [selectedList, setSelectedList] = useState<any>(null);
+  
+  // Search state for querying all lists
+  const [searchResults, setSearchResults] = useState<any[] | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
   
   // Edit list state
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -288,6 +294,47 @@ export default function Dashboard() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
+
+  // Debounced search effect - searches all lists in database
+  useEffect(() => {
+    // Clear previous timeout
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
+    }
+
+    // If search is empty, clear results
+    if (!searchQuery.trim()) {
+      setSearchResults(null);
+      setIsSearching(false);
+      return;
+    }
+
+    // Set searching state
+    setIsSearching(true);
+
+    // Debounce the search
+    searchDebounceRef.current = setTimeout(async () => {
+      try {
+        const results = await searchAllLists(searchQuery, {
+          includeArchived: showArchived,
+          favoritesOnly: activeTab === "favorites",
+          category: categoryFilter !== "all" ? categoryFilter as any : undefined,
+        });
+        setSearchResults(results);
+      } catch (error) {
+        // Silently handle search errors - user may not be authenticated yet
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+
+    return () => {
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
+      }
+    };
+  }, [searchQuery, showArchived, activeTab, categoryFilter, searchAllLists]);
 
   const handleCreateList = () => {
     // Validate list name
@@ -662,6 +709,11 @@ export default function Dashboard() {
     }
   };
 
+  // Count archived lists
+  const archivedCount = lists.filter(
+    (list) => list.isArchived || list.title.startsWith("[Archived]")
+  ).length;
+
   const categories: (ListCategory | "All")[] = [
     "All",
     "Home",
@@ -672,10 +724,13 @@ export default function Dashboard() {
     "Other",
   ];
 
-  let displayLists = lists;
+  // Use search results if available, otherwise use loaded lists
+  let displayLists = searchQuery.trim() && searchResults !== null 
+    ? searchResults 
+    : lists;
 
-  // Apply search
-  if (searchQuery.trim()) {
+  // Apply local search filter only if not using database search results
+  if (searchQuery.trim() && searchResults === null) {
     displayLists = searchLists(searchQuery);
   }
 
@@ -698,7 +753,7 @@ export default function Dashboard() {
 
   // Apply archived filter
   if (!showArchived) {
-    displayLists = displayLists.filter((list) => !list.title.startsWith("[Archived]"));
+    displayLists = displayLists.filter((list) => !list.isArchived && !list.title.startsWith("[Archived]"));
   }
 
   // Apply sorting
@@ -1139,10 +1194,14 @@ export default function Dashboard() {
         {/* Search and Filters */}
         <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row gap-3">
           <div className="flex-1 relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            {isSearching ? (
+              <Loader2 className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 animate-spin" />
+            ) : (
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            )}
             <Input
               ref={searchInputRef}
-              placeholder="Search lists and items..."
+              placeholder="Search all lists..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-12 pr-10 h-12 text-base"
@@ -1152,12 +1211,24 @@ export default function Dashboard() {
                 variant="ghost"
                 size="icon"
                 className="absolute right-1 top-1/2 transform -translate-y-1/2 h-10 w-10"
-                onClick={() => setSearchQuery("")}
+                onClick={() => {
+                  setSearchQuery("");
+                  setSearchResults(null);
+                }}
               >
                 <X className="w-4 h-4" />
               </Button>
             )}
           </div>
+          {/* Search results indicator */}
+          {searchQuery.trim() && searchResults !== null && (
+            <div className="text-sm text-gray-500 flex items-center gap-2">
+              <span>
+                Found {searchResults.length} list{searchResults.length !== 1 ? "s" : ""}
+                {showArchived ? " (including archived)" : ""}
+              </span>
+            </div>
+          )}
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -1201,7 +1272,7 @@ export default function Dashboard() {
                         }
                       />
                       <label htmlFor="showArchived" className="text-sm">
-                        Show archived lists
+                        Show archived lists {archivedCount > 0 && `(${archivedCount})`}
                       </label>
                     </div>
                     <div className="flex items-center space-x-2">

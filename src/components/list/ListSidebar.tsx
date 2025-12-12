@@ -10,6 +10,7 @@ import {
   Plane,
   ListChecks,
   ChevronRight,
+  Archive,
 } from "lucide-react";
 import {
   Tooltip,
@@ -38,6 +39,7 @@ export function ListSidebar() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
   const { signOut } = useAuth();
 
   const handleLogout = async () => {
@@ -45,8 +47,19 @@ export function ListSidebar() {
     navigate("/", { replace: true });
   };
 
+  // Filter out archived lists unless showArchived is true
+  const filteredLists = lists.filter((list) => {
+    const isArchived = list.isArchived || list.title.startsWith("[Archived]");
+    return showArchived || !isArchived;
+  });
+
+  // Count archived lists
+  const archivedCount = lists.filter(
+    (list) => list.isArchived || list.title.startsWith("[Archived]")
+  ).length;
+
   // Group lists by category
-  const groupedLists = lists.reduce(
+  const groupedLists = filteredLists.reduce(
     (acc, list) => {
       if (!acc[list.category]) {
         acc[list.category] = [];
@@ -62,7 +75,7 @@ export function ListSidebar() {
       <div className="p-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900">Lists</h2>
-          <Badge variant="secondary">{lists.length}</Badge>
+          <Badge variant="secondary">{filteredLists.length}</Badge>
         </div>
 
         <div className="space-y-2 mb-4">
@@ -84,6 +97,21 @@ export function ListSidebar() {
           </Button>
         </div>
 
+        {/* Archived toggle */}
+        {archivedCount > 0 && (
+          <div className="mb-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`w-full justify-start text-sm ${showArchived ? "text-primary" : "text-gray-500"}`}
+              onClick={() => setShowArchived(!showArchived)}
+            >
+              <Archive className="w-4 h-4 mr-2" />
+              {showArchived ? "Hide" : "Show"} archived ({archivedCount})
+            </Button>
+          </div>
+        )}
+
         <div className="space-y-4">
           {Object.entries(groupedLists).map(([category, categoryLists]) => {
             const Icon = categoryIcons[category] || ListChecks;
@@ -99,24 +127,30 @@ export function ListSidebar() {
                   </Badge>
                 </div>
                 <div className="space-y-1 ml-6">
-                  {categoryLists.map((list) => (
-                    <Button
-                      key={list.id}
-                      variant={list.id === id ? "secondary" : "ghost"}
-                      className={`w-full justify-between text-left h-auto py-2 ${
-                        list.id === id ? "bg-primary/20 text-primary font-semibold" : ""
-                      }`}
-                      onClick={() => navigate(`/list/${list.id}`)}
-                    >
-                      <span className="truncate text-sm">{list.title}</span>
-                      <div className="flex items-center gap-1">
-                        <Badge variant="outline" className="text-xs">
-                          {list.items.length}
-                        </Badge>
-                        {list.id === id && <ChevronRight className="w-4 h-4" />}
-                      </div>
-                    </Button>
-                  ))}
+                  {categoryLists.map((list) => {
+                    const isArchived = list.isArchived || list.title.startsWith("[Archived]");
+                    return (
+                      <Button
+                        key={list.id}
+                        variant={list.id === id ? "secondary" : "ghost"}
+                        className={`w-full justify-between text-left h-auto py-2 ${
+                          list.id === id ? "bg-primary/20 text-primary font-semibold" : ""
+                        } ${isArchived ? "opacity-60" : ""}`}
+                        onClick={() => navigate(`/list/${list.id}`)}
+                      >
+                        <span className={`truncate text-sm ${isArchived ? "italic" : ""}`}>
+                          {list.title}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          {isArchived && <Archive className="w-3 h-3 text-gray-400" />}
+                          <Badge variant="outline" className="text-xs">
+                            {list.items.length}
+                          </Badge>
+                          {list.id === id && <ChevronRight className="w-4 h-4" />}
+                        </div>
+                      </Button>
+                    );
+                  })}
                 </div>
               </div>
             );
