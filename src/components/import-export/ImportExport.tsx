@@ -511,7 +511,7 @@ export default function ImportExport() {
                   <Label htmlFor="share-url">Share Link or ID</Label>
                   <Input
                     id="share-url"
-                    placeholder="https://listmine.vercel.app/shared/abc123 or abc123"
+                    placeholder="https://app.listmine.com/shared/abc123 or abc123"
                     value={shareUrl}
                     onChange={(e) => setShareUrl(e.target.value)}
                     onKeyDown={(e) => {
