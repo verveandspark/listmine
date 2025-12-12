@@ -1357,7 +1357,7 @@ export default function ListDetail() {
                         <TooltipContent>{list.isShared ? "Sharing options" : "Share this list"}</TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
-                    <DropdownMenuContent>
+                    <DropdownMenuContent align="end" className="w-56">
                       <DropdownMenuItem onClick={handleGenerateShareLink}>
                         <Share2 className="w-4 h-4 mr-2" />
                         {list.isShared ? "Copy Share Link" : "Generate Share Link"}
@@ -1620,7 +1620,7 @@ export default function ListDetail() {
                             <ChevronDown className="w-4 h-4 ml-auto" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent>
+                        <DropdownMenuContent align="start" className="w-56">
                           <DropdownMenuItem onClick={() => { handleExport("csv"); setIsMobileMenuOpen(false); }}>
                             Export as CSV
                           </DropdownMenuItem>
