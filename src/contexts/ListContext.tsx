@@ -2080,19 +2080,21 @@ export function ListProvider({ children }: { children: ReactNode }) {
 
       // Copy all items with completed = false
       if (sharedItems && sharedItems.length > 0) {
-        const itemsToInsert = sharedItems.map((item: any, index: number) => ({
-          list_id: newList.id,
-          text: item.text,
-          quantity: item.quantity,
-          priority: item.priority,
-          due_date: item.due_date,
-          notes: item.notes,
-          assigned_to: item.assigned_to,
-          completed: false, // Fresh start
-          item_order: index,
-          links: item.links,
-          attributes: item.attributes,
-        }));
+        const itemsToInsert = sharedItems
+          .filter((item: any) => item.text) // Filter out items with null/empty text
+          .map((item: any, index: number) => ({
+            list_id: newList.id,
+            text: item.text,
+            quantity: item.quantity,
+            priority: item.priority,
+            due_date: item.due_date,
+            notes: item.notes,
+            assigned_to: item.assigned_to,
+            completed: false, // Fresh start
+            item_order: index,
+            links: item.links,
+            attributes: item.attributes,
+          }));
 
         const insertResult = (await withTimeout(
           supabase.from("list_items").insert(itemsToInsert),
