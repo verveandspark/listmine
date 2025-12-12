@@ -2038,6 +2038,12 @@ export function ListProvider({ children }: { children: ReactNode }) {
 
       const sharedList = sharedListArray[0];
 
+      // Check if the list allows importing
+      const shareMode = sharedList.share_mode || 'view_only';
+      if (shareMode === 'view_only') {
+        throw new Error("This list is view-only and cannot be imported. Contact the list owner to enable importing.");
+      }
+
       // Fetch the list items using RPC function
       const itemsResult = (await withTimeout(
         supabase
