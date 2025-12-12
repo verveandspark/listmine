@@ -217,8 +217,9 @@ export default function ImportExport() {
       }
       
       // Check if result contains skipped items info
-      const listId = typeof result === 'object' && 'listId' in result ? result.listId : result;
-      const skippedItems = typeof result === 'object' && 'skippedItems' in result ? result.skippedItems : 0;
+      const importResult = result as { listId: string; skippedItems: number } | string;
+      const listId = typeof importResult === 'object' && 'listId' in importResult ? importResult.listId : importResult;
+      const skippedItems = typeof importResult === 'object' && 'skippedItems' in importResult ? importResult.skippedItems : 0;
       
       if (skippedItems > 0) {
         toast({
