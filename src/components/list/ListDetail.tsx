@@ -2564,7 +2564,7 @@ export default function ListDetail() {
               )}
             </div>
             
-            <div className="flex items-start gap-2 flex-wrap min-w-0">
+            <div className="flex flex-col gap-1 min-w-0 w-full">
               {/* Tags Dropdown */}
               <Popover open={isTagsSectionOpen} onOpenChange={setIsTagsSectionOpen}>
                 <PopoverTrigger asChild>
@@ -2740,9 +2740,10 @@ export default function ListDetail() {
                           className={`mt-1 h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform ${item.completed ? "animate-check-bounce" : ""}`}
                         />
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-start gap-2 flex-wrap min-w-0">
+                          <div className="flex flex-col gap-1 min-w-0 w-full">
                             <p
-                              className={`text-sm sm:text-base text-gray-900 transition-all duration-200 ${item.completed ? "line-through opacity-50" : ""} break-words overflow-hidden`}
+                              className={`text-sm sm:text-base text-gray-900 transition-all duration-200 ${item.completed ? "line-through opacity-50" : ""} break-words overflow-hidden w-full`}
+                                              style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
                             >
                               {item.quantity && (
                                 <span className="font-semibold text-blue-600">
@@ -2751,6 +2752,7 @@ export default function ListDetail() {
                               )}
                               {item.text}
                             </p>
+                            <div className="flex items-center gap-2 flex-wrap">
                             {isPurchased && (
                               <Badge className="bg-green-100 text-green-700 border-green-300">
                                 ✓ Purchased
@@ -2771,6 +2773,7 @@ export default function ListDetail() {
                                 {item.assignedTo}
                               </Badge>
                             )}
+                            </div>
                           </div>
 
                           {/* Grocery-specific attributes */}
@@ -3687,9 +3690,10 @@ export default function ListDetail() {
                           className={`mt-1 h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform ${item.completed ? "animate-check-bounce" : ""}`}
                         />
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-start gap-2 flex-wrap min-w-0">
+                          <div className="flex flex-col gap-1 min-w-0 w-full">
                             <p
-                              className={`text-sm sm:text-base text-gray-900 transition-all duration-200 ${item.completed ? "line-through opacity-50" : ""} break-words overflow-hidden`}
+                              className={`text-sm sm:text-base text-gray-900 transition-all duration-200 ${item.completed ? "line-through opacity-50" : ""} break-words overflow-hidden w-full`}
+                                              style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
                             >
                               {item.quantity && (
                                 <span className="font-semibold text-blue-600">
@@ -3698,6 +3702,7 @@ export default function ListDetail() {
                               )}
                               {item.text}
                             </p>
+                            <div className="flex items-center gap-2 flex-wrap">
                             {isPurchased && (
                               <Badge className="bg-success/10 text-success border-success/30">
                                 ✓ Purchased
@@ -3718,6 +3723,7 @@ export default function ListDetail() {
                                 {item.assignedTo}
                               </Badge>
                             )}
+                            </div>
                           </div>
 
                           {/* Attribute Tags */}
