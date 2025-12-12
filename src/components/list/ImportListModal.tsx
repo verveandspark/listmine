@@ -71,15 +71,27 @@ export default function ImportListModal({
     setError(null);
 
     try {
-      const newListId = await importFromShareLink(shareId);
+      const result = await importFromShareLink(shareId);
       
-      toast({
-        title: "List imported successfully!",
-        description: "The list has been added to your account.",
-      });
+      // Check if result contains skipped items info
+      const listId = typeof result === 'object' && result.listId ? result.listId : result;
+      const skippedItems = typeof result === 'object' && result.skippedItems ? result.skippedItems : 0;
+      
+      if (skippedItems > 0) {
+        toast({
+          title: "⚠️ List imported with warnings",
+          description: `${skippedItems} item${skippedItems > 1 ? 's were' : ' was'} skipped because ${skippedItems > 1 ? 'they had' : 'it had'} no text.`,
+          variant: "default",
+        });
+      } else {
+        toast({
+          title: "List imported successfully!",
+          description: "The list has been added to your account.",
+        });
+      }
       
       // Navigate to the new list
-      navigate(`/list/${newListId}`);
+      navigate(`/list/${listId}`);
       
       // Close modal and reset
       setShareUrl("");

@@ -2098,7 +2098,12 @@ export function ListProvider({ children }: { children: ReactNode }) {
             attributes: item.attributes,
           }));
 
+        const skippedCount = sharedItems.length - itemsToInsert.length;
         console.log(`[ListContext] Inserting ${itemsToInsert.length} items (after filtering out null text)`);
+        
+        if (skippedCount > 0) {
+          console.warn(`[ListContext] Skipped ${skippedCount} items with empty text`);
+        }
 
         const insertResult = (await withTimeout(
           supabase.from("list_items").insert(itemsToInsert),
@@ -2106,6 +2111,12 @@ export function ListProvider({ children }: { children: ReactNode }) {
         const { error: insertError } = insertResult;
 
         if (insertError) throw insertError;
+        
+        // Return info about skipped items
+        if (skippedCount > 0) {
+          await loadLists();
+          return { listId: newList.id, skippedItems: skippedCount };
+        }
       } else {
         console.log(`[ListContext] No items to copy - shared list was empty`);
       }

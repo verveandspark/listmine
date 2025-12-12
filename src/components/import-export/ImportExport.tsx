@@ -210,16 +210,28 @@ export default function ImportExport() {
     setIsImporting(true);
 
     try {
-      const newListId = await importFromShareLink(shareId);
+      const result = await importFromShareLink(shareId);
       
-      toast({
-        title: "✅ List imported successfully!",
-        description: "The list has been added to your account.",
-        className: "bg-green-50 border-green-200",
-      });
+      // Check if result contains skipped items info
+      const listId = typeof result === 'object' && result.listId ? result.listId : result;
+      const skippedItems = typeof result === 'object' && result.skippedItems ? result.skippedItems : 0;
+      
+      if (skippedItems > 0) {
+        toast({
+          title: "⚠️ List imported with warnings",
+          description: `${skippedItems} item${skippedItems > 1 ? 's were' : ' was'} skipped because ${skippedItems > 1 ? 'they had' : 'it had'} no text.`,
+          className: "bg-yellow-50 border-yellow-200",
+        });
+      } else {
+        toast({
+          title: "✅ List imported successfully!",
+          description: "The list has been added to your account.",
+          className: "bg-green-50 border-green-200",
+        });
+      }
       
       setShareUrl("");
-      navigate(`/list/${newListId}`);
+      navigate(`/list/${listId}`);
     } catch (err: any) {
       toast({
         title: "❌ Import failed",
