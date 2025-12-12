@@ -585,12 +585,44 @@ export default function Dashboard() {
     if (isAlreadyShared) {
       try {
         const link = await generateShareLink(listId);
-        await copyToClipboard(link);
-        toast({
-          title: "✅ Share link copied!",
-          description: "Link copied to clipboard",
-          className: "bg-blue-50 border-blue-200",
-        });
+        
+        // Check if we're on mobile and Web Share API is available
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        
+        if (isMobile && navigator.share) {
+          // Use Web Share API on mobile - more reliable than clipboard
+          try {
+            await navigator.share({
+              title: "Shared List",
+              text: "Check out my list!",
+              url: link,
+            });
+            toast({
+              title: "✅ Share link ready!",
+              description: "Link shared successfully",
+              className: "bg-blue-50 border-blue-200",
+            });
+            return;
+          } catch (shareErr: any) {
+            // User cancelled or share failed, fall through to clipboard
+            if (shareErr.name === 'AbortError') {
+              // User cancelled, still show the link
+              showLinkToast(link);
+              return;
+            }
+          }
+        }
+        
+        const copied = await copyToClipboard(link);
+        if (copied) {
+          toast({
+            title: "✅ Share link copied!",
+            description: "Link copied to clipboard",
+            className: "bg-blue-50 border-blue-200",
+          });
+        } else {
+          showLinkToast(link);
+        }
       } catch (error: any) {
         toast({
           title: "❌ Failed to copy link",
@@ -606,22 +638,69 @@ export default function Dashboard() {
     setIsShareDialogOpen(true);
   };
 
+  // Show toast with copyable link
+  const showLinkToast = (link: string) => {
+    toast({
+      title: "📋 Share link generated",
+      description: (
+        <div className="flex flex-col gap-2">
+          <span>Tap and hold to copy:</span>
+          <input 
+            type="text" 
+            readOnly 
+            value={link} 
+            className="bg-gray-100 p-2 rounded text-xs break-all w-full border-0"
+            onClick={(e) => {
+              (e.target as HTMLInputElement).select();
+            }}
+          />
+        </div>
+      ),
+      className: "bg-yellow-50 border-yellow-200",
+      duration: 15000,
+    });
+  };
+
   // Fallback clipboard function for environments where Clipboard API is blocked
-  const copyToClipboard = async (text: string): Promise<void> => {
+  const copyToClipboard = async (text: string): Promise<boolean> => {
+    // First try the modern Clipboard API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (err) {
+        console.warn("Clipboard API failed:", err);
+      }
+    }
+    
+    // Fallback to execCommand - works better on some mobile browsers
     try {
-      await navigator.clipboard.writeText(text);
-    } catch {
-      // Fallback: create a temporary textarea element
       const textArea = document.createElement("textarea");
       textArea.value = text;
+      textArea.setAttribute("readonly", ""); // Prevent keyboard on mobile
       textArea.style.position = "fixed";
-      textArea.style.left = "-999999px";
-      textArea.style.top = "-999999px";
+      textArea.style.left = "0";
+      textArea.style.top = "0";
+      textArea.style.width = "2em";
+      textArea.style.height = "2em";
+      textArea.style.padding = "0";
+      textArea.style.border = "none";
+      textArea.style.outline = "none";
+      textArea.style.boxShadow = "none";
+      textArea.style.background = "transparent";
       document.body.appendChild(textArea);
       textArea.focus();
       textArea.select();
-      document.execCommand("copy");
-      textArea.remove();
+      
+      // For iOS
+      textArea.setSelectionRange(0, text.length);
+      
+      const success = document.execCommand("copy");
+      document.body.removeChild(textArea);
+      return success;
+    } catch (err) {
+      console.warn("execCommand fallback failed:", err);
+      return false;
     }
   };
 
@@ -630,12 +709,45 @@ export default function Dashboard() {
     
     try {
       const link = await generateShareLink(shareListId);
-      await copyToClipboard(link);
-      toast({
-        title: "✅ Share link copied!",
-        description: "Link copied to clipboard",
-        className: "bg-blue-50 border-blue-200",
-      });
+      
+      // Check if we're on mobile and Web Share API is available
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      
+      if (isMobile && navigator.share) {
+        try {
+          await navigator.share({
+            title: "Shared List",
+            text: "Check out my list!",
+            url: link,
+          });
+          toast({
+            title: "✅ Share link ready!",
+            description: "Link shared successfully",
+            className: "bg-blue-50 border-blue-200",
+          });
+          setIsShareDialogOpen(false);
+          setShareListId(null);
+          return;
+        } catch (shareErr: any) {
+          if (shareErr.name === 'AbortError') {
+            showLinkToast(link);
+            setIsShareDialogOpen(false);
+            setShareListId(null);
+            return;
+          }
+        }
+      }
+      
+      const copied = await copyToClipboard(link);
+      if (copied) {
+        toast({
+          title: "✅ Share link copied!",
+          description: "Link copied to clipboard",
+          className: "bg-blue-50 border-blue-200",
+        });
+      } else {
+        showLinkToast(link);
+      }
       setIsShareDialogOpen(false);
       setShareListId(null);
     } catch (error: any) {
