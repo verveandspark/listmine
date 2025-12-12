@@ -2022,6 +2022,8 @@ export function ListProvider({ children }: { children: ReactNode }) {
 
       if (itemsError) throw itemsError;
 
+      console.log(`[ListContext] Shared list has ${sharedItems?.length || 0} items (before filtering)`);
+
       // Check list limit
       if (user.listLimit !== -1 && lists.length >= user.listLimit) {
         const tierName =
@@ -2096,12 +2098,16 @@ export function ListProvider({ children }: { children: ReactNode }) {
             attributes: item.attributes,
           }));
 
+        console.log(`[ListContext] Inserting ${itemsToInsert.length} items (after filtering out null text)`);
+
         const insertResult = (await withTimeout(
           supabase.from("list_items").insert(itemsToInsert),
         )) as any;
         const { error: insertError } = insertResult;
 
         if (insertError) throw insertError;
+      } else {
+        console.log(`[ListContext] No items to copy - shared list was empty`);
       }
 
       await loadLists();
