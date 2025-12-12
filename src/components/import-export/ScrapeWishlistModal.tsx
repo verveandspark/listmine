@@ -9,12 +9,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, ExternalLink, ShoppingCart, AlertCircle } from "lucide-react";
+import { Loader2, ExternalLink, ShoppingCart, AlertCircle, ListPlus, Plus } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { supabase } from "@/lib/supabase";
+import AddToExistingListModal from "./AddToExistingListModal";
 
 interface ScrapedItem {
   name: string;
@@ -41,6 +43,8 @@ export default function ScrapeWishlistModal({
   const [retailer, setRetailer] = useState("");
   const [error, setError] = useState("");
   const [listName, setListName] = useState("");
+  const [importDestination, setImportDestination] = useState<"new" | "existing">("new");
+  const [addToExistingModalOpen, setAddToExistingModalOpen] = useState(false);
   const { toast } = useToast();
 
   const handleScrape = async () => {
@@ -105,6 +109,12 @@ export default function ScrapeWishlistModal({
       return;
     }
 
+    // If adding to existing list, open the modal
+    if (importDestination === "existing") {
+      setAddToExistingModalOpen(true);
+      return;
+    }
+
     if (!listName.trim()) {
       toast({
         title: "⚠️ List name required",
@@ -155,6 +165,7 @@ export default function ScrapeWishlistModal({
     setRetailer("");
     setError("");
     setListName("");
+    setImportDestination("new");
     onOpenChange(false);
   };
 
@@ -249,15 +260,42 @@ export default function ScrapeWishlistModal({
           {/* Scraped Items */}
           {scrapedItems.length > 0 && (
             <>
-              <div className="space-y-2">
-                <Label htmlFor="list-name">List Name</Label>
-                <Input
-                  id="list-name"
-                  value={listName}
-                  onChange={(e) => setListName(e.target.value)}
-                  placeholder="Enter list name"
-                />
+              {/* Import Destination Choice */}
+              <div className="space-y-3 p-4 bg-gray-50 rounded-lg border">
+                <Label className="text-sm font-medium">Import Destination</Label>
+                <RadioGroup
+                  value={importDestination}
+                  onValueChange={(value) => setImportDestination(value as "new" | "existing")}
+                  className="flex flex-col gap-2"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="new" id="scrape-new" />
+                    <Label htmlFor="scrape-new" className="font-normal cursor-pointer flex items-center gap-2">
+                      <Plus className="w-4 h-4" />
+                      Create new list
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="existing" id="scrape-existing" />
+                    <Label htmlFor="scrape-existing" className="font-normal cursor-pointer flex items-center gap-2">
+                      <ListPlus className="w-4 h-4" />
+                      Add to existing list
+                    </Label>
+                  </div>
+                </RadioGroup>
               </div>
+
+              {importDestination === "new" && (
+                <div className="space-y-2">
+                  <Label htmlFor="list-name">List Name</Label>
+                  <Input
+                    id="list-name"
+                    value={listName}
+                    onChange={(e) => setListName(e.target.value)}
+                    placeholder="Enter list name"
+                  />
+                </div>
+              )}
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -332,13 +370,34 @@ export default function ScrapeWishlistModal({
                   Cancel
                 </Button>
                 <Button onClick={handleImport} className="flex-1">
-                  Create List ({selectedCount} items)
+                  {importDestination === "existing" ? (
+                    <>
+                      <ListPlus className="w-4 h-4 mr-2" />
+                      Add to Existing List ({selectedCount})
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="w-4 h-4 mr-2" />
+                      Create New List ({selectedCount})
+                    </>
+                  )}
                 </Button>
               </div>
             </>
           )}
         </div>
       </DialogContent>
+
+      {/* Add to Existing List Modal */}
+      <AddToExistingListModal
+        open={addToExistingModalOpen}
+        onOpenChange={setAddToExistingModalOpen}
+        items={scrapedItems.filter((item) => item.selected)}
+        sourceType="amazon"
+        onSuccess={() => {
+          handleClose();
+        }}
+      />
     </Dialog>
   );
 }

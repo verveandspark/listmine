@@ -5,6 +5,7 @@ import { ListSidebar } from "./ListSidebar";
 import PurchaseHistoryModal from "./PurchaseHistoryModal";
 import GuestManagement from "./GuestManagement";
 import UpdateFromRetailerModal from "./UpdateFromRetailerModal";
+import MergeListsModal from "./MergeListsModal";
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useLists } from "@/contexts/useListsHook";
@@ -61,6 +62,7 @@ import {
   LayoutDashboard,
   List as ListIcon,
   RefreshCw,
+  Merge,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -231,6 +233,7 @@ export default function ListDetail() {
   const [isPurchaseHistoryOpen, setIsPurchaseHistoryOpen] = useState(false);
   const [isGuestManagementOpen, setIsGuestManagementOpen] = useState(false);
   const [isUpdateFromRetailerOpen, setIsUpdateFromRetailerOpen] = useState(false);
+  const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
   
   // Tags section collapsed state
   const [isTagsSectionOpen, setIsTagsSectionOpen] = useState(false);
@@ -1301,6 +1304,23 @@ export default function ListDetail() {
                       <TooltipContent>Edit list</TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
+                  {lists.length >= 2 && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setIsMergeModalOpen(true)}
+                            className="h-9 w-9"
+                          >
+                            <Merge className="w-4 h-4 text-purple-600" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Merge with another list</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -4518,6 +4538,16 @@ export default function ListDetail() {
           <GuestManagement listId={list.id} listOwnerId={user?.id || ""} />
         </DialogContent>
       </Dialog>
+
+      {/* Merge Lists Modal */}
+      <MergeListsModal
+        open={isMergeModalOpen}
+        onOpenChange={setIsMergeModalOpen}
+        initialSourceListId={list.id}
+        onSuccess={() => {
+          refreshLists();
+        }}
+      />
 
       {/* Help Modal */}
       <Dialog open={isHelpModalOpen} onOpenChange={setIsHelpModalOpen}>

@@ -34,6 +34,8 @@ import {
   ShoppingCart,
   ExternalLink,
   AlertCircle,
+  ListPlus,
+  Plus,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -46,6 +48,8 @@ import { validateImportData, validateCategory } from "@/lib/validation";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import AddToExistingListModal from "./AddToExistingListModal";
 
 const listTypes: { value: ListType; label: string }[] = [
   { value: "task-list", label: "Task List" },
@@ -92,6 +96,16 @@ export default function ImportExport() {
   const [retailer, setRetailer] = useState("");
   const [wishlistError, setWishlistError] = useState("");
   const [wishlistName, setWishlistName] = useState("");
+  
+  // Import destination state (new list vs existing list)
+  const [importDestination, setImportDestination] = useState<"new" | "existing">("new");
+  const [wishlistDestination, setWishlistDestination] = useState<"new" | "existing">("new");
+  const [fileDestination, setFileDestination] = useState<"new" | "existing">("new");
+  
+  // Add to existing list modal state
+  const [addToExistingModalOpen, setAddToExistingModalOpen] = useState(false);
+  const [itemsForExistingList, setItemsForExistingList] = useState<ScrapedItem[]>([]);
+  const [existingListSourceType, setExistingListSourceType] = useState<"csv" | "amazon" | "manual" | "share">("csv");
 
   const handleImport = () => {
     // Validate import data
@@ -113,6 +127,21 @@ export default function ImportExport() {
         description: categoryValidation.error,
         variant: "destructive",
       });
+      return;
+    }
+
+    // If adding to existing list, open the modal
+    if (fileDestination === "existing") {
+      // Parse the import data into items
+      const lines = dataValidation.value!.split("\n").filter((line) => line.trim());
+      const parsedItems: ScrapedItem[] = lines.map((line) => ({
+        name: line.trim(),
+        selected: true,
+      }));
+      
+      setItemsForExistingList(parsedItems);
+      setExistingListSourceType(importFormat === "csv" ? "csv" : "manual");
+      setAddToExistingModalOpen(true);
       return;
     }
 
@@ -344,6 +373,14 @@ export default function ImportExport() {
         description: "Please select at least one item to import",
         variant: "destructive",
       });
+      return;
+    }
+
+    // If adding to existing list, open the modal
+    if (wishlistDestination === "existing") {
+      setItemsForExistingList(selectedItems);
+      setExistingListSourceType("amazon");
+      setAddToExistingModalOpen(true);
       return;
     }
 
@@ -587,16 +624,43 @@ export default function ImportExport() {
 
                 {scrapedItems.length > 0 && (
                   <>
-                    <div>
-                      <Label htmlFor="wishlist-name">List Name</Label>
-                      <Input
-                        id="wishlist-name"
-                        value={wishlistName}
-                        onChange={(e) => setWishlistName(e.target.value)}
-                        placeholder="Enter list name"
-                        className="mt-2 min-h-[44px]"
-                      />
+                    {/* Import Destination Choice */}
+                    <div className="space-y-3 p-4 bg-gray-50 rounded-lg border">
+                      <Label className="text-sm font-medium">Import Destination</Label>
+                      <RadioGroup
+                        value={wishlistDestination}
+                        onValueChange={(value) => setWishlistDestination(value as "new" | "existing")}
+                        className="flex flex-col gap-2"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="new" id="wishlist-new" />
+                          <Label htmlFor="wishlist-new" className="font-normal cursor-pointer flex items-center gap-2">
+                            <Plus className="w-4 h-4" />
+                            Create new list
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="existing" id="wishlist-existing" />
+                          <Label htmlFor="wishlist-existing" className="font-normal cursor-pointer flex items-center gap-2">
+                            <ListPlus className="w-4 h-4" />
+                            Add to existing list
+                          </Label>
+                        </div>
+                      </RadioGroup>
                     </div>
+
+                    {wishlistDestination === "new" && (
+                      <div>
+                        <Label htmlFor="wishlist-name">List Name</Label>
+                        <Input
+                          id="wishlist-name"
+                          value={wishlistName}
+                          onChange={(e) => setWishlistName(e.target.value)}
+                          placeholder="Enter list name"
+                          className="mt-2 min-h-[44px]"
+                        />
+                      </div>
+                    )}
 
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -667,8 +731,17 @@ export default function ImportExport() {
                     </ScrollArea>
 
                     <Button onClick={handleWishlistImport} className="w-full min-h-[44px]">
-                      <ShoppingCart className="w-4 h-4 mr-2" />
-                      Create List ({selectedCount} items)
+                      {wishlistDestination === "existing" ? (
+                        <>
+                          <ListPlus className="w-4 h-4 mr-2" />
+                          Add to Existing List ({selectedCount} items)
+                        </>
+                      ) : (
+                        <>
+                          <ShoppingCart className="w-4 h-4 mr-2" />
+                          Create New List ({selectedCount} items)
+                        </>
+                      )}
                     </Button>
                   </>
                 )}
@@ -806,9 +879,43 @@ export default function ImportExport() {
                   </Select>
                 </div>
 
+                {/* Import Destination Choice */}
+                <div className="space-y-3 p-4 bg-gray-50 rounded-lg border">
+                  <Label className="text-sm font-medium">Import Destination</Label>
+                  <RadioGroup
+                    value={fileDestination}
+                    onValueChange={(value) => setFileDestination(value as "new" | "existing")}
+                    className="flex flex-col gap-2"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="new" id="file-new" />
+                      <Label htmlFor="file-new" className="font-normal cursor-pointer flex items-center gap-2">
+                        <Plus className="w-4 h-4" />
+                        Create new list
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="existing" id="file-existing" />
+                      <Label htmlFor="file-existing" className="font-normal cursor-pointer flex items-center gap-2">
+                        <ListPlus className="w-4 h-4" />
+                        Add to existing list
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
                 <Button onClick={handleImport} className="w-full min-h-[44px]">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Import List
+                  {fileDestination === "existing" ? (
+                    <>
+                      <ListPlus className="w-4 h-4 mr-2" />
+                      Add to Existing List
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 mr-2" />
+                      Create New List
+                    </>
+                  )}
                 </Button>
               </div>
             </Card>
@@ -901,6 +1008,26 @@ export default function ImportExport() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Add to Existing List Modal */}
+      <AddToExistingListModal
+        open={addToExistingModalOpen}
+        onOpenChange={setAddToExistingModalOpen}
+        items={itemsForExistingList}
+        sourceType={existingListSourceType}
+        onSuccess={() => {
+          // Reset state after successful add
+          setImportData("");
+          setScrapedItems([]);
+          setWishlistUrl("");
+          setWishlistName("");
+          setRetailer("");
+          setWishlistError("");
+          setFileDestination("new");
+          setWishlistDestination("new");
+          navigate("/dashboard");
+        }}
+      />
     </div>
   );
 }

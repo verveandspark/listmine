@@ -39,6 +39,7 @@ import {
   Archive,
   Layers,
   ChevronRight,
+  Merge,
 } from "lucide-react";
 
 import { useState } from "react";
@@ -114,6 +115,7 @@ import {
   checkListLimit,
 } from "@/lib/validation";
 import CreateListModal from "@/components/list/CreateListModal";
+import MergeListsModal from "@/components/list/MergeListsModal";
 
 const categoryIcons: Record<string, any> = {
   Tasks: CheckSquare,
@@ -181,6 +183,8 @@ export default function Dashboard() {
   const { toast } = useToast();
   const { executeWithUndo } = useUndoAction();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
+  const [mergeSourceListId, setMergeSourceListId] = useState<string | undefined>(undefined);
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [newListTitle, setNewListTitle] = useState("");
   const [newListCategory, setNewListCategory] = useState<ListCategory>("Tasks");
@@ -692,6 +696,11 @@ export default function Dashboard() {
     displayLists = displayLists.filter((list) => list.isFavorite);
   }
 
+  // Apply archived filter
+  if (!showArchived) {
+    displayLists = displayLists.filter((list) => !list.title.startsWith("[Archived]"));
+  }
+
   // Apply sorting
   displayLists = [...displayLists].sort((a, b) => {
     switch (listSortBy) {
@@ -936,6 +945,18 @@ export default function Dashboard() {
                       Upgrade to Premium
                     </Button>
                   )}
+                  <Button
+                    onClick={() => {
+                      setIsMergeModalOpen(true);
+                      setIsMobileMenuOpen(false);
+                    }}
+                    variant="outline"
+                    className="w-full justify-start min-h-[44px]"
+                    disabled={lists.length < 2}
+                  >
+                    <Merge className="w-4 h-4 mr-2" />
+                    Merge Lists
+                  </Button>
                   <Button
                     onClick={() => {
                       navigate("/profile");
@@ -1339,6 +1360,16 @@ export default function Dashboard() {
               </SelectContent>
             </Select>
             <Button 
+              variant="outline"
+              className="min-h-[44px]"
+              onClick={() => setIsMergeModalOpen(true)}
+              disabled={lists.length < 2}
+              title={lists.length < 2 ? "Need at least 2 lists to merge" : "Merge two lists together"}
+            >
+              <Merge className="w-4 h-4 mr-2" />
+              Merge Lists
+            </Button>
+            <Button 
               className="min-h-[44px]"
               onClick={() => setIsCreateDialogOpen(true)}
             >
@@ -1474,6 +1505,27 @@ export default function Dashboard() {
                           )}
                         </DropdownMenuContent>
                       </DropdownMenu>
+                      {lists.length >= 2 && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 rounded-full bg-gray-100 hover:bg-purple-100 transition-colors"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setMergeSourceListId(list.id);
+                                  setIsMergeModalOpen(true);
+                                }}
+                              >
+                                <Merge className="w-3.5 h-3.5 text-purple-600" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Merge with another list</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
                       <AlertDialog>
                         <TooltipProvider>
                           <Tooltip>
@@ -1767,6 +1819,16 @@ export default function Dashboard() {
       <CreateListModal 
         open={isCreateDialogOpen} 
         onOpenChange={setIsCreateDialogOpen} 
+      />
+
+      {/* Merge Lists Modal */}
+      <MergeListsModal
+        open={isMergeModalOpen}
+        onOpenChange={(open) => {
+          setIsMergeModalOpen(open);
+          if (!open) setMergeSourceListId(undefined);
+        }}
+        initialSourceListId={mergeSourceListId}
       />
 
       {/* Edit List Modal */}
