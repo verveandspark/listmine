@@ -87,7 +87,8 @@ interface ListContextType {
     listType: ListType,
   ) => Promise<void>;
   exportList: (listId: string, format: "csv" | "txt" | "pdf") => void;
-  generateShareLink: (listId: string) => Promise<string>;
+  generateShareLink: (listId: string, shareMode?: 'view_only' | 'importable' | 'both') => Promise<string>;
+  updateShareMode: (listId: string, shareMode: 'view_only' | 'importable' | 'both') => Promise<void>;
   unshareList: (listId: string) => Promise<void>;
   addCollaborator: (listId: string, email: string) => Promise<void>;
   searchLists: (query: string) => List[];
@@ -437,6 +438,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
         isShared: list.is_shared || false,
         isArchived: list.is_archived || list.title?.startsWith("[Archived]") || false,
         shareLink: list.share_link || undefined,
+        shareMode: list.share_mode || 'view_only',
         tags: (list.tags as string[]) || [],
         collaborators: [],
         createdAt: new Date(list.created_at),
@@ -1605,7 +1607,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const generateShareLink = async (listId: string): Promise<string> => {
+  const generateShareLink = async (listId: string, shareMode: 'view_only' | 'importable' | 'both' = 'view_only'): Promise<string> => {
     const shareId =
       Math.random().toString(36).substring(2, 15) +
       Math.random().toString(36).substring(2, 15);
@@ -1618,6 +1620,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
           .update({
             share_link: shareId,
             is_shared: true,
+            share_mode: shareMode,
           } as any)
           .eq("id", listId),
       )) as any;
@@ -1659,6 +1662,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
           .update({
             share_link: null,
             is_shared: false,
+            share_mode: null,
           } as any)
           .eq("id", listId),
       )) as any;
@@ -1683,6 +1687,26 @@ export function ListProvider({ children }: { children: ReactNode }) {
           "Couldn't unshare list. Try again or contact support.",
         );
       }
+    }
+  };
+
+  const updateShareMode = async (listId: string, shareMode: 'view_only' | 'importable' | 'both'): Promise<void> => {
+    try {
+      const result = (await withTimeout(
+        supabase
+          .from("lists")
+          .update({
+            share_mode: shareMode,
+          } as any)
+          .eq("id", listId),
+      )) as any;
+      const { error } = result;
+
+      if (error) throw error;
+      await loadLists();
+    } catch (error: any) {
+      logError("updateShareMode", error, user?.id);
+      throw new Error("Couldn't update share settings. Try again or contact support.");
     }
   };
 
@@ -1850,6 +1874,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
         isPinned: list.is_pinned || false,
         isShared: list.is_shared || false,
         shareLink: list.share_link,
+        shareMode: list.share_mode || 'view_only',
         tags: list.tags || [],
         collaborators: [],
         createdAt: new Date(list.created_at),
@@ -2291,6 +2316,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
     importList,
     exportList,
     generateShareLink,
+    updateShareMode,
     unshareList,
     addCollaborator,
     searchLists,

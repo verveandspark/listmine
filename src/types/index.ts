@@ -73,6 +73,8 @@ export interface ListItem {
   assignedTo?: string;
 }
 
+export type ShareMode = 'view_only' | 'importable' | 'both';
+
 export interface List {
   id: string;
   title: string;
@@ -85,6 +87,7 @@ export interface List {
   isShared: boolean;
   isArchived?: boolean;
   shareLink?: string;
+  shareMode?: ShareMode;
   tags?: string[];
   collaborators?: string[];
   guests?: ListGuest[];

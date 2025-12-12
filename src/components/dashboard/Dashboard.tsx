@@ -74,7 +74,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -178,6 +178,8 @@ export default function Dashboard() {
     unarchiveList,
   } = useLists();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const importShareId = searchParams.get('importShareId');
 
   const handleLogout = async () => {
     await logout();
@@ -268,7 +270,16 @@ export default function Dashboard() {
     }
   }, [hasLoadedOnce, lists, navigate]);
 
-  // Keyboard shortcuts
+  // Handle import from share link (when redirected from SharedListView)
+  useEffect(() => {
+    if (importShareId && hasLoadedOnce) {
+      // Clear the URL parameter
+      setSearchParams({});
+      
+      // Navigate to import/export with the share ID pre-filled
+      navigate(`/import-export?shareId=${importShareId}`);
+    }
+  }, [importShareId, hasLoadedOnce, setSearchParams, navigate]);
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Press 'N' to open create dialog

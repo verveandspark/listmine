@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useLists } from "@/contexts/useListsHook";
 import { supabase } from "@/lib/supabase";
 import { ListCategory, ListType } from "@/types";
@@ -76,6 +76,7 @@ interface ScrapedItem {
 
 export default function ImportExport() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { importList, exportList, lists, importFromShareLink, importFromWishlist } = useLists();
   const { toast } = useToast();
   const [importData, setImportData] = useState("");
@@ -88,6 +89,16 @@ export default function ImportExport() {
   );
   const [shareUrl, setShareUrl] = useState("");
   const [isImporting, setIsImporting] = useState(false);
+  
+  // Handle pre-filled share ID from URL
+  useEffect(() => {
+    const shareId = searchParams.get('shareId');
+    if (shareId) {
+      setShareUrl(shareId);
+      // Clear the URL parameter
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams]);
   
   // Wishlist scraping state
   const [wishlistUrl, setWishlistUrl] = useState("");

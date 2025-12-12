@@ -7,6 +7,16 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/use-toast";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Loader2,
   ArrowLeft,
   Package,
@@ -17,6 +27,10 @@ import {
   User as UserIcon,
   ShoppingCart,
   ExternalLink,
+  Eye,
+  Download,
+  Copy,
+  Info,
 } from "lucide-react";
 import { format } from "date-fns";
 import { isToday, isPast } from "date-fns";
@@ -33,6 +47,9 @@ export default function SharedListView() {
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   const [showPurchaserInfo, setShowPurchaserInfo] = useState(false);
+  const [shareMode, setShareMode] = useState<string>('view_only');
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
 
   useEffect(() => {
     const fetchSharedList = async () => {
@@ -63,6 +80,9 @@ export default function SharedListView() {
 
         // Set the show_purchaser_info setting
         setShowPurchaserInfo(listData.show_purchaser_info || false);
+        
+        // Set the share mode
+        setShareMode(listData.share_mode || 'view_only');
 
         // Use RPC function to fetch items for shared list
         const { data: itemsData, error: itemsError } = await supabase
@@ -293,6 +313,122 @@ export default function SharedListView() {
     return listType === "registry-list" || listType === "shopping-list";
   };
 
+  const canImport = shareMode === 'importable' || shareMode === 'both';
+
+  const handleImportClick = () => {
+    setShowImportDialog(true);
+  };
+
+  const handleConfirmImport = async () => {
+    if (!shareId) return;
+    
+    setIsImporting(true);
+    try {
+      // Navigate to auth page with import intent if not logged in
+      // Or navigate to dashboard with import action
+      navigate(`/auth?redirect=/dashboard&importShareId=${shareId}`);
+    } catch (error: any) {
+      toast({
+        title: "❌ Import failed",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setIsImporting(false);
+      setShowImportDialog(false);
+    }
+  };
+
+  // Fallback clipboard function for environments where Clipboard API is blocked
+  const copyToClipboard = async (text: string): Promise<boolean> => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (err) {
+        console.warn("Clipboard API failed:", err);
+      }
+    }
+    
+    try {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.setAttribute("readonly", "");
+      textArea.style.position = "fixed";
+      textArea.style.left = "0";
+      textArea.style.top = "0";
+      textArea.style.width = "2em";
+      textArea.style.height = "2em";
+      textArea.style.padding = "0";
+      textArea.style.border = "none";
+      textArea.style.outline = "none";
+      textArea.style.boxShadow = "none";
+      textArea.style.background = "transparent";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      textArea.setSelectionRange(0, text.length);
+      const success = document.execCommand("copy");
+      document.body.removeChild(textArea);
+      return success;
+    } catch (err) {
+      console.warn("execCommand fallback failed:", err);
+      return false;
+    }
+  };
+
+  const handleCopyLink = async () => {
+    const link = window.location.href;
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
+    if (isMobile && navigator.share) {
+      try {
+        await navigator.share({
+          title: list.title,
+          text: `Check out this list: ${list.title}`,
+          url: link,
+        });
+        toast({
+          title: "✅ Link shared!",
+          description: "Link shared successfully",
+          className: "bg-blue-50 border-blue-200",
+        });
+        return;
+      } catch (shareErr: any) {
+        if (shareErr.name === 'AbortError') return;
+      }
+    }
+    
+    const copied = await copyToClipboard(link);
+    if (copied) {
+      toast({
+        title: "✅ Link copied!",
+        description: "Share link copied to clipboard",
+        className: "bg-blue-50 border-blue-200",
+      });
+    } else {
+      toast({
+        title: "📋 Share link",
+        description: (
+          <div className="flex flex-col gap-2">
+            <span>Tap and hold to copy:</span>
+            <input 
+              type="text" 
+              readOnly 
+              value={link} 
+              className="bg-gray-100 p-2 rounded text-xs break-all w-full border-0"
+              onClick={(e) => {
+                (e.target as HTMLInputElement).select();
+              }}
+            />
+          </div>
+        ),
+        className: "bg-yellow-50 border-yellow-200",
+        duration: 15000,
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 flex items-center justify-center">
@@ -341,30 +477,81 @@ export default function SharedListView() {
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10">
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex-1 min-w-0">
-              <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate">
-                {list.title}
-              </h1>
-              <p className="text-xs sm:text-sm text-gray-600">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate">
+                  {list.title}
+                </h1>
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 flex items-center gap-1">
+                  <Eye className="w-3 h-3" />
+                  View Only
+                </Badge>
+                {canImport && (
+                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1">
+                    <Download className="w-3 h-3" />
+                    Importable
+                  </Badge>
+                )}
+              </div>
+              <p className="text-xs sm:text-sm text-gray-600 mt-1">
                 {list.category} · {list.items.length} items · 
                 {list.listType === "registry-list" ? " Shared Registry" : 
                  list.listType === "shopping-list" ? " Shared Wishlist" : 
                  " Shared List"}
               </p>
             </div>
-            <Button
-              onClick={() => navigate("/")}
-              variant="outline"
-              size="sm"
-              className="flex-shrink-0"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
-            </Button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                onClick={handleCopyLink}
+                variant="outline"
+                size="sm"
+                className="min-h-[40px]"
+              >
+                <Copy className="w-4 h-4 mr-2" />
+                Copy Link
+              </Button>
+              {canImport && (
+                <Button
+                  onClick={handleImportClick}
+                  variant="default"
+                  size="sm"
+                  className="min-h-[40px] bg-green-600 hover:bg-green-700"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Import to My Lists
+                </Button>
+              )}
+              <Button
+                onClick={() => navigate("/")}
+                variant="ghost"
+                size="sm"
+                className="min-h-[40px]"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
+            </div>
           </div>
         </div>
       </header>
+
+      {/* Info Banner */}
+      <div className="bg-blue-50 border-b border-blue-200 px-4 sm:px-6 lg:px-8 py-3">
+        <div className="max-w-4xl mx-auto flex items-start sm:items-center gap-3">
+          <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5 sm:mt-0" />
+          <div className="flex-1 text-sm text-blue-800">
+            <span className="font-medium">You're viewing a shared list.</span>{" "}
+            {canImport ? (
+              <span>
+                You can browse items here or <button onClick={handleImportClick} className="underline font-medium hover:text-blue-900">import a copy</button> to your account.
+              </span>
+            ) : (
+              <span>This list is view-only and cannot be imported.</span>
+            )}
+          </div>
+        </div>
+      </div>
 
       <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-8 max-w-4xl mx-auto">
         {list.tags && list.tags.length > 0 && (
@@ -670,6 +857,60 @@ export default function SharedListView() {
           onPurchaseComplete={handlePurchaseComplete}
         />
       )}
+
+      {/* Import Confirmation Dialog */}
+      <AlertDialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Download className="w-5 h-5 text-green-600" />
+              Import This List?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                You're about to create a <strong>copy</strong> of "{list.title}" in your account.
+              </p>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
+                <div className="flex items-start gap-2">
+                  <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div className="text-blue-800">
+                    <p className="font-medium mb-1">What happens when you import:</p>
+                    <ul className="list-disc list-inside space-y-1 text-blue-700">
+                      <li>A new list is created in your account</li>
+                      <li>All items are copied to your new list</li>
+                      <li>Changes you make won't affect the original</li>
+                      <li>The original owner won't see your changes</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              <p className="text-sm text-gray-500">
+                You'll need to sign in or create an account to import this list.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="min-h-[44px]">Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmImport}
+              disabled={isImporting}
+              className="min-h-[44px] bg-green-600 hover:bg-green-700"
+            >
+              {isImporting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Importing...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 mr-2" />
+                  Continue to Import
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -131,6 +131,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/lib/supabase";
+import ShareSettingsModal from "./ShareSettingsModal";
 
 export default function ListDetail() {
   const { id } = useParams<{ id: string }>();
@@ -147,6 +148,7 @@ export default function ListDetail() {
     deleteList,
     exportList,
     generateShareLink,
+    updateShareMode,
     unshareList,
     addCollaborator,
     addTagToList,
@@ -235,6 +237,7 @@ export default function ListDetail() {
   const [editListType, setEditListType] = useState<string>("");
   const [isPurchaseHistoryOpen, setIsPurchaseHistoryOpen] = useState(false);
   const [isGuestManagementOpen, setIsGuestManagementOpen] = useState(false);
+  const [isShareSettingsOpen, setIsShareSettingsOpen] = useState(false);
   const [isUpdateFromRetailerOpen, setIsUpdateFromRetailerOpen] = useState(false);
   const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
   
@@ -1358,10 +1361,16 @@ export default function ListDetail() {
                       </Tooltip>
                     </TooltipProvider>
                     <DropdownMenuContent align="end" className="w-56">
-                      <DropdownMenuItem onClick={handleGenerateShareLink}>
+                      <DropdownMenuItem onClick={() => setIsShareSettingsOpen(true)}>
                         <Share2 className="w-4 h-4 mr-2" />
-                        {list.isShared ? "Copy Share Link" : "Generate Share Link"}
+                        {list.isShared ? "Share Settings" : "Share List"}
                       </DropdownMenuItem>
+                      {list.isShared && (
+                        <DropdownMenuItem onClick={handleGenerateShareLink}>
+                          <Share2 className="w-4 h-4 mr-2" />
+                          Copy Share Link
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem onClick={() => setIsGuestManagementOpen(true)}>
                         <Users className="w-4 h-4 mr-2" />
                         Manage Guests
@@ -1657,14 +1666,27 @@ export default function ListDetail() {
                     <Button
                       variant="outline"
                       onClick={() => {
-                        handleGenerateShareLink();
+                        setIsShareSettingsOpen(true);
                         setIsMobileMenuOpen(false);
                       }}
                       className={`w-full justify-start min-h-[44px] ${list.isShared ? "bg-blue-50 border-blue-200" : ""}`}
                     >
                       <Share2 className={`w-4 h-4 mr-2 ${list.isShared ? "text-blue-600" : ""}`} />
-                      {list.isShared ? "Copy Share Link" : "Share List"}
+                      {list.isShared ? "Share Settings" : "Share List"}
                     </Button>
+                    {list.isShared && (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          handleGenerateShareLink();
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="w-full justify-start min-h-[44px]"
+                      >
+                        <Share2 className="w-4 h-4 mr-2" />
+                        Copy Share Link
+                      </Button>
+                    )}
                     {list.isShared && (
                       <Button
                         variant="outline"
@@ -4726,6 +4748,22 @@ export default function ListDetail() {
           <GuestManagement listId={list.id} listOwnerId={user?.id || ""} />
         </DialogContent>
       </Dialog>
+
+      {/* Share Settings Modal */}
+      <ShareSettingsModal
+        open={isShareSettingsOpen}
+        onOpenChange={setIsShareSettingsOpen}
+        list={{
+          id: list.id,
+          title: list.title,
+          isShared: list.isShared,
+          shareLink: list.shareLink,
+          shareMode: list.shareMode,
+        }}
+        onGenerateLink={(shareMode) => generateShareLink(list.id, shareMode)}
+        onUpdateShareMode={(shareMode) => updateShareMode(list.id, shareMode)}
+        onUnshare={() => unshareList(list.id)}
+      />
 
       {/* Merge Lists Modal */}
       <MergeListsModal

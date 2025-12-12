@@ -461,6 +461,7 @@ export type Database = {
           list_type: string
           public_link: string | null
           share_link: string | null
+          share_mode: string | null
           show_purchaser_info: boolean | null
           tags: string[] | null
           title: string
@@ -481,6 +482,7 @@ export type Database = {
           list_type: string
           public_link?: string | null
           share_link?: string | null
+          share_mode?: string | null
           show_purchaser_info?: boolean | null
           tags?: string[] | null
           title: string
@@ -501,6 +503,7 @@ export type Database = {
           list_type?: string
           public_link?: string | null
           share_link?: string | null
+          share_mode?: string | null
           show_purchaser_info?: boolean | null
           tags?: string[] | null
           title?: string
@@ -992,6 +995,7 @@ export type Database = {
           is_shared: boolean
           list_type: string
           share_link: string
+          share_mode: string
           show_purchaser_info: boolean
           tags: string[]
           title: string
