@@ -63,6 +63,7 @@ import {
   List as ListIcon,
   RefreshCw,
   Merge,
+  Archive,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -589,6 +590,51 @@ export default function ListDetail() {
       }
     );
     navigate("/dashboard");
+  };
+
+  const handleArchiveList = async () => {
+    if (!list) return;
+    
+    const archivedTitle = list.title.startsWith("[Archived]") 
+      ? list.title 
+      : `[Archived] ${list.title}`;
+    
+    try {
+      const { error } = await supabase
+        .from("lists")
+        .update({ title: archivedTitle })
+        .eq("id", list.id);
+      
+      if (error) throw error;
+      
+      // Refresh the list data
+      const { data: updatedList } = await supabase
+        .from("lists")
+        .select("*")
+        .eq("id", list.id)
+        .single();
+      
+      if (updatedList) {
+        setList(updatedList);
+      }
+      
+      // Show toast
+      const { toast } = await import("@/components/ui/use-toast");
+      toast({
+        title: "List archived",
+        description: `"${list.title}" has been archived and hidden from your dashboard`,
+      });
+      
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Error archiving list:", error);
+      const { toast } = await import("@/components/ui/use-toast");
+      toast({
+        title: "Error",
+        description: "Failed to archive list",
+        variant: "destructive",
+      });
+    }
   };
 
   const toggleItemSelection = (itemId: string) => {
@@ -1340,6 +1386,21 @@ export default function ListDetail() {
 
                 {/* Destructive Actions - Separated */}
                 <div className="flex items-center gap-1 pl-2">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-9 w-9 hover:bg-blue-50"
+                          onClick={handleArchiveList}
+                        >
+                          <Archive className="w-4 h-4 text-blue-600" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Archive list (hide from dashboard)</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                   <AlertDialog>
                     <TooltipProvider>
                       <Tooltip>
@@ -1573,6 +1634,17 @@ export default function ListDetail() {
 
                     {/* Destructive Actions */}
                     <div className="border-t border-gray-200 my-2" />
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        handleArchiveList();
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="w-full justify-start min-h-[44px] text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    >
+                      <Archive className="w-4 h-4 mr-2" />
+                      Archive List
+                    </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button

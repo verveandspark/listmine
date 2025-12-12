@@ -1505,6 +1505,41 @@ export default function Dashboard() {
                           )}
                         </DropdownMenuContent>
                       </DropdownMenu>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 rounded-full bg-gray-100 hover:bg-blue-100 transition-colors"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                const archivedTitle = list.title.startsWith("[Archived]") 
+                                  ? list.title 
+                                  : `[Archived] ${list.title}`;
+                                
+                                try {
+                                  await updateList(list.id, { title: archivedTitle });
+                                  toast({
+                                    title: "List archived",
+                                    description: `"${list.title}" has been archived and hidden from your dashboard`,
+                                  });
+                                } catch (error) {
+                                  console.error("Error archiving list:", error);
+                                  toast({
+                                    title: "Error",
+                                    description: "Failed to archive list",
+                                    variant: "destructive",
+                                  });
+                                }
+                              }}
+                            >
+                              <Archive className="w-3.5 h-3.5 text-blue-600" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Archive list (hide from dashboard)</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                       {lists.length >= 2 && (
                         <TooltipProvider>
                           <Tooltip>
