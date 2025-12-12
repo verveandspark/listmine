@@ -87,8 +87,8 @@ interface ListContextType {
     listType: ListType,
   ) => Promise<void>;
   exportList: (listId: string, format: "csv" | "txt" | "pdf") => void;
-  generateShareLink: (listId: string, shareMode?: 'view_only' | 'importable' | 'both') => Promise<string>;
-  updateShareMode: (listId: string, shareMode: 'view_only' | 'importable' | 'both') => Promise<void>;
+  generateShareLink: (listId: string, shareMode?: 'view_only' | 'importable') => Promise<string>;
+  updateShareMode: (listId: string, shareMode: 'view_only' | 'importable') => Promise<void>;
   unshareList: (listId: string) => Promise<void>;
   addCollaborator: (listId: string, email: string) => Promise<void>;
   searchLists: (query: string) => List[];
@@ -1607,7 +1607,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const generateShareLink = async (listId: string, shareMode: 'view_only' | 'importable' | 'both' = 'view_only'): Promise<string> => {
+  const generateShareLink = async (listId: string, shareMode: 'view_only' | 'importable' = 'view_only'): Promise<string> => {
     const shareId =
       Math.random().toString(36).substring(2, 15) +
       Math.random().toString(36).substring(2, 15);
@@ -1690,7 +1690,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const updateShareMode = async (listId: string, shareMode: 'view_only' | 'importable' | 'both'): Promise<void> => {
+  const updateShareMode = async (listId: string, shareMode: 'view_only' | 'importable'): Promise<void> => {
     try {
       const result = (await withTimeout(
         supabase
@@ -1874,7 +1874,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
         isPinned: list.is_pinned || false,
         isShared: list.is_shared || false,
         shareLink: list.share_link,
-        shareMode: (list.share_mode as 'view_only' | 'importable' | 'both') || 'view_only',
+        shareMode: (list.share_mode as 'view_only' | 'importable') || 'view_only',
         tags: list.tags || [],
         collaborators: [],
         createdAt: new Date(list.created_at),
