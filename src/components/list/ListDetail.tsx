@@ -64,6 +64,7 @@ import {
   RefreshCw,
   Merge,
   Archive,
+  ArchiveRestore,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -156,6 +157,7 @@ export default function ListDetail() {
     restoreListItem,
     restoreBulkItems,
     refreshLists,
+    unarchiveList,
   } = useLists();
   const { toast } = useToast();
   const { executeWithUndo } = useUndoAction();
@@ -622,6 +624,25 @@ export default function ListDetail() {
       toast({
         title: "Error",
         description: "Failed to archive list",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUnarchiveList = async () => {
+    if (!list) return;
+    
+    try {
+      await unarchiveList(list.id);
+      toast({
+        title: "✅ List restored",
+        description: "The list has been restored from archive.",
+      });
+    } catch (error) {
+      console.error("Error restoring list:", error);
+      toast({
+        title: "Error",
+        description: "Failed to restore list",
         variant: "destructive",
       });
     }
@@ -1106,8 +1127,11 @@ export default function ListDetail() {
                   <ArrowLeft className="w-5 h-5" />
                 </Button>
                 <div className="min-w-0 flex-1">
-                  <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate">
+                  <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate flex items-center gap-2">
                     {list.title}
+                    {list.isArchived && (
+                      <Badge variant="secondary" className="text-xs">Archived</Badge>
+                    )}
                   </h1>
                   <p className="text-xs sm:text-sm text-gray-600">
                     {list.category} · {Math.max(0, list.items?.length || 0)}/
@@ -1391,6 +1415,23 @@ export default function ListDetail() {
                       <TooltipContent>Archive list (hide from dashboard)</TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
+                  {list.isArchived && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-9 w-9 hover:bg-green-50"
+                            onClick={handleUnarchiveList}
+                          >
+                            <ArchiveRestore className="w-4 h-4 text-green-600" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Restore from Archive</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
                   <AlertDialog>
                     <TooltipProvider>
                       <Tooltip>

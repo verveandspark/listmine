@@ -59,6 +59,7 @@ interface ListContextType {
   updateList: (id: string, updates: Partial<List>) => Promise<void>;
   deleteList: (id: string) => Promise<void>;
   restoreList: (listData: any) => Promise<void>;
+  unarchiveList: (listId: string) => Promise<void>;
   addItemToList: (
     listId: string,
     item: Omit<ListItem, "id" | "order">,
@@ -862,6 +863,35 @@ export function ListProvider({ children }: { children: ReactNode }) {
       await loadLists();
     } catch (error: any) {
       logError("restoreList", error, user?.id);
+      throw new Error("Couldn't restore list. Try again or contact support.");
+    }
+  };
+
+  // Unarchive a list (restore from archived state)
+  const unarchiveList = async (listId: string) => {
+    try {
+      const list = lists.find((l) => l.id === listId);
+      if (!list) throw new Error("List not found");
+
+      // Remove [Archived] prefix from title if present
+      let newTitle = list.title;
+      if (newTitle.startsWith("[Archived] ")) {
+        newTitle = newTitle.replace("[Archived] ", "");
+      }
+
+      const { error } = await supabase
+        .from("lists")
+        .update({
+          is_archived: false,
+          title: newTitle,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", listId);
+
+      if (error) throw error;
+      await loadLists();
+    } catch (error: any) {
+      logError("unarchiveList", error, user?.id);
       throw new Error("Couldn't restore list. Try again or contact support.");
     }
   };
@@ -1964,12 +1994,18 @@ export function ListProvider({ children }: { children: ReactNode }) {
     if (!user) throw new Error("User not authenticated");
 
     try {
+      // Trim and clean the share ID
+      const cleanShareId = shareId.trim();
+      console.log("Importing share link:", cleanShareId);
+      
       // Fetch the shared list using RPC function (bypasses RLS issues)
       const listResult = (await withTimeout(
         supabase
-          .rpc("get_shared_list_by_share_link", { p_share_link: shareId }),
+          .rpc("get_shared_list_by_share_link", { p_share_link: cleanShareId }),
       )) as any;
       const { data: sharedListArray, error: listError } = listResult;
+
+      console.log("RPC result:", { sharedListArray, listError });
 
       if (listError || !sharedListArray || sharedListArray.length === 0) {
         throw new Error("List not found or not shared. Please check the link and try again.");
@@ -2213,6 +2249,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
     updateList,
     deleteList,
     restoreList,
+    unarchiveList,
     addItemToList,
     updateListItem,
     deleteListItem,

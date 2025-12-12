@@ -37,6 +37,7 @@ import {
   LayoutDashboard,
   List,
   Archive,
+  ArchiveRestore,
   Layers,
   ChevronRight,
   Merge,
@@ -174,6 +175,7 @@ export default function Dashboard() {
     unshareList,
     exportList,
     restoreList,
+    unarchiveList,
   } = useLists();
   const navigate = useNavigate();
 
@@ -515,6 +517,23 @@ export default function Dashboard() {
     } catch (error: any) {
       toast({
         title: "❌ Failed to update favorite",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUnarchive = async (e: React.MouseEvent, listId: string) => {
+    e.stopPropagation();
+    try {
+      await unarchiveList(listId);
+      toast({
+        title: "✅ List restored",
+        description: "The list has been restored from archive.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "❌ Failed to restore list",
         description: error.message,
         variant: "destructive",
       });
@@ -1450,7 +1469,152 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Favorites Row */}
+        {/* Search Results Section - Only visible when searching */}
+        {searchQuery.trim() && (
+          <div className="mb-6 sm:mb-8">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Search className="w-5 h-5 text-primary" />
+              Search Results
+              {displayLists.length > 0 && (
+                <span className="text-sm font-normal text-gray-500">
+                  ({displayLists.length} list{displayLists.length !== 1 ? "s" : ""})
+                </span>
+              )}
+            </h2>
+            {displayLists.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-2">
+                {displayLists.map((list, index) => {
+                  const Icon = categoryIcons[list.category] || ListChecks;
+                  const itemCount = Math.max(0, list.items?.length || 0);
+                  const completedItems = Math.max(0, list.items?.filter(
+                    (item) => item.completed,
+                  ).length || 0);
+                  return (
+                    <Card
+                      key={list.id}
+                      className="hover:shadow-lg hover:bg-gray-50 transition-all cursor-pointer group relative animate-slide-up"
+                      style={{ animationDelay: `${index * 50}ms` }}
+                      onClick={() => {
+                        localStorage.setItem("last_list_id", list.id);
+                        navigate(`/list/${list.id}`);
+                      }}
+                    >
+                      {/* Quick Actions - shown on hover */}
+                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-200 flex flex-wrap gap-1.5 z-10 bg-white/95 backdrop-blur-sm rounded-lg p-1.5 shadow-lg border border-gray-100 max-w-[140px] justify-end">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className={`h-7 w-7 rounded-full ${list.isFavorite ? 'bg-yellow-100 hover:bg-yellow-200' : 'bg-gray-100 hover:bg-gray-200'} transition-colors`}
+                                onClick={(e) => handleToggleFavorite(e, list.id)}
+                              >
+                                <Star className={`w-3.5 h-3.5 ${list.isFavorite ? 'text-yellow-500 fill-yellow-500' : 'text-gray-500'}`} />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{list.isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        {list.isArchived && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 rounded-full bg-green-100 hover:bg-green-200 transition-colors"
+                                  onClick={(e) => handleUnarchive(e, list.id)}
+                                >
+                                  <ArchiveRestore className="w-3.5 h-3.5 text-green-600" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Restore from Archive</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                      </div>
+                      <CardHeader className="pb-2">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-10 h-10 rounded-lg ${categoryColors[list.category]} flex items-center justify-center`}
+                            >
+                              <Icon className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <CardTitle className="text-lg flex items-center gap-2">
+                                {list.title}
+                                {list.isArchived && (
+                                  <Badge variant="secondary" className="text-xs">Archived</Badge>
+                                )}
+                              </CardTitle>
+                              <CardDescription>
+                                {list.category} ·{" "}
+                                {
+                                  listTypes.find((t) => t.value === list.listType)
+                                    ?.label
+                                }
+                              </CardDescription>
+                            </div>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600">
+                              {itemCount} items
+                            </span>
+                            <span className="text-gray-600">
+                              {completedItems} completed
+                            </span>
+                          </div>
+                          {itemCount > 0 && (
+                            <div className="w-full bg-gray-200 rounded-full h-1.5">
+                              <div
+                                className="bg-primary h-1.5 rounded-full transition-all"
+                                style={{
+                                  width: `${(completedItems / itemCount) * 100}%`,
+                                }}
+                              />
+                            </div>
+                          )}
+                          <div className="flex items-center justify-between pt-2">
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                              <Clock className="w-3 h-3" />
+                              <span>Updated {getTimeAgo(list.updatedAt)}</span>
+                            </div>
+                            <div className="flex gap-1">
+                              {list.isShared && (
+                                <Badge
+                                  variant="outline"
+                                  className="bg-blue-50 border-blue-200 text-xs"
+                                >
+                                  <Share2 className="w-3 h-3 mr-1 text-primary" />
+                                  <span className="text-primary">Shared</span>
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <Search className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                <p>No lists found matching "{searchQuery}"</p>
+                <p className="text-sm mt-1">Try a different search term</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Favorites Row - Hidden when searching */}
+        {!searchQuery.trim() && (
         <div className="mb-6 sm:mb-8">
           <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
@@ -1611,6 +1775,23 @@ export default function Dashboard() {
                           <TooltipContent>Archive list (hide from dashboard)</TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
+                      {list.isArchived && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 rounded-full bg-green-100 hover:bg-green-200 transition-colors"
+                                onClick={(e) => handleUnarchive(e, list.id)}
+                              >
+                                <ArchiveRestore className="w-3.5 h-3.5 text-green-600" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Restore from Archive</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
                       {lists.length >= 2 && (
                         <TooltipProvider>
                           <Tooltip>
@@ -1776,9 +1957,10 @@ export default function Dashboard() {
             </p>
           )}
         </div>
+        )}
 
-        {/* Categories Section - Only visible in Dashboard view */}
-        {viewMode === "dashboard" && (
+        {/* Categories Section - Only visible in Dashboard view and not when searching */}
+        {viewMode === "dashboard" && !searchQuery.trim() && (
         <div className="mb-6 sm:mb-8 mt-8">{/* Added mt-8 for vertical spacing */}
           <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Layers className="w-5 h-5" />
