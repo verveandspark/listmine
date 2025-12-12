@@ -212,9 +212,13 @@ export default function ImportExport() {
     try {
       const result = await importFromShareLink(shareId);
       
+      if (!result) {
+        throw new Error("Failed to import list");
+      }
+      
       // Check if result contains skipped items info
-      const listId = result && typeof result === 'object' && result.listId ? result.listId : result;
-      const skippedItems = result && typeof result === 'object' && result.skippedItems ? result.skippedItems : 0;
+      const listId = typeof result === 'object' && 'listId' in result ? result.listId : result;
+      const skippedItems = typeof result === 'object' && 'skippedItems' in result ? result.skippedItems : 0;
       
       if (skippedItems > 0) {
         toast({
