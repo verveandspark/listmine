@@ -2553,77 +2553,8 @@ export default function ListDetail() {
 
           {/* Scrollable Content Area */}
           <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
-            {/* Tags Section - Collapsible */}
-            <Card className="p-3 sm:p-4 mb-4 print:hidden">
-              <button
-                onClick={() => setIsTagsSectionOpen(!isTagsSectionOpen)}
-                className="w-full flex items-center justify-between text-left"
-              >
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-medium text-gray-700">Tags</h3>
-                  <Badge variant="outline" className="text-xs">
-                    {list.tags?.length || 0}
-                  </Badge>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="max-w-xs">
-                          Add keywords to organize and filter items
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-                <ChevronDown 
-                  className={`w-4 h-4 transition-transform ${isTagsSectionOpen ? 'rotate-180' : ''}`} 
-                />
-              </button>
-              
-              {isTagsSectionOpen && (
-                <div className="mt-3 space-y-3">
-                  <div className="flex flex-wrap gap-2">
-                    {list.tags && list.tags.length > 0 ? (
-                      list.tags.map((tag) => (
-                        <Badge key={tag} variant="outline" className="text-xs">
-                          {tag}
-                          <button
-                            onClick={() => removeTagFromList(list.id, tag)}
-                            className="ml-1 hover:text-red-600"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </Badge>
-                      ))
-                    ) : (
-                      <p className="text-xs text-gray-500">No tags yet</p>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="e.g., urgent, work, personal, home"
-                      value={newTag}
-                      onChange={(e) => setNewTag(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          handleAddTag();
-                        }
-                      }}
-                      className="flex-1 min-h-[44px]"
-                    />
-                    <Button onClick={handleAddTag} size="sm" className="min-h-[44px]">
-                      <Tag className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </Card>
-
-            {/* Sort Items Dropdown */}
-          <div className="flex items-center justify-between mb-4">
+            {/* Items Header with Tags and Sort */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 print:hidden">
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-medium text-gray-700">Items</h3>
               {itemSortBy === "manual" && (
@@ -2641,17 +2572,90 @@ export default function ListDetail() {
                 </TooltipProvider>
               )}
             </div>
-            <Select value={itemSortBy} onValueChange={handleItemSortChange}>
-              <SelectTrigger className="w-[180px] h-[40px]">
-                <SelectValue placeholder="Sort items by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="manual">Manual (drag to reorder)</SelectItem>
-                <SelectItem value="priority">Priority</SelectItem>
-                <SelectItem value="dueDate">Due Date</SelectItem>
-                <SelectItem value="alphabetical">Alphabetical</SelectItem>
-              </SelectContent>
-            </Select>
+            
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Tags Dropdown */}
+              <Popover open={isTagsSectionOpen} onOpenChange={setIsTagsSectionOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-[40px] gap-2">
+                    <Tag className="w-4 h-4" />
+                    Tags
+                    <Badge variant="secondary" className="text-xs ml-1">
+                      {list.tags?.length || 0}
+                    </Badge>
+                    <ChevronDown 
+                      className={`w-4 h-4 transition-transform ${isTagsSectionOpen ? 'rotate-180' : ''}`} 
+                    />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80" align="end">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm font-medium">Tags</h4>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="max-w-xs">
+                              Add keywords to organize and filter items
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {list.tags && list.tags.length > 0 ? (
+                        list.tags.map((tag) => (
+                          <Badge key={tag} variant="outline" className="text-xs">
+                            {tag}
+                            <button
+                              onClick={() => removeTagFromList(list.id, tag)}
+                              className="ml-1 hover:text-red-600"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </Badge>
+                        ))
+                      ) : (
+                        <p className="text-xs text-gray-500">No tags yet</p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="e.g., urgent, work"
+                        value={newTag}
+                        onChange={(e) => setNewTag(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleAddTag();
+                          }
+                        }}
+                        className="flex-1 min-h-[40px]"
+                      />
+                      <Button onClick={handleAddTag} size="sm" className="min-h-[40px]">
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              {/* Sort Dropdown */}
+              <Select value={itemSortBy} onValueChange={handleItemSortChange}>
+                <SelectTrigger className="w-[180px] h-[40px]">
+                  <SelectValue placeholder="Sort items by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="manual">Manual (drag to reorder)</SelectItem>
+                  <SelectItem value="priority">Priority</SelectItem>
+                  <SelectItem value="dueDate">Due Date</SelectItem>
+                  <SelectItem value="alphabetical">Alphabetical</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Purchase History Note for Registry/Wishlist */}
