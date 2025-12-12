@@ -705,12 +705,26 @@ export default function ListDetail() {
     try {
       const link = await generateShareLink(list.id);
       setShareLink(link);
-      await copyToClipboard(link);
-      toast({
-        title: "✅ Share link copied!",
-        description: link,
-        className: "bg-blue-50 border-blue-200",
-      });
+      const copied = await copyToClipboard(link);
+      if (copied) {
+        toast({
+          title: "✅ Share link copied!",
+          description: link,
+          className: "bg-blue-50 border-blue-200",
+        });
+      } else {
+        toast({
+          title: "📋 Share link generated",
+          description: (
+            <div className="flex flex-col gap-2">
+              <span>Copy this link manually:</span>
+              <code className="bg-gray-100 p-2 rounded text-xs break-all select-all">{link}</code>
+            </div>
+          ),
+          className: "bg-yellow-50 border-yellow-200",
+          duration: 10000,
+        });
+      }
     } catch (error: any) {
       toast({
         title: "❌ Failed to generate share link",
@@ -721,20 +735,34 @@ export default function ListDetail() {
   };
 
   // Fallback clipboard function for environments where Clipboard API is blocked
-  const copyToClipboard = async (text: string): Promise<void> => {
+  const copyToClipboard = async (text: string): Promise<boolean> => {
+    // First try the modern Clipboard API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (err) {
+        console.warn("Clipboard API failed:", err);
+      }
+    }
+    
+    // Fallback to execCommand
     try {
-      await navigator.clipboard.writeText(text);
-    } catch {
       const textArea = document.createElement("textarea");
       textArea.value = text;
       textArea.style.position = "fixed";
       textArea.style.left = "-999999px";
       textArea.style.top = "-999999px";
+      textArea.style.opacity = "0";
       document.body.appendChild(textArea);
       textArea.focus();
       textArea.select();
-      document.execCommand("copy");
+      const success = document.execCommand("copy");
       textArea.remove();
+      return success;
+    } catch (err) {
+      console.warn("execCommand fallback failed:", err);
+      return false;
     }
   };
 

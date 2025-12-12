@@ -1002,20 +1002,19 @@ export type Database = {
       get_shared_list_items: {
         Args: { p_list_id: string }
         Returns: {
+          assigned_to: string
+          attributes: Json
+          completed: boolean
           created_at: string
-          description: string
           due_date: string
           id: string
-          image_url: string
-          is_completed: boolean
           item_order: number
-          link: string
+          links: string[]
           list_id: string
-          name: string
           notes: string
-          price: string
           priority: string
           quantity: number
+          text: string
           updated_at: string
         }[]
       }
