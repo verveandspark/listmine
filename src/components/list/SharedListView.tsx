@@ -62,12 +62,15 @@ export default function SharedListView() {
         }
 
         console.log("SharedListView: Fetching list with shareId:", shareId);
+        console.log("SharedListView: Full URL:", window.location.href);
+        console.log("SharedListView: shareId from URL params:", new URLSearchParams(window.location.search).get('shareId'));
 
         // Use RPC function to fetch shared list (bypasses RLS issues)
         const { data: listDataArray, error: listError } = await supabase
           .rpc("get_shared_list_by_share_link", { p_share_link: shareId });
 
         console.log("SharedListView: List query result:", { listDataArray, listError });
+        console.log("SharedListView: RPC called with shareId:", shareId);
 
         if (listError || !listDataArray || listDataArray.length === 0) {
           console.error("SharedListView: List not found or error:", listError);
