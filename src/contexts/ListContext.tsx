@@ -2052,21 +2052,31 @@ export function ListProvider({ children }: { children: ReactNode }) {
       
       console.log("[ListContext] Copy shared list - using user_id (from getUser):", authUserId);
       
-      const newListResult = (await withTimeout(
+      // Use RPC function to bypass RLS issues
+      const newListIdResult = (await withTimeout(
         supabase
-          .from("lists")
-          .insert({
-            user_id: authUserId,
-            title: newListTitle,
-            category: sharedList.category,
-            list_type: sharedList.list_type,
-          })
-          .select()
-          .single(),
+          .rpc("create_list_for_user", {
+            p_user_id: authUserId,
+            p_title: newListTitle,
+            p_category: sharedList.category,
+            p_list_type: sharedList.list_type,
+          }),
       )) as any;
-      const { data: newList, error: newListError } = newListResult;
+      const { data: newListId, error: newListError } = newListIdResult;
 
       if (newListError) throw newListError;
+      
+      // Fetch the newly created list
+      const fetchListResult = (await withTimeout(
+        supabase
+          .from("lists")
+          .select()
+          .eq("id", newListId)
+          .single(),
+      )) as any;
+      const { data: newList, error: fetchError } = fetchListResult;
+      
+      if (fetchError) throw fetchError;
 
       // Copy all items with completed = false
       if (sharedItems && sharedItems.length > 0) {
