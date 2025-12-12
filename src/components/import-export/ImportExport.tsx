@@ -213,8 +213,8 @@ export default function ImportExport() {
       const result = await importFromShareLink(shareId);
       
       // Check if result contains skipped items info
-      const listId = typeof result === 'object' && result.listId ? result.listId : result;
-      const skippedItems = typeof result === 'object' && result.skippedItems ? result.skippedItems : 0;
+      const listId = result && typeof result === 'object' && result.listId ? result.listId : result;
+      const skippedItems = result && typeof result === 'object' && result.skippedItems ? result.skippedItems : 0;
       
       if (skippedItems > 0) {
         toast({

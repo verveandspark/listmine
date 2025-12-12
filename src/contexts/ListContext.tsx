@@ -2115,14 +2115,14 @@ export function ListProvider({ children }: { children: ReactNode }) {
         // Return info about skipped items
         if (skippedCount > 0) {
           await loadLists();
-          return { listId: newList.id, skippedItems: skippedCount };
+          return { listId: newList.id, skippedItems: skippedCount } as any;
         }
       } else {
         console.log(`[ListContext] No items to copy - shared list was empty`);
       }
 
       await loadLists();
-      return newList.id;
+      return { listId: newList.id, skippedItems: 0 } as any;
     } catch (error: any) {
       logError("importFromShareLink", error, user?.id);
 
