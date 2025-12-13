@@ -497,12 +497,12 @@ export default function Dashboard() {
       if (lastListId) {
         const listExists = lists.find(l => l.id === lastListId);
         if (listExists) {
-          navigate(`/list/${lastListId}`);
+          navigate(`/list/${lastListId}`, { replace: true });
         } else if (lists.length > 0) {
           // Last list not found, open first list
           const firstList = lists[0];
           localStorage.setItem("last_list_id", firstList.id);
-          navigate(`/list/${firstList.id}`);
+          navigate(`/list/${firstList.id}`, { replace: true });
         } else {
           toast({
             title: "No lists available",
@@ -513,7 +513,7 @@ export default function Dashboard() {
         // No last_list_id exists, open first list
         const firstList = lists[0];
         localStorage.setItem("last_list_id", firstList.id);
-        navigate(`/list/${firstList.id}`);
+        navigate(`/list/${firstList.id}`, { replace: true });
       } else {
         toast({
           title: "No lists available",

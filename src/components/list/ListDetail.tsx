@@ -1215,14 +1215,10 @@ export default function ListDetail() {
                   variant="ghost"
                   size="icon"
                   onClick={() => {
-                    // Use browser history to go back if possible
-                    // Check if we have history to go back to
-                    if (window.history.length > 1) {
-                      navigate(-1);
-                    } else {
-                      localStorage.setItem("dashboardViewMode", "dashboard");
-                      navigate("/dashboard");
-                    }
+                    // When going back, set view mode to dashboard so we don't get redirected
+                    // This ensures the back button takes you to dashboard view
+                    localStorage.setItem("dashboardViewMode", "dashboard");
+                    navigate("/dashboard");
                   }}
                   className="min-h-[44px] min-w-[44px] flex-shrink-0"
                 >
