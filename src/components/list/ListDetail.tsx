@@ -2564,11 +2564,11 @@ export default function ListDetail() {
               )}
             </div>
             
-            <div className="flex flex-col gap-1 min-w-0 w-full">
+            <div className="flex flex-col sm:flex-row gap-2 min-w-0 w-full items-start sm:items-center">
               {/* Tags Dropdown */}
               <Popover open={isTagsSectionOpen} onOpenChange={setIsTagsSectionOpen}>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-[40px] gap-2">
+                  <Button variant="outline" size="sm" className="h-[40px] gap-2 flex-shrink-0">
                     <Tag className="w-4 h-4" />
                     Tags
                     <Badge variant="secondary" className="text-xs ml-1">
@@ -2636,7 +2636,7 @@ export default function ListDetail() {
 
               {/* Sort Dropdown */}
               <Select value={itemSortBy} onValueChange={handleItemSortChange}>
-                <SelectTrigger className="w-[180px] h-[40px]">
+                <SelectTrigger className="w-full sm:w-[180px] h-[40px] flex-shrink-0">
                   <SelectValue placeholder="Sort items by" />
                 </SelectTrigger>
                 <SelectContent>
@@ -2737,7 +2737,7 @@ export default function ListDetail() {
                               completed: checked as boolean,
                             })
                           }
-                          className={`mt-1 h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform ${item.completed ? "animate-check-bounce" : ""}`}
+                          className={`mt-1 h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform border-gray-400 ${item.completed ? "animate-check-bounce bg-gray-700 border-gray-700" : ""}`}
                         />
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-col gap-1 min-w-0 w-full">
