@@ -246,6 +246,11 @@ export default function ListDetail() {
   
   // Help modal state
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  
+  // View mode state for toggle
+  const [viewMode, setViewMode] = useState<"dashboard" | "list">(() => {
+    return (localStorage.getItem("dashboardViewMode") as "dashboard" | "list") || "dashboard";
+  });
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -1179,7 +1184,11 @@ export default function ListDetail() {
             {/* Breadcrumbs */}
             <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
               <button
-                onClick={() => navigate("/dashboard")}
+                onClick={() => {
+                  // Always navigate to dashboard when clicking breadcrumb
+                  localStorage.setItem("dashboardViewMode", "dashboard");
+                  navigate("/dashboard");
+                }}
                 className="hover:text-gray-900 transition-colors"
               >
                 Dashboard
@@ -1205,7 +1214,16 @@ export default function ListDetail() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => navigate("/dashboard")}
+                  onClick={() => {
+                    // Use browser history to go back if possible
+                    // Check if we have history to go back to
+                    if (window.history.length > 1) {
+                      navigate(-1);
+                    } else {
+                      localStorage.setItem("dashboardViewMode", "dashboard");
+                      navigate("/dashboard");
+                    }
+                  }}
                   className="min-h-[44px] min-w-[44px] flex-shrink-0"
                 >
                   <ArrowLeft className="w-5 h-5" />
@@ -1227,10 +1245,11 @@ export default function ListDetail() {
               {/* View Mode Toggle */}
               <div className="hidden sm:flex items-center bg-gray-100 rounded-lg p-1">
                 <Button
-                  variant={localStorage.getItem("dashboardViewMode") === "dashboard" || !localStorage.getItem("dashboardViewMode") ? "default" : "ghost"}
+                  variant={viewMode === "dashboard" ? "default" : "ghost"}
                   size="sm"
                   className="h-8 px-3"
                   onClick={() => {
+                    setViewMode("dashboard");
                     localStorage.setItem("dashboardViewMode", "dashboard");
                     navigate("/dashboard");
                   }}
@@ -1239,12 +1258,13 @@ export default function ListDetail() {
                   Dashboard
                 </Button>
                 <Button
-                  variant={localStorage.getItem("dashboardViewMode") === "list" ? "default" : "ghost"}
+                  variant={viewMode === "list" ? "default" : "ghost"}
                   size="sm"
                   className="h-8 px-3"
                   onClick={() => {
+                    // Just set the view mode preference, stay on current list
+                    setViewMode("list");
                     localStorage.setItem("dashboardViewMode", "list");
-                    navigate("/dashboard");
                   }}
                 >
                   <ListIcon className="w-4 h-4 mr-1" />

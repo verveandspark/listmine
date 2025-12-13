@@ -1,4 +1,3 @@
-import { Plus, Download, MessageSquare, LogOut } from "lucide-react";
 import { useLists } from "@/contexts/useListsHook";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,11 @@ import {
   ListChecks,
   ChevronRight,
   Archive,
+  LayoutDashboard,
+  Plus,
+  Download,
+  LogOut,
+  MessageSquare,
 } from "lucide-react";
 import {
   Tooltip,
@@ -78,6 +82,19 @@ export function ListSidebar() {
           <Badge variant="secondary">{filteredLists.length}</Badge>
         </div>
 
+        {/* Dashboard Button */}
+        <Button
+          onClick={() => {
+            localStorage.setItem("dashboardViewMode", "dashboard");
+            navigate("/dashboard");
+          }}
+          variant="outline"
+          className="w-full mb-4 min-h-[44px] border-primary/30 text-primary hover:bg-primary/10"
+        >
+          <LayoutDashboard className="w-4 h-4 mr-2" />
+          Dashboard
+        </Button>
+
         <div className="space-y-2 mb-4">
           <Button
             onClick={() => setIsCreateModalOpen(true)}
@@ -136,7 +153,11 @@ export function ListSidebar() {
                         className={`w-full justify-between text-left h-auto py-2 ${
                           list.id === id ? "bg-primary/20 text-primary font-semibold" : ""
                         } ${isArchived ? "opacity-60" : ""}`}
-                        onClick={() => navigate(`/list/${list.id}`)}
+                        onClick={() => {
+                          // Store the current list ID before navigating
+                          localStorage.setItem("last_list_id", list.id);
+                          navigate(`/list/${list.id}`);
+                        }}
                       >
                         <span className={`truncate text-sm ${isArchived ? "italic" : ""}`}>
                           {list.title}

@@ -958,6 +958,33 @@ export default function Dashboard() {
                       </Badge>
                     )}
                   </div>
+                  {/* Mobile View Mode Toggle */}
+                  <div className="flex items-center bg-gray-100 rounded-lg p-1 mb-2">
+                    <Button
+                      variant={viewMode === "dashboard" ? "default" : "ghost"}
+                      size="sm"
+                      className="flex-1 h-10"
+                      onClick={() => {
+                        handleViewModeChange("dashboard");
+                        setIsMobileMenuOpen(false);
+                      }}
+                    >
+                      <LayoutDashboard className="w-4 h-4 mr-1" />
+                      Dashboard
+                    </Button>
+                    <Button
+                      variant={viewMode === "list" ? "default" : "ghost"}
+                      size="sm"
+                      className="flex-1 h-10"
+                      onClick={() => {
+                        handleViewModeChange("list");
+                        setIsMobileMenuOpen(false);
+                      }}
+                    >
+                      <List className="w-4 h-4 mr-1" />
+                      List
+                    </Button>
+                  </div>
                   {user?.tier === "free" && (
                     <Button
                       onClick={() => {
