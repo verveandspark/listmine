@@ -2548,20 +2548,6 @@ export default function ListDetail() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 print:hidden">
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-medium text-gray-700">Items</h3>
-              {itemSortBy === "manual" && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full cursor-help">
-                        Drag to reorder
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="max-w-xs">
-                      <p>Drag items up or down. A blue line shows where the item will be placed.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
             </div>
             
             <div className="flex flex-col sm:flex-row gap-2 min-w-0 w-full items-start sm:items-center">
@@ -2636,7 +2622,7 @@ export default function ListDetail() {
 
               {/* Sort Dropdown */}
               <Select value={itemSortBy} onValueChange={handleItemSortChange}>
-                <SelectTrigger className="w-full sm:w-[180px] h-[40px] flex-shrink-0">
+                <SelectTrigger className="w-full sm:w-[220px] h-[40px] flex-shrink-0">
                   <SelectValue placeholder="Sort items by" />
                 </SelectTrigger>
                 <SelectContent>
