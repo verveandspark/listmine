@@ -253,24 +253,12 @@ export default function Dashboard() {
   // This prevents flashing when navigating back to dashboard with cached data
   const isLoading = !hasLoadedOnce && lists.length === 0;
 
-  // Handle view mode persistence - redirect to list view if that's the saved preference
+  // Reset view mode to dashboard when landing on dashboard page
+  // This ensures back button navigation works correctly
   useEffect(() => {
-    const savedViewMode = localStorage.getItem("dashboardViewMode");
-    if (savedViewMode === "list" && hasLoadedOnce && lists.length > 0) {
-      const lastListId = localStorage.getItem("last_list_id");
-      if (lastListId) {
-        const listExists = lists.find(l => l.id === lastListId);
-        if (listExists) {
-          navigate(`/list/${lastListId}`, { replace: true });
-          return;
-        }
-      }
-      // If no valid last list, navigate to first list
-      const firstList = lists[0];
-      localStorage.setItem("last_list_id", firstList.id);
-      navigate(`/list/${firstList.id}`, { replace: true });
-    }
-  }, [hasLoadedOnce, lists, navigate]);
+    localStorage.setItem("dashboardViewMode", "dashboard");
+    setViewMode("dashboard");
+  }, []);
 
   // Handle import from share link (when redirected from SharedListView)
   useEffect(() => {
@@ -497,12 +485,12 @@ export default function Dashboard() {
       if (lastListId) {
         const listExists = lists.find(l => l.id === lastListId);
         if (listExists) {
-          navigate(`/list/${lastListId}`, { replace: true });
+          navigate(`/list/${lastListId}`);
         } else if (lists.length > 0) {
           // Last list not found, open first list
           const firstList = lists[0];
           localStorage.setItem("last_list_id", firstList.id);
-          navigate(`/list/${firstList.id}`, { replace: true });
+          navigate(`/list/${firstList.id}`);
         } else {
           toast({
             title: "No lists available",
@@ -513,7 +501,7 @@ export default function Dashboard() {
         // No last_list_id exists, open first list
         const firstList = lists[0];
         localStorage.setItem("last_list_id", firstList.id);
-        navigate(`/list/${firstList.id}`, { replace: true });
+        navigate(`/list/${firstList.id}`);
       } else {
         toast({
           title: "No lists available",
