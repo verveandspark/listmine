@@ -109,7 +109,7 @@ export default function ShareSettingsModal({
         toast({
           title: "✅ Link shared!",
           description: "Link shared successfully",
-          className: "bg-blue-50 border-blue-200",
+          className: "bg-primary/10 border-primary/20",
         });
         return;
       } catch (shareErr: any) {
@@ -122,7 +122,7 @@ export default function ShareSettingsModal({
       toast({
         title: "✅ Link copied!",
         description: "Share link copied to clipboard",
-        className: "bg-blue-50 border-blue-200",
+        className: "bg-primary/10 border-primary/20",
       });
     } else {
       toast({
@@ -141,7 +141,7 @@ export default function ShareSettingsModal({
             />
           </div>
         ),
-        className: "bg-yellow-50 border-yellow-200",
+        className: "bg-amber-50 border-amber-200",
         duration: 15000,
       });
     }
@@ -165,7 +165,7 @@ export default function ShareSettingsModal({
             });
             toast({
               title: "✅ Settings saved and link shared!",
-              className: "bg-blue-50 border-blue-200",
+              className: "bg-primary/10 border-primary/20",
             });
             return;
           } catch (shareErr: any) {
@@ -199,7 +199,7 @@ export default function ShareSettingsModal({
                 />
               </div>
             ),
-            className: "bg-yellow-50 border-yellow-200",
+            className: "bg-amber-50 border-amber-200",
             duration: 15000,
           });
         }
@@ -218,7 +218,7 @@ export default function ShareSettingsModal({
             });
             toast({
               title: "✅ Link created and shared!",
-              className: "bg-blue-50 border-blue-200",
+              className: "bg-primary/10 border-primary/20",
             });
             return;
           } catch (shareErr: any) {
@@ -233,7 +233,7 @@ export default function ShareSettingsModal({
           toast({
             title: "✅ Share link created and copied!",
             description: link,
-            className: "bg-blue-50 border-blue-200",
+            className: "bg-primary/10 border-primary/20",
           });
         } else {
           toast({
@@ -252,7 +252,7 @@ export default function ShareSettingsModal({
                 />
               </div>
             ),
-            className: "bg-yellow-50 border-yellow-200",
+            className: "bg-amber-50 border-amber-200",
             duration: 15000,
           });
         }

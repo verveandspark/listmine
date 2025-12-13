@@ -305,7 +305,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
     return (
       <Card className="p-6">
         <div className="text-center space-y-4">
-          <Crown className="w-12 h-12 mx-auto text-amber-500" />
+          <Crown className="w-12 h-12 mx-auto text-teal-500" />
           <h3 className="text-lg font-semibold">Team Members</h3>
           <p className="text-gray-600">
             Team members are available exclusively for <strong>Lots More</strong> tier users.

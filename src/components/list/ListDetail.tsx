@@ -458,7 +458,7 @@ export default function ListDetail() {
       toast({
         title: "✅ Item added!",
         description: `${nameValidation.value} has been added to the list`,
-        className: "bg-green-50 border-green-200",
+        className: "bg-accent/10 border-accent/20",
       });
 
       // Focus back on the text input
@@ -723,7 +723,7 @@ export default function ListDetail() {
           toast({
             title: "✅ Share link ready!",
             description: "Link shared successfully",
-            className: "bg-blue-50 border-blue-200",
+            className: "bg-primary/10 border-primary/20",
           });
           return;
         } catch (shareErr: any) {
@@ -742,7 +742,7 @@ export default function ListDetail() {
         toast({
           title: "✅ Share link copied!",
           description: link,
-          className: "bg-blue-50 border-blue-200",
+          className: "bg-primary/10 border-primary/20",
         });
       } else {
         showLinkToast(link);
@@ -774,7 +774,7 @@ export default function ListDetail() {
           />
         </div>
       ),
-      className: "bg-yellow-50 border-yellow-200",
+      className: "bg-amber-50 border-amber-200",
       duration: 15000,
     });
   };
@@ -829,7 +829,7 @@ export default function ListDetail() {
       toast({
         title: "✅ List unshared",
         description: "This list is no longer shared. Previous share links will no longer work.",
-        className: "bg-green-50 border-green-200",
+        className: "bg-accent/10 border-accent/20",
       });
     } catch (error: any) {
       toast({
@@ -867,7 +867,7 @@ export default function ListDetail() {
       toast({
         title: "✅ Collaborator added",
         description: `${emailValidation.value} can now edit this list`,
-        className: "bg-green-50 border-green-200",
+        className: "bg-accent/10 border-accent/20",
       });
     } catch (error: any) {
       toast({
@@ -908,7 +908,7 @@ export default function ListDetail() {
       toast({
         title: "✅ Tag added",
         description: `Tag "${tagValidation.value}" has been added`,
-        className: "bg-green-50 border-green-200",
+        className: "bg-accent/10 border-accent/20",
       });
     } catch (error: any) {
       toast({
@@ -943,7 +943,7 @@ export default function ListDetail() {
       toast({
         title: "✅ List updated successfully!",
         description: `${nameValidation.value} has been updated`,
-        className: "bg-green-50 border-green-200",
+        className: "bg-accent/10 border-accent/20",
       });
     } catch (error: any) {
       toast({
@@ -1017,7 +1017,7 @@ export default function ListDetail() {
       toast({
         title: "✅ List exported!",
         description: `${format.toUpperCase()} file downloaded successfully`,
-        className: "bg-green-50 border-green-200",
+        className: "bg-accent/10 border-accent/20",
       });
     } catch (error: any) {
       setIsExporting(false);
@@ -1033,7 +1033,7 @@ export default function ListDetail() {
     toast({
       title: "🖨️ Opening print dialog",
       description: "Preparing your list for printing...",
-      className: "bg-blue-50 border-blue-200",
+      className: "bg-primary/10 border-primary/20",
     });
     
     // Small delay to show toast before print dialog
@@ -1045,7 +1045,7 @@ export default function ListDetail() {
   const getDueDateColor = (dueDate: Date | undefined) => {
     if (!dueDate) return "";
     const date = new Date(dueDate);
-    if (isToday(date)) return "text-orange-600 bg-orange-50 border-orange-200";
+    if (isToday(date)) return "text-accent bg-accent/10 border-accent/20";
     if (isPast(date)) return "text-red-600 bg-red-50 border-red-200";
     return "text-gray-600 bg-gray-50 border-gray-200";
   };
@@ -1328,7 +1328,7 @@ export default function ListDetail() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className={`h-9 w-9 ${list.isFavorite ? "bg-yellow-100 hover:bg-yellow-200" : ""}`}
+                          className={`h-9 w-9 ${list.isFavorite ? "bg-amber-100 hover:bg-amber-200" : ""}`}
                           onClick={async () => {
                             await updateList(list.id, { isFavorite: !list.isFavorite });
                             toast({
@@ -1337,7 +1337,7 @@ export default function ListDetail() {
                             });
                           }}
                         >
-                          <Star className={`w-4 h-4 ${list.isFavorite ? "text-yellow-500 fill-yellow-500" : "text-gray-600"}`} />
+                          <Star className={`w-4 h-4 ${list.isFavorite ? "text-amber-500 fill-amber-500" : "text-gray-600"}`} />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>{list.isFavorite ? "Remove from Favorites" : "Add to Favorites"}</TooltipContent>
@@ -1351,9 +1351,9 @@ export default function ListDetail() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className={`h-9 w-9 ${list.isShared ? "bg-blue-50" : ""}`}
+                              className={`h-9 w-9 ${list.isShared ? "bg-primary/10" : ""}`}
                             >
-                              <Share2 className={`w-4 h-4 ${list.isShared ? "text-blue-600" : "text-gray-600"}`} />
+                              <Share2 className={`w-4 h-4 ${list.isShared ? "text-primary" : "text-gray-600"}`} />
                             </Button>
                           </TooltipTrigger>
                         </DropdownMenuTrigger>
@@ -1458,7 +1458,7 @@ export default function ListDetail() {
                             onClick={() => setIsMergeModalOpen(true)}
                             className="h-9 w-9"
                           >
-                            <Merge className="w-4 h-4 text-purple-600" />
+                            <Merge className="w-4 h-4 text-teal-600" />
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>Merge with another list</TooltipContent>
@@ -1490,10 +1490,10 @@ export default function ListDetail() {
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="h-9 w-9 hover:bg-blue-50"
+                          className="h-9 w-9 hover:bg-teal-50"
                           onClick={handleArchiveList}
                         >
-                          <Archive className="w-4 h-4 text-blue-600" />
+                          <Archive className="w-4 h-4 text-teal-600" />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>Archive list (hide from dashboard)</TooltipContent>
@@ -1506,10 +1506,10 @@ export default function ListDetail() {
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="h-9 w-9 hover:bg-green-50"
+                            className="h-9 w-9 hover:bg-accent/10"
                             onClick={handleUnarchiveList}
                           >
-                            <ArchiveRestore className="w-4 h-4 text-green-600" />
+                            <ArchiveRestore className="w-4 h-4 text-accent" />
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>Restore from Archive</TooltipContent>
@@ -1652,9 +1652,9 @@ export default function ListDetail() {
                         });
                         setIsMobileMenuOpen(false);
                       }}
-                      className={`w-full justify-start min-h-[44px] ${list.isFavorite ? "bg-yellow-100 border-yellow-300" : ""}`}
+                      className={`w-full justify-start min-h-[44px] ${list.isFavorite ? "bg-amber-100 border-amber-300" : ""}`}
                     >
-                      <Star className={`w-4 h-4 mr-2 ${list.isFavorite ? "text-yellow-500 fill-yellow-500" : ""}`} />
+                      <Star className={`w-4 h-4 mr-2 ${list.isFavorite ? "text-amber-500 fill-amber-500" : ""}`} />
                       {list.isFavorite ? "Remove from Favorites" : "Add to Favorites"}
                     </Button>
                     <Button
@@ -1663,9 +1663,9 @@ export default function ListDetail() {
                         setIsShareSettingsOpen(true);
                         setIsMobileMenuOpen(false);
                       }}
-                      className={`w-full justify-start min-h-[44px] ${list.isShared ? "bg-blue-50 border-blue-200" : ""}`}
+                      className={`w-full justify-start min-h-[44px] ${list.isShared ? "bg-primary/10 border-primary/20" : ""}`}
                     >
-                      <Share2 className={`w-4 h-4 mr-2 ${list.isShared ? "text-blue-600" : ""}`} />
+                      <Share2 className={`w-4 h-4 mr-2 ${list.isShared ? "text-primary" : ""}`} />
                       {list.isShared ? "Share Settings" : "Share List"}
                     </Button>
 
@@ -1743,7 +1743,7 @@ export default function ListDetail() {
                         handleArchiveList();
                         setIsMobileMenuOpen(false);
                       }}
-                      className="w-full justify-start min-h-[44px] text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                      className="w-full justify-start min-h-[44px] text-teal-600 hover:text-teal-700 hover:bg-teal-50"
                     >
                       <Archive className="w-4 h-4 mr-2" />
                       Archive List
@@ -2732,7 +2732,7 @@ export default function ListDetail() {
                                               style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
                             >
                               {item.quantity && (
-                                <span className="font-semibold text-blue-600">
+                                <span className="font-semibold text-primary">
                                   {item.quantity}× {" "}
                                 </span>
                               )}
@@ -2740,7 +2740,7 @@ export default function ListDetail() {
                             </p>
                             <div className="flex items-center gap-2 flex-wrap">
                             {isPurchased && (
-                              <Badge className="bg-green-100 text-green-700 border-green-300">
+                              <Badge className="bg-accent/10 text-accent border-accent/20">
                                 ✓ Purchased
                               </Badge>
                             )}
@@ -3682,7 +3682,7 @@ export default function ListDetail() {
                                               style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
                             >
                               {item.quantity && (
-                                <span className="font-semibold text-blue-600">
+                                <span className="font-semibold text-primary">
                                   {item.quantity}×{" "}
                                 </span>
                               )}
@@ -3767,7 +3767,7 @@ export default function ListDetail() {
                               </Badge>
                             )}
                             {(item.attributes?.productLink || item.attributes?.inspirationLink) && (
-                              <Badge variant="outline" className="text-xs bg-blue-50 border-blue-200">
+                              <Badge variant="outline" className="text-xs bg-primary/10 border-primary/20">
                                 <LinkIcon className="w-3 h-3 mr-1 text-primary" />
                                 <span className="text-primary underline">{list.listType === "idea-list" ? "Inspiration" : "Product"} Link</span>
                               </Badge>

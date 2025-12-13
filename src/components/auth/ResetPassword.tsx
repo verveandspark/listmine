@@ -84,7 +84,7 @@ export default function ResetPassword() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#F5F8FA] via-white to-[#E6F4F4] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo and Branding */}
         <div className="text-center mb-8">

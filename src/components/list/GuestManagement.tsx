@@ -182,7 +182,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
       toast({
         title: "✅ Guest Invited",
         description: `Successfully invited ${emailValidation.value} as a guest`,
-        className: "bg-green-50 border-green-200",
+        className: "bg-accent/10 border-accent/20",
       });
 
       setInviteEmail("");
@@ -213,7 +213,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
       toast({
         title: "✅ Guest Removed",
         description: guestEmail ? `Removed ${guestEmail} from this list` : "Guest removed successfully",
-        className: "bg-green-50 border-green-200",
+        className: "bg-accent/10 border-accent/20",
       });
 
       setGuests(guests.filter(g => g.id !== guestId));
@@ -245,7 +245,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
       toast({
         title: "✅ Permission Updated",
         description: `Guest permission changed to ${newPermission}`,
-        className: "bg-green-50 border-green-200",
+        className: "bg-accent/10 border-accent/20",
       });
     } catch (error: any) {
       console.error("[GuestManagement] Error updating permission:", error);
@@ -318,7 +318,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
             </Button>
           </div>
           {isAtLimit && (
-            <p className="text-xs text-amber-600">
+            <p className="text-xs text-teal-600">
               Guest limit reached. Upgrade to Lots More for unlimited guests.
             </p>
           )}
@@ -327,8 +327,8 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
 
       {/* Upgrade prompt for non-eligible tiers */}
       {isOwner && !canInvite && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-          <p className="text-sm text-amber-800">
+        <div className="bg-teal-50 border border-teal-200 rounded-lg p-3">
+          <p className="text-sm text-teal-800">
             <Crown className="w-4 h-4 inline mr-1" />
             Upgrade to <strong>Even Better</strong> or <strong>Lots More</strong> tier to invite guests to collaborate on your lists.
           </p>

@@ -410,7 +410,7 @@ export default function Templates() {
             </h3>
             {loadingItems ? (
               <div className="text-center py-8">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-2" />
+                <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-2" />
                 <p className="text-gray-600">Loading items...</p>
               </div>
             ) : (

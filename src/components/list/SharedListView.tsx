@@ -418,7 +418,7 @@ export default function SharedListView() {
         toast({
           title: "✅ Link shared!",
           description: "Link shared successfully",
-          className: "bg-blue-50 border-blue-200",
+          className: "bg-primary/10 border-primary/20",
         });
         return;
       } catch (shareErr: any) {
@@ -431,7 +431,7 @@ export default function SharedListView() {
       toast({
         title: "✅ Link copied!",
         description: "Share link copied to clipboard",
-        className: "bg-blue-50 border-blue-200",
+        className: "bg-primary/10 border-primary/20",
       });
     } else {
       toast({
@@ -450,7 +450,7 @@ export default function SharedListView() {
             />
           </div>
         ),
-        className: "bg-yellow-50 border-yellow-200",
+        className: "bg-amber-50 border-amber-200",
         duration: 15000,
       });
     }
@@ -489,7 +489,7 @@ export default function SharedListView() {
   const getDueDateColor = (dueDate: any) => {
     if (!dueDate) return "";
     const date = new Date(dueDate);
-    if (isToday(date)) return "text-orange-600 bg-orange-50 border-orange-200";
+    if (isToday(date)) return "text-accent bg-accent/10 border-accent/20";
     if (isPast(date)) return "text-red-600 bg-red-50 border-red-200";
     return "text-gray-600 bg-gray-50 border-gray-200";
   };
@@ -847,25 +847,25 @@ export default function SharedListView() {
             </p>
             <ul className="text-sm text-gray-600 mb-4 space-y-1.5">
               <li className="flex items-center gap-2">
-                <span className="text-green-500">✓</span> Up to 5 lists (To-Do and Custom only)
+                <span className="text-accent">✓</span> Up to 5 lists (To-Do and Custom only)
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-green-500">✓</span> 20 items per list
+                <span className="text-accent">✓</span> 20 items per list
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-green-500">✓</span> Categorize, search, and filter lists
+                <span className="text-accent">✓</span> Categorize, search, and filter lists
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-green-500">✓</span> Import from multiple sources
+                <span className="text-accent">✓</span> Import from multiple sources
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-green-500">✓</span> Print lists
+                <span className="text-accent">✓</span> Print lists
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-green-500">✓</span> Share read-only links
+                <span className="text-accent">✓</span> Share read-only links
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-green-500">✓</span> No credit card required
+                <span className="text-accent">✓</span> No credit card required
               </li>
             </ul>
             <Button onClick={() => navigate("/auth")} className="w-full">

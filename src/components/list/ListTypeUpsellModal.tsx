@@ -35,8 +35,8 @@ export default function ListTypeUpsellModal({
       <DialogContent className="sm:max-w-[400px] bg-white">
         <DialogHeader>
           <div className="flex items-center justify-center mb-4">
-            <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center">
-              <Lock className="w-8 h-8 text-amber-600" />
+            <div className="w-16 h-16 rounded-full bg-teal-100 flex items-center justify-center">
+              <Lock className="w-8 h-8 text-teal-600" />
             </div>
           </div>
           <DialogTitle className="text-center text-xl">
@@ -53,8 +53,8 @@ export default function ListTypeUpsellModal({
             plan ({getTierPricing(requiredTier)})
           </p>
           
-          <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg p-4 border border-amber-200">
-            <div className="flex items-center justify-center gap-2 text-amber-700 mb-2">
+          <div className="bg-gradient-to-r from-teal-50 to-accent/10 rounded-lg p-4 border border-teal-200">
+            <div className="flex items-center justify-center gap-2 text-teal-700 mb-2">
               <Sparkles className="w-4 h-4" />
               <span className="font-medium">Upgrade Benefits</span>
             </div>
@@ -77,7 +77,7 @@ export default function ListTypeUpsellModal({
           </Button>
           <Button
             onClick={handleUpgrade}
-            className="w-full sm:w-auto bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+            className="w-full sm:w-auto bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700"
           >
             <Sparkles className="w-4 h-4 mr-2" />
             Upgrade Now

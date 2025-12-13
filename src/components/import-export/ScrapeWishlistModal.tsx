@@ -85,7 +85,7 @@ export default function ScrapeWishlistModal({
       toast({
         title: "✅ Wishlist scraped successfully",
         description: `Found ${data.items.length} items from ${data.retailer}`,
-        className: "bg-green-50 border-green-200",
+        className: "bg-accent/10 border-accent/20",
       });
     } catch (err: any) {
       console.error("Error:", err);
@@ -205,7 +205,7 @@ export default function ScrapeWishlistModal({
                 href="https://listmine.vervesites.com/terms-of-use" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-blue-600 hover:underline"
+                className="text-primary hover:underline"
               >
                 Learn More
               </a>
@@ -344,7 +344,7 @@ export default function ScrapeWishlistModal({
                           {item.name}
                         </p>
                         {item.price && (
-                          <p className="text-sm text-green-600 font-semibold mt-1">
+                          <p className="text-sm text-accent font-semibold mt-1">
                             {item.price}
                           </p>
                         )}
@@ -353,7 +353,7 @@ export default function ScrapeWishlistModal({
                             href={item.link}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-1"
+                            className="text-xs text-primary hover:underline flex items-center gap-1 mt-1"
                           >
                             View on {retailer}
                             <ExternalLink className="w-3 h-3" />

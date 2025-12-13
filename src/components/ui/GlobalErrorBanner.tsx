@@ -139,16 +139,16 @@ const BannerItem: React.FC<BannerItemProps> = ({ banner, onDismiss }) => {
 
   const styles = {
     error: "bg-red-50 border-red-200 text-red-800",
-    success: "bg-green-50 border-green-200 text-green-800",
-    warning: "bg-yellow-50 border-yellow-200 text-yellow-800",
-    info: "bg-blue-50 border-blue-200 text-blue-800",
+    success: "bg-accent/10 border-accent/20 text-accent",
+    warning: "bg-amber-50 border-amber-200 text-amber-800",
+    info: "bg-primary/10 border-primary/20 text-primary",
   };
 
   const iconStyles = {
     error: "text-red-500",
-    success: "text-green-500",
-    warning: "text-yellow-500",
-    info: "text-blue-500",
+    success: "text-accent",
+    warning: "text-amber-500",
+    info: "text-primary",
   };
 
   const Icon = icons[banner.type];

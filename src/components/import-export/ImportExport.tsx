@@ -166,7 +166,7 @@ export default function ImportExport() {
       toast({
         title: "✅ List imported successfully!",
         description: "Your list has been added to your dashboard",
-        className: "bg-green-50 border-green-200",
+        className: "bg-accent/10 border-accent/20",
       });
       setImportData("");
       navigate("/dashboard");
@@ -236,13 +236,13 @@ export default function ImportExport() {
         toast({
           title: "⚠️ List imported with warnings",
           description: `${skippedItems} item${skippedItems > 1 ? 's were' : ' was'} skipped because ${skippedItems > 1 ? 'they had' : 'it had'} no text.`,
-          className: "bg-yellow-50 border-yellow-200",
+          className: "bg-amber-50 border-amber-200",
         });
       } else {
         toast({
           title: "✅ List imported successfully!",
           description: "The list has been added to your account.",
-          className: "bg-green-50 border-green-200",
+          className: "bg-accent/10 border-accent/20",
         });
       }
       
@@ -331,7 +331,7 @@ export default function ImportExport() {
       toast({
         title: "✅ List exported successfully!",
         description: `${exportFormat.toUpperCase()} file downloaded`,
-        className: "bg-green-50 border-green-200",
+        className: "bg-accent/10 border-accent/20",
       });
     } catch (error: any) {
       toast({
@@ -380,7 +380,7 @@ export default function ImportExport() {
       toast({
         title: "✅ Wishlist scraped successfully",
         description: `Found ${data.items.length} items from ${data.retailer}`,
-        className: "bg-green-50 border-green-200",
+        className: "bg-accent/10 border-accent/20",
       });
     } catch (err: any) {
       console.error("Error:", err);
@@ -427,7 +427,7 @@ export default function ImportExport() {
       toast({
         title: "✅ Wishlist imported successfully!",
         description: `Created "${wishlistName}" with ${selectedItems.length} items`,
-        className: "bg-green-50 border-green-200",
+        className: "bg-accent/10 border-accent/20",
       });
       
       // Reset state
@@ -604,7 +604,7 @@ export default function ImportExport() {
                     href="https://listmine.com/terms-of-use" 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline"
+                    className="text-primary hover:underline"
                   >
                     Learn More
                   </a>
@@ -737,7 +737,7 @@ export default function ImportExport() {
                                 {item.name}
                               </p>
                               {item.price && (
-                                <p className="text-sm text-green-600 font-semibold mt-1">
+                                <p className="text-sm text-accent font-semibold mt-1">
                                   {item.price}
                                 </p>
                               )}
@@ -746,7 +746,7 @@ export default function ImportExport() {
                                   href={item.link}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-1"
+                                  className="text-xs text-primary hover:underline flex items-center gap-1 mt-1"
                                 >
                                   View on {retailer}
                                   <ExternalLink className="w-3 h-3" />
@@ -1014,8 +1014,8 @@ export default function ImportExport() {
                 </div>
 
                 {selectedListId && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <p className="text-sm text-blue-900">
+                  <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
+                    <p className="text-sm text-primary">
                       <strong>Preview:</strong> The selected list will be
                       exported with all items, quantities, links, and
                       attributes.

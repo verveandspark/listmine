@@ -140,7 +140,7 @@ export default function AddToExistingListModal({
         toast({
           title: "✅ Comparison complete",
           description: `Found ${compareData.summary.newCount} new items and ${compareData.summary.updatedCount} updates`,
-          className: "bg-green-50 border-green-200",
+          className: "bg-accent/10 border-accent/20",
         });
       }
     } catch (err: any) {
@@ -188,7 +188,7 @@ export default function AddToExistingListModal({
       toast({
         title: "✅ Items added!",
         description: `Added ${newItemsToAdd.length} items to "${selectedList.title}"`,
-        className: "bg-green-50 border-green-200",
+        className: "bg-accent/10 border-accent/20",
       });
 
       onSuccess?.();
@@ -305,7 +305,7 @@ export default function AddToExistingListModal({
               {/* Summary */}
               <div className="flex gap-4 text-sm">
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="bg-green-50 text-green-700">
+                  <Badge variant="outline" className="bg-accent/10 text-accent">
                     <Plus className="w-3 h-3 mr-1" />
                     {compareResult.summary.newCount} new
                   </Badge>
@@ -323,7 +323,7 @@ export default function AddToExistingListModal({
                 <div className="flex-1 overflow-hidden flex flex-col">
                   <div className="flex items-center justify-between mb-2">
                     <Label className="flex items-center gap-2">
-                      <Plus className="w-4 h-4 text-green-600" />
+                      <Plus className="w-4 h-4 text-accent" />
                       New Items to Add ({selectedNewItems.size}/{compareResult.newItems.length})
                     </Label>
                     <Button variant="ghost" size="sm" onClick={toggleAllNewItems}>

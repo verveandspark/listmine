@@ -127,7 +127,7 @@ export default function UpdateFromRetailerModal({
       toast({
         title: "✅ Comparison complete",
         description: `Found ${compareData.summary.newCount} new items and ${compareData.summary.updatedCount} updates`,
-        className: "bg-green-50 border-green-200",
+        className: "bg-accent/10 border-accent/20",
       });
     } catch (err: any) {
       console.error("Error:", err);
@@ -187,7 +187,7 @@ export default function UpdateFromRetailerModal({
       toast({
         title: "✅ List updated!",
         description: `Added ${newItemsToAdd.length} new items${selectedUpdates.size > 0 ? ` and updated ${selectedUpdates.size} items` : ""}`,
-        className: "bg-green-50 border-green-200",
+        className: "bg-accent/10 border-accent/20",
       });
 
       handleClose();
@@ -318,13 +318,13 @@ export default function UpdateFromRetailerModal({
               {/* Summary */}
               <div className="flex gap-4 p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                  <Badge variant="outline" className="bg-accent/10 text-accent border-accent/20">
                     <Plus className="w-3 h-3 mr-1" />
                     {compareResult.summary.newCount} New
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
                     <ArrowRight className="w-3 h-3 mr-1" />
                     {compareResult.summary.updatedCount} Updated
                   </Badge>
@@ -348,7 +348,7 @@ export default function UpdateFromRetailerModal({
                             checked={selectedNewItems.size === compareResult.newItems.length}
                             onCheckedChange={toggleAllNewItems}
                           />
-                          <h4 className="font-semibold text-green-700">
+                          <h4 className="font-semibold text-accent">
                             New Items ({selectedNewItems.size} of {compareResult.newItems.length} selected)
                           </h4>
                         </div>
@@ -356,7 +356,7 @@ export default function UpdateFromRetailerModal({
                       {compareResult.newItems.map((item, index) => (
                         <div
                           key={index}
-                          className="flex items-start gap-3 p-3 border rounded-lg hover:bg-green-50/50 transition-colors border-green-200"
+                          className="flex items-start gap-3 p-3 border rounded-lg hover:bg-accent/5 transition-colors border-accent/20"
                         >
                           <Checkbox
                             checked={selectedNewItems.has(index)}
@@ -373,7 +373,7 @@ export default function UpdateFromRetailerModal({
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-sm line-clamp-2">{item.name}</p>
                             {item.price && (
-                              <p className="text-sm text-green-600 font-semibold mt-1">
+                              <p className="text-sm text-accent font-semibold mt-1">
                                 {item.price}
                               </p>
                             )}
@@ -382,14 +382,14 @@ export default function UpdateFromRetailerModal({
                                 href={item.link}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-1"
+                                className="text-xs text-primary hover:underline flex items-center gap-1 mt-1"
                               >
                                 View on {retailer}
                                 <ExternalLink className="w-3 h-3" />
                               </a>
                             )}
                           </div>
-                          <Badge className="bg-green-100 text-green-700 border-green-200">New</Badge>
+                          <Badge className="bg-accent/10 text-accent border-accent/20">New</Badge>
                         </div>
                       ))}
                     </div>
@@ -404,7 +404,7 @@ export default function UpdateFromRetailerModal({
                             checked={selectedUpdates.size === compareResult.updatedItems.length}
                             onCheckedChange={toggleAllUpdates}
                           />
-                          <h4 className="font-semibold text-blue-700">
+                          <h4 className="font-semibold text-primary">
                             Updated Items ({selectedUpdates.size} of {compareResult.updatedItems.length} selected)
                           </h4>
                         </div>
@@ -412,7 +412,7 @@ export default function UpdateFromRetailerModal({
                       {compareResult.updatedItems.map((update, index) => (
                         <div
                           key={index}
-                          className="flex items-start gap-3 p-3 border rounded-lg hover:bg-blue-50/50 transition-colors border-blue-200"
+                          className="flex items-start gap-3 p-3 border rounded-lg hover:bg-primary/5 transition-colors border-primary/20"
                         >
                           <Checkbox
                             checked={selectedUpdates.has(index)}
@@ -438,13 +438,13 @@ export default function UpdateFromRetailerModal({
                                     : "No price"}
                                 </span>
                                 <ArrowRight className="w-3 h-3 text-gray-400" />
-                                <span className="text-sm text-green-600 font-semibold">
+                                <span className="text-sm text-accent font-semibold">
                                   {update.retailerItem.price}
                                 </span>
                               </div>
                             )}
                           </div>
-                          <Badge className="bg-blue-100 text-blue-700 border-blue-200">Updated</Badge>
+                          <Badge className="bg-primary/10 text-primary border-primary/20">Updated</Badge>
                         </div>
                       ))}
                     </div>
@@ -453,7 +453,7 @@ export default function UpdateFromRetailerModal({
                   {/* No Changes */}
                   {compareResult.newItems.length === 0 && compareResult.updatedItems.length === 0 && (
                     <div className="text-center py-8 text-gray-500">
-                      <Check className="w-12 h-12 mx-auto mb-3 text-green-500" />
+                      <Check className="w-12 h-12 mx-auto mb-3 text-accent" />
                       <p className="font-medium">Your list is up to date!</p>
                       <p className="text-sm">No new items or changes found.</p>
                     </div>

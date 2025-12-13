@@ -403,7 +403,7 @@ export default function Dashboard() {
       toast({
         title: "✅ List created successfully!",
         description: `${nameValidation.value} has been added to your lists`,
-        className: "bg-green-50 border-green-200",
+        className: "bg-accent/10 border-accent/20",
       });
     } catch (error: any) {
       toast({
@@ -463,7 +463,7 @@ export default function Dashboard() {
       toast({
         title: "✅ List updated successfully!",
         description: `${nameValidation.value} has been updated`,
-        className: "bg-green-50 border-green-200",
+        className: "bg-accent/10 border-accent/20",
       });
     } catch (error: any) {
       toast({
@@ -618,7 +618,7 @@ export default function Dashboard() {
       toast({
         title: "✅ List exported!",
         description: `${format.toUpperCase()} file downloaded successfully`,
-        className: "bg-green-50 border-green-200",
+        className: "bg-accent/10 border-accent/20",
       });
       setExportDropdownOpen(null);
     } catch (error: any) {
@@ -638,7 +638,7 @@ export default function Dashboard() {
       toast({
         title: "✅ List unshared",
         description: "This list is no longer shared. Previous share links will no longer work.",
-        className: "bg-green-50 border-green-200",
+        className: "bg-accent/10 border-accent/20",
       });
     } catch (error: any) {
       toast({
@@ -768,7 +768,7 @@ export default function Dashboard() {
   // Show error state if loading failed
   if (error && !loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-[#F5F8FA] via-white to-[#E6F4F4] flex items-center justify-center p-4">
         <Card className="max-w-md w-full p-8 text-center">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="w-8 h-8 text-red-600" />
@@ -965,7 +965,7 @@ export default function Dashboard() {
                         setIsMobileMenuOpen(false);
                       }}
                       variant="outline"
-                      className="w-full justify-start border-yellow-400 text-yellow-700 min-h-[44px]"
+                      className="w-full justify-start border-teal-400 text-teal-700 min-h-[44px]"
                     >
                       <Crown className="w-4 h-4 mr-2" />
                       Upgrade to Premium
@@ -1109,7 +1109,7 @@ export default function Dashboard() {
 
             {/* Total Items */}
             <div className="flex items-center gap-2">
-              <Package className="w-5 h-5 text-success" />
+              <Package className="w-5 h-5 text-primary" />
               <span className="text-sm text-gray-600">
                 Total Items:{" "}
                 <span className="font-semibold text-gray-900">
@@ -1459,10 +1459,10 @@ export default function Dashboard() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className={`h-7 w-7 rounded-full ${list.isFavorite ? 'bg-yellow-100 hover:bg-yellow-200' : 'bg-gray-100 hover:bg-gray-200'} transition-colors`}
+                                className={`h-7 w-7 rounded-full ${list.isFavorite ? 'bg-amber-100 hover:bg-amber-200' : 'bg-gray-100 hover:bg-gray-200'} transition-colors`}
                                 onClick={(e) => handleToggleFavorite(e, list.id)}
                               >
-                                <Star className={`w-3.5 h-3.5 ${list.isFavorite ? 'text-yellow-500 fill-yellow-500' : 'text-gray-500'}`} />
+                                <Star className={`w-3.5 h-3.5 ${list.isFavorite ? 'text-amber-500 fill-amber-500' : 'text-gray-500'}`} />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>{list.isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}</TooltipContent>
@@ -1475,10 +1475,10 @@ export default function Dashboard() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-7 w-7 rounded-full bg-green-100 hover:bg-green-200 transition-colors"
+                                  className="h-7 w-7 rounded-full bg-accent/10 hover:bg-accent/20 transition-colors"
                                   onClick={(e) => handleUnarchive(e, list.id)}
                                 >
-                                  <ArchiveRestore className="w-3.5 h-3.5 text-green-600" />
+                                  <ArchiveRestore className="w-3.5 h-3.5 text-accent" />
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>Restore from Archive</TooltipContent>
@@ -1541,7 +1541,7 @@ export default function Dashboard() {
                               {list.isShared && (
                                 <Badge
                                   variant="outline"
-                                  className="bg-blue-50 border-blue-200 text-xs"
+                                  className="bg-primary/10 border-primary/20 text-xs"
                                 >
                                   <Share2 className="w-3 h-3 mr-1 text-primary" />
                                   <span className="text-primary">Shared</span>
@@ -1569,7 +1569,7 @@ export default function Dashboard() {
         {!searchQuery.trim() && (
         <div className="mb-6 sm:mb-8">
           <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+            <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
             Favorites
           </h2>
           {favoriteLists.length > 0 ? (
@@ -1598,10 +1598,10 @@ export default function Dashboard() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 rounded-full bg-yellow-100 hover:bg-yellow-200 transition-colors"
+                              className="h-7 w-7 rounded-full bg-amber-100 hover:bg-amber-200 transition-colors"
                               onClick={(e) => handleToggleFavorite(e, list.id)}
                             >
-                              <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
+                              <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>Remove from Favorites</TooltipContent>
@@ -1628,10 +1628,10 @@ export default function Dashboard() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className={`h-7 w-7 rounded-full transition-colors ${list.isShared ? "bg-blue-100 hover:bg-blue-200" : "bg-gray-100 hover:bg-gray-200"}`}
+                              className={`h-7 w-7 rounded-full transition-colors ${list.isShared ? "bg-primary/10 hover:bg-primary/20" : "bg-gray-100 hover:bg-gray-200"}`}
                               onClick={(e) => handleQuickShare(e, list.id, list.isShared || false)}
                             >
-                              <Share2 className={`w-3.5 h-3.5 ${list.isShared ? "text-blue-600" : ""}`} />
+                              <Share2 className={`w-3.5 h-3.5 ${list.isShared ? "text-primary" : ""}`} />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>{list.isShared ? "Copy Share Link" : "Share"}</TooltipContent>
@@ -1698,7 +1698,7 @@ export default function Dashboard() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 rounded-full bg-gray-100 hover:bg-blue-100 transition-colors"
+                              className="h-7 w-7 rounded-full bg-gray-100 hover:bg-teal-100 transition-colors"
                               onClick={async (e) => {
                                 e.stopPropagation();
                                 const archivedTitle = list.title.startsWith("[Archived]") 
@@ -1721,7 +1721,7 @@ export default function Dashboard() {
                                 }
                               }}
                             >
-                              <Archive className="w-3.5 h-3.5 text-blue-600" />
+                              <Archive className="w-3.5 h-3.5 text-teal-600" />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>Archive list (hide from dashboard)</TooltipContent>
@@ -1734,10 +1734,10 @@ export default function Dashboard() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-7 w-7 rounded-full bg-green-100 hover:bg-green-200 transition-colors"
+                                className="h-7 w-7 rounded-full bg-accent/10 hover:bg-accent/20 transition-colors"
                                 onClick={(e) => handleUnarchive(e, list.id)}
                               >
-                                <ArchiveRestore className="w-3.5 h-3.5 text-green-600" />
+                                <ArchiveRestore className="w-3.5 h-3.5 text-accent" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>Restore from Archive</TooltipContent>
@@ -1751,14 +1751,14 @@ export default function Dashboard() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-7 w-7 rounded-full bg-gray-100 hover:bg-purple-100 transition-colors"
+                                className="h-7 w-7 rounded-full bg-gray-100 hover:bg-teal-100 transition-colors"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setMergeSourceListId(list.id);
                                   setIsMergeModalOpen(true);
                                 }}
                               >
-                                <Merge className="w-3.5 h-3.5 text-purple-600" />
+                                <Merge className="w-3.5 h-3.5 text-teal-600" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>Merge with another list</TooltipContent>
@@ -1880,7 +1880,7 @@ export default function Dashboard() {
                               <div className="flex items-center gap-1">
                                 <Badge
                                   variant="outline"
-                                  className="bg-blue-50 border-blue-200 text-xs cursor-pointer hover:bg-blue-100"
+                                  className="bg-primary/10 border-primary/20 text-xs cursor-pointer hover:bg-primary/20"
                                   onClick={(e) => handleQuickShare(e, list.id, true)}
                                 >
                                   <Share2 className="w-3 h-3 mr-1 text-primary" />
@@ -1915,7 +1915,7 @@ export default function Dashboard() {
         {viewMode === "dashboard" && !searchQuery.trim() && (
         <div className="mb-6 sm:mb-8 mt-8">{/* Added mt-8 for vertical spacing */}
           <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Layers className="w-5 h-5" />
+            <Layers className="w-5 h-5 text-primary" />
             Categories
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -2038,10 +2038,10 @@ export default function Dashboard() {
                         </div>
                         <div className="flex items-center gap-2">
                           {list.isFavorite && (
-                            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                            <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
                           )}
                           {list.isShared && (
-                            <Share2 className="w-4 h-4 text-blue-500" />
+                            <Share2 className="w-4 h-4 text-primary" />
                           )}
                           <ChevronRight className="w-5 h-5 text-gray-400" />
                         </div>

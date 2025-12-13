@@ -378,7 +378,7 @@ export default function Profile() {
                 )}
                 {user.tier !== "free" ? (
                   <div className="mt-2 space-y-2">
-                    <Badge className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-yellow-900 text-base px-4 py-1">
+                    <Badge className="bg-gradient-to-r from-teal-500 to-teal-600 text-white text-base px-4 py-1">
                       <Crown className="w-4 h-4 mr-2" />
                       {getTierDisplayName(user.tier)} Tier
                     </Badge>
@@ -746,8 +746,8 @@ export default function Profile() {
               </div>
 
               {user.tier === "free" && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <p className="text-sm text-yellow-900 mb-3">
+                <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
+                  <p className="text-sm text-teal-900 mb-3">
                     Upgrade to Premium for higher limits and advanced features!
                   </p>
                   <Button
@@ -815,17 +815,17 @@ export default function Profile() {
                 </p>
               </div>
 
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <Star className="w-5 h-5 text-yellow-500" />
-                    <p className="text-sm font-medium text-yellow-600">
+                    <Star className="w-5 h-5 text-amber-500" />
+                    <p className="text-sm font-medium text-amber-600">
                       Favorites
                     </p>
                   </div>
-                  <TrendingUp className="w-4 h-4 text-yellow-500" />
+                  <TrendingUp className="w-4 h-4 text-amber-500" />
                 </div>
-                <p className="text-3xl font-bold text-yellow-600">
+                <p className="text-3xl font-bold text-amber-600">
                   {favoriteLists}
                 </p>
               </div>

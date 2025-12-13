@@ -172,7 +172,7 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#F5F8FA] via-white to-[#E6F4F4] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo and Branding */}
         <div className="text-center mb-8">
@@ -319,16 +319,16 @@ export default function AuthPage() {
                       Must be at least 8 characters
                     </p>
                   </div>
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <p className="text-sm text-blue-900 font-medium mb-1">
+                  <div className="bg-teal-50 border border-teal-200 rounded-lg p-3">
+                    <p className="text-sm text-teal-900 font-medium mb-1">
                       ✨ Free Tier Includes:
                     </p>
-                    <ul className="text-xs text-blue-800 space-y-1 ml-4 list-disc">
+                    <ul className="text-xs text-teal-800 space-y-1 ml-4 list-disc">
                       <li>Create up to 5 lists</li>
                       <li>Unlimited items per list</li>
                       <li>Share lists with others</li>
                     </ul>
-                    <p className="text-xs text-blue-700 mt-2">
+                    <p className="text-xs text-teal-700 mt-2">
                       Upgrade anytime from inside the app for more features!
                     </p>
                   </div>

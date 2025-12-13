@@ -153,7 +153,7 @@ export default function MergeListsModal({
         toast({
           title: "✅ Comparison complete",
           description: `Found ${compareData.summary.newCount} new items and ${compareData.summary.existingCount} duplicates`,
-          className: "bg-green-50 border-green-200",
+          className: "bg-accent/10 border-accent/20",
         });
       }
     } catch (err: any) {
@@ -205,7 +205,7 @@ export default function MergeListsModal({
         toast({
           title: "✅ Lists merged!",
           description: `Added ${newItemsToAdd.length} items to "${targetList.title}" and deleted "${sourceList.title}"`,
-          className: "bg-green-50 border-green-200",
+          className: "bg-accent/10 border-accent/20",
         });
       } else if (sourceAction === "archive") {
         // For archive, we'll add a prefix to the title to indicate it's archived
@@ -217,14 +217,14 @@ export default function MergeListsModal({
         toast({
           title: "✅ Lists merged!",
           description: `Added ${newItemsToAdd.length} items to "${targetList.title}" and archived "${sourceList.title}"`,
-          className: "bg-green-50 border-green-200",
+          className: "bg-accent/10 border-accent/20",
         });
       } else {
         // Keep - do nothing to source list
         toast({
           title: "✅ Lists merged!",
           description: `Added ${newItemsToAdd.length} items to "${targetList.title}"`,
-          className: "bg-green-50 border-green-200",
+          className: "bg-accent/10 border-accent/20",
         });
       }
 
@@ -381,14 +381,14 @@ export default function MergeListsModal({
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="archive" id="action-archive" />
                       <Label htmlFor="action-archive" className="font-normal cursor-pointer flex items-center gap-2">
-                        <Archive className="w-4 h-4 text-amber-600" />
+                        <Archive className="w-4 h-4 text-teal-600" />
                         Archive (rename with [Archived] prefix)
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="keep" id="action-keep" />
                       <Label htmlFor="action-keep" className="font-normal cursor-pointer flex items-center gap-2">
-                        <FolderOpen className="w-4 h-4 text-blue-600" />
+                        <FolderOpen className="w-4 h-4 text-primary" />
                         Keep as-is (no changes)
                       </Label>
                     </div>
@@ -429,12 +429,12 @@ export default function MergeListsModal({
               </div>
 
               {/* Merge Preview */}
-              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <p className="text-sm text-blue-800">
+              <div className="p-3 bg-teal-50 rounded-lg border border-teal-200">
+                <p className="text-sm text-teal-800">
                   <strong>Merge Preview:</strong> {selectedNewItems.size} items from "{sourceList?.title}" 
                   → "{targetList?.title}"
                 </p>
-                <p className="text-xs text-blue-600 mt-1">
+                <p className="text-xs text-teal-600 mt-1">
                   Source list will be: {sourceAction === "archive" ? "archived" : sourceAction === "delete" ? "deleted" : "kept unchanged"}
                 </p>
               </div>
