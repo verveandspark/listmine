@@ -16,10 +16,12 @@ jobs:
         with:
           node-version: '20.17.0'
 
-      - name: Install Supabase CLI
-        run: |
-          curl -sL https://github.com/supabase/cli/releases/latest/download/install.sh | sh
-          echo "$HOME/.supabase/bin" >> $GITHUB_PATH
+    - name: Install Supabase CLI
+  run: |
+    sudo apt-get update && sudo apt-get install -y curl
+    curl -sL https://github.com/supabase/cli/releases/latest/download/install.sh | sh
+    echo "$HOME/.supabase/bin" >> $GITHUB_PATH
+
 
       - name: Authenticate Supabase CLI
         run: supabase login --token ${{ secrets.SUPABASE_ACCESS_TOKEN }}
