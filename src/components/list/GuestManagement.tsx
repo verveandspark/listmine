@@ -348,7 +348,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
       toast({
         title: "✅ Invite Cancelled",
         description: `Cancelled invitation to ${email}`,
-        className: "bg-accent/10 border-accent/20",
+        duration: 5000,
       });
 
       setPendingInvites(pendingInvites.filter(inv => inv.id !== inviteId));
@@ -376,7 +376,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
       toast({
         title: "✅ Guest Removed",
         description: guestEmail ? `Removed ${guestEmail} from this list` : "Guest removed successfully",
-        className: "bg-accent/10 border-accent/20",
+        duration: 5000,
       });
 
       setGuests(guests.filter(g => g.id !== guestId));
@@ -530,6 +530,59 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
                 <Badge variant="secondary" className="text-xs">
                   {invite.permission}
                 </Badge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={async () => {
+                    try {
+                      // Resend the invite
+                      const { data: listData } = await supabase
+                        .from("lists")
+                        .select("title")
+                        .eq("id", listId)
+                        .single();
+
+                      const signupUrl = `${window.location.origin}/auth?email=${encodeURIComponent(invite.guestEmail)}`;
+                      
+                      const { error: emailError } = await supabase.functions.invoke(
+                        'supabase-functions-send-invite-email',
+                        {
+                          body: {
+                            guestEmail: invite.guestEmail,
+                            inviterName: user?.name || user?.email || "A ListMine user",
+                            listName: listData?.title || "a list",
+                            signupUrl,
+                          },
+                        }
+                      );
+
+                      if (emailError) {
+                        console.error("Email resend error:", emailError);
+                        toast({
+                          title: "⚠️ Email Failed",
+                          description: "Failed to resend invitation email",
+                          variant: "destructive",
+                        });
+                      } else {
+                        toast({
+                          title: "📧 Invite Resent",
+                          description: `Resent invitation to ${invite.guestEmail}`,
+                          duration: 5000,
+                        });
+                      }
+                    } catch (error) {
+                      console.error("Resend error:", error);
+                      toast({
+                        title: "❌ Error",
+                        description: "Failed to resend invitation",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                  className="text-primary hover:text-primary/80"
+                >
+                  <Mail className="w-4 h-4" />
+                </Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button
