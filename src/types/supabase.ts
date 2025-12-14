@@ -520,6 +520,54 @@ export type Database = {
           },
         ]
       }
+      pending_list_invites: {
+        Row: {
+          expires_at: string
+          guest_email: string
+          id: string
+          invited_at: string
+          inviter_id: string
+          list_id: string
+          permission: string
+          status: string
+        }
+        Insert: {
+          expires_at?: string
+          guest_email: string
+          id?: string
+          invited_at?: string
+          inviter_id: string
+          list_id: string
+          permission?: string
+          status?: string
+        }
+        Update: {
+          expires_at?: string
+          guest_email?: string
+          id?: string
+          invited_at?: string
+          inviter_id?: string
+          list_id?: string
+          permission?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_list_invites_inviter_id_fkey"
+            columns: ["inviter_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_list_invites_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       purchases: {
         Row: {
           created_at: string | null

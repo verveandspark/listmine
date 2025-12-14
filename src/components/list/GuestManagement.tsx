@@ -24,10 +24,20 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { UserPlus, Trash2, Mail, Loader2, Users, Crown } from "lucide-react";
+import { UserPlus, Trash2, Mail, Loader2, Users, Crown, Clock } from "lucide-react";
 import { ListGuest } from "@/types";
 import { canInviteGuests, getGuestLimit } from "@/lib/tierUtils";
 import { validateEmail } from "@/lib/validation";
+
+interface PendingInvite {
+  id: string;
+  listId: string;
+  guestEmail: string;
+  permission: "view" | "edit";
+  invitedAt: Date;
+  expiresAt: Date;
+  status: "pending" | "accepted" | "expired";
+}
 
 interface GuestManagementProps {
   listId: string;
@@ -41,6 +51,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
   const { user } = useAuth();
   const { toast } = useToast();
   const [guests, setGuests] = useState<ListGuest[]>([]);
+  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
   const [loading, setLoading] = useState(true);
   const [inviteEmail, setInviteEmail] = useState("");
   const [invitePermission, setInvitePermission] = useState<"view" | "edit">("edit");
@@ -50,11 +61,40 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
   const isOwner = user?.id === listOwnerId;
   const guestLimit = getGuestLimit(user?.tier || "free");
   const canInvite = canInviteGuests(user?.tier || "free");
-  const isAtLimit = guestLimit !== -1 && guests.length >= guestLimit;
+  const totalGuests = guests.length + pendingInvites.length;
+  const isAtLimit = guestLimit !== -1 && totalGuests >= guestLimit;
 
   useEffect(() => {
     fetchGuests();
+    fetchPendingInvites();
   }, [listId]);
+
+  const fetchPendingInvites = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("pending_list_invites")
+        .select("*")
+        .eq("list_id", listId)
+        .eq("status", "pending")
+        .gt("expires_at", new Date().toISOString());
+
+      if (error) throw error;
+
+      const formatted: PendingInvite[] = (data || []).map((inv: any) => ({
+        id: inv.id,
+        listId: inv.list_id,
+        guestEmail: inv.guest_email,
+        permission: inv.permission,
+        invitedAt: new Date(inv.invited_at),
+        expiresAt: new Date(inv.expires_at),
+        status: inv.status,
+      }));
+
+      setPendingInvites(formatted);
+    } catch (error: any) {
+      console.error("[GuestManagement] Error fetching pending invites:", error);
+    }
+  };
 
   const fetchGuests = async () => {
     try {
@@ -148,45 +188,125 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
         .eq("email", emailValidation.value)
         .single();
 
-      if (userError || !userData) {
+      // If user exists, add them directly
+      if (userData && !userError) {
+        // Check if already a guest
+        const existingGuest = guests.find(g => g.userId === userData.id);
+        if (existingGuest) {
+          toast({
+            title: "⚠️ Already Invited",
+            description: "This user is already a guest on this list",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Add the guest
+        const { error: insertError } = await supabase
+          .from("list_guests")
+          .insert({
+            list_id: listId,
+            user_id: userData.id,
+            permission: invitePermission,
+          });
+
+        if (insertError) throw insertError;
+
+        // Get list name for notification email
+        const { data: listData } = await supabase
+          .from("lists")
+          .select("name")
+          .eq("id", listId)
+          .single();
+
+        // Send notification email to existing user
+        const listUrl = `${window.location.origin}/list/${listId}`;
+        
+        await supabase.functions.invoke(
+          'supabase-functions-send-invite-email',
+          {
+            body: {
+              guestEmail: emailValidation.value,
+              inviterName: user?.name || user?.email || "A ListMine user",
+              listName: listData?.name || "a list",
+              signupUrl: listUrl,
+              isExistingUser: true,
+            },
+          }
+        ).catch(err => console.error("Email notification error:", err));
+
         toast({
-          title: "❌ User Not Found",
-          description: "No user found with that email address. They need to create an account first.",
+          title: "✅ Guest Invited",
+          description: `Successfully invited ${emailValidation.value} as a guest`,
+          className: "bg-accent/10 border-accent/20",
+        });
+
+        setInviteEmail("");
+        fetchGuests();
+        return;
+      }
+
+      // User doesn't exist - create pending invite and send email
+      const existingPending = pendingInvites.find(
+        inv => inv.guestEmail.toLowerCase() === emailValidation.value.toLowerCase()
+      );
+      
+      if (existingPending) {
+        toast({
+          title: "⚠️ Invite Already Sent",
+          description: "An invitation has already been sent to this email",
           variant: "destructive",
         });
         return;
       }
 
-      // Check if already a guest
-      const existingGuest = guests.find(g => g.userId === userData.id);
-      if (existingGuest) {
-        toast({
-          title: "⚠️ Already Invited",
-          description: "This user is already a guest on this list",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Add the guest
-      const { error: insertError } = await supabase
-        .from("list_guests")
+      // Create pending invite
+      const { error: pendingError } = await supabase
+        .from("pending_list_invites")
         .insert({
           list_id: listId,
-          user_id: userData.id,
+          inviter_id: user?.id,
+          guest_email: emailValidation.value,
           permission: invitePermission,
         });
 
-      if (insertError) throw insertError;
+      if (pendingError) throw pendingError;
+
+      // Get list name for email
+      const { data: listData } = await supabase
+        .from("lists")
+        .select("name")
+        .eq("id", listId)
+        .single();
+
+      // Send invite email
+      const signupUrl = `${window.location.origin}/auth?email=${encodeURIComponent(emailValidation.value)}`;
+      
+      const { error: emailError } = await supabase.functions.invoke(
+        'supabase-functions-send-invite-email',
+        {
+          body: {
+            guestEmail: emailValidation.value,
+            inviterName: user?.name || user?.email || "A ListMine user",
+            listName: listData?.name || "a list",
+            signupUrl,
+          },
+        }
+      );
+
+      if (emailError) {
+        console.error("Email send error:", emailError);
+        // Don't fail the whole operation if email fails
+      }
 
       toast({
-        title: "✅ Guest Invited",
-        description: `Successfully invited ${emailValidation.value} as a guest`,
+        title: "📧 Invitation Sent",
+        description: `We've sent an invite to ${emailValidation.value}. They'll need to create a free account to access your list.`,
         className: "bg-accent/10 border-accent/20",
       });
 
       setInviteEmail("");
-      fetchGuests();
+      fetchPendingInvites();
     } catch (error: any) {
       console.error("[GuestManagement] Error inviting guest:", error);
       toast({
@@ -196,6 +316,32 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
       });
     } finally {
       setInviting(false);
+    }
+  };
+
+  const handleRemovePendingInvite = async (inviteId: string, email: string) => {
+    try {
+      const { error } = await supabase
+        .from("pending_list_invites")
+        .delete()
+        .eq("id", inviteId);
+
+      if (error) throw error;
+
+      toast({
+        title: "✅ Invite Cancelled",
+        description: `Cancelled invitation to ${email}`,
+        className: "bg-accent/10 border-accent/20",
+      });
+
+      setPendingInvites(pendingInvites.filter(inv => inv.id !== inviteId));
+    } catch (error: any) {
+      console.error("[GuestManagement] Error removing pending invite:", error);
+      toast({
+        title: "❌ Error",
+        description: error.message || "Failed to cancel invite",
+        variant: "destructive",
+      });
     }
   };
 
@@ -273,7 +419,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
           <h3 className="font-semibold">List Guests</h3>
           {guestLimit !== -1 && (
             <Badge variant="secondary" className="text-xs">
-              {guests.length}/{guestLimit}
+              {totalGuests}/{guestLimit}
             </Badge>
           )}
         </div>
@@ -335,11 +481,81 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
         </div>
       )}
 
+      {/* Pending Invites Section */}
+      {isOwner && pendingInvites.length > 0 && (
+        <div className="space-y-2 pt-2 border-t">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-secondary" />
+            <h4 className="font-medium text-sm text-secondary-foreground">Pending Invites</h4>
+            <Badge variant="secondary" className="text-xs">
+              {pendingInvites.length}
+            </Badge>
+          </div>
+          {pendingInvites.map((invite) => (
+            <div
+              key={invite.id}
+              className="flex items-center justify-between p-3 bg-secondary/10 border border-secondary/30 rounded-lg"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center">
+                  <Mail className="w-4 h-4 text-secondary" />
+                </div>
+                <div>
+                  <p className="font-medium text-sm text-foreground">
+                    {invite.guestEmail}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Invite sent • Expires {new Date(invite.expiresAt).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-xs">
+                  {invite.permission}
+                </Badge>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Cancel Invitation</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to cancel the invitation to {invite.guestEmail}?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleRemovePendingInvite(invite.id, invite.guestEmail)}
+                        className="bg-red-600 hover:bg-red-700"
+                      >
+                        Cancel Invite
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Guest List */}
       <div className="space-y-2">
-        {guests.length === 0 ? (
+        {guests.length === 0 && pendingInvites.length === 0 ? (
           <p className="text-sm text-gray-500 text-center py-4">
             No guests invited yet
+          </p>
+        ) : guests.length === 0 ? (
+          <p className="text-sm text-gray-500 text-center py-4">
+            No active guests yet
           </p>
         ) : (
           guests.map((guest) => (

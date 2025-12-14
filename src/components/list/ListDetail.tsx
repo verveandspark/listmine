@@ -4,6 +4,7 @@ import { LinkPreviewCard } from "@/components/list/LinkPreviewCard";
 import { ListSidebar } from "./ListSidebar";
 import PurchaseHistoryModal from "./PurchaseHistoryModal";
 import GuestManagement from "./GuestManagement";
+import TeamManagement from "@/components/team/TeamManagement";
 import UpdateFromRetailerModal from "./UpdateFromRetailerModal";
 import MergeListsModal from "./MergeListsModal";
 import { useState } from "react";
@@ -131,6 +132,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/lib/supabase";
+import { canInviteGuests, canHaveTeamMembers } from "@/lib/tierUtils";
 import ShareSettingsModal from "./ShareSettingsModal";
 
 export default function ListDetail() {
@@ -237,6 +239,7 @@ export default function ListDetail() {
   const [editListType, setEditListType] = useState<string>("");
   const [isPurchaseHistoryOpen, setIsPurchaseHistoryOpen] = useState(false);
   const [isGuestManagementOpen, setIsGuestManagementOpen] = useState(false);
+  const [isTeamManagementOpen, setIsTeamManagementOpen] = useState(false);
   const [isShareSettingsOpen, setIsShareSettingsOpen] = useState(false);
   const [isUpdateFromRetailerOpen, setIsUpdateFromRetailerOpen] = useState(false);
   const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
@@ -1379,10 +1382,18 @@ export default function ListDetail() {
                         <Share2 className="w-4 h-4 mr-2" />
                         {list.isShared ? "Share Settings" : "Share List"}
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setIsGuestManagementOpen(true)}>
-                        <Users className="w-4 h-4 mr-2" />
-                        Manage Guests
-                      </DropdownMenuItem>
+                      {canInviteGuests(user?.tier) && (
+                        <DropdownMenuItem onClick={() => setIsGuestManagementOpen(true)}>
+                          <Users className="w-4 h-4 mr-2" />
+                          Manage Guests
+                        </DropdownMenuItem>
+                      )}
+                      {canHaveTeamMembers(user?.tier) && (
+                        <DropdownMenuItem onClick={() => setIsTeamManagementOpen(true)}>
+                          <Users className="w-4 h-4 mr-2" />
+                          Manage Team
+                        </DropdownMenuItem>
+                      )}
                       {list.isShared && (
                         <DropdownMenuItem onClick={handleUnshareList} className="text-red-600">
                           <Link2Off className="w-4 h-4 mr-2" />
@@ -4721,6 +4732,22 @@ export default function ListDetail() {
             </DialogDescription>
           </DialogHeader>
           <GuestManagement listId={list.id} listOwnerId={user?.id || ""} />
+        </DialogContent>
+      </Dialog>
+
+      {/* Team Management Dialog */}
+      <Dialog open={isTeamManagementOpen} onOpenChange={setIsTeamManagementOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-primary" />
+              Manage Team
+            </DialogTitle>
+            <DialogDescription>
+              Manage team members who have access to all your lists.
+            </DialogDescription>
+          </DialogHeader>
+          <TeamManagement />
         </DialogContent>
       </Dialog>
 
