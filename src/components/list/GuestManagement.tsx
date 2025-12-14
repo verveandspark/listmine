@@ -222,7 +222,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
         // Send notification email to existing user
         const listUrl = `${window.location.origin}/list/${listId}`;
         
-        await supabase.functions.invoke(
+        const { data: emailResponse, error: emailError } = await supabase.functions.invoke(
           'supabase-functions-send-invite-email',
           {
             body: {
@@ -233,12 +233,23 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
               isExistingUser: true,
             },
           }
-        ).catch(err => console.error("Email notification error:", err));
+        );
+
+        if (emailError) {
+          console.error("Email notification error:", emailError);
+          toast({
+            title: "⚠️ Email Failed",
+            description: "Guest was added but email notification failed to send",
+            variant: "destructive",
+          });
+        } else {
+          console.log("Email sent successfully:", emailResponse);
+        }
 
         toast({
           title: "✅ Guest Invited",
           description: `Successfully invited ${emailValidation.value} as a guest`,
-          className: "bg-accent/10 border-accent/20",
+          duration: 5000,
         });
 
         setInviteEmail("");
@@ -282,7 +293,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
       // Send invite email
       const signupUrl = `${window.location.origin}/auth?email=${encodeURIComponent(emailValidation.value)}`;
       
-      const { error: emailError } = await supabase.functions.invoke(
+      const { data: emailResponse, error: emailError } = await supabase.functions.invoke(
         'supabase-functions-send-invite-email',
         {
           body: {
@@ -296,13 +307,19 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
 
       if (emailError) {
         console.error("Email send error:", emailError);
-        // Don't fail the whole operation if email fails
+        toast({
+          title: "⚠️ Email Failed",
+          description: "Invite created but email failed to send. Check console for details.",
+          variant: "destructive",
+        });
+      } else {
+        console.log("Email sent successfully:", emailResponse);
       }
 
       toast({
         title: "📧 Invitation Sent",
         description: `We've sent an invite to ${emailValidation.value}. They'll need to create a free account to access your list.`,
-        className: "bg-accent/10 border-accent/20",
+        duration: 5000,
       });
 
       setInviteEmail("");

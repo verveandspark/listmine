@@ -37,7 +37,7 @@
     --radius: 0.75rem;
 
     /* Success color */
-    --success: 180 55% 35%; /* Teal #298585 - improved contrast */
+    --success: 180 55% 35%; /* Teal #298585 - matches brand accent */
     --success-foreground: 0 0% 100%; /* White */
 
     /* Warning color */
