@@ -212,10 +212,10 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
 
         if (insertError) throw insertError;
 
-        // Get list name for notification email
+        // Get list title for notification email
         const { data: listData } = await supabase
           .from("lists")
-          .select("name")
+          .select("title")
           .eq("id", listId)
           .single();
 
@@ -228,7 +228,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
             body: {
               guestEmail: emailValidation.value,
               inviterName: user?.name || user?.email || "A ListMine user",
-              listName: listData?.name || "a list",
+              listName: listData?.title || "a list",
               signupUrl: listUrl,
               isExistingUser: true,
             },
@@ -272,10 +272,10 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
 
       if (pendingError) throw pendingError;
 
-      // Get list name for email
+      // Get list title for email
       const { data: listData } = await supabase
         .from("lists")
-        .select("name")
+        .select("title")
         .eq("id", listId)
         .single();
 
@@ -288,7 +288,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
           body: {
             guestEmail: emailValidation.value,
             inviterName: user?.name || user?.email || "A ListMine user",
-            listName: listData?.name || "a list",
+            listName: listData?.title || "a list",
             signupUrl,
           },
         }
