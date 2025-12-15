@@ -168,10 +168,10 @@ export default function ListDetail() {
 
   const list = lists.find((l) => l.id === id);
   
-  // Permission checks for guest access
-  const isOwner = canEditListMeta(list!, user?.id);
-  const canEditListItems = canEditItems(list!, user?.id);
-  const canShare = canManageSharing(list!, user?.id);
+  // Permission checks for guest access (only compute if list exists)
+  const isOwner = list ? canEditListMeta(list, user?.id) : false;
+  const canEditListItems = list ? canEditItems(list, user?.id) : false;
+  const canShare = list ? canManageSharing(list, user?.id) : false;
   
   // Save last opened list ID for "List View" toggle
   if (id) {
