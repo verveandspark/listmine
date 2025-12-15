@@ -1980,6 +1980,8 @@ export function ListProvider({ children }: { children: ReactNode }) {
         updatedAt: new Date(list.updated_at),
         isFavorite: list.is_favorite || false,
         isArchived: list.is_archived || list.title?.startsWith("[Archived]") || false,
+        userId: list.user_id,
+        guestPermission: undefined,
       }));
       
       // Filter by archived status
