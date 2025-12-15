@@ -224,7 +224,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
         
         try {
           const emailRes = await fetch(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/supabase-functions-send-invite-email`,
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-invite-email`,
             {
               method: 'POST',
               headers: {
@@ -310,7 +310,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
       
       try {
         const emailRes = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/supabase-functions-send-invite-email`,
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-invite-email`,
           {
             method: 'POST',
             headers: {
@@ -575,7 +575,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
                       const signupUrl = `${window.location.origin}/auth?email=${encodeURIComponent(invite.guestEmail)}`;
                       
                       const emailRes = await fetch(
-                        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/supabase-functions-send-invite-email`,
+                        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-invite-email`,
                         {
                           method: 'POST',
                           headers: {
