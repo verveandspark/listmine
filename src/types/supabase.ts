@@ -895,7 +895,9 @@ export type Database = {
           id: string
           is_admin: boolean | null
           is_disabled: boolean | null
+          items_per_list_limit: number | null
           last_list_id: string | null
+          list_limit: number | null
           name: string | null
           role: string | null
           tier: string | null
@@ -911,7 +913,9 @@ export type Database = {
           id?: string
           is_admin?: boolean | null
           is_disabled?: boolean | null
+          items_per_list_limit?: number | null
           last_list_id?: string | null
+          list_limit?: number | null
           name?: string | null
           role?: string | null
           tier?: string | null
@@ -927,7 +931,9 @@ export type Database = {
           id?: string
           is_admin?: boolean | null
           is_disabled?: boolean | null
+          items_per_list_limit?: number | null
           last_list_id?: string | null
+          list_limit?: number | null
           name?: string | null
           role?: string | null
           tier?: string | null
@@ -996,7 +1002,9 @@ export type Database = {
           id: string
           is_admin: boolean | null
           is_disabled: boolean | null
+          items_per_list_limit: number | null
           last_list_id: string | null
+          list_limit: number | null
           name: string | null
           role: string | null
           tier: string | null
