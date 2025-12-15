@@ -2329,6 +2329,9 @@ export default function Dashboard() {
                           {list.isFavorite && (
                             <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
                           )}
+                          {list.isGuestAccess && (
+                            <Badge variant="outline" className="text-xs bg-teal-50 text-teal-700 border-teal-200">Shared</Badge>
+                          )}
                           {list.isShared && (
                             <Share2 className="w-4 h-4 text-primary" />
                           )}
