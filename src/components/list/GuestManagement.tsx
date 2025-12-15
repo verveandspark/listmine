@@ -223,12 +223,14 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
         const listUrl = `${window.location.origin}/list/${listId}`;
         
         try {
+          const { data: { session } } = await supabase.auth.getSession();
           const emailRes = await fetch(
             `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-invite-email`,
             {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session?.access_token}`,
               },
               body: JSON.stringify({
                 guestEmail: emailValidation.value,
@@ -309,12 +311,14 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
       const signupUrl = `${window.location.origin}/auth?email=${encodeURIComponent(emailValidation.value)}`;
       
       try {
+        const { data: { session } } = await supabase.auth.getSession();
         const emailRes = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-invite-email`,
           {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session?.access_token}`,
             },
             body: JSON.stringify({
               guestEmail: emailValidation.value,
@@ -574,12 +578,14 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
 
                       const signupUrl = `${window.location.origin}/auth?email=${encodeURIComponent(invite.guestEmail)}`;
                       
+                      const { data: { session } } = await supabase.auth.getSession();
                       const emailRes = await fetch(
                         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-invite-email`,
                         {
                           method: 'POST',
                           headers: {
                             'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${session?.access_token}`,
                           },
                           body: JSON.stringify({
                             guestEmail: invite.guestEmail,
