@@ -1693,6 +1693,32 @@ export default function ListDetail() {
                       <Share2 className={`w-4 h-4 mr-2 ${list.isShared ? "text-primary" : ""}`} />
                       {list.isShared ? "Share Settings" : "Share List"}
                     </Button>
+                    {canInviteGuests(user?.tier) && (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setIsGuestManagementOpen(true);
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="w-full justify-start min-h-[44px]"
+                      >
+                        <Users className="w-4 h-4 mr-2" />
+                        Manage Guests
+                      </Button>
+                    )}
+                    {canHaveTeamMembers(user?.tier) && (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setIsTeamManagementOpen(true);
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="w-full justify-start min-h-[44px]"
+                      >
+                        <Users className="w-4 h-4 mr-2" />
+                        Manage Team
+                      </Button>
+                    )}
 
                     <Button
                       variant={isSelectMode ? "default" : "outline"}
