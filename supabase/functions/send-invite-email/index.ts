@@ -155,7 +155,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: 'ListMine <noreply@listmine.app>',
+          from: 'ListMine <invite@notifications.listmine.com>',
           to: [guestEmail],
           subject: teamSubject,
           html: teamEmailHtml,

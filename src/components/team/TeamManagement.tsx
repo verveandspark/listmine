@@ -347,7 +347,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
         return;
       }
 
-      const response = await supabase.functions.invoke("supabase-functions-send-invite-email", {
+      const response = await supabase.functions.invoke("send-invite-email", {
         body: {
           guestEmail: email,
           listName: account?.name || "Team",
