@@ -3,8 +3,8 @@ name: Deploy Supabase Edge Functions
 on:
   push:
     branches:
-      - main  # Change if your default branch is not 'main'
-
+      - main  
+      
 jobs:
   deploy:
     runs-on: ubuntu-latest
