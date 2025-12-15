@@ -245,9 +245,11 @@ export function ListProvider({ children }: { children: ReactNode }) {
             table: "user_favorites",
             filter: `user_id=eq.${user.id}`,
           },
-          () => {
+          (payload) => {
             // User favorites realtime event received
+            console.log("[ListMine Debug] user_favorites realtime event:", payload);
             if (currentUserIdRef.current && currentUserTierRef.current) {
+              console.log("[ListMine Debug] Triggering loadLists after favorites change");
               debouncedLoadLists(currentUserIdRef.current, currentUserTierRef.current);
             }
           },
@@ -380,13 +382,15 @@ export function ListProvider({ children }: { children: ReactNode }) {
 
 
       // Fetch user favorites
-      const { data: userFavorites } = await supabase
+      console.log("[ListMine Debug] Fetching user favorites for userId:", userId);
+      const { data: userFavorites, error: favoritesError } = await supabase
         .from("user_favorites")
         .select("list_id")
         .eq("user_id", userId);
       
+      console.log("[ListMine Debug] userFavorites query result:", { userFavorites, favoritesError });
       const userFavoriteIds = new Set((userFavorites || []).map((f) => f.list_id));
-      console.log("[ListMine Debug] userFavoriteIds:", userFavoriteIds);
+      console.log("[ListMine Debug] userFavoriteIds Set:", Array.from(userFavoriteIds));
 
       // Only fetch items if we have lists
       let itemsData: any[] = [];
@@ -501,6 +505,8 @@ export function ListProvider({ children }: { children: ReactNode }) {
         showPurchaserInfo: list.show_purchaser_info || false,
         isGuestAccess: guestListIdSet.has(list.id),
       })) || [];
+
+      console.log("[ListMine Debug] Lists mapped with favorites. Sample favorites:", listsWithItems.filter(l => l.isFavorite).map(l => ({ id: l.id, title: l.title })));
 
       // Filter lists based on user tier - only show lists the user has access to
       // BUT always include guest-accessed lists regardless of tier
@@ -1262,11 +1268,16 @@ export function ListProvider({ children }: { children: ReactNode }) {
         console.log("[ListMine Debug] Favorite toggled successfully:", result.action, "is_favorite:", result.is_favorite);
         
         // Update state with the actual result from the server
-        setLists((prevLists) =>
-          prevLists.map((l) =>
+        console.log("[ListMine Debug] Updating lists state with new favorite status for listId:", listId, "to:", result.is_favorite);
+        setLists((prevLists) => {
+          const updatedLists = prevLists.map((l) =>
             l.id === listId ? { ...l, isFavorite: result.is_favorite } : l
-          )
-        );
+          );
+          console.log("[ListMine Debug] Lists state updated. List favorite status:", updatedLists.find(l => l.id === listId)?.isFavorite);
+          return updatedLists;
+        });
+      } else {
+        console.warn("[ListMine Debug] toggle_user_favorite returned unexpected data format:", data);
       }
     } catch (error: any) {
       console.error("[ListMine Error] toggleFavorite failed:", error);
