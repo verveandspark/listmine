@@ -2630,8 +2630,8 @@ export default function ListDetail() {
             </div>
           </Card>
           ) : (
-            <Card className="p-4 mb-4 sm:mb-6 print:hidden bg-amber-50 border-amber-200">
-              <p className="text-sm text-amber-700 text-center">
+            <Card className="p-4 mb-4 sm:mb-6 print:hidden bg-primary/10 border-primary/30">
+              <p className="text-sm text-primary text-center">
                 {list.isGuestAccess 
                   ? "Shared list: You have view-only access. Contact the list owner to request edit permissions."
                   : "You have view-only access to this list."}
