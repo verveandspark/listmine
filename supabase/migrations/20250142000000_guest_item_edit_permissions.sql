@@ -4,6 +4,9 @@ DROP POLICY IF EXISTS "Users can delete items from their own lists" ON public.li
 DROP POLICY IF EXISTS "Guests can insert items with edit permission" ON public.list_items;
 DROP POLICY IF EXISTS "Guests can update items with edit permission" ON public.list_items;
 DROP POLICY IF EXISTS "Guests can delete items with edit permission" ON public.list_items;
+DROP POLICY IF EXISTS "List items insert access" ON public.list_items;
+DROP POLICY IF EXISTS "List items update access" ON public.list_items;
+DROP POLICY IF EXISTS "List items delete access" ON public.list_items;
 
 CREATE OR REPLACE FUNCTION public.can_edit_list_items(p_list_id UUID)
 RETURNS BOOLEAN
