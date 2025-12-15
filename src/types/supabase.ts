@@ -884,6 +884,35 @@ export type Database = {
           },
         ]
       }
+      user_favorites: {
+        Row: {
+          created_at: string | null
+          id: string
+          list_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          list_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          list_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_favorites_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           avatar_url: string | null
@@ -1147,6 +1176,7 @@ export type Database = {
         Returns: number
       }
       get_user_account_id: { Args: { p_user_id: string }; Returns: string }
+      get_user_favorite_list_ids: { Args: never; Returns: string[] }
       is_account_owner: {
         Args: { p_account_id: string; p_user_id: string }
         Returns: boolean
@@ -1172,6 +1202,7 @@ export type Database = {
         }
         Returns: string
       }
+      toggle_user_favorite: { Args: { p_list_id: string }; Returns: boolean }
       update_user_avatar: {
         Args: { new_avatar_url: string; user_id: string }
         Returns: undefined

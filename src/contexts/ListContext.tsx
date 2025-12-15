@@ -187,6 +187,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
 
     let listsChannel: ReturnType<typeof supabase.channel> | null = null;
     let itemsChannel: ReturnType<typeof supabase.channel> | null = null;
+    let favoritesChannel: ReturnType<typeof supabase.channel> | null = null;
     
     if (user) {
       // Use a stable channel name based only on user ID
@@ -231,6 +232,27 @@ export function ListProvider({ children }: { children: ReactNode }) {
           },
         )
         .subscribe();
+
+      // Listen for user_favorites changes to update favorite status in real-time
+      const favoritesChannelName = `user-favorites-changes-${user.id}`;
+      favoritesChannel = supabase
+        .channel(favoritesChannelName)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "user_favorites",
+            filter: `user_id=eq.${user.id}`,
+          },
+          () => {
+            // User favorites realtime event received
+            if (currentUserIdRef.current && currentUserTierRef.current) {
+              debouncedLoadLists(currentUserIdRef.current, currentUserTierRef.current);
+            }
+          },
+        )
+        .subscribe();
     }
 
     return () => {
@@ -242,6 +264,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
       }
       if (itemsChannel) {
         supabase.removeChannel(itemsChannel);
+      }
+      if (favoritesChannel) {
+        supabase.removeChannel(favoritesChannel);
       }
     };
   }, [user?.id, user?.tier]);
@@ -354,6 +379,15 @@ export function ListProvider({ children }: { children: ReactNode }) {
       }
 
 
+      // Fetch user favorites
+      const { data: userFavorites } = await supabase
+        .from("user_favorites")
+        .select("list_id")
+        .eq("user_id", userId);
+      
+      const userFavoriteIds = new Set((userFavorites || []).map((f) => f.list_id));
+      console.log("[ListMine Debug] userFavoriteIds:", userFavoriteIds);
+
       // Only fetch items if we have lists
       let itemsData: any[] = [];
       if (listsData && listsData.length > 0) {
@@ -455,7 +489,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
           assignedTo: item.assigned_to || undefined,
         })),
         isPinned: list.is_pinned || false,
-        isFavorite: list.is_favorite || false,
+        isFavorite: userFavoriteIds.has(list.id),
         isShared: list.is_shared || false,
         isArchived: list.is_archived || list.title?.startsWith("[Archived]") || false,
         shareLink: list.share_link || undefined,
@@ -1197,23 +1231,22 @@ export function ListProvider({ children }: { children: ReactNode }) {
 
   const toggleFavorite = async (listId: string) => {
     const list = lists.find((l) => l.id === listId);
-    if (!list) return;
+    if (!list || !user) return;
+
+    const newFavoriteState = !list.isFavorite;
 
     // Optimistically update local state first for smooth UX
     setLists((prevLists) =>
       prevLists.map((l) =>
-        l.id === listId ? { ...l, isFavorite: !l.isFavorite } : l
+        l.id === listId ? { ...l, isFavorite: newFavoriteState } : l
       )
     );
 
     try {
-      const result = (await withTimeout(
-        supabase
-          .from("lists")
-          .update({ is_favorite: !list.isFavorite })
-          .eq("id", listId),
-      )) as any;
-      const { error } = result;
+      // Use the RPC function to toggle user-specific favorite
+      const { data, error } = await supabase.rpc("toggle_user_favorite", {
+        p_list_id: listId,
+      });
 
       if (error) throw error;
     } catch (error: any) {
