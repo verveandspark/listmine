@@ -223,24 +223,33 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
         const listUrl = `${window.location.origin}/list/${listId}`;
         
         try {
-          const { data: emailData, error: emailError } = await supabase.functions.invoke('send-invite-email', {
-            body: {
-              guestEmail: emailValidation.value,
-              inviterName: user?.name || user?.email || "A ListMine user",
-              listName: listData?.title || "a list",
-              signupUrl: listUrl,
-              isExistingUser: true,
-            },
-          });
+          const emailRes = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/supabase-functions-send-invite-email`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                guestEmail: emailValidation.value,
+                inviterName: user?.name || user?.email || "A ListMine user",
+                listName: listData?.title || "a list",
+                signupUrl: listUrl,
+                isExistingUser: true,
+              }),
+            }
+          );
           
-          if (emailError) {
-            console.error("Email notification error:", emailError);
+          if (!emailRes.ok) {
+            const errorText = await emailRes.text();
+            console.error("Email notification error:", errorText);
             toast({
               title: "⚠️ Email Failed",
               description: "Guest was added but email notification failed to send",
               variant: "destructive",
             });
           } else {
+            const emailData = await emailRes.json();
             console.log("Email sent successfully:", emailData);
           }
         } catch (emailErr) {
@@ -300,23 +309,32 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
       const signupUrl = `${window.location.origin}/auth?email=${encodeURIComponent(emailValidation.value)}`;
       
       try {
-        const { data: emailData, error: emailError } = await supabase.functions.invoke('send-invite-email', {
-          body: {
-            guestEmail: emailValidation.value,
-            inviterName: user?.name || user?.email || "A ListMine user",
-            listName: listData?.title || "a list",
-            signupUrl,
-          },
-        });
+        const emailRes = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/supabase-functions-send-invite-email`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              guestEmail: emailValidation.value,
+              inviterName: user?.name || user?.email || "A ListMine user",
+              listName: listData?.title || "a list",
+              signupUrl,
+            }),
+          }
+        );
 
-        if (emailError) {
-          console.error("Email send error:", emailError);
+        if (!emailRes.ok) {
+          const errorText = await emailRes.text();
+          console.error("Email send error:", errorText);
           toast({
             title: "⚠️ Email Failed",
             description: "Invite created but email failed to send. Check console for details.",
             variant: "destructive",
           });
         } else {
+          const emailData = await emailRes.json();
           console.log("Email sent successfully:", emailData);
         }
       } catch (emailError) {
@@ -556,17 +574,25 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
 
                       const signupUrl = `${window.location.origin}/auth?email=${encodeURIComponent(invite.guestEmail)}`;
                       
-                      const { data: emailData, error: emailError } = await supabase.functions.invoke('send-invite-email', {
-                        body: {
-                          guestEmail: invite.guestEmail,
-                          inviterName: user?.name || user?.email || "A ListMine user",
-                          listName: listData?.title || "a list",
-                          signupUrl,
-                        },
-                      });
+                      const emailRes = await fetch(
+                        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/supabase-functions-send-invite-email`,
+                        {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({
+                            guestEmail: invite.guestEmail,
+                            inviterName: user?.name || user?.email || "A ListMine user",
+                            listName: listData?.title || "a list",
+                            signupUrl,
+                          }),
+                        }
+                      );
 
-                      if (emailError) {
-                        console.error("Email resend error:", emailError);
+                      if (!emailRes.ok) {
+                        const errorText = await emailRes.text();
+                        console.error("Email resend error:", errorText);
                         toast({
                           title: "⚠️ Email Failed",
                           description: "Failed to resend invitation email",
