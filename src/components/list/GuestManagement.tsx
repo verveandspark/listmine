@@ -241,11 +241,10 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
               variant: "destructive",
             });
           } else {
-            const emailResponse = await emailRes.json();
-            console.log("Email sent successfully:", emailResponse);
+            console.log("Email sent successfully:", emailData);
           }
-        } catch (emailError) {
-          console.error("Email notification error:", emailError);
+        } catch (emailErr) {
+          console.error("Email notification error:", emailErr);
           toast({
             title: "⚠️ Email Failed",
             description: "Guest was added but email notification failed to send",
