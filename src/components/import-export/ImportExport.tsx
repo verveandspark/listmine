@@ -236,7 +236,7 @@ export default function ImportExport() {
         toast({
           title: "⚠️ List imported with warnings",
           description: `${skippedItems} item${skippedItems > 1 ? 's were' : ' was'} skipped because ${skippedItems > 1 ? 'they had' : 'it had'} no text.`,
-          className: "bg-amber-50 border-amber-200",
+          className: "bg-teal-50 border-teal-200",
         });
       } else {
         toast({

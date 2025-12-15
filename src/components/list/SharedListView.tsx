@@ -450,7 +450,7 @@ export default function SharedListView() {
             />
           </div>
         ),
-        className: "bg-amber-50 border-amber-200",
+        className: "bg-teal-50 border-teal-200",
         duration: 15000,
       });
     }

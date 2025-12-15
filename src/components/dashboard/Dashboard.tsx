@@ -1,6 +1,7 @@
 import { DashboardSkeleton } from "@/components/ui/DashboardSkeleton";
 import { OnboardingTooltips } from "@/components/onboarding/OnboardingTooltips";
 import { useUndoAction } from "@/hooks/useUndoAction";
+import { supabase } from "@/lib/supabase";
 import {
   Plus,
   Search,
@@ -30,6 +31,7 @@ import {
   FileText,
   Upload,
   User,
+  Users,
   LogOut,
   MessageSquare,
   Link2Off,
@@ -247,6 +249,98 @@ export default function Dashboard() {
   
   // Export dropdown state
   const [exportDropdownOpen, setExportDropdownOpen] = useState<string | null>(null);
+
+  // Account switcher state
+  interface AccountOption {
+    id: string;
+    name: string;
+    type: 'personal' | 'team';
+    ownerId?: string;
+  }
+  const [availableAccounts, setAvailableAccounts] = useState<AccountOption[]>([]);
+  const [currentAccountId, setCurrentAccountId] = useState<string | null>(null);
+  const [loadingAccounts, setLoadingAccounts] = useState(false);
+
+  // Fetch available accounts (personal + team accounts user is member of)
+  useEffect(() => {
+    const fetchAccounts = async () => {
+      if (!user?.id) return;
+      
+      setLoadingAccounts(true);
+      try {
+        const accounts: AccountOption[] = [];
+        
+        // Add personal account
+        accounts.push({
+          id: `personal-${user.id}`,
+          name: 'My Personal Lists',
+          type: 'personal',
+        });
+        
+        // Fetch team accounts where user is a member
+        const { data: teamMemberships, error: memberError } = await supabase
+          .from('account_team_members')
+          .select(`
+            account_id,
+            accounts:account_id (
+              id,
+              name,
+              owner_id
+            )
+          `)
+          .eq('user_id', user.id);
+        
+        if (!memberError && teamMemberships) {
+          for (const membership of teamMemberships) {
+            const account = (membership as any).accounts;
+            if (account && account.owner_id !== user.id) {
+              accounts.push({
+                id: account.id,
+                name: account.name || 'Team Account',
+                type: 'team',
+                ownerId: account.owner_id,
+              });
+            }
+          }
+        }
+        
+        // Also check if user owns any accounts
+        const { data: ownedAccounts, error: ownedError } = await supabase
+          .from('accounts')
+          .select('id, name, owner_id')
+          .eq('owner_id', user.id);
+        
+        if (!ownedError && ownedAccounts) {
+          for (const account of ownedAccounts) {
+            // Only add if not already in list
+            if (!accounts.find(a => a.id === account.id)) {
+              accounts.push({
+                id: account.id,
+                name: account.name || 'My Team',
+                type: 'team',
+                ownerId: account.owner_id,
+              });
+            }
+          }
+        }
+        
+        setAvailableAccounts(accounts);
+        
+        // Set default to personal if not set
+        if (!currentAccountId && accounts.length > 0) {
+          setCurrentAccountId(accounts[0].id);
+        }
+      } catch (error) {
+        console.error('[Dashboard] Error fetching accounts:', error);
+      } finally {
+        setLoadingAccounts(false);
+      }
+    };
+    
+    fetchAccounts();
+  }, [user?.id]);
+
+  const currentAccount = availableAccounts.find(a => a.id === currentAccountId);
 
   // Use the actual loading state from the lists context
   // Only show loading skeleton if we haven't loaded once yet AND there are no lists
@@ -743,6 +837,7 @@ export default function Dashboard() {
   });
 
   const favoriteLists = lists.filter((list) => list.isFavorite);
+  const sharedLists = lists.filter((list) => list.isGuestAccess);
 
   const getCategoryStats = (category: ListCategory) => {
     const categoryLists = lists.filter((list) => list.category === category);
@@ -835,6 +930,48 @@ export default function Dashboard() {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-2">
+              {/* Account Switcher - only show if user has team accounts */}
+              {availableAccounts.length > 1 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 px-3 gap-2"
+                    >
+                      {currentAccount?.type === 'team' ? (
+                        <Users className="w-4 h-4 text-teal-600" />
+                      ) : (
+                        <User className="w-4 h-4" />
+                      )}
+                      <span className="max-w-[120px] truncate">
+                        {currentAccount?.name || 'Select Account'}
+                      </span>
+                      <ChevronDown className="w-3 h-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56">
+                    {availableAccounts.map((account) => (
+                      <DropdownMenuItem
+                        key={account.id}
+                        onClick={() => setCurrentAccountId(account.id)}
+                        className={currentAccountId === account.id ? 'bg-teal-50' : ''}
+                      >
+                        {account.type === 'team' ? (
+                          <Users className="w-4 h-4 mr-2 text-teal-600" />
+                        ) : (
+                          <User className="w-4 h-4 mr-2" />
+                        )}
+                        <span className="flex-1 truncate">{account.name}</span>
+                        {currentAccountId === account.id && (
+                          <Badge variant="outline" className="text-xs bg-teal-50 text-teal-700 border-teal-200 ml-2">Active</Badge>
+                        )}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+              
               {/* View Mode Toggle */}
               <div className="flex items-center bg-gray-100 rounded-lg p-1">
                 <Button
@@ -946,6 +1083,35 @@ export default function Dashboard() {
                       </Badge>
                     )}
                   </div>
+                  
+                  {/* Mobile Account Switcher - only show if user has team accounts */}
+                  {availableAccounts.length > 1 && (
+                    <div className="pb-4 border-b">
+                      <p className="text-xs text-gray-500 mb-2">Switch Account</p>
+                      <div className="space-y-1">
+                        {availableAccounts.map((account) => (
+                          <Button
+                            key={account.id}
+                            variant={currentAccountId === account.id ? "default" : "ghost"}
+                            size="sm"
+                            className={`w-full justify-start h-10 ${currentAccountId === account.id ? 'bg-teal-600 hover:bg-teal-700' : ''}`}
+                            onClick={() => {
+                              setCurrentAccountId(account.id);
+                              setIsMobileMenuOpen(false);
+                            }}
+                          >
+                            {account.type === 'team' ? (
+                              <Users className="w-4 h-4 mr-2" />
+                            ) : (
+                              <User className="w-4 h-4 mr-2" />
+                            )}
+                            <span className="truncate">{account.name}</span>
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
                   {/* Mobile View Mode Toggle */}
                   <div className="flex items-center bg-gray-100 rounded-lg p-1 mb-2">
                     <Button
@@ -1929,6 +2095,108 @@ export default function Dashboard() {
               No favorite lists selected yet. Favorite a list to see yours here.
             </p>
           )}
+        </div>
+        )}
+
+        {/* Shared With Me Section - Only visible when there are shared lists and not searching */}
+        {!searchQuery.trim() && sharedLists.length > 0 && (
+        <div className="mb-6 sm:mb-8">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Users className="w-5 h-5 text-teal-600" />
+            Shared With Me
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-2">
+            {sharedLists.map((list, index) => {
+              const Icon = categoryIcons[list.category] || ListChecks;
+              const itemCount = Math.max(0, list.items?.length || 0);
+              const completedItems = Math.max(0, list.items?.filter(
+                (item) => item.completed,
+              ).length || 0);
+              return (
+                <Card
+                  key={list.id}
+                  className="hover:shadow-lg hover:bg-gray-50 transition-all cursor-pointer group relative animate-slide-up border-teal-200"
+                  style={{ animationDelay: `${index * 50}ms` }}
+                  onClick={() => {
+                    localStorage.setItem("last_list_id", list.id);
+                    navigate(`/list/${list.id}`);
+                  }}
+                >
+                  {/* Quick Actions - shown on hover */}
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-200 flex flex-wrap gap-1.5 z-10 bg-white/95 backdrop-blur-sm rounded-lg p-1.5 shadow-lg border border-gray-100 max-w-[140px] justify-end">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                            onClick={(e) => openEditDialog(list, e)}
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Edit</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className={`w-10 h-10 rounded-lg ${categoryColors[list.category]} flex items-center justify-center`}
+                        >
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-lg flex items-center gap-2">
+                            {list.title}
+                            <Badge variant="outline" className="text-xs bg-teal-50 text-teal-700 border-teal-200">Shared</Badge>
+                          </CardTitle>
+                          <CardDescription>
+                            {list.category} ·{" "}
+                            {
+                              listTypes.find((t) => t.value === list.listType)
+                                ?.label
+                            }
+                          </CardDescription>
+                        </div>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600">
+                          {itemCount} items
+                        </span>
+                        <span className="text-gray-600">
+                          {completedItems} completed
+                        </span>
+                      </div>
+                      {itemCount > 0 && (
+                        <div className="w-full bg-gray-200 rounded-full h-1.5">
+                          <div
+                            className="bg-teal-500 h-1.5 rounded-full transition-all"
+                            style={{
+                              width: `${(completedItems / itemCount) * 100}%`,
+                            }}
+                          />
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between pt-2">
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                          <Clock className="w-3 h-3" />
+                          <span>Updated {getTimeAgo(list.updatedAt)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         </div>
         )}
 

@@ -782,7 +782,7 @@ export default function ListDetail() {
           />
         </div>
       ),
-      className: "bg-amber-50 border-amber-200",
+      className: "bg-teal-50 border-teal-200",
       duration: 15000,
     });
   };
@@ -1228,6 +1228,9 @@ export default function ListDetail() {
                 <div className="min-w-0 flex-1">
                   <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate flex items-center gap-2">
                     {list.title}
+                    {list.isGuestAccess && (
+                      <Badge variant="outline" className="text-xs bg-teal-50 text-teal-700 border-teal-200">Shared</Badge>
+                    )}
                     {list.isArchived && (
                       <Badge variant="secondary" className="text-xs">Archived</Badge>
                     )}
