@@ -1,5 +1,6 @@
 // ListMine invite email edge function
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,7 +12,33 @@ interface InviteEmailRequest {
   inviterName: string;
   listName: string;
   signupUrl: string;
-  isExistingUser?: boolean;
+}
+
+async function checkUserExists(email: string): Promise<boolean> {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  
+  if (!supabaseUrl || !serviceRoleKey) {
+    console.error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+    return false;
+  }
+  
+  const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  });
+  
+  const { data, error } = await supabaseAdmin.auth.admin.listUsers();
+  
+  if (error) {
+    console.error('Error checking user existence:', error.message);
+    return false;
+  }
+  
+  const userExists = data.users.some(user => user.email?.toLowerCase() === email.toLowerCase());
+  return userExists;
 }
 
 serve(async (req) => {
@@ -25,7 +52,7 @@ serve(async (req) => {
   }
 
   try {
-    const { guestEmail, inviterName, listName, signupUrl, isExistingUser }: InviteEmailRequest = await req.json();
+    const { guestEmail, inviterName, listName, signupUrl }: InviteEmailRequest = await req.json();
 
     if (!guestEmail || !inviterName || !listName || !signupUrl) {
       return new Response(
@@ -33,6 +60,10 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Server-side check for existing user
+    const isExistingUser = await checkUserExists(guestEmail);
+    console.log(`Email path: ${isExistingUser ? 'EXISTING_USER' : 'NEW_USER'}, recipient: ${guestEmail}`);
 
     // Different email templates for new vs existing users
     const emailHtml = isExistingUser ? `
@@ -134,7 +165,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'ListMine <onboarding@resend.dev>',
+        from: 'ListMine <onboarding@listmine.app>',
         to: [guestEmail],
         subject,
         html: emailHtml,
