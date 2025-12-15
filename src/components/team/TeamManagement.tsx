@@ -352,7 +352,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
           guestEmail: email,
           listName: account?.name || "Team",
           inviterName: user?.name || user?.email || "A team owner",
-          isExistingUser,
+          isExistingUser: isExistingUser,
           context: "team",
           accountId: account?.id,
         },
@@ -585,7 +585,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
       {pendingInvites.length > 0 && (
         <div className="space-y-2">
           <h4 className="font-medium text-sm flex items-center gap-2">
-            <Clock className="w-4 h-4 text-amber-500" />
+            <Clock className="w-4 h-4 text-teal-600" />
             Pending Invites
             <Badge variant="secondary" className="text-xs">
               {pendingInvites.length}
@@ -595,11 +595,11 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
             {pendingInvites.map((invite) => (
               <div
                 key={invite.id}
-                className="flex items-center justify-between p-4 bg-amber-50 border border-amber-200 rounded-lg"
+                className="flex items-center justify-between p-4 bg-teal-50 border border-teal-200 rounded-lg"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
-                    <Mail className="w-5 h-5 text-amber-600" />
+                  <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center">
+                    <Mail className="w-5 h-5 text-teal-600" />
                   </div>
                   <div>
                     <p className="font-medium">{invite.guestEmail}</p>
@@ -619,7 +619,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
                     size="sm"
                     onClick={() => handleResendInvite(invite)}
                     disabled={resendingId === invite.id}
-                    className="text-amber-600 hover:text-amber-700 hover:bg-amber-100"
+                    className="text-teal-600 hover:text-teal-700 hover:bg-teal-100"
                   >
                     {resendingId === invite.id ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
