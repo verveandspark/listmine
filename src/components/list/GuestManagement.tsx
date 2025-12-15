@@ -224,6 +224,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
         
         try {
           const { data: { session } } = await supabase.auth.getSession();
+          console.log("Session token available:", !!session?.access_token);
           const emailRes = await fetch(
             `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-invite-email`,
             {
@@ -231,6 +232,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
               headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${session?.access_token}`,
+                'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
               },
               body: JSON.stringify({
                 guestEmail: emailValidation.value,
@@ -312,6 +314,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
       
       try {
         const { data: { session } } = await supabase.auth.getSession();
+        console.log("Session token available:", !!session?.access_token);
         const emailRes = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-invite-email`,
           {
@@ -319,6 +322,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${session?.access_token}`,
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
             },
             body: JSON.stringify({
               guestEmail: emailValidation.value,
@@ -579,6 +583,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
                       const signupUrl = `${window.location.origin}/auth?email=${encodeURIComponent(invite.guestEmail)}`;
                       
                       const { data: { session } } = await supabase.auth.getSession();
+                      console.log("Session token available:", !!session?.access_token);
                       const emailRes = await fetch(
                         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-invite-email`,
                         {
@@ -586,6 +591,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
                           headers: {
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${session?.access_token}`,
+                            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
                           },
                           body: JSON.stringify({
                             guestEmail: invite.guestEmail,
