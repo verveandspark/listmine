@@ -216,6 +216,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const setUserFromAuth = async (supabaseUser: SupabaseUser, fetchTier: boolean = true) => {
     let tier: 'free' | 'good' | 'even_better' | 'lots_more' = 'free';
     let avatarUrl: string | undefined = supabaseUser.user_metadata?.avatar_url || undefined;
+    let userName: string = supabaseUser.user_metadata?.name || 'User';
     
     // Tier priority for comparison (higher = better)
     const tierPriority: Record<string, number> = {
@@ -240,7 +241,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         const queryPromise = supabase
           .from('users')
-          .select('tier, avatar_url')
+          .select('tier, avatar_url, name')
           .eq('id', supabaseUser.id)
           .single();
 
@@ -257,6 +258,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // Get avatar_url from database (prioritize over auth metadata)
           if (userData.avatar_url) {
             avatarUrl = userData.avatar_url;
+          }
+          
+          // Get name from database (prioritize over auth metadata)
+          if (userData.name) {
+            userName = userData.name;
           }
           
           // If we have a cached tier for the same user, never downgrade
@@ -291,7 +297,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser({
       id: supabaseUser.id,
       email: supabaseUser.email || "",
-      name: supabaseUser.user_metadata?.name || "User",
+      name: userName,
       createdAt: new Date(supabaseUser.created_at || new Date()),
       tier: tier,
       listLimit: tierLimits.listLimit,
@@ -338,6 +344,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: { name },
+        },
       });
 
       if (error) {
