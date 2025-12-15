@@ -223,7 +223,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
         const listUrl = `${window.location.origin}/list/${listId}`;
         
         const { data: emailResponse, error: emailError } = await supabase.functions.invoke(
-          'supabase-functions-send-invite-email',
+          'send-invite-email',
           {
             body: {
               guestEmail: emailValidation.value,
@@ -294,7 +294,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
       const signupUrl = `${window.location.origin}/auth?email=${encodeURIComponent(emailValidation.value)}`;
       
       const { data: emailResponse, error: emailError } = await supabase.functions.invoke(
-        'supabase-functions-send-invite-email',
+        'send-invite-email',
         {
           body: {
             guestEmail: emailValidation.value,

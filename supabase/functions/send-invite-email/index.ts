@@ -103,10 +103,16 @@ serve(async (req) => {
 
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
     
+    console.log('Environment check - RESEND_API_KEY exists:', !!resendApiKey);
+    console.log('Available env vars:', Object.keys(Deno.env.toObject()).filter(k => !k.includes('SECRET')));
+    
     if (!resendApiKey) {
-      console.error('RESEND_API_KEY not configured');
+      console.error('RESEND_API_KEY not configured. Please add it as a secret in Supabase Dashboard > Edge Functions > Secrets');
       return new Response(
-        JSON.stringify({ error: 'Email service not configured' }),
+        JSON.stringify({ 
+          error: 'Email service not configured',
+          hint: 'RESEND_API_KEY secret needs to be added in Supabase Dashboard > Edge Functions > Secrets'
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
