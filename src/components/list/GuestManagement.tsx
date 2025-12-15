@@ -223,7 +223,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
         const listUrl = `${window.location.origin}/list/${listId}`;
         
         try {
-          const { data: emailData, error: emailError } = await supabase.functions.invoke('supabase-functions-send-invite-email', {
+          const { data: emailData, error: emailError } = await supabase.functions.invoke('send-invite-email', {
             body: {
               guestEmail: emailValidation.value,
               inviterName: user?.name || user?.email || "A ListMine user",
@@ -300,7 +300,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
       const signupUrl = `${window.location.origin}/auth?email=${encodeURIComponent(emailValidation.value)}`;
       
       try {
-        const { data: emailData, error: emailError } = await supabase.functions.invoke('supabase-functions-send-invite-email', {
+        const { data: emailData, error: emailError } = await supabase.functions.invoke('send-invite-email', {
           body: {
             guestEmail: emailValidation.value,
             inviterName: user?.name || user?.email || "A ListMine user",
@@ -556,7 +556,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
 
                       const signupUrl = `${window.location.origin}/auth?email=${encodeURIComponent(invite.guestEmail)}`;
                       
-                      const { data: emailData, error: emailError } = await supabase.functions.invoke('supabase-functions-send-invite-email', {
+                      const { data: emailData, error: emailError } = await supabase.functions.invoke('send-invite-email', {
                         body: {
                           guestEmail: invite.guestEmail,
                           inviterName: user?.name || user?.email || "A ListMine user",
