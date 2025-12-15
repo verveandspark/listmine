@@ -33,8 +33,13 @@ jobs:
       - name: Authenticate Supabase CLI
         run: supabase login --token "${SUPABASE_ACCESS_TOKEN}"
 
-      - name: Link project (recommended)
-        run: supabase link --project-ref "${SUPABASE_PROJECT_REF}"
+      - name: Link project (if SUPABASE_PROJECT_REF set)
+        run: |
+          if [ -n "${SUPABASE_PROJECT_REF}" ]; then
+            supabase link --project-ref "${SUPABASE_PROJECT_REF}"
+          else
+            echo "SUPABASE_PROJECT_REF not set; skipping supabase link"
+          fi
 
       - name: Inspect functions folder
         run: |
@@ -44,4 +49,4 @@ jobs:
           ls -la functions || true
 
       - name: Deploy send-invite-email edge function
-        run: supabase functions deploy send-invite-email --project-ref "${SUPABASE_PROJECT_REF}" --no-confirm
+        run: supabase functions deploy send-invite-email --project-ref "${SUPABASE_PROJECT_REF}" --yes
