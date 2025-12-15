@@ -347,6 +347,9 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
         return;
       }
 
+      const baseUrl = window.location.origin;
+      const signupUrl = `${baseUrl}/auth?email=${encodeURIComponent(email)}`;
+
       const response = await supabase.functions.invoke("send-invite-email", {
         body: {
           guestEmail: email,
@@ -355,6 +358,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
           isExistingUser: isExistingUser,
           context: "team",
           accountId: account?.id,
+          signupUrl: signupUrl,
         },
       });
 
