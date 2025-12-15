@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,7 +18,6 @@ serve(async (req) => {
   console.log('Incoming request:', {
     method: req.method,
     url: req.url,
-    headers: Object.fromEntries(req.headers.entries()),
   });
 
   if (req.method === 'OPTIONS') {
@@ -25,6 +25,34 @@ serve(async (req) => {
   }
 
   try {
+    // Verify the user is authenticated
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('Missing or invalid Authorization header');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - missing token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    
+    // Use service role to verify the token
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      console.error('Token verification failed:', authError?.message);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Authenticated user:', user.id);
+
     const { guestEmail, inviterName, listName, signupUrl, isExistingUser }: InviteEmailRequest = await req.json();
 
     if (!guestEmail || !inviterName || !listName || !signupUrl) {
