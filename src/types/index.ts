@@ -86,6 +86,7 @@ export interface List {
   isFavorite: boolean;
   isShared: boolean;
   isArchived?: boolean;
+  isGuestAccess?: boolean;
   shareLink?: string;
   shareMode?: ShareMode;
   tags?: string[];

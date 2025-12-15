@@ -305,19 +305,35 @@ export function ListProvider({ children }: { children: ReactNode }) {
       }
 
       // Fetch lists where user is a guest
-      const { data: guestListIds } = await supabase
+      const { data: guestListIds, error: guestIdsError } = await supabase
         .from("list_guests")
         .select("list_id")
         .eq("user_id", userId);
 
+      console.log("[ListMine Debug] ownedLists count:", (ownedLists || []).length);
+      console.log("[ListMine Debug] guestListIds:", guestListIds);
+
+      if (guestIdsError) {
+        console.error("[ListMine Error] guestListIds query error:", guestIdsError);
+      }
+
       let guestLists: any[] = [];
       if (guestListIds && guestListIds.length > 0) {
-        const { data: guestListsData } = await supabase
+        const guestIds = guestListIds.map((g) => g.list_id);
+        console.log("[ListMine Debug] Fetching guest lists for IDs:", guestIds);
+        
+        const { data: guestListsData, error: guestListsError } = await supabase
           .from("lists")
           .select("*")
-          .in("id", guestListIds.map((g) => g.list_id))
+          .in("id", guestIds)
           .order("created_at", { ascending: false });
+        
+        if (guestListsError) {
+          console.error("[ListMine Error] guestLists query error:", guestListsError);
+        }
+        
         guestLists = guestListsData || [];
+        console.log("[ListMine Debug] guestLists count:", guestLists.length, "data:", guestLists);
       }
 
       // Combine and deduplicate lists
@@ -327,6 +343,8 @@ export function ListProvider({ children }: { children: ReactNode }) {
         ...guestLists.filter((l) => !ownedIds.has(l.id)),
       ];
       const listsData = combinedLists;
+      
+      console.log("[ListMine Debug] finalDisplayedLists count:", listsData.length);
 
       // Check if this request is still valid (user hasn't changed)
       if (requestId !== loadRequestIdRef.current || userId !== currentUserIdRef.current) {
@@ -413,6 +431,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
       }
 
 
+      // Track which list IDs are guest-accessed (not owned by user)
+      const guestListIdSet = new Set(guestLists.map((l) => l.id));
+      
       const listsWithItems: List[] = listsData?.map((list) => ({
         id: list.id,
         title: list.title,
@@ -444,12 +465,16 @@ export function ListProvider({ children }: { children: ReactNode }) {
         createdAt: new Date(list.created_at),
         updatedAt: new Date(list.updated_at),
         showPurchaserInfo: list.show_purchaser_info || false,
+        isGuestAccess: guestListIdSet.has(list.id),
       })) || [];
 
       // Filter lists based on user tier - only show lists the user has access to
+      // BUT always include guest-accessed lists regardless of tier
       const filteredLists = listsWithItems.filter((list) => 
-        canAccessListType(userTier, list.listType)
+        list.isGuestAccess || canAccessListType(userTier, list.listType)
       );
+      
+      console.log("[ListMine Debug] After tier filter - filteredLists count:", filteredLists.length);
 
       // Final check before setting state
       if (requestId !== loadRequestIdRef.current || userId !== currentUserIdRef.current) {

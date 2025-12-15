@@ -1512,6 +1512,9 @@ export default function Dashboard() {
                             <div>
                               <CardTitle className="text-lg flex items-center gap-2">
                                 {list.title}
+                                {list.isGuestAccess && (
+                                  <Badge variant="outline" className="text-xs bg-teal-50 text-teal-700 border-teal-200">Shared</Badge>
+                                )}
                                 {list.isArchived && (
                                   <Badge variant="secondary" className="text-xs">Archived</Badge>
                                 )}
@@ -1853,6 +1856,9 @@ export default function Dashboard() {
                           <div>
                             <CardTitle className="text-lg flex items-center gap-2">
                               {list.title}
+                              {list.isGuestAccess && (
+                                <Badge variant="outline" className="text-xs bg-teal-50 text-teal-700 border-teal-200">Shared</Badge>
+                              )}
                             </CardTitle>
                             <CardDescription>
                               {list.category} ·{" "}
