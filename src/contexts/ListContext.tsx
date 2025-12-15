@@ -1244,12 +1244,32 @@ export function ListProvider({ children }: { children: ReactNode }) {
 
     try {
       // Use the RPC function to toggle user-specific favorite
+      console.log("[ListMine Debug] Calling toggle_user_favorite RPC for list:", listId);
       const { data, error } = await supabase.rpc("toggle_user_favorite", {
         p_list_id: listId,
       });
 
+      console.log("[ListMine Debug] toggle_user_favorite response:", { data, error });
+
       if (error) throw error;
+      
+      // Verify the result from the RPC
+      if (data && typeof data === 'object') {
+        const result = data as { success: boolean; is_favorite: boolean; action: string; error?: string };
+        if (!result.success) {
+          throw new Error(result.error || "Failed to toggle favorite");
+        }
+        console.log("[ListMine Debug] Favorite toggled successfully:", result.action, "is_favorite:", result.is_favorite);
+        
+        // Update state with the actual result from the server
+        setLists((prevLists) =>
+          prevLists.map((l) =>
+            l.id === listId ? { ...l, isFavorite: result.is_favorite } : l
+          )
+        );
+      }
     } catch (error: any) {
+      console.error("[ListMine Error] toggleFavorite failed:", error);
       // Revert optimistic update on error
       setLists((prevLists) =>
         prevLists.map((l) =>

@@ -1202,7 +1202,7 @@ export type Database = {
         }
         Returns: string
       }
-      toggle_user_favorite: { Args: { p_list_id: string }; Returns: boolean }
+      toggle_user_favorite: { Args: { p_list_id: string }; Returns: Json }
       update_user_avatar: {
         Args: { new_avatar_url: string; user_id: string }
         Returns: undefined
