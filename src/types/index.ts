@@ -77,6 +77,7 @@ export type ShareMode = 'view_only' | 'importable';
 
 export interface List {
   id: string;
+  userId: string; // Owner's user ID
   title: string;
   description?: string;
   category: ListCategory;
@@ -87,6 +88,7 @@ export interface List {
   isShared: boolean;
   isArchived?: boolean;
   isGuestAccess?: boolean;
+  guestPermission?: 'view' | 'edit'; // Current user's guest permission (if guest)
   shareLink?: string;
   shareMode?: ShareMode;
   tags?: string[];
@@ -96,6 +98,26 @@ export interface List {
   updatedAt: Date;
   showPurchaserInfo?: boolean;
 }
+
+// Permission helper functions
+export const canEditListMeta = (list: List, currentUserId: string | undefined): boolean => {
+  if (!currentUserId) return false;
+  return list.userId === currentUserId;
+};
+
+export const canEditItems = (list: List, currentUserId: string | undefined): boolean => {
+  if (!currentUserId) return false;
+  // Owner can always edit
+  if (list.userId === currentUserId) return true;
+  // Guest with edit permission can edit items
+  if (list.isGuestAccess && list.guestPermission === 'edit') return true;
+  return false;
+};
+
+export const canManageSharing = (list: List, currentUserId: string | undefined): boolean => {
+  if (!currentUserId) return false;
+  return list.userId === currentUserId;
+};
 
 export type ListCategory = 'Tasks' | 'Groceries' | 'Ideas' | 'Shopping' | 'Travel' | 'Work' | 'Home' | 'School' | 'Other';
 

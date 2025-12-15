@@ -12,7 +12,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useLists } from "@/contexts/useListsHook";
 import { useAuth } from "@/contexts/useAuthHook";
 import { useUndoAction } from "@/hooks/useUndoAction";
-import { ListItem as ListItemType, ListCategory, ListType } from "@/types";
+import { ListItem as ListItemType, ListCategory, ListType, canEditListMeta, canEditItems, canManageSharing } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -167,6 +167,11 @@ export default function ListDetail() {
   const { executeWithUndo } = useUndoAction();
 
   const list = lists.find((l) => l.id === id);
+  
+  // Permission checks for guest access
+  const isOwner = canEditListMeta(list!, user?.id);
+  const canEditListItems = canEditItems(list!, user?.id);
+  const canShare = canManageSharing(list!, user?.id);
   
   // Save last opened list ID for "List View" toggle
   if (id) {
@@ -1229,7 +1234,9 @@ export default function ListDetail() {
                   <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate flex items-center gap-2">
                     {list.title}
                     {list.isGuestAccess && (
-                      <Badge variant="outline" className="text-xs bg-teal-50 text-teal-700 border-teal-200">Shared</Badge>
+                      <Badge variant="outline" className="text-xs bg-teal-50 text-teal-700 border-teal-200">
+                        {list.guestPermission === 'edit' ? 'Shared (can edit items)' : 'Shared (view only)'}
+                      </Badge>
                     )}
                     {list.isArchived && (
                       <Badge variant="secondary" className="text-xs">Archived</Badge>
@@ -1363,48 +1370,50 @@ export default function ListDetail() {
                       <TooltipContent>{list.isFavorite ? "Remove from Favorites" : "Add to Favorites"}</TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
-                  <DropdownMenu>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <DropdownMenuTrigger asChild>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className={`h-9 w-9 ${list.isShared ? "bg-primary/10" : ""}`}
-                            >
-                              <Share2 className={`w-4 h-4 ${list.isShared ? "text-primary" : "text-gray-600"}`} />
-                            </Button>
-                          </TooltipTrigger>
-                        </DropdownMenuTrigger>
-                        <TooltipContent>{list.isShared ? "Sharing options" : "Share this list"}</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    <DropdownMenuContent align="end" className="w-56">
-                      <DropdownMenuItem onClick={() => setIsShareSettingsOpen(true)}>
-                        <Share2 className="w-4 h-4 mr-2" />
-                        {list.isShared ? "Share Settings" : "Share List"}
-                      </DropdownMenuItem>
-                      {canInviteGuests(user?.tier) && (
-                        <DropdownMenuItem onClick={() => setIsGuestManagementOpen(true)}>
-                          <Users className="w-4 h-4 mr-2" />
-                          Manage Guests
+                  {isOwner && (
+                    <DropdownMenu>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <DropdownMenuTrigger asChild>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className={`h-9 w-9 ${list.isShared ? "bg-primary/10" : ""}`}
+                              >
+                                <Share2 className={`w-4 h-4 ${list.isShared ? "text-primary" : "text-gray-600"}`} />
+                              </Button>
+                            </TooltipTrigger>
+                          </DropdownMenuTrigger>
+                          <TooltipContent>{list.isShared ? "Sharing options" : "Share this list"}</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuItem onClick={() => setIsShareSettingsOpen(true)}>
+                          <Share2 className="w-4 h-4 mr-2" />
+                          {list.isShared ? "Share Settings" : "Share List"}
                         </DropdownMenuItem>
-                      )}
-                      {canHaveTeamMembers(user?.tier) && (
-                        <DropdownMenuItem onClick={() => setIsTeamManagementOpen(true)}>
-                          <Users className="w-4 h-4 mr-2" />
-                          Manage Team
-                        </DropdownMenuItem>
-                      )}
-                      {list.isShared && (
-                        <DropdownMenuItem onClick={handleUnshareList} className="text-red-600">
-                          <Link2Off className="w-4 h-4 mr-2" />
-                          Unshare List
-                        </DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                        {canInviteGuests(user?.tier) && (
+                          <DropdownMenuItem onClick={() => setIsGuestManagementOpen(true)}>
+                            <Users className="w-4 h-4 mr-2" />
+                            Manage Guests
+                          </DropdownMenuItem>
+                        )}
+                        {canHaveTeamMembers(user?.tier) && (
+                          <DropdownMenuItem onClick={() => setIsTeamManagementOpen(true)}>
+                            <Users className="w-4 h-4 mr-2" />
+                            Manage Team
+                          </DropdownMenuItem>
+                        )}
+                        {list.isShared && (
+                          <DropdownMenuItem onClick={handleUnshareList} className="text-red-600">
+                            <Link2Off className="w-4 h-4 mr-2" />
+                            Unshare List
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -1461,22 +1470,24 @@ export default function ListDetail() {
                       </TooltipProvider>
                     </>
                   )}
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={openEditListDialog}
-                          className="h-9 w-9"
-                        >
-                          <Edit className="w-4 h-4 text-gray-600" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Edit list</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  {lists.length >= 2 && (
+                  {isOwner && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={openEditListDialog}
+                            className="h-9 w-9"
+                          >
+                            <Edit className="w-4 h-4 text-gray-600" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Edit list</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                  {isOwner && lists.length >= 2 && (
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -1510,75 +1521,77 @@ export default function ListDetail() {
                   </TooltipProvider>
                 </div>
 
-                {/* Destructive Actions - Separated */}
-                <div className="flex items-center gap-1 pl-2">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-9 w-9 hover:bg-teal-50"
-                          onClick={handleArchiveList}
-                        >
-                          <Archive className="w-4 h-4 text-teal-600" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Archive list (hide from dashboard)</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  {list.isArchived && (
+                {/* Destructive Actions - Separated (Owner only) */}
+                {isOwner && (
+                  <div className="flex items-center gap-1 pl-2">
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="h-9 w-9 hover:bg-accent/10"
-                            onClick={handleUnarchiveList}
+                            className="h-9 w-9 hover:bg-teal-50"
+                            onClick={handleArchiveList}
                           >
-                            <ArchiveRestore className="w-4 h-4 text-accent" />
+                            <Archive className="w-4 h-4 text-teal-600" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Restore from Archive</TooltipContent>
+                        <TooltipContent>Archive list (hide from dashboard)</TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
-                  )}
-                  <AlertDialog>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <AlertDialogTrigger asChild>
+                    {list.isArchived && (
+                      <TooltipProvider>
+                        <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-red-50">
-                              <Trash2 className="w-4 h-4 text-red-600" />
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-9 w-9 hover:bg-accent/10"
+                              onClick={handleUnarchiveList}
+                            >
+                              <ArchiveRestore className="w-4 h-4 text-accent" />
                             </Button>
                           </TooltipTrigger>
-                        </AlertDialogTrigger>
-                        <TooltipContent>Delete list</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete this list? You can
-                          undo this action for a few seconds after deletion.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel className="bg-gray-100">
-                          Cancel
-                        </AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={handleDeleteList}
-                          className="bg-red-600 hover:bg-red-700"
-                        >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
+                          <TooltipContent>Restore from Archive</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                    <AlertDialog>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <AlertDialogTrigger asChild>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-red-50">
+                                <Trash2 className="w-4 h-4 text-red-600" />
+                              </Button>
+                            </TooltipTrigger>
+                          </AlertDialogTrigger>
+                          <TooltipContent>Delete list</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete this list? You can
+                            undo this action for a few seconds after deletion.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="bg-gray-100">
+                            Cancel
+                          </AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={handleDeleteList}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                )}
               </div>
 
               {/* Mobile Menu */}
@@ -1685,42 +1698,46 @@ export default function ListDetail() {
                       <Star className={`w-4 h-4 mr-2 ${list.isFavorite ? "text-amber-500 fill-amber-500" : ""}`} />
                       {list.isFavorite ? "Remove from Favorites" : "Add to Favorites"}
                     </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setIsShareSettingsOpen(true);
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className={`w-full justify-start min-h-[44px] ${list.isShared ? "bg-primary/10 border-primary/20" : ""}`}
-                    >
-                      <Share2 className={`w-4 h-4 mr-2 ${list.isShared ? "text-primary" : ""}`} />
-                      {list.isShared ? "Share Settings" : "Share List"}
-                    </Button>
-                    {canInviteGuests(user?.tier) && (
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setIsGuestManagementOpen(true);
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className="w-full justify-start min-h-[44px]"
-                      >
-                        <Users className="w-4 h-4 mr-2" />
-                        Manage Guests
-                      </Button>
-                    )}
-                    {canHaveTeamMembers(user?.tier) && (
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setIsTeamManagementOpen(true);
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className="w-full justify-start min-h-[44px]"
-                      >
-                        <Users className="w-4 h-4 mr-2" />
-                        Manage Team
-                      </Button>
+                    {isOwner && (
+                      <>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setIsShareSettingsOpen(true);
+                            setIsMobileMenuOpen(false);
+                          }}
+                          className={`w-full justify-start min-h-[44px] ${list.isShared ? "bg-primary/10 border-primary/20" : ""}`}
+                        >
+                          <Share2 className={`w-4 h-4 mr-2 ${list.isShared ? "text-primary" : ""}`} />
+                          {list.isShared ? "Share Settings" : "Share List"}
+                        </Button>
+                        {canInviteGuests(user?.tier) && (
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setIsGuestManagementOpen(true);
+                              setIsMobileMenuOpen(false);
+                            }}
+                            className="w-full justify-start min-h-[44px]"
+                          >
+                            <Users className="w-4 h-4 mr-2" />
+                            Manage Guests
+                          </Button>
+                        )}
+                        {canHaveTeamMembers(user?.tier) && (
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setIsTeamManagementOpen(true);
+                              setIsMobileMenuOpen(false);
+                            }}
+                            className="w-full justify-start min-h-[44px]"
+                          >
+                            <Users className="w-4 h-4 mr-2" />
+                            Manage Team
+                          </Button>
+                        )}
+                      </>
                     )}
 
                     <Button
@@ -1766,17 +1783,19 @@ export default function ListDetail() {
                         </Button>
                       </>
                     )}
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        openEditListDialog();
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="w-full justify-start min-h-[44px]"
-                    >
-                      <Edit className="w-4 h-4 mr-2" />
-                      Edit List
-                    </Button>
+                    {isOwner && (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          openEditListDialog();
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="w-full justify-start min-h-[44px]"
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit List
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       onClick={() => {
@@ -1789,50 +1808,54 @@ export default function ListDetail() {
                       Help & Support
                     </Button>
 
-                    {/* Destructive Actions */}
-                    <div className="border-t border-gray-200 my-2" />
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        handleArchiveList();
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="w-full justify-start min-h-[44px] text-teal-600 hover:text-teal-700 hover:bg-teal-50"
-                    >
-                      <Archive className="w-4 h-4 mr-2" />
-                      Archive List
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
+                    {/* Destructive Actions (Owner only) */}
+                    {isOwner && (
+                      <>
+                        <div className="border-t border-gray-200 my-2" />
                         <Button
-                          variant="destructive"
-                          className="w-full justify-start min-h-[44px]"
+                          variant="outline"
+                          onClick={() => {
+                            handleArchiveList();
+                            setIsMobileMenuOpen(false);
+                          }}
+                          className="w-full justify-start min-h-[44px] text-teal-600 hover:text-teal-700 hover:bg-teal-50"
                         >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete List
+                          <Archive className="w-4 h-4 mr-2" />
+                          Archive List
                         </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete this list? You can
-                            undo this action for a few seconds after deletion.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel className="bg-gray-100 min-h-[44px]">
-                            Cancel
-                          </AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={handleDeleteList}
-                            className="bg-red-600 hover:bg-red-700 min-h-[44px]"
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="destructive"
+                              className="w-full justify-start min-h-[44px]"
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete List
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete this list? You can
+                                undo this action for a few seconds after deletion.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel className="bg-gray-100 min-h-[44px]">
+                                Cancel
+                              </AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={handleDeleteList}
+                                className="bg-red-600 hover:bg-red-700 min-h-[44px]"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </>
+                    )}
                   </div>
                 </SheetContent>
               </Sheet>
@@ -1852,6 +1875,17 @@ export default function ListDetail() {
         </div>
 
         <div className="flex-1 overflow-y-auto">
+          {/* Guest Access Banner */}
+          {list.isGuestAccess && (
+            <div className="bg-blue-50 border-b border-blue-200 px-4 sm:px-6 lg:px-8 py-2 print:hidden">
+              <p className="text-sm text-blue-700 text-center">
+                {canEditListItems 
+                  ? "📝 Shared list: You can add, edit, and remove items."
+                  : "👁️ Shared list: View-only access."}
+              </p>
+            </div>
+          )}
+          
           {/* Sticky Add Item Section */}
           <div className="sticky top-0 z-10 bg-gradient-to-br from-primary/10 via-white to-secondary/10 px-4 sm:px-6 lg:px-8 pt-4 pb-2 print:hidden">
             {/* Bulk Actions Toolbar */}
@@ -1942,22 +1976,23 @@ export default function ListDetail() {
             </Card>
           )}
 
-          {/* Add Item */}
-          <Card className="p-0 mb-4 sm:mb-6 print:hidden">
-            <div className="p-3 sm:p-4">
-              <div className="space-y-3">
-                {/* Mode Toggle */}
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium">Add Item Mode</Label>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Quick</span>
-                    <Switch
-                      checked={detailedMode}
-                      onCheckedChange={setDetailedMode}
-                    />
-                    <span className="text-xs text-muted-foreground">
-                      Detailed
-                    </span>
+          {/* Add Item - Only show if user can edit items */}
+          {canEditListItems ? (
+            <Card className="p-0 mb-4 sm:mb-6 print:hidden">
+              <div className="p-3 sm:p-4">
+                <div className="space-y-3">
+                  {/* Mode Toggle */}
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">Add Item Mode</Label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Quick</span>
+                      <Switch
+                        checked={detailedMode}
+                        onCheckedChange={setDetailedMode}
+                      />
+                      <span className="text-xs text-muted-foreground">
+                        Detailed
+                      </span>
                   </div>
                 </div>
 
@@ -2594,6 +2629,15 @@ export default function ListDetail() {
               </div>
             </div>
           </Card>
+          ) : (
+            <Card className="p-4 mb-4 sm:mb-6 print:hidden bg-amber-50 border-amber-200">
+              <p className="text-sm text-amber-700 text-center">
+                {list.isGuestAccess 
+                  ? "Shared list: You have view-only access. Contact the list owner to request edit permissions."
+                  : "You have view-only access to this list."}
+              </p>
+            </Card>
+          )}
           </div>
 
           {/* Scrollable Content Area */}
@@ -2740,9 +2784,9 @@ export default function ListDetail() {
                       )}
                     <Card
                       className={`p-3 sm:p-4 hover:shadow-md transition-all ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2 opacity-50" : ""} ${isDropTarget && itemSortBy === "manual" ? "ring-2 ring-primary/30" : ""}`}
-                      draggable={itemSortBy === "manual"}
+                      draggable={itemSortBy === "manual" && canEditListItems}
                       onDragStart={(e) =>
-                        itemSortBy === "manual" && handleDragStart(e, item)
+                        itemSortBy === "manual" && canEditListItems && handleDragStart(e, item)
                       }
                       onDragOver={(e) =>
                         itemSortBy === "manual" && handleDragOver(e, item)
@@ -2891,7 +2935,7 @@ export default function ListDetail() {
                             </div>
                           )}
                         </div>
-                        {!isSelectMode && (
+                        {!isSelectMode && canEditListItems && (
                           <div className="flex flex-col sm:flex-row items-center gap-1">
                             <Dialog
                               open={editingItem?.id === item.id}
@@ -3685,9 +3729,9 @@ export default function ListDetail() {
                     
                     <Card
                       className={`p-3 sm:p-4 hover:shadow-md transition-all ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${isPurchased ? "border-success/20 bg-success/5" : ""} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2 opacity-50" : ""} ${isDropTarget && itemSortBy === "manual" ? "ring-2 ring-primary/30" : ""}`}
-                      draggable={itemSortBy === "manual"}
+                      draggable={itemSortBy === "manual" && canEditListItems}
                       onDragStart={(e) =>
-                        itemSortBy === "manual" && handleDragStart(e, item)
+                        itemSortBy === "manual" && canEditListItems && handleDragStart(e, item)
                       }
                       onDragOver={(e) =>
                         itemSortBy === "manual" && handleDragOver(e, item)
@@ -3887,7 +3931,7 @@ export default function ListDetail() {
                             </div>
                           )}
                         </div>
-                        {!isSelectMode && (
+                        {!isSelectMode && canEditListItems && (
                           <div className="flex flex-col sm:flex-row items-center gap-1">
                             <Dialog
                               open={editingItem?.id === item.id}

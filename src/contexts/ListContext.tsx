@@ -331,22 +331,30 @@ export function ListProvider({ children }: { children: ReactNode }) {
         throw ownedError;
       }
 
-      // Fetch lists where user is a guest
-      const { data: guestListIds, error: guestIdsError } = await supabase
+      // Fetch lists where user is a guest (with permission)
+      const { data: guestListData, error: guestIdsError } = await supabase
         .from("list_guests")
-        .select("list_id")
+        .select("list_id, permission")
         .eq("user_id", userId);
 
       console.log("[ListMine Debug] ownedLists count:", (ownedLists || []).length);
-      console.log("[ListMine Debug] guestListIds:", guestListIds);
+      console.log("[ListMine Debug] guestListData:", guestListData);
+
+      // Create a map of list_id -> permission for guest lists
+      const guestPermissionMap = new Map<string, 'view' | 'edit'>();
+      if (guestListData) {
+        guestListData.forEach((g) => {
+          guestPermissionMap.set(g.list_id, g.permission as 'view' | 'edit');
+        });
+      }
 
       if (guestIdsError) {
-        console.error("[ListMine Error] guestListIds query error:", guestIdsError);
+        console.error("[ListMine Error] guestListData query error:", guestIdsError);
       }
 
       let guestLists: any[] = [];
-      if (guestListIds && guestListIds.length > 0) {
-        const guestIds = guestListIds.map((g) => g.list_id);
+      if (guestListData && guestListData.length > 0) {
+        const guestIds = guestListData.map((g) => g.list_id);
         console.log("[ListMine Debug] Fetching guest lists for IDs:", guestIds);
         
         const { data: guestListsData, error: guestListsError } = await supabase
@@ -474,6 +482,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
       
       const listsWithItems: List[] = listsData?.map((list) => ({
         id: list.id,
+        userId: list.user_id,
         title: list.title,
         category: list.category as ListCategory,
         listType: (list.list_type || 'custom') as ListType,
@@ -504,6 +513,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
         updatedAt: new Date(list.updated_at),
         showPurchaserInfo: list.show_purchaser_info || false,
         isGuestAccess: guestListIdSet.has(list.id),
+        guestPermission: guestPermissionMap.get(list.id),
       })) || [];
 
       console.log("[ListMine Debug] Lists mapped with favorites. Sample favorites:", listsWithItems.filter(l => l.isFavorite).map(l => ({ id: l.id, title: l.title })));
