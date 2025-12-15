@@ -91,7 +91,7 @@ serve(async (req) => {
               <p><strong>${inviterName}</strong> has given you access to their list <strong>"${listName}"</strong> in ListMine.</p>
               <p>You can now view and edit this list. Click the button below to open it:</p>
               <div style="text-align: center;">
-                <a href="${signupUrl}" class="button">View List</a>
+                <a href="${signupUrl}" class="button" style="display: inline-block; background: #298585; color: #ffffff !important; padding: 14px 36px; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: 600; font-size: 16px;">View List</a>
               </div>
               <p>Happy collaborating!</p>
             </div>
@@ -126,7 +126,7 @@ serve(async (req) => {
               <p><strong>${inviterName}</strong> has invited you to collaborate on their list <strong>"${listName}"</strong> in ListMine.</p>
               <p>To accept the invitation and access the list, please sign up for a free ListMine account using the button below:</p>
               <div style="text-align: center;">
-                <a href="${signupUrl}" class="button">Create Free Account</a>
+                <a href="${signupUrl}" class="button" style="display: inline-block; background: #298585; color: #ffffff !important; padding: 14px 36px; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: 600; font-size: 16px;">Create Free Account</a>
               </div>
               <p>Once you've created your account with this email address (<strong>${guestEmail}</strong>), you'll automatically get access to the shared list.</p>
               <p>ListMine makes it easy to organize and share lists with friends, family, and colleagues.</p>
