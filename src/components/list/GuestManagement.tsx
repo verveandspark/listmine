@@ -67,7 +67,41 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
   useEffect(() => {
     fetchGuests();
     fetchPendingInvites();
+    checkForAcceptedInvites();
   }, [listId]);
+
+  const checkForAcceptedInvites = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("pending_list_invites")
+        .select("guest_email, status")
+        .eq("list_id", listId)
+        .eq("inviter_id", user?.id)
+        .eq("status", "accepted");
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const acceptedEmails = data.map(inv => inv.guest_email).join(", ");
+        toast({
+          title: "🎉 Invite Accepted!",
+          description: `${acceptedEmails} joined your list`,
+          className: "bg-green-50 border-green-200",
+          duration: 5000,
+        });
+
+        // Mark as notified by deleting or updating
+        await supabase
+          .from("pending_list_invites")
+          .delete()
+          .eq("list_id", listId)
+          .eq("inviter_id", user?.id)
+          .eq("status", "accepted");
+      }
+    } catch (error: any) {
+      console.error("[GuestManagement] Error checking accepted invites:", error);
+    }
+  };
 
   const fetchPendingInvites = async () => {
     try {
