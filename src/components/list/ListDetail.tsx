@@ -162,6 +162,7 @@ export default function ListDetail() {
     restoreBulkItems,
     refreshLists,
     unarchiveList,
+    toggleFavorite,
   } = useLists();
   const { toast } = useToast();
   const { executeWithUndo } = useUndoAction();
@@ -1357,7 +1358,7 @@ export default function ListDetail() {
                           size="icon"
                           className={`h-9 w-9 ${list.isFavorite ? "bg-amber-100 hover:bg-amber-200" : ""}`}
                           onClick={async () => {
-                            await updateList(list.id, { isFavorite: !list.isFavorite });
+                            await toggleFavorite(list.id);
                             toast({
                               title: list.isFavorite ? "Removed from favorites" : "Added to favorites",
                               description: list.isFavorite ? `"${list.title}" removed from favorites` : `"${list.title}" added to favorites`,
@@ -1686,7 +1687,7 @@ export default function ListDetail() {
                     <Button
                       variant="outline"
                       onClick={async () => {
-                        await updateList(list.id, { isFavorite: !list.isFavorite });
+                        await toggleFavorite(list.id);
                         toast({
                           title: list.isFavorite ? "Removed from favorites" : "Added to favorites",
                           description: list.isFavorite ? `"${list.title}" removed from favorites` : `"${list.title}" added to favorites`,
