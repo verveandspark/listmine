@@ -24,13 +24,23 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { UserPlus, Trash2, Mail, Loader2, Users, Crown, Shield, CreditCard } from "lucide-react";
+import { UserPlus, Trash2, Mail, Loader2, Users, Crown, Shield, CreditCard, RefreshCw, Clock } from "lucide-react";
 import { TeamMember, Account } from "@/types";
 import { canHaveTeamMembers, TeamMemberRole } from "@/lib/tierUtils";
 import { validateEmail } from "@/lib/validation";
 
 interface TeamManagementProps {
   onClose?: () => void;
+}
+
+interface PendingTeamInvite {
+  id: string;
+  accountId: string;
+  guestEmail: string;
+  role: TeamMemberRole;
+  status: string;
+  invitedAt: Date;
+  expiresAt: Date;
 }
 
 const ROLE_LABELS: Record<TeamMemberRole, string> = {
@@ -56,11 +66,14 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
   const { toast } = useToast();
   const [account, setAccount] = useState<Account | null>(null);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [pendingInvites, setPendingInvites] = useState<PendingTeamInvite[]>([]);
   const [loading, setLoading] = useState(true);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<TeamMemberRole>("member");
   const [inviting, setInviting] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [resendingId, setResendingId] = useState<string | null>(null);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   const canManageTeam = canHaveTeamMembers(user?.tier || "free");
 
@@ -71,6 +84,58 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
       setLoading(false);
     }
   }, [user?.id, canManageTeam]);
+
+  const fetchPendingInvites = async (accountId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("pending_team_invites")
+        .select("*")
+        .eq("account_id", accountId)
+        .eq("status", "pending");
+
+      if (error) throw error;
+
+      const formatted: PendingTeamInvite[] = (data || []).map((inv: any) => ({
+        id: inv.id,
+        accountId: inv.account_id,
+        guestEmail: inv.guest_email,
+        role: inv.role as TeamMemberRole,
+        status: inv.status,
+        invitedAt: new Date(inv.invited_at),
+        expiresAt: new Date(inv.expires_at),
+      }));
+
+      setPendingInvites(formatted);
+
+      // Check for accepted invites and show toast
+      const { data: acceptedData } = await supabase
+        .from("pending_team_invites")
+        .select("guest_email")
+        .eq("account_id", accountId)
+        .eq("inviter_id", user?.id)
+        .eq("status", "accepted");
+
+      if (acceptedData && acceptedData.length > 0) {
+        const acceptedEmails = acceptedData.map((inv: any) => inv.guest_email).join(", ");
+        toast({
+          title: "🎉 Team Invite Accepted!",
+          description: `${acceptedEmails} joined your team`,
+          className: "bg-green-50 border-green-200",
+          duration: 5000,
+        });
+
+        // Clean up accepted invites
+        await supabase
+          .from("pending_team_invites")
+          .delete()
+          .eq("account_id", accountId)
+          .eq("inviter_id", user?.id)
+          .eq("status", "accepted");
+      }
+    } catch (error: any) {
+      console.error("[TeamManagement] Error fetching pending invites:", error);
+    }
+  };
 
   const fetchAccountAndMembers = async () => {
     if (!user?.id) return;
@@ -148,6 +213,9 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
         }));
 
         setTeamMembers(formattedMembers);
+
+        // Fetch pending invites
+        await fetchPendingInvites(accountData.id);
       }
     } catch (error: any) {
       console.error("[TeamManagement] Error fetching account:", error);
@@ -177,49 +245,83 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
     try {
       setInviting(true);
 
+      // Check if already a pending invite
+      const existingPending = pendingInvites.find(
+        (inv) => inv.guestEmail.toLowerCase() === emailValidation.value.toLowerCase()
+      );
+      if (existingPending) {
+        toast({
+          title: "⚠️ Already Invited",
+          description: "This email already has a pending invite",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Find the user by email
       const { data: userData, error: userError } = await supabase
         .from("users")
-        .select("id")
+        .select("id, email")
         .eq("email", emailValidation.value)
         .single();
 
-      if (userError || !userData) {
-        toast({
-          title: "❌ User Not Found",
-          description: "No user found with that email address. They need to create an account first.",
-          variant: "destructive",
-        });
-        return;
+      if (userError && userError.code !== "PGRST116") {
+        throw userError;
       }
 
-      // Check if already a team member
-      const existingMember = teamMembers.find(m => m.userId === userData.id);
-      if (existingMember) {
+      if (userData) {
+        // User exists - check if already a team member
+        const existingMember = teamMembers.find((m) => m.userId === userData.id);
+        if (existingMember) {
+          toast({
+            title: "⚠️ Already a Team Member",
+            description: "This user is already a member of your team",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Add the team member directly
+        const { error: insertError } = await supabase
+          .from("account_team_members")
+          .insert({
+            account_id: account.id,
+            user_id: userData.id,
+            role: inviteRole,
+          });
+
+        if (insertError) throw insertError;
+
+        // Send notification email
+        await sendTeamInviteEmail(emailValidation.value, true);
+
         toast({
-          title: "⚠️ Already a Team Member",
-          description: "This user is already a member of your team",
-          variant: "destructive",
+          title: "✅ Team Member Added",
+          description: `Successfully added ${emailValidation.value} to your team`,
+          className: "bg-green-50 border-green-200",
         });
-        return;
+      } else {
+        // User doesn't exist - create pending invite
+        const { error: inviteError } = await supabase
+          .from("pending_team_invites")
+          .insert({
+            account_id: account.id,
+            inviter_id: user?.id,
+            guest_email: emailValidation.value,
+            role: inviteRole,
+          });
+
+        if (inviteError) throw inviteError;
+
+        // Send invite email
+        await sendTeamInviteEmail(emailValidation.value, false);
+
+        toast({
+          title: "✅ Invite Sent",
+          description: `Invitation sent to ${emailValidation.value}. They'll be added when they sign up.`,
+          className: "bg-green-50 border-green-200",
+        });
       }
-
-      // Add the team member
-      const { error: insertError } = await supabase
-        .from("account_team_members")
-        .insert({
-          account_id: account.id,
-          user_id: userData.id,
-          role: inviteRole,
-        });
-
-      if (insertError) throw insertError;
-
-      toast({
-        title: "✅ Team Member Added",
-        description: `Successfully added ${emailValidation.value} to your team`,
-        className: "bg-green-50 border-green-200",
-      });
 
       setInviteEmail("");
       fetchAccountAndMembers();
@@ -232,6 +334,100 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
       });
     } finally {
       setInviting(false);
+    }
+  };
+
+  const sendTeamInviteEmail = async (email: string, isExistingUser: boolean) => {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
+      if (!token) {
+        console.error("[TeamManagement] No auth token for email");
+        return;
+      }
+
+      const response = await supabase.functions.invoke("supabase-functions-send-invite-email", {
+        body: {
+          guestEmail: email,
+          listName: account?.name || "Team",
+          inviterName: user?.name || user?.email || "A team owner",
+          isExistingUser,
+          context: "team",
+          accountId: account?.id,
+        },
+      });
+
+      if (response.error) {
+        console.error("[TeamManagement] Email send error:", response.error);
+      }
+    } catch (error) {
+      console.error("[TeamManagement] Failed to send email:", error);
+    }
+  };
+
+  const handleResendInvite = async (invite: PendingTeamInvite) => {
+    try {
+      setResendingId(invite.id);
+
+      // Update expires_at
+      const { error } = await supabase
+        .from("pending_team_invites")
+        .update({ expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() })
+        .eq("id", invite.id);
+
+      if (error) throw error;
+
+      await sendTeamInviteEmail(invite.guestEmail, false);
+
+      toast({
+        title: "✅ Invite Resent",
+        description: `Invitation resent to ${invite.guestEmail}`,
+        className: "bg-green-50 border-green-200",
+      });
+
+      if (account) {
+        await fetchPendingInvites(account.id);
+      }
+    } catch (error: any) {
+      console.error("[TeamManagement] Error resending invite:", error);
+      toast({
+        title: "❌ Error",
+        description: "Failed to resend invite",
+        variant: "destructive",
+      });
+    } finally {
+      setResendingId(null);
+    }
+  };
+
+  const handleCancelInvite = async (inviteId: string) => {
+    try {
+      setCancellingId(inviteId);
+
+      const { error } = await supabase
+        .from("pending_team_invites")
+        .delete()
+        .eq("id", inviteId);
+
+      if (error) throw error;
+
+      setPendingInvites(pendingInvites.filter((inv) => inv.id !== inviteId));
+
+      toast({
+        title: "✅ Invite Cancelled",
+        description: "The pending invite has been cancelled",
+        className: "bg-green-50 border-green-200",
+      });
+    } catch (error: any) {
+      console.error("[TeamManagement] Error cancelling invite:", error);
+      toast({
+        title: "❌ Error",
+        description: "Failed to cancel invite",
+        variant: "destructive",
+      });
+    } finally {
+      setCancellingId(null);
     }
   };
 
@@ -384,6 +580,72 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
           </Button>
         </div>
       </div>
+
+      {/* Pending Invites */}
+      {pendingInvites.length > 0 && (
+        <div className="space-y-2">
+          <h4 className="font-medium text-sm flex items-center gap-2">
+            <Clock className="w-4 h-4 text-amber-500" />
+            Pending Invites
+            <Badge variant="secondary" className="text-xs">
+              {pendingInvites.length}
+            </Badge>
+          </h4>
+          <div className="space-y-2">
+            {pendingInvites.map((invite) => (
+              <div
+                key={invite.id}
+                className="flex items-center justify-between p-4 bg-amber-50 border border-amber-200 rounded-lg"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+                    <Mail className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium">{invite.guestEmail}</p>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">
+                        {ROLE_LABELS[invite.role]}
+                      </Badge>
+                      <span className="text-xs text-gray-500">
+                        Invited {invite.invitedAt.toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleResendInvite(invite)}
+                    disabled={resendingId === invite.id}
+                    className="text-amber-600 hover:text-amber-700 hover:bg-amber-100"
+                  >
+                    {resendingId === invite.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4" />
+                    )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleCancelInvite(invite.id)}
+                    disabled={cancellingId === invite.id}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    {cancellingId === invite.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Team Member List */}
       <div className="space-y-2">

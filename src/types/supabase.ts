@@ -568,6 +568,54 @@ export type Database = {
           },
         ]
       }
+      pending_team_invites: {
+        Row: {
+          account_id: string
+          expires_at: string
+          guest_email: string
+          id: string
+          invited_at: string
+          inviter_id: string
+          role: string
+          status: string
+        }
+        Insert: {
+          account_id: string
+          expires_at?: string
+          guest_email: string
+          id?: string
+          invited_at?: string
+          inviter_id: string
+          role?: string
+          status?: string
+        }
+        Update: {
+          account_id?: string
+          expires_at?: string
+          guest_email?: string
+          id?: string
+          invited_at?: string
+          inviter_id?: string
+          role?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_team_invites_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_team_invites_inviter_id_fkey"
+            columns: ["inviter_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       purchases: {
         Row: {
           created_at: string | null
@@ -969,6 +1017,10 @@ export type Database = {
         Args: { p_user_email: string }
         Returns: Json
       }
+      can_access_account: {
+        Args: { p_account_id: string; p_user_id: string }
+        Returns: boolean
+      }
       can_access_list:
         | {
             Args: { list_id_param: string; user_id_param: string }
@@ -1086,8 +1138,21 @@ export type Database = {
         Args: { p_account_id: string }
         Returns: number
       }
+      get_user_account_id: { Args: { p_user_id: string }; Returns: string }
+      is_account_owner: {
+        Args: { p_account_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      is_team_manager: {
+        Args: { p_account_id: string; p_user_id: string }
+        Returns: boolean
+      }
       is_team_member: {
         Args: { account_id_param: string; user_id_param: string }
+        Returns: boolean
+      }
+      is_team_member_of_account: {
+        Args: { p_account_id: string; p_user_id: string }
         Returns: boolean
       }
       log_admin_action: {

@@ -11,7 +11,10 @@ interface InviteEmailRequest {
   guestEmail: string;
   inviterName: string;
   listName: string;
-  signupUrl: string;
+  signupUrl?: string;
+  context?: 'guest' | 'team';
+  accountId?: string;
+  isExistingUser?: boolean;
 }
 
 async function checkUserExists(email: string): Promise<boolean> {
@@ -52,18 +55,132 @@ serve(async (req) => {
   }
 
   try {
-    const { guestEmail, inviterName, listName, signupUrl }: InviteEmailRequest = await req.json();
+    const { guestEmail, inviterName, listName, signupUrl, context = 'guest', accountId, isExistingUser: providedIsExisting }: InviteEmailRequest = await req.json();
 
-    if (!guestEmail || !inviterName || !listName || !signupUrl) {
+    if (!guestEmail || !inviterName || !listName) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Server-side check for existing user
-    const isExistingUser = await checkUserExists(guestEmail);
-    console.log(`Email path: ${isExistingUser ? 'EXISTING_USER' : 'NEW_USER'}, recipient: ${guestEmail}`);
+    // Server-side check for existing user (or use provided value)
+    const isExistingUser = providedIsExisting !== undefined ? providedIsExisting : await checkUserExists(guestEmail);
+    console.log(`Email path: ${isExistingUser ? 'EXISTING_USER' : 'NEW_USER'}, recipient: ${guestEmail}, context: ${context}`);
+
+    const baseUrl = 'https://ff216505-f924-4e81-98b1-c12ac52ba319.canvases.tempo.build';
+    const actionUrl = signupUrl || (isExistingUser ? `${baseUrl}/dashboard` : `${baseUrl}/auth`);
+
+    // Team invite templates
+    if (context === 'team') {
+      const teamEmailHtml = isExistingUser ? `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background: linear-gradient(135deg, #1F628E 0%, #298585 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+              .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+              .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>👥 You've Been Added to a Team!</h1>
+              </div>
+              <div class="content">
+                <p>Hi there,</p>
+                <p><strong>${inviterName}</strong> has added you to their team <strong>"${listName}"</strong> in ListMine.</p>
+                <p>As a team member, you now have access to all their lists. Click the button below to get started:</p>
+                <div style="text-align: center;">
+                  <a href="${actionUrl}" style="display: inline-block; background: #298585; color: #ffffff !important; padding: 14px 36px; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: 600; font-size: 16px;">Go to Dashboard</a>
+                </div>
+                <p>Happy collaborating!</p>
+              </div>
+              <div class="footer">
+                <p>The ListMine Team</p>
+              </div>
+            </div>
+          </body>
+        </html>
+      ` : `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background: linear-gradient(135deg, #1F628E 0%, #298585 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+              .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+              .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>👥 You've Been Invited to Join a Team!</h1>
+              </div>
+              <div class="content">
+                <p>Hi there,</p>
+                <p><strong>${inviterName}</strong> has invited you to join their team <strong>"${listName}"</strong> in ListMine.</p>
+                <p>ListMine helps you create and manage lists for everything - tasks, groceries, ideas, and more!</p>
+                <p>Create your free account to join the team and start collaborating:</p>
+                <div style="text-align: center;">
+                  <a href="${actionUrl}" style="display: inline-block; background: #298585; color: #ffffff !important; padding: 14px 36px; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: 600; font-size: 16px;">Create Free Account</a>
+                </div>
+                <p>Once you sign up with this email address (${guestEmail}), you'll automatically be added to the team.</p>
+              </div>
+              <div class="footer">
+                <p>The ListMine Team</p>
+              </div>
+            </div>
+          </body>
+        </html>
+      `;
+
+      const teamSubject = isExistingUser 
+        ? `You've been added to "${listName}" team on ListMine`
+        : `You've Been Invited to Join "${listName}" Team`;
+
+      console.log('Sending team email:', { to: guestEmail, subject: teamSubject, isExistingUser });
+
+      const emailResponse = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get('RESEND_API_KEY')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: 'ListMine <noreply@listmine.app>',
+          to: [guestEmail],
+          subject: teamSubject,
+          html: teamEmailHtml,
+        }),
+      });
+
+      if (!emailResponse.ok) {
+        const errorText = await emailResponse.text();
+        console.error('Resend API error:', errorText);
+        return new Response(
+          JSON.stringify({ error: 'Failed to send email', details: errorText }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const emailData = await emailResponse.json();
+      console.log('Team email sent successfully:', { emailId: emailData.id, to: guestEmail });
+
+      return new Response(
+        JSON.stringify({ success: true, emailId: emailData.id }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Guest invite templates (original)
 
     // Different email templates for new vs existing users
     const emailHtml = isExistingUser ? `
@@ -91,7 +208,7 @@ serve(async (req) => {
               <p><strong>${inviterName}</strong> has given you access to their list <strong>"${listName}"</strong> in ListMine.</p>
               <p>You can now view and edit this list. Click the button below to open it:</p>
               <div style="text-align: center;">
-                <a href="${signupUrl}" class="button" style="display: inline-block; background: #298585; color: #ffffff !important; padding: 14px 36px; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: 600; font-size: 16px;">View List</a>
+                <a href="${actionUrl}" class="button" style="display: inline-block; background: #298585; color: #ffffff !important; padding: 14px 36px; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: 600; font-size: 16px;">View List</a>
               </div>
               <p>Happy collaborating!</p>
             </div>
@@ -126,7 +243,7 @@ serve(async (req) => {
               <p><strong>${inviterName}</strong> has invited you to collaborate on their list <strong>"${listName}"</strong> in ListMine.</p>
               <p>To accept the invitation and access the list, please sign up for a free ListMine account using the button below:</p>
               <div style="text-align: center;">
-                <a href="${signupUrl}" class="button" style="display: inline-block; background: #298585; color: #ffffff !important; padding: 14px 36px; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: 600; font-size: 16px;">Create Free Account</a>
+                <a href="${actionUrl}" class="button" style="display: inline-block; background: #298585; color: #ffffff !important; padding: 14px 36px; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: 600; font-size: 16px;">Create Free Account</a>
               </div>
               <p>Once you've created your account with this email address (<strong>${guestEmail}</strong>), you'll automatically get access to the shared list.</p>
               <p>ListMine makes it easy to organize and share lists with friends, family, and colleagues.</p>
