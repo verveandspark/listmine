@@ -223,7 +223,6 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
         const listUrl = `${window.location.origin}/list/${listId}`;
         
         try {
-          const { data: { session } } = await supabase.auth.getSession();
           const emailRes = await fetch(
             `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-invite-email`,
             {
@@ -231,7 +230,6 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
               headers: {
                 'Content-Type': 'application/json',
                 'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${session?.access_token}`,
               },
               body: JSON.stringify({
                 guestEmail: emailValidation.value,
@@ -244,8 +242,15 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
           );
           
           if (!emailRes.ok) {
-            const errorData = await emailRes.json();
-            console.error("Email notification error:", errorData);
+            const errorText = await emailRes.text();
+            console.error("Email notification error - Status:", emailRes.status);
+            console.error("Email notification error - Response:", errorText);
+            try {
+              const errorData = JSON.parse(errorText);
+              console.error("Email notification error - Parsed:", errorData);
+            } catch (e) {
+              console.error("Could not parse error response");
+            }
             toast({
               title: "⚠️ Email Failed",
               description: "Guest was added but email notification failed to send",
@@ -312,7 +317,6 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
       const signupUrl = `${window.location.origin}/auth?email=${encodeURIComponent(emailValidation.value)}`;
       
       try {
-        const { data: { session } } = await supabase.auth.getSession();
         const emailRes = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-invite-email`,
           {
@@ -320,7 +324,6 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
             headers: {
               'Content-Type': 'application/json',
               'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${session?.access_token}`,
             },
             body: JSON.stringify({
               guestEmail: emailValidation.value,
@@ -332,8 +335,15 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
         );
 
         if (!emailRes.ok) {
-          const errorData = await emailRes.json();
-          console.error("Email send error:", errorData);
+          const errorText = await emailRes.text();
+          console.error("Email send error - Status:", emailRes.status);
+          console.error("Email send error - Response:", errorText);
+          try {
+            const errorData = JSON.parse(errorText);
+            console.error("Email send error - Parsed:", errorData);
+          } catch (e) {
+            console.error("Could not parse error response");
+          }
           toast({
             title: "⚠️ Email Failed",
             description: "Invite created but email failed to send. Check console for details.",
@@ -580,7 +590,6 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
 
                       const signupUrl = `${window.location.origin}/auth?email=${encodeURIComponent(invite.guestEmail)}`;
                       
-                      const { data: { session } } = await supabase.auth.getSession();
                       const emailRes = await fetch(
                         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-invite-email`,
                         {
@@ -588,7 +597,6 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
                           headers: {
                             'Content-Type': 'application/json',
                             'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-                            'Authorization': `Bearer ${session?.access_token}`,
                           },
                           body: JSON.stringify({
                             guestEmail: invite.guestEmail,
@@ -600,8 +608,15 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
                       );
 
                       if (!emailRes.ok) {
-                        const errorData = await emailRes.json();
-                        console.error("Email resend error:", errorData);
+                        const errorText = await emailRes.text();
+                        console.error("Email resend error - Status:", emailRes.status);
+                        console.error("Email resend error - Response:", errorText);
+                        try {
+                          const errorData = JSON.parse(errorText);
+                          console.error("Email resend error - Parsed:", errorData);
+                        } catch (e) {
+                          console.error("Could not parse error response");
+                        }
                         toast({
                           title: "⚠️ Email Failed",
                           description: "Failed to resend invitation email",
