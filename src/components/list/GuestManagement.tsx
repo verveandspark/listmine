@@ -222,28 +222,44 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
         // Send notification email to existing user
         const listUrl = `${window.location.origin}/list/${listId}`;
         
-        const { data: emailResponse, error: emailError } = await supabase.functions.invoke(
-          'send-invite-email',
-          {
-            body: {
-              guestEmail: emailValidation.value,
-              inviterName: user?.name || user?.email || "A ListMine user",
-              listName: listData?.title || "a list",
-              signupUrl: listUrl,
-              isExistingUser: true,
-            },
+        try {
+          const emailRes = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-invite-email`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+              },
+              body: JSON.stringify({
+                guestEmail: emailValidation.value,
+                inviterName: user?.name || user?.email || "A ListMine user",
+                listName: listData?.title || "a list",
+                signupUrl: listUrl,
+                isExistingUser: true,
+              }),
+            }
+          );
+          
+          if (!emailRes.ok) {
+            const errorData = await emailRes.json();
+            console.error("Email notification error:", errorData);
+            toast({
+              title: "⚠️ Email Failed",
+              description: "Guest was added but email notification failed to send",
+              variant: "destructive",
+            });
+          } else {
+            const emailResponse = await emailRes.json();
+            console.log("Email sent successfully:", emailResponse);
           }
-        );
-
-        if (emailError) {
+        } catch (emailError) {
           console.error("Email notification error:", emailError);
           toast({
             title: "⚠️ Email Failed",
             description: "Guest was added but email notification failed to send",
             variant: "destructive",
           });
-        } else {
-          console.log("Email sent successfully:", emailResponse);
         }
 
         toast({
@@ -293,27 +309,43 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
       // Send invite email
       const signupUrl = `${window.location.origin}/auth?email=${encodeURIComponent(emailValidation.value)}`;
       
-      const { data: emailResponse, error: emailError } = await supabase.functions.invoke(
-        'send-invite-email',
-        {
-          body: {
-            guestEmail: emailValidation.value,
-            inviterName: user?.name || user?.email || "A ListMine user",
-            listName: listData?.title || "a list",
-            signupUrl,
-          },
-        }
-      );
+      try {
+        const emailRes = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-invite-email`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+            },
+            body: JSON.stringify({
+              guestEmail: emailValidation.value,
+              inviterName: user?.name || user?.email || "A ListMine user",
+              listName: listData?.title || "a list",
+              signupUrl,
+            }),
+          }
+        );
 
-      if (emailError) {
+        if (!emailRes.ok) {
+          const errorData = await emailRes.json();
+          console.error("Email send error:", errorData);
+          toast({
+            title: "⚠️ Email Failed",
+            description: "Invite created but email failed to send. Check console for details.",
+            variant: "destructive",
+          });
+        } else {
+          const emailResponse = await emailRes.json();
+          console.log("Email sent successfully:", emailResponse);
+        }
+      } catch (emailError) {
         console.error("Email send error:", emailError);
         toast({
           title: "⚠️ Email Failed",
           description: "Invite created but email failed to send. Check console for details.",
           variant: "destructive",
         });
-      } else {
-        console.log("Email sent successfully:", emailResponse);
       }
 
       toast({
@@ -544,20 +576,26 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
 
                       const signupUrl = `${window.location.origin}/auth?email=${encodeURIComponent(invite.guestEmail)}`;
                       
-                      const { error: emailError } = await supabase.functions.invoke(
-                        'supabase-functions-send-invite-email',
+                      const emailRes = await fetch(
+                        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-invite-email`,
                         {
-                          body: {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+                          },
+                          body: JSON.stringify({
                             guestEmail: invite.guestEmail,
                             inviterName: user?.name || user?.email || "A ListMine user",
                             listName: listData?.title || "a list",
                             signupUrl,
-                          },
+                          }),
                         }
                       );
 
-                      if (emailError) {
-                        console.error("Email resend error:", emailError);
+                      if (!emailRes.ok) {
+                        const errorData = await emailRes.json();
+                        console.error("Email resend error:", errorData);
                         toast({
                           title: "⚠️ Email Failed",
                           description: "Failed to resend invitation email",
