@@ -69,7 +69,16 @@ serve(async (req) => {
     console.log(`Email path: ${isExistingUser ? 'EXISTING_USER' : 'NEW_USER'}, recipient: ${guestEmail}, context: ${context}`);
 
     const baseUrl = 'https://ff216505-f924-4e81-98b1-c12ac52ba319.canvases.tempo.build';
-    const actionUrl = signupUrl || (isExistingUser ? `${baseUrl}/dashboard` : `${baseUrl}/auth`);
+    
+    // For team invites, construct URL with account context
+    let actionUrl: string;
+    if (context === 'team' && accountId) {
+      actionUrl = isExistingUser 
+        ? `${baseUrl}/dashboard?team=${accountId}`
+        : `${baseUrl}/auth?email=${encodeURIComponent(guestEmail)}&team=${accountId}`;
+    } else {
+      actionUrl = signupUrl || (isExistingUser ? `${baseUrl}/dashboard` : `${baseUrl}/auth?email=${encodeURIComponent(guestEmail)}`);
+    }
 
     // Team invite templates
     if (context === 'team') {
@@ -94,9 +103,9 @@ serve(async (req) => {
               <div class="content">
                 <p>Hi there,</p>
                 <p><strong>${inviterName}</strong> has added you to their team <strong>"${listName}"</strong> in ListMine.</p>
-                <p>As a team member, you now have access to all their lists. Click the button below to view the team dashboard:</p>
+                <p>As a team member, you now have access to all their lists. Click the button below to open ListMine:</p>
                 <div style="text-align: center;">
-                  <a href="${actionUrl}" style="display: inline-block; background: #298585; color: #ffffff !important; padding: 14px 36px; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: 600; font-size: 16px;">View Team Dashboard</a>
+                  <a href="${actionUrl}" style="display: inline-block; background: #298585; color: #ffffff !important; padding: 14px 36px; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: 600; font-size: 16px;">Open ListMine</a>
                 </div>
                 <p>Happy collaborating!</p>
               </div>
