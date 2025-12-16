@@ -55,7 +55,15 @@ serve(async (req) => {
   }
 
   try {
-    const { guestEmail, inviterName, listName, signupUrl, context = 'guest', accountId, isExistingUser: providedIsExisting }: InviteEmailRequest = await req.json();
+    const payload = await req.json();
+    const { guestEmail, inviterName, listName, signupUrl, context = 'guest', accountId, isExistingUser: providedIsExisting }: InviteEmailRequest = payload;
+
+    console.log("invite payload", {
+      context: payload.context,
+      recipientEmail: payload.guestEmail,
+      isExistingUser_raw: payload.isExistingUser,
+      isExistingUser_parsed: payload.isExistingUser === true,
+    });
 
     if (!guestEmail || !inviterName || !listName) {
       return new Response(
