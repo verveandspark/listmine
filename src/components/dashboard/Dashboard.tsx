@@ -1,5 +1,6 @@
 import { DashboardSkeleton } from "@/components/ui/DashboardSkeleton";
 import { OnboardingTooltips } from "@/components/onboarding/OnboardingTooltips";
+import { NotificationBell } from "@/components/ui/NotificationBell";
 import { useUndoAction } from "@/hooks/useUndoAction";
 import { supabase } from "@/lib/supabase";
 import {
@@ -993,6 +994,7 @@ export default function Dashboard() {
                   List
                 </Button>
               </div>
+              <NotificationBell />
               <Button
                 variant="ghost"
                 size="icon"

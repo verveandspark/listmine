@@ -94,9 +94,9 @@ serve(async (req) => {
               <div class="content">
                 <p>Hi there,</p>
                 <p><strong>${inviterName}</strong> has added you to their team <strong>"${listName}"</strong> in ListMine.</p>
-                <p>As a team member, you now have access to all their lists. Click the button below to get started:</p>
+                <p>As a team member, you now have access to all their lists. Click the button below to view the team dashboard:</p>
                 <div style="text-align: center;">
-                  <a href="${actionUrl}" style="display: inline-block; background: #298585; color: #ffffff !important; padding: 14px 36px; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: 600; font-size: 16px;">Go to Dashboard</a>
+                  <a href="${actionUrl}" style="display: inline-block; background: #298585; color: #ffffff !important; padding: 14px 36px; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: 600; font-size: 16px;">View Team Dashboard</a>
                 </div>
                 <p>Happy collaborating!</p>
               </div>
