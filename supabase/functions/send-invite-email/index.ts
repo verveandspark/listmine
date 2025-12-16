@@ -14,9 +14,10 @@ interface InviteEmailRequest {
   signupUrl?: string;
   context?: 'guest' | 'team';
   accountId?: string;
-  isExistingUser?: boolean;
+  // isExistingUser is now ALWAYS determined server-side, frontend should NOT send this
 }
 
+// Server-side check for existing user using service role (bypasses RLS)
 async function checkUserExists(email: string): Promise<boolean> {
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -33,14 +34,16 @@ async function checkUserExists(email: string): Promise<boolean> {
     }
   });
   
+  // Check auth.users via admin API
   const { data, error } = await supabaseAdmin.auth.admin.listUsers();
   
   if (error) {
-    console.error('Error checking user existence:', error.message);
+    console.error('Error checking user existence via auth.admin:', error.message);
     return false;
   }
   
   const userExists = data.users.some(user => user.email?.toLowerCase() === email.toLowerCase());
+  console.log(`[checkUserExists] email: ${email}, exists: ${userExists}`);
   return userExists;
 }
 
@@ -56,18 +59,14 @@ serve(async (req) => {
 
   try {
     const payload = await req.json();
-    const { guestEmail, inviterName, listName, signupUrl, context = 'guest', accountId, isExistingUser: providedIsExisting }: InviteEmailRequest = payload;
+    const { guestEmail, inviterName, listName, signupUrl, context = 'guest', accountId }: InviteEmailRequest = payload;
 
-    // Debug: show raw and parsed values
-    const rawIsExisting = payload.isExistingUser;
-    const parsedIsExistingDebug = rawIsExisting === true || rawIsExisting === 'true' || rawIsExisting === 1;
-    console.log("invite payload", {
-      context: payload.context,
-      recipientEmail: payload.guestEmail,
-      isExistingUser_raw: rawIsExisting,
-      isExistingUser_raw_type: typeof rawIsExisting,
-      isExistingUser_parsed: parsedIsExistingDebug,
-      chosenTemplate: parsedIsExistingDebug ? 'EXISTING_USER' : 'NEW_USER',
+    console.log("[send-invite-email] Received payload:", {
+      recipientEmail: guestEmail,
+      inviterName,
+      listName,
+      context,
+      accountId,
     });
 
     if (!guestEmail || !inviterName || !listName) {
@@ -77,11 +76,16 @@ serve(async (req) => {
       );
     }
 
-    // Server-side check for existing user (or use provided value)
-    // Handle string "true", boolean true, or number 1 as truthy
-    const parsedIsExisting = providedIsExisting === true || providedIsExisting === 'true' || providedIsExisting === 1;
-    const isExistingUser = providedIsExisting !== undefined ? parsedIsExisting : await checkUserExists(guestEmail);
-    console.log(`Email path: ${isExistingUser ? 'EXISTING_USER' : 'NEW_USER'}, recipient: ${guestEmail}, context: ${context}, providedIsExisting: ${providedIsExisting}, parsedIsExisting: ${parsedIsExisting}`);
+    // ALWAYS check user existence server-side using service role (bypasses RLS)
+    const isExistingUser = await checkUserExists(guestEmail);
+    const chosenTemplate = isExistingUser ? 'EXISTING_USER' : 'NEW_USER';
+    
+    console.log("[send-invite-email] User existence check:", {
+      recipientEmail: guestEmail,
+      isExistingUser,
+      chosenTemplate,
+      context,
+    });
 
     const baseUrl = 'https://ff216505-f924-4e81-98b1-c12ac52ba319.canvases.tempo.build';
     

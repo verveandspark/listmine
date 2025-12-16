@@ -292,8 +292,8 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
 
         if (insertError) throw insertError;
 
-        // Send notification email
-        await sendTeamInviteEmail(emailValidation.value, true);
+        // Send notification email (user existence determined server-side)
+        await sendTeamInviteEmail(emailValidation.value);
 
         toast({
           title: "✅ Team Member Added",
@@ -313,8 +313,8 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
 
         if (inviteError) throw inviteError;
 
-        // Send invite email
-        await sendTeamInviteEmail(emailValidation.value, false);
+        // Send invite email (user existence determined server-side)
+        await sendTeamInviteEmail(emailValidation.value);
 
         toast({
           title: "✅ Invite Sent",
@@ -337,7 +337,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
     }
   };
 
-  const sendTeamInviteEmail = async (email: string, isExistingUser: boolean) => {
+  const sendTeamInviteEmail = async (email: string) => {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
@@ -350,23 +350,19 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
       const baseUrl = window.location.origin;
       const signupUrl = `${baseUrl}/auth?email=${encodeURIComponent(email)}`;
 
+      // NOTE: isExistingUser is now determined server-side in the edge function
       const payload = {
         guestEmail: email,
         listName: account?.name || "Team",
         inviterName: user?.name || user?.email || "A team owner",
-        isExistingUser: isExistingUser,
         context: "team",
         accountId: account?.id,
         signupUrl: signupUrl,
       };
 
-      console.log("[TeamManagement] Sending team invite email with payload:", {
-        ...payload,
-        isExistingUser_type: typeof isExistingUser,
-        isExistingUser_value: isExistingUser,
-      });
+      console.log("[TeamManagement] Sending team invite email with payload:", payload);
 
-      const response = await supabase.functions.invoke("send-invite-email", {
+      const response = await supabase.functions.invoke("supabase-functions-send-invite-email", {
         body: payload,
       });
 
@@ -390,17 +386,10 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
 
       if (error) throw error;
 
-      // Check if user now exists (they may have signed up since original invite)
-      const { data: existingUser } = await supabase
-        .from("users")
-        .select("id")
-        .eq("email", invite.guestEmail.toLowerCase())
-        .maybeSingle();
+      // User existence is now determined server-side in the edge function
+      console.log("[TeamManagement] Resend invite - email:", invite.guestEmail);
 
-      const isExistingUser = !!existingUser;
-      console.log("[TeamManagement] Resend invite - isExistingUser:", isExistingUser, "email:", invite.guestEmail);
-
-      await sendTeamInviteEmail(invite.guestEmail, isExistingUser);
+      await sendTeamInviteEmail(invite.guestEmail);
 
       toast({
         title: "✅ Invite Resent",
