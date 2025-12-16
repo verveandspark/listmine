@@ -1003,17 +1003,6 @@ export default function Dashboard() {
                   List
                 </Button>
               </div>
-              {canManageTeam && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 px-3 gap-2 border-teal-200 text-teal-700 hover:bg-teal-50"
-                  onClick={() => setIsTeamManagementOpen(true)}
-                >
-                  <Users className="w-4 h-4" />
-                  Manage Team
-                </Button>
-              )}
               <NotificationBell />
               <Button
                 variant="ghost"
@@ -1057,6 +1046,12 @@ export default function Dashboard() {
                     <User className="w-4 h-4 mr-2" />
                     Profile
                   </DropdownMenuItem>
+                  {canManageTeam && (
+                    <DropdownMenuItem onClick={() => setIsTeamManagementOpen(true)}>
+                      <Users className="w-4 h-4 mr-2" />
+                      Manage Team
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="w-4 h-4 mr-2" />
                     Logout
@@ -1197,6 +1192,19 @@ export default function Dashboard() {
                     <User className="w-4 h-4 mr-2" />
                     Profile
                   </Button>
+                  {canManageTeam && (
+                    <Button
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        setIsTeamManagementOpen(true);
+                      }}
+                      variant="outline"
+                      className="w-full justify-start min-h-[44px]"
+                    >
+                      <Users className="w-4 h-4 mr-2" />
+                      Manage Team
+                    </Button>
+                  )}
                   <Button
                     onClick={async () => {
                       setIsMobileMenuOpen(false);
