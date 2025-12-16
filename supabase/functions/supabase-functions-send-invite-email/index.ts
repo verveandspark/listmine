@@ -17,13 +17,13 @@ interface InviteEmailRequest {
   // isExistingUser is now ALWAYS determined server-side, frontend should NOT send this
 }
 
-// Server-side check for existing user using service role (bypasses RLS)
+// Server-side check for existing user using RPC with service role (bypasses RLS)
 async function checkUserExists(email: string): Promise<boolean> {
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   
   if (!supabaseUrl || !serviceRoleKey) {
-    console.error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+    console.error('[checkUserExists] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
     return false;
   }
   
@@ -34,23 +34,33 @@ async function checkUserExists(email: string): Promise<boolean> {
     }
   });
   
-  // Check auth.users via admin API
-  const { data, error } = await supabaseAdmin.auth.admin.listUsers();
+  // Use the SECURITY DEFINER RPC function that returns a boolean
+  const { data, error } = await supabaseAdmin.rpc('check_user_exists_by_email', { 
+    p_email: email 
+  });
   
   if (error) {
-    console.error('Error checking user existence via auth.admin:', error.message);
+    console.error('[checkUserExists] RPC error:', error.message);
     return false;
   }
   
-  const userExists = data.users.some(user => user.email?.toLowerCase() === email.toLowerCase());
-  console.log(`[checkUserExists] email: ${email}, exists: ${userExists}`);
+  const userExists = data === true;
+  console.log(`[checkUserExists] email: ${email}, rpcResult: ${data}, userExists: ${userExists}`);
   return userExists;
 }
 
 serve(async (req) => {
-  console.log('Incoming request:', {
+  // Debug: log authorization headers
+  const authHeader = req.headers.get('authorization');
+  const apiKeyHeader = req.headers.get('apikey');
+  
+  console.log('[send-invite-email] Incoming request:', {
     method: req.method,
     url: req.url,
+    hasAuthHeader: !!authHeader,
+    authHeaderPrefix: authHeader ? authHeader.substring(0, 20) + '...' : null,
+    hasApiKey: !!apiKeyHeader,
+    apiKeyPrefix: apiKeyHeader ? apiKeyHeader.substring(0, 10) + '...' : null,
   });
 
   if (req.method === 'OPTIONS') {
