@@ -258,20 +258,20 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
         return;
       }
 
-      // Find the user by email
+      // Find the user by email using SECURITY DEFINER RPC (bypasses RLS)
       const { data: userData, error: userError } = await supabase
-        .from("users")
-        .select("id, email")
-        .eq("email", emailValidation.value)
-        .single();
+        .rpc("check_user_exists_by_email", { p_email: emailValidation.value });
 
-      if (userError && userError.code !== "PGRST116") {
+      if (userError) {
+        console.error("[TeamManagement] Error checking user existence:", userError);
         throw userError;
       }
 
-      if (userData) {
+      const existingUser = userData && userData.length > 0 ? userData[0] : null;
+
+      if (existingUser) {
         // User exists - check if already a team member
-        const existingMember = teamMembers.find((m) => m.userId === userData.id);
+        const existingMember = teamMembers.find((m) => m.userId === existingUser.user_id);
         if (existingMember) {
           toast({
             title: "⚠️ Already a Team Member",
@@ -286,7 +286,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
           .from("account_team_members")
           .insert({
             account_id: account.id,
-            user_id: userData.id,
+            user_id: existingUser.user_id,
             role: inviteRole,
           });
 
@@ -301,7 +301,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
           className: "bg-green-50 border-green-200",
         });
       } else {
-        // User doesn't exist - create pending invite
+        // User doesn't exist (existingUser is null) - create pending invite
         const { error: inviteError } = await supabase
           .from("pending_team_invites")
           .insert({

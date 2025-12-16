@@ -48,9 +48,17 @@ async function checkUserExists(email: string): Promise<boolean> {
 }
 
 serve(async (req) => {
-  console.log('Incoming request:', {
+  // Debug: log authorization headers
+  const authHeader = req.headers.get('authorization');
+  const apiKeyHeader = req.headers.get('apikey');
+  
+  console.log('[send-invite-email] Incoming request:', {
     method: req.method,
     url: req.url,
+    hasAuthHeader: !!authHeader,
+    authHeaderPrefix: authHeader ? authHeader.substring(0, 20) + '...' : null,
+    hasApiKey: !!apiKeyHeader,
+    apiKeyPrefix: apiKeyHeader ? apiKeyHeader.substring(0, 10) + '...' : null,
   });
 
   if (req.method === 'OPTIONS') {

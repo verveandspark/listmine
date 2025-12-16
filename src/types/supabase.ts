@@ -1114,6 +1114,13 @@ export type Database = {
           }
       can_edit_list_items: { Args: { p_list_id: string }; Returns: boolean }
       check_list_limit: { Args: { tier: string }; Returns: number }
+      check_user_exists_by_email: {
+        Args: { p_email: string }
+        Returns: {
+          user_email: string
+          user_id: string
+        }[]
+      }
       clear_user_data: { Args: { target_user_id: string }; Returns: Json }
       create_list_for_user: {
         Args: {

@@ -215,17 +215,21 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
     try {
       setInviting(true);
 
-      // First, find the user by email
+      // Find the user by email using SECURITY DEFINER RPC (bypasses RLS)
       const { data: userData, error: userError } = await supabase
-        .from("users")
-        .select("id")
-        .eq("email", emailValidation.value)
-        .maybeSingle();
+        .rpc("check_user_exists_by_email", { p_email: emailValidation.value });
+
+      if (userError) {
+        console.error("[GuestManagement] Error checking user existence:", userError);
+        throw userError;
+      }
+
+      const existingUser = userData && userData.length > 0 ? userData[0] : null;
 
       // If user exists, add them directly
-      if (userData && !userError) {
+      if (existingUser) {
         // Check if already a guest
-        const existingGuest = guests.find(g => g.userId === userData.id);
+        const existingGuest = guests.find(g => g.userId === existingUser.user_id);
         if (existingGuest) {
           toast({
             title: "⚠️ Already Invited",
@@ -240,7 +244,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
           .from("list_guests")
           .insert({
             list_id: listId,
-            user_id: userData.id,
+            user_id: existingUser.user_id,
             permission: invitePermission,
           });
 
