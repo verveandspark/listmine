@@ -350,16 +350,24 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
       const baseUrl = window.location.origin;
       const signupUrl = `${baseUrl}/auth?email=${encodeURIComponent(email)}`;
 
+      const payload = {
+        guestEmail: email,
+        listName: account?.name || "Team",
+        inviterName: user?.name || user?.email || "A team owner",
+        isExistingUser: isExistingUser,
+        context: "team",
+        accountId: account?.id,
+        signupUrl: signupUrl,
+      };
+
+      console.log("[TeamManagement] Sending team invite email with payload:", {
+        ...payload,
+        isExistingUser_type: typeof isExistingUser,
+        isExistingUser_value: isExistingUser,
+      });
+
       const response = await supabase.functions.invoke("send-invite-email", {
-        body: {
-          guestEmail: email,
-          listName: account?.name || "Team",
-          inviterName: user?.name || user?.email || "A team owner",
-          isExistingUser: isExistingUser,
-          context: "team",
-          accountId: account?.id,
-          signupUrl: signupUrl,
-        },
+        body: payload,
       });
 
       if (response.error) {
@@ -382,7 +390,17 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
 
       if (error) throw error;
 
-      await sendTeamInviteEmail(invite.guestEmail, false);
+      // Check if user now exists (they may have signed up since original invite)
+      const { data: existingUser } = await supabase
+        .from("users")
+        .select("id")
+        .eq("email", invite.guestEmail.toLowerCase())
+        .maybeSingle();
+
+      const isExistingUser = !!existingUser;
+      console.log("[TeamManagement] Resend invite - isExistingUser:", isExistingUser, "email:", invite.guestEmail);
+
+      await sendTeamInviteEmail(invite.guestEmail, isExistingUser);
 
       toast({
         title: "✅ Invite Resent",

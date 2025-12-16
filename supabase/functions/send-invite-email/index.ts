@@ -58,11 +58,16 @@ serve(async (req) => {
     const payload = await req.json();
     const { guestEmail, inviterName, listName, signupUrl, context = 'guest', accountId, isExistingUser: providedIsExisting }: InviteEmailRequest = payload;
 
+    // Debug: show raw and parsed values
+    const rawIsExisting = payload.isExistingUser;
+    const parsedIsExistingDebug = rawIsExisting === true || rawIsExisting === 'true' || rawIsExisting === 1;
     console.log("invite payload", {
       context: payload.context,
       recipientEmail: payload.guestEmail,
-      isExistingUser_raw: payload.isExistingUser,
-      isExistingUser_parsed: payload.isExistingUser === true,
+      isExistingUser_raw: rawIsExisting,
+      isExistingUser_raw_type: typeof rawIsExisting,
+      isExistingUser_parsed: parsedIsExistingDebug,
+      chosenTemplate: parsedIsExistingDebug ? 'EXISTING_USER' : 'NEW_USER',
     });
 
     if (!guestEmail || !inviterName || !listName) {
