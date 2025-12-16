@@ -3,6 +3,7 @@ import { OnboardingTooltips } from "@/components/onboarding/OnboardingTooltips";
 import { NotificationBell } from "@/components/ui/NotificationBell";
 import { useUndoAction } from "@/hooks/useUndoAction";
 import { supabase } from "@/lib/supabase";
+import TeamManagement from "@/components/team/TeamManagement";
 import {
   Plus,
   Search,
@@ -251,6 +252,9 @@ export default function Dashboard() {
   // Export dropdown state
   const [exportDropdownOpen, setExportDropdownOpen] = useState<string | null>(null);
 
+  // Team management modal state
+  const [isTeamManagementOpen, setIsTeamManagementOpen] = useState(false);
+
   // Account switcher state
   interface AccountOption {
     id: string;
@@ -342,6 +346,11 @@ export default function Dashboard() {
   }, [user?.id]);
 
   const currentAccount = availableAccounts.find(a => a.id === currentAccountId);
+
+  // Check if user can manage team (owner + Lots More tier)
+  const canManageTeam = currentAccount?.type === 'team' && 
+                        currentAccount?.ownerId === user?.id && 
+                        user?.tier === 'lots_more';
 
   // Use the actual loading state from the lists context
   // Only show loading skeleton if we haven't loaded once yet AND there are no lists
@@ -994,6 +1003,17 @@ export default function Dashboard() {
                   List
                 </Button>
               </div>
+              {canManageTeam && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-3 gap-2 border-teal-200 text-teal-700 hover:bg-teal-50"
+                  onClick={() => setIsTeamManagementOpen(true)}
+                >
+                  <Users className="w-4 h-4" />
+                  Manage Team
+                </Button>
+              )}
               <NotificationBell />
               <Button
                 variant="ghost"
@@ -2615,6 +2635,16 @@ export default function Dashboard() {
           />
         );
       })()}
+
+      {/* Team Management Modal */}
+      {isTeamManagementOpen && currentAccount?.type === 'team' && (
+        <TeamManagement
+          open={isTeamManagementOpen}
+          onOpenChange={setIsTeamManagementOpen}
+          accountId={currentAccount.id.replace('team-', '')}
+          accountName={currentAccount.name}
+        />
+      )}
     </div>
   );
 }
