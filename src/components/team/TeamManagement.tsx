@@ -258,8 +258,8 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
         return;
       }
 
-      // Find the user by email using SECURITY DEFINER RPC (bypasses RLS)
-      const { data: userData, error: userError } = await supabase
+      // Check if user exists using SECURITY DEFINER RPC (returns boolean)
+      const { data: userExists, error: userError } = await supabase
         .rpc("check_user_exists_by_email", { p_email: emailValidation.value });
 
       if (userError) {
@@ -267,11 +267,42 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
         throw userError;
       }
 
-      const existingUser = userData && userData.length > 0 ? userData[0] : null;
+      console.log("[TeamManagement] User existence check:", { email: emailValidation.value, userExists });
 
-      if (existingUser) {
-        // User exists - check if already a team member
-        const existingMember = teamMembers.find((m) => m.userId === existingUser.user_id);
+      if (userExists === true) {
+        // User exists - get their user ID from public.users
+        const { data: userRecord, error: fetchError } = await supabase
+          .from("users")
+          .select("id")
+          .ilike("email", emailValidation.value)
+          .maybeSingle();
+
+        if (fetchError || !userRecord) {
+          console.error("[TeamManagement] Could not fetch user record:", fetchError);
+          // Fall back to pending invite if we can't get the user ID
+          const { error: inviteError } = await supabase
+            .from("pending_team_invites")
+            .insert({
+              account_id: account.id,
+              inviter_id: user?.id,
+              guest_email: emailValidation.value,
+              role: inviteRole,
+            });
+
+          if (inviteError) throw inviteError;
+          await sendTeamInviteEmail(emailValidation.value);
+          toast({
+            title: "✅ Invite Sent",
+            description: `Invitation sent to ${emailValidation.value}`,
+            className: "bg-green-50 border-green-200",
+          });
+          setInviteEmail("");
+          await loadTeamData();
+          return;
+        }
+
+        // Check if already a team member
+        const existingMember = teamMembers.find((m) => m.userId === userRecord.id);
         if (existingMember) {
           toast({
             title: "⚠️ Already a Team Member",
@@ -286,7 +317,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
           .from("account_team_members")
           .insert({
             account_id: account.id,
-            user_id: existingUser.user_id,
+            user_id: userRecord.id,
             role: inviteRole,
           });
 

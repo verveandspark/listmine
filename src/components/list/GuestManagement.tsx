@@ -215,8 +215,8 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
     try {
       setInviting(true);
 
-      // Find the user by email using SECURITY DEFINER RPC (bypasses RLS)
-      const { data: userData, error: userError } = await supabase
+      // Check if user exists using SECURITY DEFINER RPC (returns boolean)
+      const { data: userExists, error: userError } = await supabase
         .rpc("check_user_exists_by_email", { p_email: emailValidation.value });
 
       if (userError) {
@@ -224,12 +224,60 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
         throw userError;
       }
 
-      const existingUser = userData && userData.length > 0 ? userData[0] : null;
+      console.log("[GuestManagement] User existence check:", { email: emailValidation.value, userExists });
 
       // If user exists, add them directly
-      if (existingUser) {
+      if (userExists === true) {
+        // Get user ID from public.users
+        const { data: userRecord, error: fetchError } = await supabase
+          .from("users")
+          .select("id")
+          .ilike("email", emailValidation.value)
+          .maybeSingle();
+
+        if (fetchError || !userRecord) {
+          console.error("[GuestManagement] Could not fetch user record:", fetchError);
+          // Fall back to pending invite
+          const { error: inviteError } = await supabase
+            .from("pending_invites")
+            .insert({
+              list_id: listId,
+              inviter_id: user?.id,
+              guest_email: emailValidation.value,
+              permission: invitePermission,
+            });
+
+          if (inviteError) throw inviteError;
+          
+          // Send invite email
+          const listUrl = `${window.location.origin}/list/${listId}`;
+          const { data: listData } = await supabase
+            .from("lists")
+            .select("title")
+            .eq("id", listId)
+            .single();
+            
+          await supabase.functions.invoke('supabase-functions-send-invite-email', {
+            body: {
+              guestEmail: emailValidation.value,
+              inviterName: user?.name || user?.email || "A ListMine user",
+              listName: listData?.title || "a list",
+              signupUrl: listUrl,
+            },
+          });
+          
+          toast({
+            title: "✅ Invite Sent",
+            description: `Invitation sent to ${emailValidation.value}`,
+            className: "bg-green-50 border-green-200",
+          });
+          setInviteEmail("");
+          await loadGuests();
+          return;
+        }
+
         // Check if already a guest
-        const existingGuest = guests.find(g => g.userId === existingUser.user_id);
+        const existingGuest = guests.find(g => g.userId === userRecord.id);
         if (existingGuest) {
           toast({
             title: "⚠️ Already Invited",
@@ -244,7 +292,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
           .from("list_guests")
           .insert({
             list_id: listId,
-            user_id: existingUser.user_id,
+            user_id: userRecord.id,
             permission: invitePermission,
           });
 
