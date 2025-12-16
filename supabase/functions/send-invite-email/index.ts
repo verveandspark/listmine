@@ -73,8 +73,10 @@ serve(async (req) => {
     }
 
     // Server-side check for existing user (or use provided value)
-    const isExistingUser = providedIsExisting !== undefined ? providedIsExisting : await checkUserExists(guestEmail);
-    console.log(`Email path: ${isExistingUser ? 'EXISTING_USER' : 'NEW_USER'}, recipient: ${guestEmail}, context: ${context}`);
+    // Handle string "true", boolean true, or number 1 as truthy
+    const parsedIsExisting = providedIsExisting === true || providedIsExisting === 'true' || providedIsExisting === 1;
+    const isExistingUser = providedIsExisting !== undefined ? parsedIsExisting : await checkUserExists(guestEmail);
+    console.log(`Email path: ${isExistingUser ? 'EXISTING_USER' : 'NEW_USER'}, recipient: ${guestEmail}, context: ${context}, providedIsExisting: ${providedIsExisting}, parsedIsExisting: ${parsedIsExisting}`);
 
     const baseUrl = 'https://ff216505-f924-4e81-98b1-c12ac52ba319.canvases.tempo.build';
     

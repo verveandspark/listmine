@@ -352,6 +352,15 @@ export default function Dashboard() {
                         currentAccount?.ownerId === user?.id && 
                         user?.tier === 'lots_more';
 
+  // Debug log for Manage Team button visibility
+  console.log('[ManageTeam Debug]', {
+    currentUserId: user?.id,
+    selectedAccountOwnerId: currentAccount?.ownerId,
+    selectedAccountType: currentAccount?.type,
+    userTier: user?.tier,
+    canManageTeam,
+  });
+
   // Use the actual loading state from the lists context
   // Only show loading skeleton if we haven't loaded once yet AND there are no lists
   // This prevents flashing when navigating back to dashboard with cached data
