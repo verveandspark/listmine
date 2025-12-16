@@ -297,7 +297,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
             className: "bg-green-50 border-green-200",
           });
           setInviteEmail("");
-          await loadTeamData();
+          await fetchAccountAndMembers();
           return;
         }
 

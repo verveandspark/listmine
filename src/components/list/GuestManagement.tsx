@@ -239,7 +239,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
           console.error("[GuestManagement] Could not fetch user record:", fetchError);
           // Fall back to pending invite
           const { error: inviteError } = await supabase
-            .from("pending_invites")
+            .from("pending_list_invites")
             .insert({
               list_id: listId,
               inviter_id: user?.id,
@@ -272,7 +272,8 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
             className: "bg-green-50 border-green-200",
           });
           setInviteEmail("");
-          await loadGuests();
+          await fetchGuests();
+          await fetchPendingInvites();
           return;
         }
 
