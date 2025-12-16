@@ -48,5 +48,5 @@ jobs:
           echo "listing functions"
           ls -la functions || true
 
-      - name: Deploy send-invite-email edge function
-        run: supabase functions deploy send-invite-email --project-ref "${SUPABASE_PROJECT_REF}" --yes
+      - name: Deploy supabase-functions-send-invite-email edge function
+        run: supabase functions deploy supabase-functions-send-invite-email --project-ref "${SUPABASE_PROJECT_REF}" --yes
