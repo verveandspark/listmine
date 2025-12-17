@@ -171,10 +171,11 @@ export function ListSidebar() {
   });
 
   // Helper to get ownership badge for a list
+  // Using brand colors: blues, greens, grays only
   const getOwnershipBadge = (list: typeof lists[0]) => {
     if (list.isGuestAccess) {
       return (
-        <Badge variant="outline" className="text-[10px] px-1 py-0 bg-purple-50 text-purple-600 border-purple-200">
+        <Badge variant="outline" className="text-[10px] px-1 py-0 bg-teal-50 text-teal-700 border-teal-200">
           <Share2 className="w-2.5 h-2.5 mr-0.5" />
           Shared
         </Badge>
@@ -287,12 +288,12 @@ export function ListSidebar() {
 
         {/* Shared With Me section - only in personal mode */}
         {currentAccount?.type === 'personal' && filteredLists.some(l => l.isGuestAccess) && (
-          <div className="mb-4 p-2 bg-purple-50 rounded-lg border border-purple-100">
-            <div className="flex items-center gap-2 text-purple-700 text-sm font-medium mb-1">
+          <div className="mb-4 p-2 bg-teal-50 rounded-lg border border-teal-100">
+            <div className="flex items-center gap-2 text-teal-700 text-sm font-medium mb-1">
               <Share2 className="w-4 h-4" />
               Shared With Me
             </div>
-            <p className="text-xs text-purple-600">
+            <p className="text-xs text-teal-600">
               {filteredLists.filter(l => l.isGuestAccess).length} shared list(s)
             </p>
           </div>

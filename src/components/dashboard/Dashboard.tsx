@@ -1831,7 +1831,7 @@ export default function Dashboard() {
                               <CardTitle className="text-lg flex items-center gap-2 flex-wrap">
                                 {list.title}
                                 {list.isGuestAccess && (
-                                  <Badge variant="outline" className="text-xs bg-purple-50 text-purple-600 border-purple-200">
+                                  <Badge variant="outline" className="text-xs bg-teal-50 text-teal-700 border-teal-200">
                                     <Share2 className="w-3 h-3 mr-1" />
                                     Shared
                                   </Badge>
