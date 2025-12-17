@@ -296,9 +296,20 @@ export default function Dashboard() {
           .eq('user_id', user.id);
         
         if (!memberError && teamMemberships) {
+          console.log('[Dashboard Debug] Team memberships query result:', {
+            data: teamMemberships,
+            error: memberError,
+            count: teamMemberships?.length || 0,
+          });
           for (const membership of teamMemberships) {
             const account = (membership as any).accounts;
-            if (account && account.owner_id !== user.id) {
+            console.log('[Dashboard Debug] Processing membership:', {
+              account_id: membership.account_id,
+              account: account,
+              isOwner: account?.owner_id === user.id,
+            });
+            // Include ALL team accounts where user is a member (including if they're the owner)
+            if (account) {
               accounts.push({
                 id: account.id,
                 name: account.name || 'Team Account',
@@ -315,6 +326,12 @@ export default function Dashboard() {
           .select('id, name, owner_id')
           .eq('owner_id', user.id);
         
+        console.log('[Dashboard Debug] Owned accounts query result:', {
+          data: ownedAccounts,
+          error: ownedError,
+          count: ownedAccounts?.length || 0,
+        });
+        
         if (!ownedError && ownedAccounts) {
           for (const account of ownedAccounts) {
             // Only add if not already in list
@@ -329,6 +346,7 @@ export default function Dashboard() {
           }
         }
         
+        console.log('[Dashboard Debug] Final available accounts:', accounts);
         setAvailableAccounts(accounts);
         
         // Set default to personal if not set
