@@ -25,7 +25,7 @@ interface InviteDetails {
 export default function InviteAccept() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user, isAuthenticated, loading: authLoading, signIn, signUp } = useAuth();
+  const { user, isAuthenticated, loading: authLoading, login, register } = useAuth();
   const { toast } = useToast();
 
   const inviteType = searchParams.get("type") as "guest" | "team" | null;
@@ -62,7 +62,7 @@ export default function InviteAccept() {
         } else {
           setInviteDetails(data as InviteDetails);
           // Pre-fill email from invite
-          if (data?.email) {
+          if (data && typeof data === 'object' && 'email' in data && typeof data.email === 'string') {
             setEmail(data.email);
           }
         }
@@ -172,9 +172,9 @@ export default function InviteAccept() {
 
     try {
       if (authMode === "login") {
-        await signIn(email, password);
+        await login(email, password);
       } else {
-        await signUp(email, password, name);
+        await register(email, password, name);
       }
       // After successful auth, the useEffect will auto-accept the invite
     } catch (err: unknown) {
