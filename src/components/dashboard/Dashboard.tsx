@@ -361,6 +361,15 @@ export default function Dashboard() {
     canManageTeam,
   });
 
+  // Debug log for account switching
+  console.log('[Account Switch Debug]', {
+    currentAccountId,
+    currentAccountType: currentAccount?.type,
+    currentAccountOwnerId: currentAccount?.ownerId,
+    totalLists: lists.length,
+    availableAccounts: availableAccounts.map(a => ({ id: a.id, name: a.name, type: a.type })),
+  });
+
   // Use the actual loading state from the lists context
   // Only show loading skeleton if we haven't loaded once yet AND there are no lists
   // This prevents flashing when navigating back to dashboard with cached data
@@ -781,8 +790,8 @@ export default function Dashboard() {
     }
   };
 
-  // Count archived lists
-  const archivedCount = lists.filter(
+  // Count archived lists (from account-filtered lists)
+  const archivedCount = accountFilteredLists.filter(
     (list) => list.isArchived || list.title.startsWith("[Archived]")
   ).length;
 
@@ -804,6 +813,21 @@ export default function Dashboard() {
   // Apply local search filter only if not using database search results
   if (searchQuery.trim() && searchResults === null) {
     displayLists = searchLists(searchQuery);
+  }
+
+  // Apply account filter based on selected account
+  if (currentAccountId && currentAccount) {
+    if (currentAccount.type === 'personal') {
+      // Personal account: show user's own lists (not guest access)
+      displayLists = displayLists.filter(
+        (list) => list.userId === user?.id && !list.isGuestAccess
+      );
+    } else if (currentAccount.type === 'team' && currentAccount.ownerId) {
+      // Team account: show lists owned by the account owner
+      displayLists = displayLists.filter(
+        (list) => list.userId === currentAccount.ownerId
+      );
+    }
   }
 
   // Apply category filter
@@ -855,11 +879,22 @@ export default function Dashboard() {
     }
   });
 
-  const favoriteLists = lists.filter((list) => list.isFavorite);
+  // Get account-filtered lists for favorites and stats
+  const accountFilteredLists = (() => {
+    if (!currentAccountId || !currentAccount) return lists;
+    if (currentAccount.type === 'personal') {
+      return lists.filter((list) => list.userId === user?.id && !list.isGuestAccess);
+    } else if (currentAccount.type === 'team' && currentAccount.ownerId) {
+      return lists.filter((list) => list.userId === currentAccount.ownerId);
+    }
+    return lists;
+  })();
+
+  const favoriteLists = accountFilteredLists.filter((list) => list.isFavorite);
   const sharedLists = lists.filter((list) => list.isGuestAccess);
 
   const getCategoryStats = (category: ListCategory) => {
-    const categoryLists = lists.filter((list) => list.category === category);
+    const categoryLists = accountFilteredLists.filter((list) => list.category === category);
     const totalItems = categoryLists.reduce(
       (sum, list) => sum + Math.max(0, list.items?.length || 0),
       0,
@@ -2320,7 +2355,7 @@ export default function Dashboard() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 mt-4">
-            {selectedCategoryForModal && lists.filter(l => l.category === selectedCategoryForModal).length === 0 ? (
+            {selectedCategoryForModal && accountFilteredLists.filter(l => l.category === selectedCategoryForModal).length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <ListChecks className="w-12 h-12 mx-auto mb-3 text-gray-300" />
                 <p>No lists in this category yet.</p>
@@ -2337,7 +2372,7 @@ export default function Dashboard() {
                 </Button>
               </div>
             ) : (
-              selectedCategoryForModal && lists.filter(l => l.category === selectedCategoryForModal).map((list) => {
+              selectedCategoryForModal && accountFilteredLists.filter(l => l.category === selectedCategoryForModal).map((list) => {
                 const Icon = categoryIcons[list.category] || ListChecks;
                 const itemCount = list.items?.length || 0;
                 const completedItems = list.items?.filter(item => item.completed).length || 0;
