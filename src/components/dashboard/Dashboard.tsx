@@ -790,11 +790,6 @@ export default function Dashboard() {
     }
   };
 
-  // Count archived lists (from account-filtered lists)
-  const archivedCount = accountFilteredLists.filter(
-    (list) => list.isArchived || list.title.startsWith("[Archived]")
-  ).length;
-
   const categories: (ListCategory | "All")[] = [
     "All",
     "Home",
@@ -892,6 +887,11 @@ export default function Dashboard() {
 
   const favoriteLists = accountFilteredLists.filter((list) => list.isFavorite);
   const sharedLists = lists.filter((list) => list.isGuestAccess);
+
+  // Count archived lists (from account-filtered lists)
+  const archivedCount = accountFilteredLists.filter(
+    (list) => list.isArchived || list.title.startsWith("[Archived]")
+  ).length;
 
   const getCategoryStats = (category: ListCategory) => {
     const categoryLists = accountFilteredLists.filter((list) => list.category === category);
