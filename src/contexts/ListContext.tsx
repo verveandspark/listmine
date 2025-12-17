@@ -332,21 +332,44 @@ export function ListProvider({ children }: { children: ReactNode }) {
         throw ownedError;
       }
 
-      // Fetch team lists where user is a team member
+      // Fetch team lists where user is a team member OR team owner
+      // First, get accounts where user is a member
       const { data: teamMemberships, error: teamMemberError } = await supabase
         .from("account_team_members")
         .select("account_id")
         .eq("user_id", userId);
 
+      // Also get accounts where user is the owner
+      const { data: ownedAccounts, error: ownedAccountsError } = await supabase
+        .from("accounts")
+        .select("id")
+        .eq("owner_id", userId);
+
+      console.log("[ListMine Debug] Team memberships:", teamMemberships);
+      console.log("[ListMine Debug] Owned accounts:", ownedAccounts);
+
       let teamLists: any[] = [];
-      if (!teamMemberError && teamMemberships && teamMemberships.length > 0) {
-        const teamAccountIds = teamMemberships.map((m) => m.account_id);
-        console.log("[ListMine Debug] Fetching team lists for account IDs:", teamAccountIds);
+      
+      // Combine account IDs from memberships and owned accounts
+      const memberAccountIds = (!teamMemberError && teamMemberships) 
+        ? teamMemberships.map((m) => m.account_id) 
+        : [];
+      const ownerAccountIds = (!ownedAccountsError && ownedAccounts) 
+        ? ownedAccounts.map((a) => a.id) 
+        : [];
+      
+      // Deduplicate account IDs
+      const allTeamAccountIds = [...new Set([...memberAccountIds, ...ownerAccountIds])];
+      
+      console.log("[ListMine Debug] All team account IDs (member + owner):", allTeamAccountIds);
+
+      if (allTeamAccountIds.length > 0) {
+        console.log("[ListMine Debug] Fetching team lists for account IDs:", allTeamAccountIds);
         
         const { data: teamListsData, error: teamListsError } = await supabase
           .from("lists")
           .select("*")
-          .in("account_id", teamAccountIds)
+          .in("account_id", allTeamAccountIds)
           .order("created_at", { ascending: false });
         
         if (teamListsError) {
@@ -354,7 +377,15 @@ export function ListProvider({ children }: { children: ReactNode }) {
         } else {
           teamLists = teamListsData || [];
           console.log("[ListMine Debug] teamLists count:", teamLists.length);
+          console.log("[ListMine Debug] teamLists details:", teamLists.map(l => ({
+            id: l.id,
+            title: l.title,
+            account_id: l.account_id,
+            user_id: l.user_id,
+          })));
         }
+      } else {
+        console.log("[ListMine Debug] No team accounts found for user:", userId);
       }
 
       // Fetch lists where user is a guest (with permission)
@@ -546,6 +577,16 @@ export function ListProvider({ children }: { children: ReactNode }) {
       })) || [];
 
       console.log("[ListMine Debug] Lists mapped with favorites. Sample favorites:", listsWithItems.filter(l => l.isFavorite).map(l => ({ id: l.id, title: l.title })));
+      
+      // Debug: Log lists with their accountId values
+      console.log("[ListMine Debug] Lists with accountId:", listsWithItems.map(l => ({
+        id: l.id,
+        title: l.title,
+        accountId: l.accountId,
+        userId: l.userId,
+      })));
+      console.log("[ListMine Debug] Team lists (accountId not null):", listsWithItems.filter(l => l.accountId).length);
+      console.log("[ListMine Debug] Personal lists (accountId null):", listsWithItems.filter(l => !l.accountId).length);
 
       // Filter lists based on user tier - only show lists the user has access to
       // BUT always include guest-accessed lists regardless of tier

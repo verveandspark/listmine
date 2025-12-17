@@ -812,17 +812,35 @@ export default function Dashboard() {
   }
 
   // Apply account filter based on selected account
+  console.log('[Dashboard Filter Debug] Before filtering:', {
+    currentAccountId,
+    currentAccountType: currentAccount?.type,
+    totalListsBeforeFilter: displayLists.length,
+    listsWithAccountId: displayLists.filter(l => l.accountId).map(l => ({ id: l.id, title: l.title, accountId: l.accountId })),
+    listsWithoutAccountId: displayLists.filter(l => !l.accountId).map(l => ({ id: l.id, title: l.title, accountId: l.accountId })),
+  });
+
   if (currentAccountId && currentAccount) {
     if (currentAccount.type === 'personal') {
       // Personal account: show user's own lists that are NOT team lists (accountId is null)
       displayLists = displayLists.filter(
         (list) => list.userId === user?.id && !list.isGuestAccess && !list.accountId
       );
+      console.log('[Dashboard Filter Debug] After personal filter:', {
+        count: displayLists.length,
+        titles: displayLists.map(l => l.title),
+      });
     } else if (currentAccount.type === 'team') {
       // Team account: show lists that belong to this team (by accountId)
+      console.log('[Dashboard Filter Debug] Filtering for team accountId:', currentAccountId);
       displayLists = displayLists.filter(
         (list) => list.accountId === currentAccountId
       );
+      console.log('[Dashboard Filter Debug] After team filter:', {
+        count: displayLists.length,
+        titles: displayLists.map(l => l.title),
+        matchingLists: displayLists.map(l => ({ id: l.id, title: l.title, accountId: l.accountId })),
+      });
     }
   }
 
