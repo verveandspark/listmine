@@ -113,7 +113,10 @@ export default function Profile() {
   }
 
   // Calculate stats from lists - use cached data if available
-  const totalLists = Math.max(0, lists.length);
+  // Count only owned active lists (exclude guest access and archived)
+  const totalLists = Math.max(0, lists.filter(
+    (l) => l.userId === user.id && !l.isGuestAccess && !l.isArchived && !l.title.startsWith("[Archived]")
+  ).length);
   const totalItems = Math.max(0, lists.reduce((sum, list) => sum + (list.items?.length || 0), 0));
   const completedItems = Math.max(0, lists.reduce(
     (sum, list) => sum + (list.items?.filter((item) => item.completed).length || 0),

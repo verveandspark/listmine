@@ -367,7 +367,19 @@ export default function Dashboard() {
     currentAccountType: currentAccount?.type,
     currentAccountOwnerId: currentAccount?.ownerId,
     totalLists: lists.length,
+    ownedActiveListsCount,
     availableAccounts: availableAccounts.map(a => ({ id: a.id, name: a.name, type: a.type })),
+  });
+
+  // Debug log for list rendering - trace which lists are being displayed
+  console.log('[List Render Debug]', {
+    displayListsCount: displayLists?.length || 0,
+    displayListIds: displayLists?.slice(0, 5).map(l => ({ id: l.id, title: l.title, userId: l.userId, isGuestAccess: l.isGuestAccess })),
+    accountFilteredCount: accountFilteredLists?.length || 0,
+    selectedCategory,
+    filterType,
+    showFavoritesOnly,
+    showArchived,
   });
 
   // Use the actual loading state from the lists context
@@ -497,9 +509,12 @@ export default function Dashboard() {
       return;
     }
 
-    // Check list limit
+    // Check list limit - count only owned active lists (exclude guest access and archived)
     if (user) {
-      const limitCheck = checkListLimit(lists.length, user.listLimit);
+      const ownedActiveListsCount = lists.filter(
+        (l) => l.userId === user.id && !l.isGuestAccess && !l.isArchived && !l.title.startsWith("[Archived]")
+      ).length;
+      const limitCheck = checkListLimit(ownedActiveListsCount, user.listLimit);
       if (!limitCheck.valid) {
         setShowLimitModal(true);
         return;
@@ -763,15 +778,20 @@ export default function Dashboard() {
     e.stopPropagation();
   };
 
+  // Count only owned active lists for limit calculations
+  const ownedActiveListsCount = lists.filter(
+    (l) => l.userId === user?.id && !l.isGuestAccess && !l.isArchived && !l.title.startsWith("[Archived]")
+  ).length;
+
   const getUsagePercentage = () => {
     if (!user || user.listLimit === -1) return 0;
-    const percentage = (lists.length / user.listLimit) * 100;
+    const percentage = (ownedActiveListsCount / user.listLimit) * 100;
     return Math.min(100, Math.max(0, percentage));
   };
 
   const getRemainingLists = () => {
     if (!user || user.listLimit === -1) return "Unlimited";
-    const remaining = user.listLimit - lists.length;
+    const remaining = user.listLimit - ownedActiveListsCount;
     return Math.max(0, remaining);
   };
 
@@ -885,7 +905,10 @@ export default function Dashboard() {
     return lists;
   })();
 
-  const favoriteLists = accountFilteredLists.filter((list) => list.isFavorite);
+  // Filter favorites from account-filtered lists, excluding archived
+  const favoriteLists = accountFilteredLists.filter(
+    (list) => list.isFavorite && !list.isArchived && !list.title.startsWith("[Archived]")
+  );
   const sharedLists = lists.filter((list) => list.isGuestAccess);
 
   // Count archived lists (from account-filtered lists)
@@ -1329,9 +1352,9 @@ export default function Dashboard() {
             <div className="flex items-center gap-2">
               <FileText className="w-5 h-5 text-primary" />
               <span className="text-sm text-gray-600">
-                Total Lists:{" "}
+                Your Lists:{" "}
                 <span className="font-semibold text-gray-900">
-                  {lists.length}
+                  {ownedActiveListsCount}
                   {user?.listLimit !== -1 && (
                     <span className="text-gray-400"> / {user?.listLimit}</span>
                   )}
@@ -1348,10 +1371,10 @@ export default function Dashboard() {
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="max-w-xs">
-                        You're using {lists.length} of your{" "}
+                        You're using {ownedActiveListsCount} of your{" "}
                         {user?.listLimit} lists on the{" "}
-                        {getTierName(user?.tier || "free")} tier. Upgrade
-                        for more lists.
+                        {getTierName(user?.tier || "free")} tier. Shared lists
+                        and archived lists don't count toward your limit.
                       </p>
                     </TooltipContent>
                   </Tooltip>

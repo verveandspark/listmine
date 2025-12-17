@@ -146,8 +146,12 @@ export default function Templates() {
       return;
     }
 
-    // Check list limit
-    if (user.listLimit !== -1 && lists.length >= user.listLimit) {
+    // Check list limit - count only owned active lists (exclude guest access and archived)
+    const ownedActiveListsCount = lists.filter(
+      (l) => l.userId === user.id && !l.isGuestAccess && !l.isArchived && !l.title.startsWith("[Archived]")
+    ).length;
+    
+    if (user.listLimit !== -1 && ownedActiveListsCount >= user.listLimit) {
       const tierName =
         user.tier === "free"
           ? "Free"

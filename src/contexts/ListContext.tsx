@@ -637,7 +637,19 @@ export function ListProvider({ children }: { children: ReactNode }) {
       );
     }
 
-    if (user.listLimit !== -1 && lists.length >= user.listLimit) {
+    // Count only owned lists (exclude guest access and archived lists)
+    const ownedActiveListsCount = lists.filter(
+      (l) => l.userId === user.id && !l.isGuestAccess && !l.isArchived && !l.title.startsWith("[Archived]")
+    ).length;
+    
+    console.log("[ListContext] List limit check:", {
+      ownedActiveListsCount,
+      totalLists: lists.length,
+      userListLimit: user.listLimit,
+      userId: user.id,
+    });
+    
+    if (user.listLimit !== -1 && ownedActiveListsCount >= user.listLimit) {
       const tierName =
         user.tier === "free"
           ? "Free"
