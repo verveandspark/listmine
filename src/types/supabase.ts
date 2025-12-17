@@ -448,6 +448,7 @@ export type Database = {
       }
       lists: {
         Row: {
+          account_id: string | null
           category: string
           created_at: string | null
           description: string | null
@@ -469,6 +470,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          account_id?: string | null
           category: string
           created_at?: string | null
           description?: string | null
@@ -490,6 +492,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          account_id?: string | null
           category?: string
           created_at?: string | null
           description?: string | null
@@ -511,6 +514,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "lists_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lists_user_id_fkey"
             columns: ["user_id"]

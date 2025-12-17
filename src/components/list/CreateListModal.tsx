@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLists } from "@/contexts/useListsHook";
 import { useAuth } from "@/contexts/useAuthHook";
+import { supabase } from "@/lib/supabase";
 import {
   Dialog,
   DialogContent,
@@ -26,13 +27,20 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ListCategory, ListType } from "@/types";
-import { Loader2, Lock } from "lucide-react";
+import { Loader2, Lock, User, Users } from "lucide-react";
 import { getListTypesWithAvailability, UserTier } from "@/lib/tierUtils";
 import ListTypeUpsellModal from "./ListTypeUpsellModal";
 
 interface CreateListModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+}
+
+interface AccountOption {
+  id: string;
+  name: string;
+  type: 'personal' | 'team';
+  ownerId?: string;
 }
 
 export default function CreateListModal({
@@ -44,6 +52,8 @@ export default function CreateListModal({
   const [listType, setListType] = useState<ListType>("custom");
   const [upsellOpen, setUpsellOpen] = useState(false);
   const [upsellListType, setUpsellListType] = useState<{ label: string; tier: UserTier } | null>(null);
+  const [ownership, setOwnership] = useState<'personal' | string>('personal'); // 'personal' or account ID
+  const [availableAccounts, setAvailableAccounts] = useState<AccountOption[]>([]);
   
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +63,68 @@ export default function CreateListModal({
 
   const userTier = (user?.tier || "free") as UserTier;
   const listTypesWithAvailability = getListTypesWithAvailability(userTier);
+
+  // Fetch available accounts (teams) for the user
+  useEffect(() => {
+    const fetchAccounts = async () => {
+      if (!user) return;
+
+      const accounts: AccountOption[] = [];
+
+      // Check if user is a team member
+      const { data: teamMemberships, error: memberError } = await supabase
+        .from('account_team_members')
+        .select(`
+          account_id,
+          accounts:account_id (
+            id,
+            name,
+            owner_id
+          )
+        `)
+        .eq('user_id', user.id);
+
+      if (!memberError && teamMemberships) {
+        for (const membership of teamMemberships) {
+          const account = (membership as any).accounts;
+          if (account) {
+            accounts.push({
+              id: account.id,
+              name: account.name || 'Team Account',
+              type: 'team',
+              ownerId: account.owner_id,
+            });
+          }
+        }
+      }
+
+      // Also check if user owns any accounts
+      const { data: ownedAccounts, error: ownedError } = await supabase
+        .from('accounts')
+        .select('id, name, owner_id')
+        .eq('owner_id', user.id);
+
+      if (!ownedError && ownedAccounts) {
+        for (const account of ownedAccounts) {
+          // Avoid duplicates
+          if (!accounts.find(a => a.id === account.id)) {
+            accounts.push({
+              id: account.id,
+              name: account.name || 'My Team',
+              type: 'team',
+              ownerId: account.owner_id,
+            });
+          }
+        }
+      }
+
+      setAvailableAccounts(accounts);
+    };
+
+    if (open) {
+      fetchAccounts();
+    }
+  }, [user, open]);
 
   const categories: ListCategory[] = [
     "Tasks",
@@ -87,8 +159,11 @@ export default function CreateListModal({
     setError(null);
 
     try {
+      // Determine accountId: null for personal, or the selected account ID for team
+      const accountId = ownership === 'personal' ? null : ownership;
+      
       // addList now returns the new list ID
-      const newListId = await addList(listName.trim(), category, listType);
+      const newListId = await addList(listName.trim(), category, listType, accountId);
       
       // Navigate to the new list immediately
       navigate(`/list/${newListId}`);
@@ -107,6 +182,7 @@ export default function CreateListModal({
     setListName("");
     setCategory("Tasks");
     setListType("custom");
+    setOwnership("personal");
     setError(null);
   };
 
@@ -197,6 +273,42 @@ export default function CreateListModal({
               </TooltipProvider>
             </div>
           </div>
+
+          {/* Ownership - only show if user has team accounts */}
+          {availableAccounts.length > 0 && (
+            <div className="grid gap-2">
+              <Label htmlFor="ownership">Create list for</Label>
+              <Select
+                value={ownership}
+                onValueChange={(value) => setOwnership(value)}
+              >
+                <SelectTrigger id="ownership">
+                  <SelectValue placeholder="Select ownership" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="personal">
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4" />
+                      <span>Personal (just me)</span>
+                    </div>
+                  </SelectItem>
+                  {availableAccounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        <span>{account.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {ownership === 'personal' 
+                  ? "This list will be private to you."
+                  : "This list will be visible to team members."}
+              </p>
+            </div>
+          )}
 
           {error && (
             <div className="text-sm text-red-600 bg-red-50 p-2 rounded">

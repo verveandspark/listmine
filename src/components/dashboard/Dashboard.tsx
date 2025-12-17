@@ -814,14 +814,14 @@ export default function Dashboard() {
   // Apply account filter based on selected account
   if (currentAccountId && currentAccount) {
     if (currentAccount.type === 'personal') {
-      // Personal account: show user's own lists (not guest access)
+      // Personal account: show user's own lists that are NOT team lists (accountId is null)
       displayLists = displayLists.filter(
-        (list) => list.userId === user?.id && !list.isGuestAccess
+        (list) => list.userId === user?.id && !list.isGuestAccess && !list.accountId
       );
-    } else if (currentAccount.type === 'team' && currentAccount.ownerId) {
-      // Team account: show lists owned by the account owner
+    } else if (currentAccount.type === 'team') {
+      // Team account: show lists that belong to this team (by accountId)
       displayLists = displayLists.filter(
-        (list) => list.userId === currentAccount.ownerId
+        (list) => list.accountId === currentAccountId
       );
     }
   }
@@ -879,9 +879,11 @@ export default function Dashboard() {
   const accountFilteredLists = (() => {
     if (!currentAccountId || !currentAccount) return lists;
     if (currentAccount.type === 'personal') {
-      return lists.filter((list) => list.userId === user?.id && !list.isGuestAccess);
-    } else if (currentAccount.type === 'team' && currentAccount.ownerId) {
-      return lists.filter((list) => list.userId === currentAccount.ownerId);
+      // Personal: show user's own lists that are NOT team lists (accountId is null)
+      return lists.filter((list) => list.userId === user?.id && !list.isGuestAccess && !list.accountId);
+    } else if (currentAccount.type === 'team') {
+      // Team: show lists that belong to this team (by accountId)
+      return lists.filter((list) => list.accountId === currentAccountId);
     }
     return lists;
   })();

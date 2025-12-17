@@ -78,6 +78,7 @@ export type ShareMode = 'view_only' | 'importable';
 export interface List {
   id: string;
   userId: string; // Owner's user ID
+  accountId?: string | null; // Optional account ID for team lists. NULL means personal list.
   title: string;
   description?: string;
   category: ListCategory;

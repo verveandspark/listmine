@@ -55,6 +55,7 @@ interface ListContextType {
     title: string,
     category: ListCategory,
     listType: ListType,
+    accountId?: string | null,
   ) => Promise<string>;
   updateList: (id: string, updates: Partial<List>) => Promise<void>;
   deleteList: (id: string) => Promise<void>;
@@ -331,6 +332,31 @@ export function ListProvider({ children }: { children: ReactNode }) {
         throw ownedError;
       }
 
+      // Fetch team lists where user is a team member
+      const { data: teamMemberships, error: teamMemberError } = await supabase
+        .from("account_team_members")
+        .select("account_id")
+        .eq("user_id", userId);
+
+      let teamLists: any[] = [];
+      if (!teamMemberError && teamMemberships && teamMemberships.length > 0) {
+        const teamAccountIds = teamMemberships.map((m) => m.account_id);
+        console.log("[ListMine Debug] Fetching team lists for account IDs:", teamAccountIds);
+        
+        const { data: teamListsData, error: teamListsError } = await supabase
+          .from("lists")
+          .select("*")
+          .in("account_id", teamAccountIds)
+          .order("created_at", { ascending: false });
+        
+        if (teamListsError) {
+          console.error("[ListMine Error] teamLists query error:", teamListsError);
+        } else {
+          teamLists = teamListsData || [];
+          console.log("[ListMine Debug] teamLists count:", teamLists.length);
+        }
+      }
+
       // Fetch lists where user is a guest (with permission)
       const { data: guestListData, error: guestIdsError } = await supabase
         .from("list_guests")
@@ -371,11 +397,13 @@ export function ListProvider({ children }: { children: ReactNode }) {
         console.log("[ListMine Debug] guestLists count:", guestLists.length, "data:", guestLists);
       }
 
-      // Combine and deduplicate lists
+      // Combine owned, team, and guest lists (deduplicate by ID)
       const ownedIds = new Set((ownedLists || []).map((l) => l.id));
+      const teamIds = new Set(teamLists.map((l) => l.id));
       const combinedLists = [
         ...(ownedLists || []),
-        ...guestLists.filter((l) => !ownedIds.has(l.id)),
+        ...teamLists.filter((l) => !ownedIds.has(l.id)),
+        ...guestLists.filter((l) => !ownedIds.has(l.id) && !teamIds.has(l.id)),
       ];
       const listsData = combinedLists;
       
@@ -483,6 +511,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
       const listsWithItems: List[] = listsData?.map((list) => ({
         id: list.id,
         userId: list.user_id,
+        accountId: list.account_id || null,
         title: list.title,
         category: list.category as ListCategory,
         listType: (list.list_type || 'custom') as ListType,
@@ -571,6 +600,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
     title: string,
     category: ListCategory,
     listType: ListType = "custom",
+    accountId?: string | null,
   ): Promise<string> => {
     if (!user) throw new Error("User not authenticated");
 
@@ -684,12 +714,23 @@ export function ListProvider({ children }: { children: ReactNode }) {
       console.log("Value of insertUserId:", insertUserId);
       
       // Log the exact payload being sent
-      const insertPayload = {
+      const insertPayload: {
+        user_id: string;
+        title: string;
+        category: string;
+        list_type: string;
+        account_id?: string | null;
+      } = {
         user_id: insertUserId,
         title: nameValidation.value,
         category: categoryValidation.value,
         list_type: listType,
       };
+      
+      // Add account_id if provided (for team lists)
+      if (accountId) {
+        insertPayload.account_id = accountId;
+      }
       
       console.log("[ListContext] Insert payload:", insertPayload);
       console.log("[ListContext] Auth user ID (from getUser):", authUser.id);
