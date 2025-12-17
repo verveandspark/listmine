@@ -1828,10 +1828,25 @@ export default function Dashboard() {
                               <Icon className="w-5 h-5" />
                             </div>
                             <div>
-                              <CardTitle className="text-lg flex items-center gap-2">
+                              <CardTitle className="text-lg flex items-center gap-2 flex-wrap">
                                 {list.title}
                                 {list.isGuestAccess && (
-                                  <Badge variant="outline" className="text-xs bg-teal-50 text-teal-700 border-teal-200">Shared</Badge>
+                                  <Badge variant="outline" className="text-xs bg-purple-50 text-purple-600 border-purple-200">
+                                    <Share2 className="w-3 h-3 mr-1" />
+                                    Shared
+                                  </Badge>
+                                )}
+                                {list.accountId && (
+                                  <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600 border-blue-200">
+                                    <Users className="w-3 h-3 mr-1" />
+                                    Team
+                                  </Badge>
+                                )}
+                                {!list.accountId && !list.isGuestAccess && (
+                                  <Badge variant="outline" className="text-xs bg-gray-50 text-gray-600 border-gray-200">
+                                    <User className="w-3 h-3 mr-1" />
+                                    Personal
+                                  </Badge>
                                 )}
                                 {list.isArchived && (
                                   <Badge variant="secondary" className="text-xs">Archived</Badge>
