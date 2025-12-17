@@ -60,7 +60,7 @@ export default function InviteAccept() {
           console.error("Error fetching invite details:", error);
           setInviteDetails({ found: false, error: error.message });
         } else {
-          setInviteDetails(data as InviteDetails);
+          setInviteDetails(data as unknown as InviteDetails);
           // Pre-fill email from invite
           if (data && typeof data === 'object' && 'email' in data && typeof data.email === 'string') {
             setEmail(data.email);
