@@ -65,6 +65,7 @@ export default function CreateListModal({
   const listTypesWithAvailability = getListTypesWithAvailability(userTier);
 
   // Fetch available accounts (teams) for the user
+  // Always show ownership selector if user owns any team accounts
   useEffect(() => {
     const fetchAccounts = async () => {
       if (!user) {
@@ -75,7 +76,26 @@ export default function CreateListModal({
       console.log('[CreateListModal] Fetching accounts for user:', user.id);
       const accounts: AccountOption[] = [];
 
-      // Check if user is a team member
+      // First check if user owns any accounts (team owner)
+      const { data: ownedAccounts, error: ownedError } = await supabase
+        .from('accounts')
+        .select('id, name, owner_id')
+        .eq('owner_id', user.id);
+
+      console.log('[CreateListModal] Owned accounts result:', { ownedAccounts, ownedError });
+
+      if (!ownedError && ownedAccounts) {
+        for (const account of ownedAccounts) {
+          accounts.push({
+            id: account.id,
+            name: account.name || 'My Team',
+            type: 'team',
+            ownerId: account.owner_id,
+          });
+        }
+      }
+
+      // Also check if user is a team member (but not owner)
       const { data: teamMemberships, error: memberError } = await supabase
         .from('account_team_members')
         .select(`
@@ -94,34 +114,15 @@ export default function CreateListModal({
         for (const membership of teamMemberships) {
           const account = (membership as any).accounts;
           if (account) {
-            accounts.push({
-              id: account.id,
-              name: account.name || 'Team Account',
-              type: 'team',
-              ownerId: account.owner_id,
-            });
-          }
-        }
-      }
-
-      // Also check if user owns any accounts
-      const { data: ownedAccounts, error: ownedError } = await supabase
-        .from('accounts')
-        .select('id, name, owner_id')
-        .eq('owner_id', user.id);
-
-      console.log('[CreateListModal] Owned accounts result:', { ownedAccounts, ownedError });
-
-      if (!ownedError && ownedAccounts) {
-        for (const account of ownedAccounts) {
-          // Avoid duplicates
-          if (!accounts.find(a => a.id === account.id)) {
-            accounts.push({
-              id: account.id,
-              name: account.name || 'My Team',
-              type: 'team',
-              ownerId: account.owner_id,
-            });
+            // Avoid duplicates (in case user is both owner and member)
+            if (!accounts.find(a => a.id === account.id)) {
+              accounts.push({
+                id: account.id,
+                name: account.name || 'Team Account',
+                type: 'team',
+                ownerId: account.owner_id,
+              });
+            }
           }
         }
       }
