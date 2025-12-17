@@ -858,7 +858,7 @@ export default function Dashboard() {
       // Do NOT show guest/shared lists in team mode
       console.log('[Dashboard Filter Debug] Filtering for team accountId:', currentAccountId);
       displayLists = displayLists.filter(
-        (list) => list.accountId === currentAccountId
+        (list) => list.accountId === currentAccountId && !list.isGuestAccess
       );
       teamFilteredCount = displayLists.length;
       console.log('[Dashboard Filter Debug] After team filter:', {
@@ -925,8 +925,8 @@ export default function Dashboard() {
       // Personal: show user's own lists that are NOT team lists (accountId is null)
       return lists.filter((list) => list.userId === user?.id && !list.isGuestAccess && !list.accountId);
     } else if (currentAccount.type === 'team') {
-      // Team: show lists that belong to this team (by accountId)
-      return lists.filter((list) => list.accountId === currentAccountId);
+      // Team: show lists that belong to this team (by accountId), NO shared lists
+      return lists.filter((list) => list.accountId === currentAccountId && !list.isGuestAccess);
     }
     return lists;
   })();

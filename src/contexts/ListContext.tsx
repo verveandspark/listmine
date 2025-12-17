@@ -377,6 +377,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
         } else {
           teamLists = teamListsData || [];
           console.log("[ListMine Debug] teamLists count:", teamLists.length);
+          console.log("[ListMine Debug] teamLists raw first item:", teamLists[0] ? JSON.stringify(teamLists[0]) : 'none');
           console.log("[ListMine Debug] teamLists details:", teamLists.map(l => ({
             id: l.id,
             title: l.title,

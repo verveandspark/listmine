@@ -157,12 +157,29 @@ export function ListSidebar() {
         return isPersonalList || isGuestList;
       });
     } else if (currentAccount.type === 'team') {
-      // Team mode: show ONLY lists that belong to this team
+      // Team mode: show ONLY lists that belong to this team (NO shared/guest lists)
       accountFilteredLists = lists.filter(
-        (list) => list.accountId === currentAccountId
+        (list) => list.accountId === currentAccountId && !list.isGuestAccess
       );
     }
   }
+
+  // Handle account switch navigation - if current list is not visible in new context, navigate away
+  useEffect(() => {
+    if (id && currentAccountId && currentAccount && accountFilteredLists.length >= 0) {
+      const currentListVisible = accountFilteredLists.some(list => list.id === id);
+      if (!currentListVisible) {
+        // Current list is not visible in this account context
+        if (accountFilteredLists.length > 0) {
+          // Navigate to first visible list
+          navigate(`/list/${accountFilteredLists[0].id}`);
+        } else {
+          // No lists visible, go to dashboard
+          navigate('/dashboard');
+        }
+      }
+    }
+  }, [currentAccountId, id, accountFilteredLists, navigate]);
 
   // Filter out archived lists unless showArchived is true
   const filteredLists = accountFilteredLists.filter((list) => {
