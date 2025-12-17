@@ -361,26 +361,7 @@ export default function Dashboard() {
     canManageTeam,
   });
 
-  // Debug log for account switching
-  console.log('[Account Switch Debug]', {
-    currentAccountId,
-    currentAccountType: currentAccount?.type,
-    currentAccountOwnerId: currentAccount?.ownerId,
-    totalLists: lists.length,
-    ownedActiveListsCount,
-    availableAccounts: availableAccounts.map(a => ({ id: a.id, name: a.name, type: a.type })),
-  });
-
-  // Debug log for list rendering - trace which lists are being displayed
-  console.log('[List Render Debug]', {
-    displayListsCount: displayLists?.length || 0,
-    displayListIds: displayLists?.slice(0, 5).map(l => ({ id: l.id, title: l.title, userId: l.userId, isGuestAccess: l.isGuestAccess })),
-    accountFilteredCount: accountFilteredLists?.length || 0,
-    selectedCategory,
-    filterType,
-    showFavoritesOnly,
-    showArchived,
-  });
+  // Debug log for account switching (moved detailed logs after variable declarations)
 
   // Use the actual loading state from the lists context
   // Only show loading skeleton if we haven't loaded once yet AND there are no lists
@@ -915,6 +896,21 @@ export default function Dashboard() {
   const archivedCount = accountFilteredLists.filter(
     (list) => list.isArchived || list.title.startsWith("[Archived]")
   ).length;
+
+  // Debug log for account switching and list rendering
+  console.log('[Account Switch Debug]', {
+    currentAccountId,
+    currentAccountType: currentAccount?.type,
+    currentAccountOwnerId: currentAccount?.ownerId,
+    totalLists: lists.length,
+    ownedActiveListsCount,
+    accountFilteredCount: accountFilteredLists.length,
+    displayListsCount: displayLists?.length || 0,
+    selectedCategory,
+    filterType,
+    showFavoritesOnly,
+    showArchived,
+  });
 
   const getCategoryStats = (category: ListCategory) => {
     const categoryLists = accountFilteredLists.filter((list) => list.category === category);
