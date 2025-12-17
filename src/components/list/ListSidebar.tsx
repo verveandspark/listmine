@@ -145,6 +145,18 @@ export function ListSidebar() {
     navigate("/", { replace: true });
   };
 
+  // Debug: Log all lists with their accountId values
+  console.log('[ListSidebar Debug] All lists from context:', lists.map(l => ({
+    id: l.id,
+    title: l.title,
+    accountId: l.accountId,
+    userId: l.userId,
+    isGuestAccess: l.isGuestAccess,
+  })));
+  console.log('[ListSidebar Debug] Lists with accountId:', lists.filter(l => l.accountId).length);
+  console.log('[ListSidebar Debug] Current account:', currentAccount);
+  console.log('[ListSidebar Debug] Current account ID:', currentAccountId);
+
   // Filter lists based on selected account context
   let accountFilteredLists = lists;
   
@@ -156,11 +168,19 @@ export function ListSidebar() {
         const isGuestList = list.isGuestAccess;
         return isPersonalList || isGuestList;
       });
+      console.log('[ListSidebar Debug] Personal mode filtered lists:', accountFilteredLists.length);
     } else if (currentAccount.type === 'team') {
       // Team mode: show ONLY lists that belong to this team (NO shared/guest lists)
+      console.log('[ListSidebar Debug] Team mode - filtering for accountId:', currentAccountId);
       accountFilteredLists = lists.filter(
         (list) => list.accountId === currentAccountId && !list.isGuestAccess
       );
+      console.log('[ListSidebar Debug] Team mode filtered lists:', accountFilteredLists.length);
+      console.log('[ListSidebar Debug] Team mode filtered list details:', accountFilteredLists.map(l => ({
+        id: l.id,
+        title: l.title,
+        accountId: l.accountId,
+      })));
     }
   }
 

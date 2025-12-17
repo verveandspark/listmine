@@ -334,10 +334,17 @@ export function ListProvider({ children }: { children: ReactNode }) {
 
       // Fetch team lists where user is a team member OR team owner
       // First, get accounts where user is a member
+      console.log("[ListMine Debug] Fetching team memberships for userId:", userId);
       const { data: teamMemberships, error: teamMemberError } = await supabase
         .from("account_team_members")
         .select("account_id")
         .eq("user_id", userId);
+
+      console.log("[ListMine Debug] Team memberships query result:", {
+        data: teamMemberships,
+        error: teamMemberError,
+        count: teamMemberships?.length || 0,
+      });
 
       // Also get accounts where user is the owner
       const { data: ownedAccounts, error: ownedAccountsError } = await supabase
@@ -365,17 +372,49 @@ export function ListProvider({ children }: { children: ReactNode }) {
 
       if (allTeamAccountIds.length > 0) {
         console.log("[ListMine Debug] Fetching team lists for account IDs:", allTeamAccountIds);
+        console.log("[ListMine Debug] Current user ID:", userId);
         
+        // Debug: Check if user can access lists via RLS
         const { data: teamListsData, error: teamListsError } = await supabase
           .from("lists")
-          .select("*")
+          .select("id, title, account_id, user_id, created_at")
           .in("account_id", allTeamAccountIds)
           .order("created_at", { ascending: false });
         
+        console.log("[ListMine Debug] Team lists query response:", {
+          data: teamListsData,
+          error: teamListsError,
+          dataLength: teamListsData?.length || 0,
+        });
+        
         if (teamListsError) {
           console.error("[ListMine Error] teamLists query error:", teamListsError);
+          console.error("[ListMine Error] teamLists error details:", {
+            code: teamListsError.code,
+            message: teamListsError.message,
+            details: teamListsError.details,
+            hint: teamListsError.hint,
+          });
         } else {
-          teamLists = teamListsData || [];
+          // If we got results, fetch full data
+          if (teamListsData && teamListsData.length > 0) {
+            const teamListIds = teamListsData.map(l => l.id);
+            const { data: fullTeamListsData, error: fullTeamListsError } = await supabase
+              .from("lists")
+              .select("*")
+              .in("id", teamListIds)
+              .order("created_at", { ascending: false });
+            
+            if (fullTeamListsError) {
+              console.error("[ListMine Error] Full team lists query error:", fullTeamListsError);
+              teamLists = [];
+            } else {
+              teamLists = fullTeamListsData || [];
+            }
+          } else {
+            teamLists = [];
+          }
+          
           console.log("[ListMine Debug] teamLists count:", teamLists.length);
           console.log("[ListMine Debug] teamLists raw first item:", teamLists[0] ? JSON.stringify(teamLists[0]) : 'none');
           console.log("[ListMine Debug] teamLists details:", teamLists.map(l => ({
