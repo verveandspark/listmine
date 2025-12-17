@@ -439,6 +439,15 @@ export function ListProvider({ children }: { children: ReactNode }) {
       const listsData = combinedLists;
       
       console.log("[ListMine Debug] finalDisplayedLists count:", listsData.length);
+      
+      // Debug: Log raw database account_id values BEFORE mapping
+      console.log("[ListMine Debug] Raw listsData with account_id:", listsData.map(l => ({
+        id: l.id,
+        title: l.title,
+        account_id: l.account_id,
+        user_id: l.user_id,
+      })));
+      console.log("[ListMine Debug] Lists with account_id (raw):", listsData.filter(l => l.account_id).length);
 
       // Check if this request is still valid (user hasn't changed)
       if (requestId !== loadRequestIdRef.current || userId !== currentUserIdRef.current) {
@@ -595,6 +604,15 @@ export function ListProvider({ children }: { children: ReactNode }) {
       );
       
       console.log("[ListMine Debug] After tier filter - filteredLists count:", filteredLists.length);
+      
+      // Debug: Verify accountId is preserved after tier filter
+      console.log("[ListMine Debug] After tier filter - lists with accountId:", 
+        filteredLists.filter(l => l.accountId !== null && l.accountId !== undefined).map(l => ({
+          id: l.id,
+          title: l.title,
+          accountId: l.accountId,
+        }))
+      );
 
       // Final check before setting state
       if (requestId !== loadRequestIdRef.current || userId !== currentUserIdRef.current) {

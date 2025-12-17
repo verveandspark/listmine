@@ -811,31 +811,56 @@ export default function Dashboard() {
     displayLists = searchLists(searchQuery);
   }
 
+  // Debug: Log sample list object to verify accountId property exists
+  if (displayLists.length > 0) {
+    const sampleList = displayLists[0];
+    console.log('[Dashboard Filter Debug] Sample list object keys:', Object.keys(sampleList));
+    console.log('[Dashboard Filter Debug] Sample list accountId value:', sampleList.accountId);
+    console.log('[Dashboard Filter Debug] Sample list full object:', JSON.stringify(sampleList, null, 2));
+  }
+
+  // Count lists with accountId BEFORE any filtering
+  const listsWithAccountIdCount = displayLists.filter(l => l.accountId !== null && l.accountId !== undefined).length;
+  const listsWithoutAccountIdCount = displayLists.filter(l => l.accountId === null || l.accountId === undefined).length;
+
   // Apply account filter based on selected account
   console.log('[Dashboard Filter Debug] Before filtering:', {
     currentAccountId,
     currentAccountType: currentAccount?.type,
     totalListsBeforeFilter: displayLists.length,
+    listsWithAccountIdCount,
+    listsWithoutAccountIdCount,
     listsWithAccountId: displayLists.filter(l => l.accountId).map(l => ({ id: l.id, title: l.title, accountId: l.accountId })),
     listsWithoutAccountId: displayLists.filter(l => !l.accountId).map(l => ({ id: l.id, title: l.title, accountId: l.accountId })),
   });
 
+  let teamFilteredCount = 0;
+
   if (currentAccountId && currentAccount) {
     if (currentAccount.type === 'personal') {
       // Personal account: show user's own lists that are NOT team lists (accountId is null)
+      // ALSO show guest/shared lists in personal mode
       displayLists = displayLists.filter(
-        (list) => list.userId === user?.id && !list.isGuestAccess && !list.accountId
+        (list) => {
+          // Show personal lists (owned by user, no accountId)
+          const isPersonalList = list.userId === user?.id && !list.accountId;
+          // Show guest/shared lists in personal mode
+          const isGuestList = list.isGuestAccess;
+          return isPersonalList || isGuestList;
+        }
       );
       console.log('[Dashboard Filter Debug] After personal filter:', {
         count: displayLists.length,
         titles: displayLists.map(l => l.title),
       });
     } else if (currentAccount.type === 'team') {
-      // Team account: show lists that belong to this team (by accountId)
+      // Team account: show ONLY lists that belong to this team (by accountId)
+      // Do NOT show guest/shared lists in team mode
       console.log('[Dashboard Filter Debug] Filtering for team accountId:', currentAccountId);
       displayLists = displayLists.filter(
         (list) => list.accountId === currentAccountId
       );
+      teamFilteredCount = displayLists.length;
       console.log('[Dashboard Filter Debug] After team filter:', {
         count: displayLists.length,
         titles: displayLists.map(l => l.title),
@@ -966,8 +991,22 @@ export default function Dashboard() {
     return <DashboardSkeleton />;
   }
 
+  // Debug info for Safari (no devtools)
+  const debugInfo = {
+    mode: currentAccount?.type || 'none',
+    teamId: currentAccount?.type === 'team' ? currentAccountId : 'N/A',
+    total: lists.length,
+    withAccountId: lists.filter(l => l.accountId !== null && l.accountId !== undefined).length,
+    teamFiltered: teamFilteredCount,
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 animate-in fade-in duration-200">
+      {/* Debug Banner - Safari friendly */}
+      <div className="bg-yellow-100 border-b border-yellow-300 px-4 py-1 text-xs text-yellow-800 font-mono">
+        Debug: mode={debugInfo.mode}, teamId={debugInfo.teamId?.slice(0, 8) || 'N/A'}..., total={debugInfo.total}, withAccountId={debugInfo.withAccountId}, teamFiltered={debugInfo.teamFiltered}
+      </div>
+      
       {/* Onboarding Tooltips for New Users */}
       <OnboardingTooltips />
 
