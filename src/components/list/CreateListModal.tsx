@@ -67,8 +67,12 @@ export default function CreateListModal({
   // Fetch available accounts (teams) for the user
   useEffect(() => {
     const fetchAccounts = async () => {
-      if (!user) return;
+      if (!user) {
+        console.log('[CreateListModal] No user, skipping account fetch');
+        return;
+      }
 
+      console.log('[CreateListModal] Fetching accounts for user:', user.id);
       const accounts: AccountOption[] = [];
 
       // Check if user is a team member
@@ -83,6 +87,8 @@ export default function CreateListModal({
           )
         `)
         .eq('user_id', user.id);
+
+      console.log('[CreateListModal] Team memberships result:', { teamMemberships, memberError });
 
       if (!memberError && teamMemberships) {
         for (const membership of teamMemberships) {
@@ -104,6 +110,8 @@ export default function CreateListModal({
         .select('id, name, owner_id')
         .eq('owner_id', user.id);
 
+      console.log('[CreateListModal] Owned accounts result:', { ownedAccounts, ownedError });
+
       if (!ownedError && ownedAccounts) {
         for (const account of ownedAccounts) {
           // Avoid duplicates
@@ -118,6 +126,7 @@ export default function CreateListModal({
         }
       }
 
+      console.log('[CreateListModal] Final available accounts:', accounts);
       setAvailableAccounts(accounts);
     };
 
@@ -274,8 +283,8 @@ export default function CreateListModal({
             </div>
           </div>
 
-          {/* Ownership - only show if user has team accounts */}
-          {availableAccounts.length > 0 && (
+          {/* Ownership - show if user has team accounts */}
+          {availableAccounts.length > 0 ? (
             <div className="grid gap-2">
               <Label htmlFor="ownership">Create list for</Label>
               <Select
@@ -308,6 +317,10 @@ export default function CreateListModal({
                   : "This list will be visible to team members."}
               </p>
             </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              This list will be created as a personal list.
+            </p>
           )}
 
           {error && (
