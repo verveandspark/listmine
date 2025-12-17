@@ -136,11 +136,30 @@ export default function InviteAccept() {
         // Redirect to appropriate page
         navigate(result.redirect || "/dashboard", { replace: true });
       } else {
-        toast({
-          title: "❌ Failed to Accept Invite",
-          description: result.error || "Unknown error",
-          variant: "destructive",
-        });
+        // Check if the error indicates the invite was already accepted
+        const errorMsg = (result.error || "").toLowerCase();
+        const isAlreadyAccepted = 
+          errorMsg.includes("already accepted") || 
+          errorMsg.includes("already used") ||
+          errorMsg.includes("not found") ||
+          errorMsg.includes("expired");
+        
+        if (isAlreadyAccepted) {
+          // Treat as success - user likely already has access
+          toast({
+            title: "✅ You're Already In!",
+            description: `You already have access to "${inviteDetails?.target_name || "this list"}"`,
+            className: "bg-green-50 border-green-200",
+          });
+          // Redirect to dashboard or provided redirect URL
+          navigate(result.redirect || "/dashboard", { replace: true });
+        } else {
+          toast({
+            title: "❌ Failed to Accept Invite",
+            description: result.error || "Unknown error",
+            variant: "destructive",
+          });
+        }
       }
     } catch (err: unknown) {
       console.error("Error accepting invite:", err);

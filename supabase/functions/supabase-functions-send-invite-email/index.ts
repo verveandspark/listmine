@@ -14,6 +14,7 @@ interface InviteEmailRequest {
   signupUrl?: string;
   context?: 'guest' | 'team';
   accountId?: string;
+  inviteId?: string; // UUID of the pending invite row
   // isExistingUser is now ALWAYS determined server-side, frontend should NOT send this
 }
 
@@ -69,7 +70,7 @@ serve(async (req) => {
 
   try {
     const payload = await req.json();
-    const { guestEmail, inviterName, listName, signupUrl, context = 'guest', accountId }: InviteEmailRequest = payload;
+    const { guestEmail, inviterName, listName, signupUrl, context = 'guest', accountId, inviteId }: InviteEmailRequest = payload;
 
     console.log("[send-invite-email] Received payload:", {
       recipientEmail: guestEmail,
@@ -77,6 +78,7 @@ serve(async (req) => {
       listName,
       context,
       accountId,
+      inviteId,
     });
 
     if (!guestEmail || !inviterName || !listName) {
@@ -97,17 +99,20 @@ serve(async (req) => {
       context,
     });
 
-    const baseUrl = 'https://ff216505-f924-4e81-98b1-c12ac52ba319.canvases.tempo.build';
+    const baseUrl = 'https://app.listmine.com';
     
-    // For team invites, construct URL with account context
-    let actionUrl: string;
-    if (context === 'team' && accountId) {
-      actionUrl = isExistingUser 
-        ? `${baseUrl}/dashboard?team=${accountId}`
-        : `${baseUrl}/auth?email=${encodeURIComponent(guestEmail)}&team=${accountId}`;
-    } else {
-      actionUrl = signupUrl || (isExistingUser ? `${baseUrl}/dashboard` : `${baseUrl}/auth?email=${encodeURIComponent(guestEmail)}`);
+    // Construct invite URL with type and ID - inviteId is required
+    if (!inviteId) {
+      return new Response(
+        JSON.stringify({ error: 'Missing inviteId - required for invite emails' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
+    
+    const inviteType = context === 'team' ? 'team' : 'guest';
+    const actionUrl = `${baseUrl}/invite?type=${inviteType}&id=${inviteId}`;
+    
+    console.log("[send-invite-email] Generated actionUrl:", actionUrl);
 
     // Team invite templates
     if (context === 'team') {

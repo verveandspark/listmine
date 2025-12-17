@@ -739,7 +739,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
                   <p className="font-medium text-sm">
                     {guest.user?.name || guest.user?.email || "Unknown User"}
                   </p>
-                  {guest.user?.name && (
+                  {guest.user?.name && guest.user?.email && (
                     <p className="text-xs text-gray-500">{guest.user.email}</p>
                   )}
                 </div>
