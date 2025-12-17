@@ -455,6 +455,7 @@ export type Database = {
           favorited: boolean | null
           id: string
           is_archived: boolean | null
+          is_deleted: boolean | null
           is_favorite: boolean | null
           is_pinned: boolean | null
           is_public: boolean | null
@@ -477,6 +478,7 @@ export type Database = {
           favorited?: boolean | null
           id?: string
           is_archived?: boolean | null
+          is_deleted?: boolean | null
           is_favorite?: boolean | null
           is_pinned?: boolean | null
           is_public?: boolean | null
@@ -499,6 +501,7 @@ export type Database = {
           favorited?: boolean | null
           id?: string
           is_archived?: boolean | null
+          is_deleted?: boolean | null
           is_favorite?: boolean | null
           is_pinned?: boolean | null
           is_public?: boolean | null
@@ -1135,6 +1138,7 @@ export type Database = {
       clear_user_data: { Args: { target_user_id: string }; Returns: Json }
       create_list_for_user: {
         Args: {
+          p_account_id?: string
           p_category: string
           p_list_type?: string
           p_title: string

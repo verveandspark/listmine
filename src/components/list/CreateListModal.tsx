@@ -172,6 +172,14 @@ export default function CreateListModal({
       // Determine accountId: null for personal, or the selected account ID for team
       const accountId = ownership === 'personal' ? null : ownership;
       
+      console.log('[CreateListModal] Creating list with:', {
+        listName: listName.trim(),
+        category,
+        listType,
+        ownership,
+        accountId,
+      });
+      
       // addList now returns the new list ID
       const newListId = await addList(listName.trim(), category, listType, accountId);
       

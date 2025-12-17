@@ -728,11 +728,15 @@ export function ListProvider({ children }: { children: ReactNode }) {
       };
       
       // Add account_id if provided (for team lists)
-      if (accountId) {
+      // Note: accountId can be a string (team ID) or null (personal)
+      if (accountId !== undefined && accountId !== null) {
         insertPayload.account_id = accountId;
+        console.log("[ListContext] Setting account_id for team list:", accountId);
+      } else {
+        console.log("[ListContext] Creating personal list (no account_id)");
       }
       
-      console.log("[ListContext] Insert payload:", insertPayload);
+      console.log("[ListContext] Insert payload:", JSON.stringify(insertPayload, null, 2));
       console.log("[ListContext] Auth user ID (from getUser):", authUser.id);
       console.log("[ListContext] Context user ID:", user.id);
       console.log("[ListContext] Using user_id:", insertUserId);
@@ -793,6 +797,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
             p_title: nameValidation.value,
             p_category: categoryValidation.value,
             p_list_type: listType,
+            p_account_id: accountId || null,
           });
           
           if (rpcError) {
@@ -818,6 +823,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
               p_title: nameValidation.value,
               p_category: categoryValidation.value,
               p_list_type: listType,
+              p_account_id: accountId || null,
             });
             
             if (retryRpcError) {
