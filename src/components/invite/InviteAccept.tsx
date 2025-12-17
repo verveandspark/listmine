@@ -7,7 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, Mail, Users, List, AlertCircle, CheckCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Loader2, Mail, Users, List, AlertCircle, CheckCircle, KeyRound, LogOut } from "lucide-react";
+import { validateEmail } from "@/lib/validation";
 
 interface InviteDetails {
   found: boolean;
@@ -40,6 +42,9 @@ export default function InviteAccept() {
   const [name, setName] = useState("");
   const [authError, setAuthError] = useState("");
   const [authLoading2, setAuthLoading2] = useState(false);
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
 
   // Fetch invite details
   useEffect(() => {
@@ -77,23 +82,7 @@ export default function InviteAccept() {
     fetchInviteDetails();
   }, [inviteType, inviteId]);
 
-  // Check if logged-in user matches invite email
-  useEffect(() => {
-    if (!authLoading && isAuthenticated && user && inviteDetails?.email) {
-      const userEmail = user.email?.toLowerCase();
-      const inviteEmail = inviteDetails.email.toLowerCase();
-
-      if (userEmail !== inviteEmail) {
-        // User is logged in with different email - show warning
-        toast({
-          title: "⚠️ Email Mismatch",
-          description: `This invite was sent to ${inviteDetails.email}. You're logged in as ${user.email}. Please log out and sign in with the correct account.`,
-          variant: "destructive",
-          duration: 10000,
-        });
-      }
-    }
-  }, [authLoading, isAuthenticated, user, inviteDetails, toast]);
+  // Note: Email mismatch is now handled inline in the UI, no toast needed
 
   // Auto-accept if user is authenticated and email matches
   useEffect(() => {
@@ -189,6 +178,48 @@ export default function InviteAccept() {
     window.location.reload();
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const emailValidation = validateEmail(resetEmail || email);
+    if (!emailValidation.isValid) {
+      toast({
+        title: "❌ Invalid Email",
+        description: emailValidation.error || "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setResetLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        emailValidation.value!,
+        {
+          redirectTo: `${window.location.origin}/auth/reset-password`,
+        }
+      );
+
+      if (error) throw error;
+
+      toast({
+        title: "✅ Reset Link Sent",
+        description: "Check your email for the password reset link.",
+      });
+      setIsForgotPasswordOpen(false);
+      setResetEmail("");
+    } catch (error: unknown) {
+      console.error("Password reset failed:", error);
+      toast({
+        title: "❌ Error",
+        description: error instanceof Error ? error.message : "Failed to send reset link. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   if (loading || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
@@ -226,26 +257,67 @@ export default function InviteAccept() {
 
   // Invite expired or already accepted
   if (inviteDetails.expired || inviteDetails.status !== "pending") {
+    const isAlreadyAccepted = inviteDetails.status === "accepted";
+    
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center">
-              <AlertCircle className="h-6 w-6 text-amber-600" />
+            <div className={`mx-auto mb-4 h-12 w-12 rounded-full flex items-center justify-center ${
+              isAlreadyAccepted ? "bg-green-100" : "bg-amber-100"
+            }`}>
+              {isAlreadyAccepted ? (
+                <CheckCircle className="h-6 w-6 text-green-600" />
+              ) : (
+                <AlertCircle className="h-6 w-6 text-amber-600" />
+              )}
             </div>
             <CardTitle>
-              {inviteDetails.expired ? "Invite Expired" : "Invite Already Used"}
+              {inviteDetails.expired ? "Invite Expired" : "You're Already In!"}
             </CardTitle>
             <CardDescription>
               {inviteDetails.expired
                 ? "This invite has expired. Please ask the sender for a new invite."
-                : "This invite has already been accepted."}
+                : (
+                  <>
+                    This invite to <strong>"{inviteDetails.target_name}"</strong> has already been accepted.
+                    {isAuthenticated && " You can access it from your dashboard."}
+                  </>
+                )}
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <Button onClick={() => navigate(isAuthenticated ? "/dashboard" : "/")} className="w-full">
-              {isAuthenticated ? "Go to Dashboard" : "Go to Home"}
-            </Button>
+          <CardContent className="space-y-3">
+            {isAlreadyAccepted && isAuthenticated ? (
+              <>
+                <Button 
+                  onClick={() => navigate("/dashboard")} 
+                  className="w-full bg-[#298585] hover:bg-[#1F628E]"
+                >
+                  Go to Dashboard
+                </Button>
+                {inviteType === "guest" && (
+                  <p className="text-xs text-center text-slate-500">
+                    Look for "{inviteDetails.target_name}" in your shared lists
+                  </p>
+                )}
+              </>
+            ) : isAlreadyAccepted && !isAuthenticated ? (
+              <>
+                <p className="text-sm text-center text-slate-600 mb-4">
+                  Log in to access the {inviteType === "guest" ? "shared list" : "team"}.
+                </p>
+                <Button 
+                  onClick={() => navigate("/auth")} 
+                  className="w-full bg-[#298585] hover:bg-[#1F628E]"
+                >
+                  Log In
+                </Button>
+              </>
+            ) : (
+              <Button onClick={() => navigate(isAuthenticated ? "/dashboard" : "/")} className="w-full">
+                {isAuthenticated ? "Go to Dashboard" : "Go to Home"}
+              </Button>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -279,16 +351,52 @@ export default function InviteAccept() {
           <CardContent className="space-y-4">
             {!emailMatches ? (
               <div className="space-y-4">
-                <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                  <p className="text-sm text-amber-800">
-                    <strong>Email mismatch:</strong> This invite was sent to{" "}
-                    <strong>{inviteDetails.email}</strong>, but you're logged in as{" "}
-                    <strong>{user.email}</strong>.
-                  </p>
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg space-y-2">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-amber-800">
+                        Wrong account
+                      </p>
+                      <p className="text-sm text-amber-700 mt-1">
+                        This invite was sent to <strong>{inviteDetails.email}</strong>, but you're currently logged in as <strong>{user.email}</strong>.
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <Button onClick={handleLogout} variant="outline" className="w-full">
-                  Log out and use correct account
-                </Button>
+                
+                <div className="space-y-2">
+                  <p className="text-sm text-slate-600 font-medium">What would you like to do?</p>
+                  
+                  <Button 
+                    onClick={handleLogout} 
+                    variant="default" 
+                    className="w-full bg-[#298585] hover:bg-[#1F628E]"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Log out & sign in as {inviteDetails.email}
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => {
+                      setResetEmail(inviteDetails.email || "");
+                      setIsForgotPasswordOpen(true);
+                    }} 
+                    variant="outline" 
+                    className="w-full"
+                  >
+                    <KeyRound className="mr-2 h-4 w-4" />
+                    Reset password for {inviteDetails.email}
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => navigate("/dashboard")} 
+                    variant="ghost" 
+                    className="w-full text-slate-500"
+                  >
+                    Cancel and go to dashboard
+                  </Button>
+                </div>
               </div>
             ) : (
               <div className="space-y-4">
@@ -408,7 +516,21 @@ export default function InviteAccept() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                {authMode === "login" && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setResetEmail(email);
+                      setIsForgotPasswordOpen(true);
+                    }}
+                    className="text-xs text-[#298585] hover:text-[#1F628E] underline"
+                  >
+                    Forgot Password?
+                  </button>
+                )}
+              </div>
               <Input
                 id="password"
                 type="password"
@@ -445,6 +567,58 @@ export default function InviteAccept() {
           </form>
         </CardContent>
       </Card>
+
+      {/* Forgot Password Dialog */}
+      <Dialog open={isForgotPasswordOpen} onOpenChange={setIsForgotPasswordOpen}>
+        <DialogContent className="max-w-[90vw] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5 text-[#298585]" />
+              Reset Password
+            </DialogTitle>
+            <DialogDescription>
+              Enter your email address and we'll send you a link to reset your password.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleForgotPassword} className="space-y-4 mt-4">
+            <div>
+              <Label htmlFor="reset-email">Email</Label>
+              <Input
+                id="reset-email"
+                type="email"
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsForgotPasswordOpen(false)}
+                className="flex-1 min-h-[44px]"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={resetLoading}
+                className="flex-1 min-h-[44px] bg-[#298585] hover:bg-[#1F628E]"
+              >
+                {resetLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  "Send Reset Link"
+                )}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

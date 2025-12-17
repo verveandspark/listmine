@@ -158,23 +158,18 @@ serve(async (req) => {
       context,
     });
 
-    const baseUrl = 'https://ff216505-f924-4e81-98b1-c12ac52ba319.canvases.tempo.build';
+    const baseUrl = 'https://app.listmine.com';
     
-    // Construct invite URL with type and ID for proper acceptance flow
-    let actionUrl: string;
-    if (inviteId) {
-      // New invite URL format with invite_type and invite_id
-      const inviteType = context === 'team' ? 'team' : 'guest';
-      actionUrl = `${baseUrl}/invite?type=${inviteType}&id=${inviteId}`;
-    } else if (context === 'team' && accountId) {
-      // Legacy fallback for team invites without inviteId
-      actionUrl = isExistingUser 
-        ? `${baseUrl}/dashboard?team=${accountId}`
-        : `${baseUrl}/auth?email=${encodeURIComponent(guestEmail)}&team=${accountId}`;
-    } else {
-      // Legacy fallback for guest invites without inviteId
-      actionUrl = signupUrl || (isExistingUser ? `${baseUrl}/dashboard` : `${baseUrl}/auth?email=${encodeURIComponent(guestEmail)}`);
+    // Construct invite URL with type and ID - inviteId is required
+    if (!inviteId) {
+      return new Response(
+        JSON.stringify({ error: 'Missing inviteId - required for invite emails' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
+    
+    const inviteType = context === 'team' ? 'team' : 'guest';
+    const actionUrl = `${baseUrl}/invite?type=${inviteType}&id=${inviteId}`;
     
     console.log("[send-invite-email] Generated actionUrl:", actionUrl);
 
