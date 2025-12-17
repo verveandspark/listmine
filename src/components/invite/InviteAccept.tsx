@@ -182,7 +182,7 @@ export default function InviteAccept() {
     e.preventDefault();
 
     const emailValidation = validateEmail(resetEmail || email);
-    if (!emailValidation.isValid) {
+    if (!emailValidation.valid) {
       toast({
         title: "❌ Invalid Email",
         description: emailValidation.error || "Please enter a valid email address.",
