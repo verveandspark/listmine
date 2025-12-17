@@ -72,6 +72,8 @@ export function ListSidebar() {
     const fetchAccounts = async () => {
       if (!user?.id) return;
       
+      console.log('[ListSidebar Debug] Fetching accounts for user:', user.id);
+      
       const accounts: AccountOption[] = [];
       
       // Add personal account
@@ -82,7 +84,7 @@ export function ListSidebar() {
       });
       
       // Fetch team accounts where user is a member
-      const { data: teamMemberships } = await supabase
+      const { data: teamMemberships, error: teamMembershipError } = await supabase
         .from('account_team_members')
         .select(`
           account_id,
@@ -94,10 +96,22 @@ export function ListSidebar() {
         `)
         .eq('user_id', user.id);
       
+      console.log('[ListSidebar Debug] Team memberships query result:', {
+        data: teamMemberships,
+        error: teamMembershipError,
+        count: teamMemberships?.length || 0,
+      });
+      
       if (teamMemberships) {
         for (const membership of teamMemberships) {
           const account = (membership as any).accounts;
-          if (account && account.owner_id !== user.id) {
+          console.log('[ListSidebar Debug] Processing membership:', {
+            account_id: membership.account_id,
+            account: account,
+            isOwner: account?.owner_id === user.id,
+          });
+          // Include ALL team accounts where user is a member (including if they're the owner)
+          if (account) {
             accounts.push({
               id: account.id,
               name: account.name || 'Team',
@@ -109,10 +123,16 @@ export function ListSidebar() {
       }
       
       // Also check if user owns any accounts
-      const { data: ownedAccounts } = await supabase
+      const { data: ownedAccounts, error: ownedAccountsError } = await supabase
         .from('accounts')
         .select('id, name, owner_id')
         .eq('owner_id', user.id);
+      
+      console.log('[ListSidebar Debug] Owned accounts query result:', {
+        data: ownedAccounts,
+        error: ownedAccountsError,
+        count: ownedAccounts?.length || 0,
+      });
       
       if (ownedAccounts) {
         for (const account of ownedAccounts) {
@@ -127,6 +147,7 @@ export function ListSidebar() {
         }
       }
       
+      console.log('[ListSidebar Debug] Final available accounts:', accounts);
       setAvailableAccounts(accounts);
       
       // Set default to personal if not set
