@@ -280,17 +280,19 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
         if (fetchError || !userRecord) {
           console.error("[TeamManagement] Could not fetch user record:", fetchError);
           // Fall back to pending invite if we can't get the user ID
-          const { error: inviteError } = await supabase
+          const { data: inviteData, error: inviteError } = await supabase
             .from("pending_team_invites")
             .insert({
               account_id: account.id,
               inviter_id: user?.id,
               guest_email: emailValidation.value,
               role: inviteRole,
-            });
+            })
+            .select("id")
+            .single();
 
           if (inviteError) throw inviteError;
-          await sendTeamInviteEmail(emailValidation.value);
+          await sendTeamInviteEmail(emailValidation.value, inviteData?.id);
           toast({
             title: "✅ Invite Sent",
             description: `Invitation sent to ${emailValidation.value}`,
@@ -333,19 +335,21 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
         });
       } else {
         // User doesn't exist (existingUser is null) - create pending invite
-        const { error: inviteError } = await supabase
+        const { data: inviteData, error: inviteError } = await supabase
           .from("pending_team_invites")
           .insert({
             account_id: account.id,
             inviter_id: user?.id,
             guest_email: emailValidation.value,
             role: inviteRole,
-          });
+          })
+          .select("id")
+          .single();
 
         if (inviteError) throw inviteError;
 
-        // Send invite email (user existence determined server-side)
-        await sendTeamInviteEmail(emailValidation.value);
+        // Send invite email with invite ID for proper acceptance flow
+        await sendTeamInviteEmail(emailValidation.value, inviteData?.id);
 
         toast({
           title: "✅ Invite Sent",
@@ -368,7 +372,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
     }
   };
 
-  const sendTeamInviteEmail = async (email: string) => {
+  const sendTeamInviteEmail = async (email: string, inviteId?: string) => {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
@@ -378,9 +382,6 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
         return;
       }
 
-      const baseUrl = window.location.origin;
-      const signupUrl = `${baseUrl}/auth?email=${encodeURIComponent(email)}`;
-
       // NOTE: isExistingUser is now determined server-side in the edge function
       const payload = {
         guestEmail: email,
@@ -388,7 +389,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
         inviterName: user?.name || user?.email || "A team owner",
         context: "team",
         accountId: account?.id,
-        signupUrl: signupUrl,
+        inviteId: inviteId, // Include invite ID for proper acceptance flow
       };
 
       console.log("[TeamManagement] Sending team invite email with payload:", payload);
@@ -418,9 +419,9 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
       if (error) throw error;
 
       // User existence is now determined server-side in the edge function
-      console.log("[TeamManagement] Resend invite - email:", invite.guestEmail);
+      console.log("[TeamManagement] Resend invite - email:", invite.guestEmail, "inviteId:", invite.id);
 
-      await sendTeamInviteEmail(invite.guestEmail);
+      await sendTeamInviteEmail(invite.guestEmail, invite.id);
 
       toast({
         title: "✅ Invite Resent",

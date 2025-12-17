@@ -1,4 +1,5 @@
 import SharedListView from "@/components/list/SharedListView";
+import InviteAccept from "@/components/invite/InviteAccept";
 import { DashboardSkeleton } from "@/components/ui/DashboardSkeleton";
 import { Suspense, useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
@@ -69,6 +70,7 @@ function AppRoutes() {
       />
       <Route path="/auth" element={<AuthPage />} />
       <Route path="/auth/reset-password" element={<ResetPassword />} />
+      <Route path="/invite" element={<ErrorBoundary><InviteAccept /></ErrorBoundary>} />
       <Route path="/shared/:shareId" element={<ErrorBoundary><SharedListView /></ErrorBoundary>} />
       <Route
         path="/dashboard"

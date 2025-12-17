@@ -1060,6 +1060,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_invite: {
+        Args: { p_invite_id: string; p_invite_type: string }
+        Returns: Json
+      }
       admin_get_all_users: {
         Args: never
         Returns: {
@@ -1166,6 +1170,10 @@ export type Database = {
       }
       get_allowed_list_types: { Args: { user_tier: string }; Returns: string[] }
       get_guest_count_for_list: { Args: { p_list_id: string }; Returns: number }
+      get_invite_details: {
+        Args: { p_invite_id: string; p_invite_type: string }
+        Returns: Json
+      }
       get_shared_list_by_share_link: {
         Args: { p_share_link: string }
         Returns: {

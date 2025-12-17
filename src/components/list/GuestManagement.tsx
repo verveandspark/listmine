@@ -238,19 +238,20 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
         if (fetchError || !userRecord) {
           console.error("[GuestManagement] Could not fetch user record:", fetchError);
           // Fall back to pending invite
-          const { error: inviteError } = await supabase
+          const { data: inviteData, error: inviteError } = await supabase
             .from("pending_list_invites")
             .insert({
               list_id: listId,
               inviter_id: user?.id,
               guest_email: emailValidation.value,
               permission: invitePermission,
-            });
+            })
+            .select("id")
+            .single();
 
           if (inviteError) throw inviteError;
           
-          // Send invite email
-          const listUrl = `${window.location.origin}/list/${listId}`;
+          // Send invite email with invite ID for proper acceptance flow
           const { data: listData } = await supabase
             .from("lists")
             .select("title")
@@ -262,7 +263,8 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
               guestEmail: emailValidation.value,
               inviterName: user?.name || user?.email || "A ListMine user",
               listName: listData?.title || "a list",
-              signupUrl: listUrl,
+              inviteId: inviteData?.id,
+              context: "guest",
             },
           });
           
@@ -365,14 +367,16 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
       }
 
       // Create pending invite
-      const { error: pendingError } = await supabase
+      const { data: pendingData, error: pendingError } = await supabase
         .from("pending_list_invites")
         .insert({
           list_id: listId,
           inviter_id: user?.id,
           guest_email: emailValidation.value,
           permission: invitePermission,
-        });
+        })
+        .select("id")
+        .single();
 
       if (pendingError) throw pendingError;
 
@@ -383,16 +387,15 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
         .eq("id", listId)
         .single();
 
-      // Send invite email
-      const signupUrl = `${window.location.origin}/auth?email=${encodeURIComponent(emailValidation.value)}`;
-      
+      // Send invite email with invite ID for proper acceptance flow
       try {
         const { data: emailData, error: emailError } = await supabase.functions.invoke('supabase-functions-send-invite-email', {
           body: {
             guestEmail: emailValidation.value,
             inviterName: user?.name || user?.email || "A ListMine user",
             listName: listData?.title || "a list",
-            signupUrl,
+            inviteId: pendingData?.id,
+            context: "guest",
           },
         });
 
@@ -634,21 +637,20 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
                   size="sm"
                   onClick={async () => {
                     try {
-                      // Resend the invite
+                      // Resend the invite with invite ID
                       const { data: listData } = await supabase
                         .from("lists")
                         .select("title")
                         .eq("id", listId)
                         .single();
-
-                      const signupUrl = `${window.location.origin}/auth?email=${encodeURIComponent(invite.guestEmail)}`;
                       
                       const { data: emailData, error: emailError } = await supabase.functions.invoke('supabase-functions-send-invite-email', {
                         body: {
                           guestEmail: invite.guestEmail,
                           inviterName: user?.name || user?.email || "A ListMine user",
                           listName: listData?.title || "a list",
-                          signupUrl,
+                          inviteId: invite.id,
+                          context: "guest",
                         },
                       });
 

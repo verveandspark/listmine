@@ -14,6 +14,7 @@ interface InviteEmailRequest {
   signupUrl?: string;
   context?: 'guest' | 'team';
   accountId?: string;
+  inviteId?: string; // UUID of the pending invite row
   // isExistingUser is now ALWAYS determined server-side, frontend should NOT send this
 }
 
@@ -49,6 +50,50 @@ async function checkUserExists(email: string): Promise<boolean> {
   return userExists;
 }
 
+// Explicit auth check - immune to dashboard toggle resets
+async function verifyAuth(authHeader: string | null): Promise<{ valid: boolean; userId?: string; email?: string; error?: string }> {
+  if (!authHeader) {
+    return { valid: false, error: 'Missing Authorization header' };
+  }
+  
+  const token = authHeader.replace('Bearer ', '');
+  if (!token || token === authHeader) {
+    return { valid: false, error: 'Invalid Authorization header format (expected Bearer token)' };
+  }
+  
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+  
+  if (!supabaseUrl || !anonKey) {
+    console.error('[verifyAuth] Missing SUPABASE_URL or SUPABASE_ANON_KEY');
+    return { valid: false, error: 'Server configuration error' };
+  }
+  
+  const supabase = createClient(supabaseUrl, anonKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    },
+    global: {
+      headers: { Authorization: `Bearer ${token}` }
+    }
+  });
+  
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  
+  if (error) {
+    console.error('[verifyAuth] auth.getUser error:', error.message);
+    return { valid: false, error: `Token validation failed: ${error.message}` };
+  }
+  
+  if (!user) {
+    return { valid: false, error: 'No user found for token' };
+  }
+  
+  console.log('[verifyAuth] Auth check passed:', { userId: user.id, email: user.email });
+  return { valid: true, userId: user.id, email: user.email || undefined };
+}
+
 serve(async (req) => {
   // Debug: log authorization headers
   const authHeader = req.headers.get('authorization');
@@ -67,9 +112,24 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  // Explicit auth check - does not rely on dashboard JWT toggle
+  const authResult = await verifyAuth(authHeader);
+  console.log('[send-invite-email] Auth verification result:', {
+    valid: authResult.valid,
+    userId: authResult.userId,
+    error: authResult.error,
+  });
+  
+  if (!authResult.valid) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized', details: authResult.error }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
   try {
     const payload = await req.json();
-    const { guestEmail, inviterName, listName, signupUrl, context = 'guest', accountId }: InviteEmailRequest = payload;
+    const { guestEmail, inviterName, listName, signupUrl, context = 'guest', accountId, inviteId }: InviteEmailRequest = payload;
 
     console.log("[send-invite-email] Received payload:", {
       recipientEmail: guestEmail,
@@ -77,6 +137,7 @@ serve(async (req) => {
       listName,
       context,
       accountId,
+      inviteId,
     });
 
     if (!guestEmail || !inviterName || !listName) {
@@ -99,15 +160,23 @@ serve(async (req) => {
 
     const baseUrl = 'https://ff216505-f924-4e81-98b1-c12ac52ba319.canvases.tempo.build';
     
-    // For team invites, construct URL with account context
+    // Construct invite URL with type and ID for proper acceptance flow
     let actionUrl: string;
-    if (context === 'team' && accountId) {
+    if (inviteId) {
+      // New invite URL format with invite_type and invite_id
+      const inviteType = context === 'team' ? 'team' : 'guest';
+      actionUrl = `${baseUrl}/invite?type=${inviteType}&id=${inviteId}`;
+    } else if (context === 'team' && accountId) {
+      // Legacy fallback for team invites without inviteId
       actionUrl = isExistingUser 
         ? `${baseUrl}/dashboard?team=${accountId}`
         : `${baseUrl}/auth?email=${encodeURIComponent(guestEmail)}&team=${accountId}`;
     } else {
+      // Legacy fallback for guest invites without inviteId
       actionUrl = signupUrl || (isExistingUser ? `${baseUrl}/dashboard` : `${baseUrl}/auth?email=${encodeURIComponent(guestEmail)}`);
     }
+    
+    console.log("[send-invite-email] Generated actionUrl:", actionUrl);
 
     // Team invite templates
     if (context === 'team') {
