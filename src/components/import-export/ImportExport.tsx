@@ -10,7 +10,7 @@ interface AccountOption {
   name: string;
   type: 'personal' | 'team';
   ownerId?: string;
-  ownerTier?: UserTier;
+  ownerTier?: string;
 }
 import { ListCategory, ListType } from "@/types";
 import {
@@ -101,8 +101,8 @@ export default function ImportExport() {
   const userTier = (user?.tier || 'free') as UserTier;
   
   // For team context, use team owner's tier; for personal, use user's tier
-  const effectiveTier = isTeamContext && currentAccount?.ownerTier 
-    ? currentAccount.ownerTier 
+  const effectiveTier: UserTier = isTeamContext && currentAccount?.ownerTier 
+    ? (currentAccount.ownerTier as UserTier)
     : userTier;
   
   const canExport = canExportLists(effectiveTier);
@@ -130,13 +130,13 @@ export default function ImportExport() {
         .from('accounts')
         .select('id, name, owner_id')
         .eq('owner_id', user.id)
-        .eq('type', 'team');
+        .eq('type', 'team') as { data: { id: string; name: string | null; owner_id: string }[] | null };
       
       // Fetch team accounts where user is a member
       const { data: teamMemberships } = await supabase
         .from('account_team_members')
         .select('accounts:account_id(id, name, owner_id)')
-        .eq('user_id', user.id);
+        .eq('user_id', user.id) as { data: { accounts: { id: string; name: string | null; owner_id: string } }[] | null };
       
       // Collect owner IDs to fetch their tiers
       const ownerIdsToFetch: string[] = [];
@@ -155,7 +155,7 @@ export default function ImportExport() {
       
       if (teamMemberships) {
         for (const membership of teamMemberships) {
-          const account = (membership as any).accounts;
+          const account = membership.accounts;
           if (account && !accounts.find(a => a.id === account.id)) {
             ownerIdsToFetch.push(account.owner_id);
           }
@@ -178,7 +178,7 @@ export default function ImportExport() {
         
         if (teamMemberships) {
           for (const membership of teamMemberships) {
-            const account = (membership as any).accounts;
+            const account = membership.accounts;
             if (account && !accounts.find(a => a.id === account.id)) {
               accounts.push({
                 id: account.id,
