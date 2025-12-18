@@ -495,10 +495,10 @@ export default function Dashboard() {
       return;
     }
 
-    // Check list limit - count only owned active lists (exclude guest access and archived)
+    // Check list limit - count only owned active personal lists (exclude guest access, archived, and team lists)
     if (user) {
       const ownedActiveListsCount = lists.filter(
-        (l) => l.userId === user.id && !l.isGuestAccess && !l.isArchived && !l.title.startsWith("[Archived]")
+        (l) => l.userId === user.id && !l.isGuestAccess && !l.isArchived && !l.title.startsWith("[Archived]") && !l.accountId
       ).length;
       const limitCheck = checkListLimit(ownedActiveListsCount, user.listLimit);
       if (!limitCheck.valid) {
@@ -760,9 +760,10 @@ export default function Dashboard() {
     e.stopPropagation();
   };
 
-  // Count only owned active lists for limit calculations
+  // Count only owned active personal lists for limit calculations
+  // Excludes: guest/shared-with-me lists, archived lists, team lists (with accountId)
   const ownedActiveListsCount = lists.filter(
-    (l) => l.userId === user?.id && !l.isGuestAccess && !l.isArchived && !l.title.startsWith("[Archived]")
+    (l) => l.userId === user?.id && !l.isGuestAccess && !l.isArchived && !l.title.startsWith("[Archived]") && !l.accountId
   ).length;
 
   const getUsagePercentage = () => {
@@ -1419,7 +1420,7 @@ export default function Dashboard() {
             <div className="mt-4 pt-4 border-t border-border">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">
-                  Need more lists? Upgrade to Good for 50 lists, or Lots More for unlimited!
+                  Need more lists? Upgrade to unlock more.
                 </p>
                 <Button
                   onClick={() => navigate('/upgrade', { state: { from: location.pathname } })}
@@ -1771,10 +1772,19 @@ export default function Dashboard() {
                               <CardTitle className="text-lg flex items-center gap-2 flex-wrap">
                                 {list.title}
                                 {list.isGuestAccess && (
-                                  <Badge variant="outline" className="text-xs bg-accent/10 text-accent border-accent/30">
-                                    <Share2 className="w-3 h-3 mr-1" />
-                                    Shared
-                                  </Badge>
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Badge variant="outline" className="text-xs bg-green-100 text-green-700 border-green-300">
+                                          <Users className="w-3 h-3 mr-1" />
+                                          Guest (can edit)
+                                        </Badge>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>You have guest access to edit this list</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
                                 )}
                                 {list.accountId && (
                                   <Badge variant="outline" className="text-xs bg-secondary/10 text-secondary border-secondary/30">
@@ -1829,14 +1839,23 @@ export default function Dashboard() {
                               <span>Updated {getTimeAgo(list.updatedAt)}</span>
                             </div>
                             <div className="flex gap-1">
-                              {list.isShared && (
-                                <Badge
-                                  variant="outline"
-                                  className="bg-primary/10 border-primary/20 text-xs"
-                                >
-                                  <Share2 className="w-3 h-3 mr-1 text-primary" />
-                                  <span className="text-primary">Shared</span>
-                                </Badge>
+                              {list.isShared && canShareLists(user?.tier) && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Badge
+                                        variant="outline"
+                                        className="bg-primary/10 border-primary/20 text-xs"
+                                      >
+                                        <Share2 className="w-3 h-3 mr-1 text-primary" />
+                                        <span className="text-primary">Shared (View only)</span>
+                                      </Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Anyone with the link can view this list. Editing is disabled.</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                               )}
                             </div>
                           </div>
@@ -1936,7 +1955,7 @@ export default function Dashboard() {
                           <DropdownMenuContent onClick={(e) => e.stopPropagation()}>
                             <DropdownMenuItem onClick={(e) => { handleQuickShare(e as any, list.id, list.isShared || false); }}>
                               <Share2 className="w-4 h-4 mr-2" />
-                              {list.isShared ? "Share Settings" : "Share List"}
+                              {list.isShared ? "Share Settings" : "Share (view-only link)"}
                             </DropdownMenuItem>
                             {canInviteGuests(user?.tier) && (
                               <DropdownMenuItem onClick={() => { setSelectedListForGuests(list.id); setIsGuestManagementOpen(true); }}>
@@ -1950,7 +1969,7 @@ export default function Dashboard() {
                                 Manage Team
                               </DropdownMenuItem>
                             )}
-                            {list.isShared && (
+                            {list.isShared && canShareLists(user?.tier) && (
                               <DropdownMenuItem onClick={(e) => handleQuickUnshare(e as any, list.id)} className="text-red-600">
                                 <Link2Off className="w-4 h-4 mr-2" />
                                 Unshare List
@@ -2144,7 +2163,7 @@ export default function Dashboard() {
                             <CardTitle className="text-lg flex items-center gap-2">
                               {list.title}
                               {list.isGuestAccess && (
-                                <Badge variant="outline" className="text-xs bg-accent/10 text-accent border-accent/30">Shared</Badge>
+                                <Badge variant="outline" className="text-xs bg-green-100 text-green-700 border-green-300">Guest (can edit)</Badge>
                               )}
                             </CardTitle>
                             <CardDescription>
@@ -2184,16 +2203,25 @@ export default function Dashboard() {
                             <span>Updated {getTimeAgo(list.updatedAt)}</span>
                           </div>
                           <div className="flex gap-1">
-                            {list.isShared && (
+                            {list.isShared && canShareLists(user?.tier) && (
                               <div className="flex items-center gap-1">
-                                <Badge
-                                  variant="outline"
-                                  className="bg-primary/10 border-primary/20 text-xs cursor-pointer hover:bg-primary/20"
-                                  onClick={(e) => handleQuickShare(e, list.id, true)}
-                                >
-                                  <Share2 className="w-3 h-3 mr-1 text-primary" />
-                                  <span className="text-primary underline">Shared</span>
-                                </Badge>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Badge
+                                        variant="outline"
+                                        className="bg-primary/10 border-primary/20 text-xs cursor-pointer hover:bg-primary/20"
+                                        onClick={(e) => handleQuickShare(e, list.id, true)}
+                                      >
+                                        <Share2 className="w-3 h-3 mr-1 text-primary" />
+                                        <span className="text-primary underline">Shared (View only)</span>
+                                      </Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Anyone with the link can view this list. Editing is disabled.</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                                 <Badge
                                   variant="outline"
                                   className="bg-red-50 border-red-200 text-xs cursor-pointer hover:bg-red-100"
@@ -2219,12 +2247,12 @@ export default function Dashboard() {
         </div>
         )}
 
-        {/* Shared With Me Section - Only visible when there are shared lists and not searching */}
+        {/* My Guest Access Lists Section - Lists where user has guest edit access */}
         {!searchQuery.trim() && sharedLists.length > 0 && (
         <div className="mb-6 sm:mb-8">
           <h2 className="text-base sm:text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
             <Users className="w-5 h-5 text-secondary" />
-            Shared With Me
+            My Guest Access Lists
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-2">
             {sharedLists.map((list, index) => {
@@ -2273,7 +2301,16 @@ export default function Dashboard() {
                         <div>
                           <CardTitle className="text-lg flex items-center gap-2">
                             {list.title}
-                            <Badge variant="outline" className="text-xs bg-accent/10 text-accent border-accent/30">Shared</Badge>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge variant="outline" className="text-xs bg-green-100 text-green-700 border-green-300">Guest (can edit)</Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>You have guest access to edit this list</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           </CardTitle>
                           <CardDescription>
                             {list.category} ·{" "}
@@ -2451,9 +2488,9 @@ export default function Dashboard() {
                             <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
                           )}
                           {list.isGuestAccess && (
-                            <Badge variant="outline" className="text-xs bg-accent/10 text-accent border-accent/30">Shared</Badge>
+                            <Badge variant="outline" className="text-xs bg-green-100 text-green-700 border-green-300">Guest (can edit)</Badge>
                           )}
-                          {list.isShared && (
+                          {list.isShared && canShareLists(user?.tier) && (
                             <Share2 className="w-4 h-4 text-primary" />
                           )}
                           <ChevronRight className="w-5 h-5 text-muted-foreground" />

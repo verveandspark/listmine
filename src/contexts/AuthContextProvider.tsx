@@ -38,6 +38,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   const cachedTierRef = useRef<string | null>(getInitialTier());
   const userIdRef = useRef<string | null>(getInitialUserId());
+  
+  // Tier change callback subscribers
+  const tierChangeCallbacksRef = useRef<Set<(newTier: string, prevTier: string) => void>>(new Set());
 
   // Helper to save tier to localStorage
   const saveTierToStorage = (userId: string, tier: string) => {
@@ -73,6 +76,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { listLimit: 5, itemsPerListLimit: 20 };
     }
   };
+
+  // Register a callback for tier changes, returns unsubscribe function
+  const onTierChange = useCallback((callback: (newTier: string, prevTier: string) => void) => {
+    tierChangeCallbacksRef.current.add(callback);
+    return () => {
+      tierChangeCallbacksRef.current.delete(callback);
+    };
+  }, []);
+
+  // Notify all subscribers of a tier change
+  const notifyTierChange = useCallback((newTier: string, prevTier: string) => {
+    tierChangeCallbacksRef.current.forEach(callback => {
+      try {
+        callback(newTier, prevTier);
+      } catch (err) {
+        console.error('[Auth] Error in tier change callback:', err);
+      }
+    });
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -242,9 +264,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (newData && newData.tier && isMounted) {
               const newTier = newData.tier as 'free' | 'good' | 'even_better' | 'lots_more';
               const tierLimits = getTierLimits(newTier);
+              const prevTier = cachedTierRef.current || 'free';
               
               console.log('[Auth Debug] Applying realtime tier update:', {
                 newTier,
+                prevTier,
                 listLimit: tierLimits.listLimit,
                 itemsPerListLimit: tierLimits.itemsPerListLimit
               });
@@ -267,6 +291,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                   itemsPerListLimit: tierLimits.itemsPerListLimit,
                 };
               });
+              
+              // Notify subscribers of tier change (for list refresh and toast)
+              if (prevTier !== newTier) {
+                notifyTierChange(newTier, prevTier);
+              }
             }
           }
         )
@@ -700,7 +729,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     loading,
     error,
     getTierLimits,
-  }), [user, loading, error]);
+    onTierChange,
+  }), [user, loading, error, onTierChange]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
