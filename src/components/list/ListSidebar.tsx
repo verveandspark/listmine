@@ -261,36 +261,28 @@ export function ListSidebar() {
     {} as Record<ListCategory, typeof lists>,
   );
 
-  // Auto-expand category containing the active list OR first category with lists on first load
+  // Auto-expand category containing the active list - ALWAYS sync on navigation
   useEffect(() => {
-    const saved = localStorage.getItem('listSidebarExpandedCategories');
-    
-    // Only set defaults if no localStorage value exists (first load)
-    if (!saved && lists.length > 0) {
-      // Priority 1: Expand category containing the currently selected/active list
-      if (id) {
-        const activeList = lists.find(l => l.id === id);
-        if (activeList) {
-          setExpandedCategories({ [activeList.category]: true });
-          return;
-        }
-      }
-      
-      // Priority 2: Expand the first category with lists
-      const categories = Object.keys(groupedLists);
-      if (categories.length > 0) {
-        setExpandedCategories({ [categories[0]]: true });
-      }
-    } else if (saved && id && lists.length > 0) {
-      // If localStorage exists but active list category isn't set, expand it
+    if (id && lists.length > 0) {
       const activeList = lists.find(l => l.id === id);
       if (activeList) {
+        // Always expand the active list's category and update localStorage
         setExpandedCategories(prev => {
-          if (prev[activeList.category] === undefined) {
-            return { ...prev, [activeList.category]: true };
-          }
-          return prev;
+          const updated = { ...prev, [activeList.category]: true };
+          localStorage.setItem('listSidebarExpandedCategories', JSON.stringify(updated));
+          return updated;
         });
+      }
+    } else if (lists.length > 0) {
+      // No active list - check if we have stored state, otherwise expand first category
+      const saved = localStorage.getItem('listSidebarExpandedCategories');
+      if (!saved) {
+        const categories = Object.keys(groupedLists);
+        if (categories.length > 0) {
+          const initial = { [categories[0]]: true };
+          setExpandedCategories(initial);
+          localStorage.setItem('listSidebarExpandedCategories', JSON.stringify(initial));
+        }
       }
     }
   }, [id, lists]);

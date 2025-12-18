@@ -1417,7 +1417,7 @@ export default function Dashboard() {
                   Need more lists? Upgrade to unlock unlimited lists and premium features.
                 </p>
                 <Button
-                  onClick={() => navigate('/upgrade')}
+                  onClick={() => navigate('/upgrade', { state: { from: location.pathname } })}
                   variant="outline"
                   size="sm"
                   className="border-primary text-primary hover:bg-primary/10 min-h-[36px] ml-4"

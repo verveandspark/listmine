@@ -93,7 +93,19 @@ export default function ImportExport() {
   const { toast } = useToast();
   
   // Get where the user came from for navigation back
-  const fromPath = (location.state as any)?.from || '/dashboard';
+  // Use location.state.from if available, else check for last visited list, else fallback to dashboard
+  const getBackPath = () => {
+    const stateFrom = (location.state as any)?.from;
+    if (stateFrom && stateFrom !== '/import-export') {
+      return stateFrom;
+    }
+    const lastListId = localStorage.getItem('last_list_id');
+    if (lastListId) {
+      return `/list/${lastListId}`;
+    }
+    return '/dashboard';
+  };
+  const fromPath = getBackPath();
   
   // Account context state
   const [availableAccounts, setAvailableAccounts] = useState<AccountOption[]>([]);

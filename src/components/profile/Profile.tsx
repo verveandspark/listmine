@@ -775,50 +775,47 @@ export default function Profile() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
+              <div className="bg-white border border-border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <FileText className="w-5 h-5 text-primary" />
-                    <p className="text-sm font-medium text-primary">
+                    <p className="text-sm font-medium text-foreground">
                       Total Lists
                     </p>
                   </div>
-                  <TrendingUp className="w-4 h-4 text-primary" />
                 </div>
-                <p className="text-3xl font-bold text-primary">{totalLists}</p>
+                <p className="text-3xl font-bold text-foreground">{totalLists}</p>
               </div>
 
-              <div className="bg-success/10 border border-success/20 rounded-lg p-4">
+              <div className="bg-white border border-border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <Package className="w-5 h-5 text-success" />
-                    <p className="text-sm font-medium text-success">
+                    <Package className="w-5 h-5 text-primary" />
+                    <p className="text-sm font-medium text-foreground">
                       Total Items
                     </p>
                   </div>
-                  <TrendingUp className="w-4 h-4 text-success" />
                 </div>
-                <p className="text-3xl font-bold text-success">
+                <p className="text-3xl font-bold text-foreground">
                   {totalItems}
                 </p>
               </div>
 
-              <div className="bg-accent/10 border border-accent/20 rounded-lg p-4">
+              <div className="bg-white border border-border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-accent" />
-                    <p className="text-sm font-medium text-accent">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <p className="text-sm font-medium text-foreground">
                       Completed
                     </p>
                   </div>
-                  <TrendingUp className="w-4 h-4 text-accent" />
                 </div>
-                <p className="text-3xl font-bold text-accent">
+                <p className="text-3xl font-bold text-foreground">
                   {completedItems}
                 </p>
               </div>
 
-              <div className="bg-muted border border-border rounded-lg p-4">
+              <div className="bg-white border border-border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
@@ -826,37 +823,34 @@ export default function Profile() {
                       Favorites
                     </p>
                   </div>
-                  <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
                 </div>
                 <p className="text-3xl font-bold text-foreground">
                   {favoriteLists}
                 </p>
               </div>
 
-              <div className="bg-secondary/10 border border-secondary/20 rounded-lg p-4">
+              <div className="bg-white border border-border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <Share2 className="w-5 h-5 text-secondary" />
-                    <p className="text-sm font-medium text-secondary">Shared</p>
+                    <Share2 className="w-5 h-5 text-primary" />
+                    <p className="text-sm font-medium text-foreground">Shared</p>
                   </div>
-                  <TrendingUp className="w-4 h-4 text-secondary" />
                 </div>
-                <p className="text-3xl font-bold text-secondary">
+                <p className="text-3xl font-bold text-foreground">
                   {sharedLists}
                 </p>
               </div>
 
-              <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
+              <div className="bg-white border border-border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <ListChecks className="w-5 h-5 text-primary" />
-                    <p className="text-sm font-medium text-primary">
+                    <p className="text-sm font-medium text-foreground">
                       Avg Items
                     </p>
                   </div>
-                  <TrendingUp className="w-4 h-4 text-primary" />
                 </div>
-                <p className="text-3xl font-bold text-primary">
+                <p className="text-3xl font-bold text-foreground">
                   {totalLists > 0 ? Math.round(totalItems / totalLists) : 0}
                 </p>
               </div>
