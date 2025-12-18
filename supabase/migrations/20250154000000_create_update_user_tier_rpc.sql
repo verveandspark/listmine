@@ -6,7 +6,7 @@ SET search_path = public
 AS $$
 DECLARE
   v_caller_is_admin BOOLEAN;
-  v_valid_tiers TEXT[] := ARRAY['free', 'premium', 'professional', 'enterprise'];
+  v_valid_tiers TEXT[] := ARRAY['free', 'good', 'even_better', 'lots_more'];
 BEGIN
   SELECT is_admin INTO v_caller_is_admin
   FROM users
@@ -17,7 +17,7 @@ BEGIN
   END IF;
   
   IF NOT (p_new_tier = ANY(v_valid_tiers)) THEN
-    RAISE EXCEPTION 'Invalid tier: %. Valid tiers are: free, premium, professional, enterprise', p_new_tier;
+    RAISE EXCEPTION 'Invalid tier: %. Valid tiers are: free, good, even_better, lots_more', p_new_tier;
   END IF;
   
   UPDATE users

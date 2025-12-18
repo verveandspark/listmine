@@ -62,7 +62,12 @@ export function ListSidebar() {
   // Category accordion state - persisted in localStorage
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>(() => {
     const saved = localStorage.getItem('listSidebarExpandedCategories');
-    return saved ? JSON.parse(saved) : {};
+    if (saved) {
+      return JSON.parse(saved);
+    }
+    // On first load: determine default expanded category
+    // Will be populated by useEffect once lists are loaded
+    return {};
   });
 
   // Update localStorage when expanded categories change
@@ -256,13 +261,31 @@ export function ListSidebar() {
     {} as Record<ListCategory, typeof lists>,
   );
 
-  // Auto-expand category containing the active list
+  // Auto-expand category containing the active list OR first category with lists on first load
   useEffect(() => {
-    if (id && lists.length > 0) {
+    const saved = localStorage.getItem('listSidebarExpandedCategories');
+    
+    // Only set defaults if no localStorage value exists (first load)
+    if (!saved && lists.length > 0) {
+      // Priority 1: Expand category containing the currently selected/active list
+      if (id) {
+        const activeList = lists.find(l => l.id === id);
+        if (activeList) {
+          setExpandedCategories({ [activeList.category]: true });
+          return;
+        }
+      }
+      
+      // Priority 2: Expand the first category with lists
+      const categories = Object.keys(groupedLists);
+      if (categories.length > 0) {
+        setExpandedCategories({ [categories[0]]: true });
+      }
+    } else if (saved && id && lists.length > 0) {
+      // If localStorage exists but active list category isn't set, expand it
       const activeList = lists.find(l => l.id === id);
       if (activeList) {
         setExpandedCategories(prev => {
-          // Only update if this category isn't explicitly set
           if (prev[activeList.category] === undefined) {
             return { ...prev, [activeList.category]: true };
           }
@@ -380,7 +403,7 @@ export function ListSidebar() {
         <div className="space-y-4">
           {Object.entries(groupedLists).map(([category, categoryLists]) => {
             const Icon = categoryIcons[category] || ListChecks;
-            const isExpanded = expandedCategories[category] ?? true; // Default to expanded
+            const isExpanded = expandedCategories[category] ?? false; // Default to collapsed
             return (
               <div key={category}>
                 <Button
