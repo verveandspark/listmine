@@ -121,6 +121,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
 
         if (session?.user) {
+          console.log('[Auth Debug] Initial session load:', {
+            userId: session.user.id,
+            cachedTier: cachedTierRef.current,
+            cachedUserId: userIdRef.current
+          });
           try {
             await setUserFromAuth(session.user, true);
           } catch (err) {
@@ -228,9 +233,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           async (payload) => {
             // User record updated - check if tier changed
             const newData = payload.new as any;
+            console.log('[Auth Debug] Realtime UPDATE received:', {
+              userId: newData?.id,
+              newTier: newData?.tier,
+              isMounted
+            });
+            
             if (newData && newData.tier && isMounted) {
               const newTier = newData.tier as 'free' | 'good' | 'even_better' | 'lots_more';
               const tierLimits = getTierLimits(newTier);
+              
+              console.log('[Auth Debug] Applying realtime tier update:', {
+                newTier,
+                listLimit: tierLimits.listLimit,
+                itemsPerListLimit: tierLimits.itemsPerListLimit
+              });
               
               // Update cached tier
               cachedTierRef.current = newTier;
@@ -238,6 +255,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               
               // Update user state
               setUser(prev => {
+                console.log('[Auth Debug] setUser callback:', {
+                  prevTier: prev?.tier,
+                  newTier
+                });
                 if (!prev) return prev;
                 return {
                   ...prev,
@@ -268,17 +289,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let avatarUrl: string | undefined = supabaseUser.user_metadata?.avatar_url || undefined;
     let userName: string = supabaseUser.user_metadata?.name || 'User';
     
-    // Tier priority for comparison (higher = better)
-    const tierPriority: Record<string, number> = {
-      'free': 0,
-      'good': 1,
-      'even_better': 2,
-      'lots_more': 3,
-    };
-
     // If we have a cached tier for this user and don't need to fetch, use it
+    // IMPORTANT: When fetchTier is true, we ALWAYS fetch from database to ensure sync with admin changes
     if (!fetchTier && supabaseUser.id === userIdRef.current && cachedTierRef.current) {
       tier = cachedTierRef.current as 'free' | 'good' | 'even_better' | 'lots_more';
+      console.log('[Auth Debug] Using cached tier:', tier);
     } else {
       try {
         // Query the users table to get the actual tier with timeout
@@ -297,13 +312,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         const { data: userData, error: tierError } = await Promise.race([queryPromise, timeoutPromise]);
 
+        console.log('[Auth Debug] Fetched from public.users:', {
+          userId: supabaseUser.id,
+          tier: userData?.tier,
+          error: tierError?.message
+        });
+
         if (tierError) {
-          // If error and we have cached tier for same user, use it
+          // If error and we have cached tier for same user, use it as fallback only
           if (supabaseUser.id === userIdRef.current && cachedTierRef.current) {
             tier = cachedTierRef.current as 'free' | 'good' | 'even_better' | 'lots_more';
+            console.log('[Auth Debug] Error fetching, using cached tier:', tier);
           }
         } else if (userData) {
-          const fetchedTier = (userData.tier || 'free') as 'free' | 'good' | 'even_better' | 'lots_more';
+          // ALWAYS use the fetched tier from database - this is the source of truth
+          // This allows both upgrades AND downgrades to take effect immediately
+          tier = (userData.tier || 'free') as 'free' | 'good' | 'even_better' | 'lots_more';
+          console.log('[Auth Debug] Using fetched tier (source of truth):', tier);
           
           // Get avatar_url from database (prioritize over auth metadata)
           if (userData.avatar_url) {
@@ -314,21 +339,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (userData.name) {
             userName = userData.name;
           }
-          
-          // If we have a cached tier for the same user, never downgrade
-          // This prevents race conditions from resetting the tier
-          if (supabaseUser.id === userIdRef.current && cachedTierRef.current) {
-            const cachedPriority = tierPriority[cachedTierRef.current] || 0;
-            const fetchedPriority = tierPriority[fetchedTier] || 0;
-            
-            // Only use fetched tier if it's equal or higher than cached
-            tier = fetchedPriority >= cachedPriority ? fetchedTier : cachedTierRef.current as 'free' | 'good' | 'even_better' | 'lots_more';
-          } else {
-            tier = fetchedTier;
-          }
         }
       } catch (err: any) {
-        // If error and we have cached tier for same user, use it
+        console.error('[Auth Debug] Exception fetching tier:', err);
+        // If error and we have cached tier for same user, use it as fallback only
         if (supabaseUser.id === userIdRef.current && cachedTierRef.current) {
           tier = cachedTierRef.current as 'free' | 'good' | 'even_better' | 'lots_more';
         }
@@ -343,6 +357,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     saveTierToStorage(supabaseUser.id, tier);
 
     const tierLimits = getTierLimits(tier);
+
+    console.log('[Auth Debug] Final setUser call:', {
+      userId: supabaseUser.id,
+      tier,
+      listLimit: tierLimits.listLimit,
+      itemsPerListLimit: tierLimits.itemsPerListLimit
+    });
 
     setUser({
       id: supabaseUser.id,
