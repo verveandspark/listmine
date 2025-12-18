@@ -637,11 +637,30 @@ export function ListProvider({ children }: { children: ReactNode }) {
       console.log("[ListMine Debug] Team lists (accountId not null):", listsWithItems.filter(l => l.accountId).length);
       console.log("[ListMine Debug] Personal lists (accountId null):", listsWithItems.filter(l => !l.accountId).length);
 
-      // Filter lists based on user tier - only show lists the user has access to
-      // BUT always include guest-accessed lists regardless of tier
-      const filteredLists = listsWithItems.filter((list) => 
-        list.isGuestAccess || canAccessListType(userTier, list.listType)
+      // Split lists into categories for tier filtering
+      // Tier limits should ONLY apply to personal owned lists, NOT team or guest/shared lists
+      const personalOwnedLists = listsWithItems.filter(
+        (list) => !list.accountId && !list.isGuestAccess && list.userId === userId
       );
+      const teamOwnedLists = listsWithItems.filter(
+        (list) => list.accountId !== null && list.accountId !== undefined
+      );
+      const guestSharedLists = listsWithItems.filter(
+        (list) => list.isGuestAccess
+      );
+      
+      console.log("[ListMine Debug] Split lists - personal:", personalOwnedLists.length, 
+        "team:", teamOwnedLists.length, "guest/shared:", guestSharedLists.length);
+      
+      // Apply tier limits ONLY to personal owned lists
+      const limitedPersonalLists = personalOwnedLists.filter((list) => 
+        canAccessListType(userTier, list.listType)
+      );
+      
+      console.log("[ListMine Debug] After tier filter - limitedPersonal:", limitedPersonalLists.length);
+      
+      // Recombine: tier-limited personal + all team + all guest/shared
+      const filteredLists = [...limitedPersonalLists, ...teamOwnedLists, ...guestSharedLists];
       
       console.log("[ListMine Debug] After tier filter - filteredLists count:", filteredLists.length);
       

@@ -971,7 +971,10 @@ export default function Dashboard() {
   const favoriteLists = accountFilteredLists.filter(
     (list) => list.isFavorite && !list.isArchived && !list.title.startsWith("[Archived]")
   );
-  const sharedLists = lists.filter((list) => list.isGuestAccess);
+  // Shared lists should ONLY show in personal mode, never in team mode
+  const sharedLists = currentAccount?.type === 'personal' 
+    ? lists.filter((list) => list.isGuestAccess)
+    : [];
 
   // Count archived lists (from account-filtered lists)
   const archivedCount = accountFilteredLists.filter(
