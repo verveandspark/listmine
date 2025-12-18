@@ -926,10 +926,10 @@ export default function Dashboard() {
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="w-8 h-8 text-red-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          <h2 className="text-2xl font-bold text-foreground mb-2">
             Couldn't Load Lists
           </h2>
-          <p className="text-gray-600 mb-6">{error}</p>
+          <p className="text-muted-foreground mb-6">{error}</p>
           <Button onClick={retryLoad} className="w-full">
             <Loader2 className="w-4 h-4 mr-2" />
             Retry
@@ -975,7 +975,7 @@ export default function Dashboard() {
       </AlertDialog>
 
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <header className="bg-white border-b border-border sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -986,7 +986,7 @@ export default function Dashboard() {
                 className="h-10 sm:h-12"
               />
               <div className="hidden sm:block">
-                <p className="text-xs sm:text-sm text-gray-600">
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   Welcome back, {user?.name}
                   {user?.tier === "premium" && (
                     <Badge variant="secondary" className="ml-2">
@@ -1010,9 +1010,9 @@ export default function Dashboard() {
                       className="h-8 px-3 gap-2"
                     >
                       {currentAccount?.type === 'team' ? (
-                        <Users className="w-4 h-4 text-accent" />
+                        <Users className="w-4 h-4 text-secondary" />
                       ) : (
-                        <User className="w-4 h-4" />
+                        <User className="w-4 h-4 text-primary" />
                       )}
                       <span className="max-w-[120px] truncate">
                         {currentAccount?.name || 'Select Account'}
@@ -1028,9 +1028,9 @@ export default function Dashboard() {
                         className={currentAccountId === account.id ? 'bg-accent/10' : ''}
                       >
                         {account.type === 'team' ? (
-                          <Users className="w-4 h-4 mr-2 text-accent" />
+                          <Users className="w-4 h-4 mr-2 text-secondary" />
                         ) : (
-                          <User className="w-4 h-4 mr-2" />
+                          <User className="w-4 h-4 mr-2 text-primary" />
                         )}
                         <span className="flex-1 truncate">{account.name}</span>
                         {currentAccountId === account.id && (
@@ -1067,7 +1067,7 @@ export default function Dashboard() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="w-8 h-8 rounded-full bg-muted hover:bg-primary/10 text-gray-700"
+                className="w-8 h-8 rounded-full bg-muted hover:bg-primary/10 text-foreground"
                 onClick={() => setIsHelpModalOpen(true)}
               >
                 <HelpCircle className="w-4 h-4" />
@@ -1149,7 +1149,7 @@ export default function Dashboard() {
                         )}
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600">Signed in as</p>
+                        <p className="text-sm text-muted-foreground">Signed in as</p>
                         <p className="font-semibold">{user?.name}</p>
                       </div>
                     </div>
@@ -1164,7 +1164,7 @@ export default function Dashboard() {
                   {/* Mobile Account Switcher - only show if user has team accounts */}
                   {availableAccounts.length > 1 && (
                     <div className="pb-4 border-b">
-                      <p className="text-xs text-gray-500 mb-2">Switch Account</p>
+                      <p className="text-xs text-muted-foreground mb-2">Switch Account</p>
                       <div className="space-y-1">
                         {availableAccounts.map((account) => (
                           <Button
@@ -1178,9 +1178,9 @@ export default function Dashboard() {
                             }}
                           >
                             {account.type === 'team' ? (
-                              <Users className="w-4 h-4 mr-2" />
+                              <Users className="w-4 h-4 mr-2 text-secondary" />
                             ) : (
-                              <User className="w-4 h-4 mr-2" />
+                              <User className="w-4 h-4 mr-2 text-primary" />
                             )}
                             <span className="truncate">{account.name}</span>
                           </Button>
@@ -1292,10 +1292,10 @@ export default function Dashboard() {
                 <ListChecks className="w-6 h-6 text-white" />
               </div>
               <div className="flex-1">
-                <h2 className="text-xl font-bold text-gray-900 mb-2">
+                <h2 className="text-xl font-bold text-foreground mb-2">
                   Welcome to ListMine! 🎉
                 </h2>
-                <p className="text-gray-700 mb-3">
+                <p className="text-foreground mb-3">
                   You're all set with a <span className="font-semibold">Free account</span>. 
                   Start organizing your life with up to 5 lists and unlimited items!
                 </p>
@@ -1324,7 +1324,7 @@ export default function Dashboard() {
         )}
 
         {/* Usage Stats */}
-        <div className="mb-4 sm:mb-6 bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+        <div className="mb-4 sm:mb-6 bg-white rounded-lg border border-border p-4 sm:p-6">
           <div className="flex flex-wrap items-center gap-3 sm:gap-6">
             {/* Tier */}
             <div className="flex items-center gap-2">
@@ -1333,7 +1333,7 @@ export default function Dashboard() {
                 alt="ListMine" 
                 className="h-5 w-5"
               />
-              <span className="text-sm font-semibold text-gray-900">
+              <span className="text-sm font-semibold text-foreground">
                 {getTierName(user?.tier || "free")} Tier
               </span>
             </div>
@@ -1344,15 +1344,15 @@ export default function Dashboard() {
             {/* Total Lists */}
             <div className="flex items-center gap-2">
               <FileText className="w-5 h-5 text-primary" />
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-muted-foreground">
                 Your Lists:{" "}
-                <span className="font-semibold text-gray-900">
+                <span className="font-semibold text-foreground">
                   {ownedActiveListsCount}
                   {user?.listLimit !== -1 && (
-                    <span className="text-gray-400"> / {user?.listLimit}</span>
+                    <span className="text-muted-foreground"> / {user?.listLimit}</span>
                   )}
                   {user?.listLimit === -1 && (
-                    <span className="text-gray-400"> / Unlimited</span>
+                    <span className="text-muted-foreground"> / Unlimited</span>
                   )}
                 </span>
               </span>
@@ -1360,7 +1360,7 @@ export default function Dashboard() {
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
+                      <HelpCircle className="w-4 h-4 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="max-w-xs">
@@ -1381,12 +1381,12 @@ export default function Dashboard() {
             {/* Total Items */}
             <div className="flex items-center gap-2">
               <Package className="w-5 h-5 text-primary" />
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-muted-foreground">
                 Total Items:{" "}
-                <span className="font-semibold text-gray-900">
+                <span className="font-semibold text-foreground">
                   {Math.max(0, lists.reduce((sum, list) => sum + (list.items?.length || 0), 0))}
                 </span>
-                <span className="text-gray-400">
+                <span className="text-muted-foreground">
                   {" "}/ {user?.itemsPerListLimit === -1 ? "Unlimited" : `${user?.itemsPerListLimit} per list`}
                 </span>
               </span>
@@ -1414,9 +1414,9 @@ export default function Dashboard() {
             )}
           </div>
           {user?.tier === "free" && (
-            <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="mt-4 pt-4 border-t border-border">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   Need more lists? Upgrade to unlock unlimited lists and premium features.
                 </p>
                 <Button
@@ -1437,9 +1437,9 @@ export default function Dashboard() {
         <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row gap-3">
           <div className="flex-1 relative">
             {isSearching ? (
-              <Loader2 className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 animate-spin" />
+              <Loader2 className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground animate-spin" />
             ) : (
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             )}
             <Input
               ref={searchInputRef}
@@ -1464,7 +1464,7 @@ export default function Dashboard() {
           </div>
           {/* Search results indicator */}
           {searchQuery.trim() && searchResults !== null && (
-            <div className="text-sm text-gray-500 flex items-center gap-2">
+            <div className="text-sm text-muted-foreground flex items-center gap-2">
               <span>
                 Found {searchResults.length} list{searchResults.length !== 1 ? "s" : ""}
                 {showArchived ? " (including archived)" : ""}
@@ -1695,11 +1695,11 @@ export default function Dashboard() {
         {/* Search Results Section - Only visible when searching */}
         {searchQuery.trim() && (
           <div className="mb-6 sm:mb-8">
-            <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <h2 className="text-base sm:text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
               <Search className="w-5 h-5 text-primary" />
               Search Results
               {displayLists.length > 0 && (
-                <span className="text-sm font-normal text-gray-500">
+                <span className="text-sm font-normal text-muted-foreground">
                   ({displayLists.length} list{displayLists.length !== 1 ? "s" : ""})
                 </span>
               )}
@@ -1733,7 +1733,7 @@ export default function Dashboard() {
                                 className={`h-7 w-7 rounded-full ${list.isFavorite ? 'bg-muted hover:bg-primary/10' : 'bg-muted hover:bg-primary/10'} transition-colors`}
                                 onClick={(e) => handleToggleFavorite(e, list.id)}
                               >
-                                <Star className={`w-3.5 h-3.5 ${list.isFavorite ? 'text-amber-500 fill-amber-500' : 'text-gray-500'}`} />
+                                <Star className={`w-3.5 h-3.5 ${list.isFavorite ? 'text-amber-500 fill-amber-500' : 'text-muted-foreground'}`} />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>{list.isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}</TooltipContent>
@@ -1804,10 +1804,10 @@ export default function Dashboard() {
                       <CardContent>
                         <div className="space-y-2">
                           <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600">
+                            <span className="text-muted-foreground">
                               {itemCount} items
                             </span>
-                            <span className="text-gray-600">
+                            <span className="text-muted-foreground">
                               {completedItems} completed
                             </span>
                           </div>
@@ -1822,7 +1822,7 @@ export default function Dashboard() {
                             </div>
                           )}
                           <div className="flex items-center justify-between pt-2">
-                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
                               <Clock className="w-3 h-3" />
                               <span>Updated {getTimeAgo(list.updatedAt)}</span>
                             </div>
@@ -1845,8 +1845,8 @@ export default function Dashboard() {
                 })}
               </div>
             ) : (
-              <div className="text-center py-8 text-gray-500">
-                <Search className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+              <div className="text-center py-8 text-muted-foreground">
+                <Search className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
                 <p>No lists found matching "{searchQuery}"</p>
                 <p className="text-sm mt-1">Try a different search term</p>
               </div>
@@ -1857,7 +1857,7 @@ export default function Dashboard() {
         {/* Favorites Row - Hidden when searching */}
         {!searchQuery.trim() && (
         <div className="mb-6 sm:mb-8">
-          <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-base sm:text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
             <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
             Favorites
           </h2>
@@ -2145,10 +2145,10 @@ export default function Dashboard() {
                     <CardContent>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600">
+                          <span className="text-muted-foreground">
                             {itemCount} items
                           </span>
-                          <span className="text-gray-600">
+                          <span className="text-muted-foreground">
                             {completedItems} completed
                           </span>
                         </div>
@@ -2163,7 +2163,7 @@ export default function Dashboard() {
                           </div>
                         )}
                         <div className="flex items-center justify-between pt-2">
-                          <div className="flex items-center gap-2 text-xs text-gray-500">
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             <Clock className="w-3 h-3" />
                             <span>Updated {getTimeAgo(list.updatedAt)}</span>
                           </div>
@@ -2196,7 +2196,7 @@ export default function Dashboard() {
               })}
             </div>
           ) : (
-            <p className="text-gray-500 text-base">
+            <p className="text-muted-foreground text-base">
               No favorite lists selected yet. Favorite a list to see yours here.
             </p>
           )}
@@ -2206,8 +2206,8 @@ export default function Dashboard() {
         {/* Shared With Me Section - Only visible when there are shared lists and not searching */}
         {!searchQuery.trim() && sharedLists.length > 0 && (
         <div className="mb-6 sm:mb-8">
-          <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Users className="w-5 h-5 text-accent" />
+          <h2 className="text-base sm:text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+            <Users className="w-5 h-5 text-secondary" />
             Shared With Me
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-2">
@@ -2273,10 +2273,10 @@ export default function Dashboard() {
                   <CardContent>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">
+                        <span className="text-muted-foreground">
                           {itemCount} items
                         </span>
-                        <span className="text-gray-600">
+                        <span className="text-muted-foreground">
                           {completedItems} completed
                         </span>
                       </div>
@@ -2291,7 +2291,7 @@ export default function Dashboard() {
                         </div>
                       )}
                       <div className="flex items-center justify-between pt-2">
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <Clock className="w-3 h-3" />
                           <span>Updated {getTimeAgo(list.updatedAt)}</span>
                         </div>
@@ -2308,7 +2308,7 @@ export default function Dashboard() {
         {/* Categories Section - Only visible in Dashboard view and not when searching */}
         {viewMode === "dashboard" && !searchQuery.trim() && (
         <div className="mb-6 sm:mb-8 mt-8">{/* Added mt-8 for vertical spacing */}
-          <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-base sm:text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
             <Layers className="w-5 h-5 text-primary" />
             Categories
           </h2>
@@ -2342,13 +2342,13 @@ export default function Dashboard() {
                         <Icon className="w-5 h-5" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-gray-900 text-sm truncate">
+                        <h3 className="font-semibold text-foreground text-sm truncate">
                           {category}
                         </h3>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-muted-foreground">
                           {stats.count} {stats.count === 1 ? "list" : "lists"}
                         </p>
-                        <p className="text-xs text-gray-400 truncate">
+                        <p className="text-xs text-muted-foreground truncate">
                           {descriptions[category]}
                         </p>
                       </div>
@@ -2387,8 +2387,8 @@ export default function Dashboard() {
           </DialogHeader>
           <div className="space-y-3 mt-4">
             {selectedCategoryForModal && accountFilteredLists.filter(l => l.category === selectedCategoryForModal).length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <ListChecks className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+              <div className="text-center py-8 text-muted-foreground">
+                <ListChecks className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
                 <p>No lists in this category yet.</p>
                 <Button
                   variant="outline"
@@ -2424,8 +2424,8 @@ export default function Dashboard() {
                             <Icon className="w-5 h-5" />
                           </div>
                           <div>
-                            <h3 className="font-semibold text-gray-900">{list.title}</h3>
-                            <p className="text-sm text-gray-500">
+                            <h3 className="font-semibold text-foreground">{list.title}</h3>
+                            <p className="text-sm text-muted-foreground">
                               {itemCount} items · {completedItems} completed
                             </p>
                           </div>
@@ -2440,7 +2440,7 @@ export default function Dashboard() {
                           {list.isShared && (
                             <Share2 className="w-4 h-4 text-primary" />
                           )}
-                          <ChevronRight className="w-5 h-5 text-gray-400" />
+                          <ChevronRight className="w-5 h-5 text-muted-foreground" />
                         </div>
                       </div>
                     </CardContent>
@@ -2564,19 +2564,19 @@ export default function Dashboard() {
                   <kbd className="px-2 py-1 bg-muted rounded text-xs font-mono border border-border min-w-[32px] text-center">
                     N
                   </kbd>
-                  <span className="text-gray-600">Create new list</span>
+                  <span className="text-muted-foreground">Create new list</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <kbd className="px-2 py-1 bg-muted rounded text-xs font-mono border border-border min-w-[32px] text-center">
                     /
                   </kbd>
-                  <span className="text-gray-600">Search lists</span>
+                  <span className="text-muted-foreground">Search lists</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <kbd className="px-2 py-1 bg-muted rounded text-xs font-mono border border-border min-w-[32px] text-center">
                     ESC
                   </kbd>
-                  <span className="text-gray-600">Close modal</span>
+                  <span className="text-muted-foreground">Close modal</span>
                 </div>
               </div>
             </div>
@@ -2586,16 +2586,16 @@ export default function Dashboard() {
               <h4 className="font-semibold text-sm mb-3">Quick FAQ</h4>
               <div className="space-y-3 text-sm">
                 <div>
-                  <p className="font-medium text-gray-900">How do I share a list?</p>
-                  <p className="text-gray-600">Open any list and click the Share button to generate a shareable link or invite collaborators.</p>
+                  <p className="font-medium text-foreground">How do I share a list?</p>
+                  <p className="text-muted-foreground">Open any list and click the Share button to generate a shareable link or invite collaborators.</p>
                 </div>
                 <div>
-                  <p className="font-medium text-gray-900">How do I upgrade my plan?</p>
-                  <p className="text-gray-600">Click the "Upgrade" button in the header or visit the Pricing page to see available plans.</p>
+                  <p className="font-medium text-foreground">How do I upgrade my plan?</p>
+                  <p className="text-muted-foreground">Click the "Upgrade" button in the header or visit the Pricing page to see available plans.</p>
                 </div>
                 <div>
-                  <p className="font-medium text-gray-900">Can I import existing lists?</p>
-                  <p className="text-gray-600">Yes! Use the Import/Export feature to import lists from CSV or TXT files.</p>
+                  <p className="font-medium text-foreground">Can I import existing lists?</p>
+                  <p className="text-muted-foreground">Yes! Use the Import/Export feature to import lists from CSV or TXT files.</p>
                 </div>
               </div>
             </div>
@@ -2629,7 +2629,7 @@ export default function Dashboard() {
       </Dialog>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 mt-12">
+      <footer className="bg-white border-t border-border mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
@@ -2638,7 +2638,7 @@ export default function Dashboard() {
                 alt="ListMine" 
                 className="h-6 w-6"
               />
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted-foreground">
                 © 2025 ListMine. Organize your life, one list at a time.
               </p>
             </div>
@@ -2647,13 +2647,13 @@ export default function Dashboard() {
                 href="https://listmine.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-gray-600 hover:text-primary underline"
+                className="text-muted-foreground hover:text-primary underline"
               >
                 About ListMine
               </a>
               <button
                 onClick={() => navigate('/upgrade')}
-                className="text-gray-600 hover:text-primary underline"
+                className="text-muted-foreground hover:text-primary underline"
               >
                 Pricing
               </button>
@@ -2661,13 +2661,13 @@ export default function Dashboard() {
                 href="https://listmine.com/how-it-works"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-gray-600 hover:text-primary underline"
+                className="text-muted-foreground hover:text-primary underline"
               >
                 How It Works
               </a>
               <a
                 href="mailto:support@listmine.com"
-                className="text-gray-600 hover:text-primary underline"
+                className="text-muted-foreground hover:text-primary underline"
               >
                 Contact Support
               </a>

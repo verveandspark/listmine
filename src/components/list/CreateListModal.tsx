@@ -42,6 +42,7 @@ interface AccountOption {
   type: 'personal' | 'team';
   ownerId?: string;
   ownerTier?: UserTier;
+  tierLoadError?: boolean; // True if we failed to load the owner's tier
 }
 
 export default function CreateListModal({
@@ -63,6 +64,7 @@ export default function CreateListModal({
   const navigate = useNavigate();
 
   const userTier = (user?.tier || "free") as UserTier;
+  const [tierLoadError, setTierLoadError] = useState<string | null>(null);
   
   // Get the effective tier based on ownership selection
   // For team lists, use the team owner's tier
@@ -74,7 +76,16 @@ export default function CreateListModal({
     if (selectedAccount?.ownerTier) {
       return selectedAccount.ownerTier;
     }
+    // If we couldn't load the team owner's tier, don't silently fallback
+    // The tierLoadError state will show a warning
     return userTier;
+  };
+  
+  // Check if the selected team account has a tier load error
+  const selectedAccountHasTierError = (): boolean => {
+    if (ownership === 'personal') return false;
+    const selectedAccount = availableAccounts.find(a => a.id === ownership);
+    return selectedAccount?.tierLoadError === true;
   };
   
   const effectiveTier = getEffectiveTier();
@@ -142,15 +153,27 @@ export default function CreateListModal({
       
       // Fetch owner tiers for team accounts where user is a member
       let ownerTiers: Record<string, UserTier> = {};
+      let failedOwnerIds: Set<string> = new Set();
+      
       if (ownerIdsToFetch.length > 0) {
-        const { data: ownersData } = await supabase
+        const { data: ownersData, error: ownersError } = await supabase
           .from('users')
           .select('id, tier')
           .in('id', ownerIdsToFetch);
         
-        if (ownersData) {
+        if (ownersError) {
+          console.error('[CreateListModal] Error fetching owner tiers:', ownersError);
+          // Mark all as failed
+          ownerIdsToFetch.forEach(id => failedOwnerIds.add(id));
+        } else if (ownersData) {
           ownersData.forEach((owner) => {
             ownerTiers[owner.id] = (owner.tier || 'free') as UserTier;
+          });
+          // Check for any owners we didn't get data for
+          ownerIdsToFetch.forEach(id => {
+            if (!ownerTiers[id]) {
+              failedOwnerIds.add(id);
+            }
           });
         }
       }
@@ -161,12 +184,14 @@ export default function CreateListModal({
           if (account) {
             // Avoid duplicates (in case user is both owner and member)
             if (!accounts.find(a => a.id === account.id)) {
+              const hasTierError = failedOwnerIds.has(account.owner_id);
               accounts.push({
                 id: account.id,
                 name: account.name || 'Team Account',
                 type: 'team',
                 ownerId: account.owner_id,
                 ownerTier: ownerTiers[account.owner_id] || 'free',
+                tierLoadError: hasTierError,
               });
             }
           }
@@ -301,7 +326,14 @@ export default function CreateListModal({
 
           {/* List Type */}
           <div className="grid gap-2">
-            <Label htmlFor="list-type">List Type *</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="list-type">List Type *</Label>
+              {ownership !== 'personal' && (
+                <span className="text-xs text-muted-foreground">
+                  Based on team owner's plan
+                </span>
+              )}
+            </div>
             <div className="grid grid-cols-2 gap-2">
               <TooltipProvider>
                 {listTypesWithAvailability.map((typeInfo) => (
@@ -352,14 +384,14 @@ export default function CreateListModal({
                 <SelectContent>
                   <SelectItem value="personal">
                     <div className="flex items-center gap-2">
-                      <User className="w-4 h-4" />
+                      <User className="w-4 h-4 text-primary" />
                       <span>Personal (just me)</span>
                     </div>
                   </SelectItem>
                   {availableAccounts.map((account) => (
                     <SelectItem key={account.id} value={account.id}>
                       <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4" />
+                        <Users className="w-4 h-4 text-secondary" />
                         <span>{account.name}</span>
                       </div>
                     </SelectItem>
@@ -371,6 +403,11 @@ export default function CreateListModal({
                   ? "This list will be private to you."
                   : "This list will be visible to team members."}
               </p>
+              {selectedAccountHasTierError() && (
+                <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200 mt-2">
+                  <strong>Warning:</strong> Could not load team owner's tier. List types shown may not reflect the team's actual plan.
+                </div>
+              )}
             </div>
           ) : (
             <p className="text-xs text-muted-foreground">
