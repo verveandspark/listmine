@@ -1239,7 +1239,12 @@ export default function ListDetail() {
                         {list.guestPermission === 'edit' ? 'Shared (can edit items)' : 'Shared (view only)'}
                       </Badge>
                     )}
-                    {list.isTeamMember && (
+                    {list.isTeamOwner && list.accountId && (
+                      <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30">
+                        Team Owner
+                      </Badge>
+                    )}
+                    {list.isTeamMember && !list.isTeamOwner && (
                       <Badge variant="outline" className="text-xs bg-secondary/10 text-secondary border-secondary/30">
                         Team (can edit)
                       </Badge>
@@ -1361,7 +1366,7 @@ export default function ListDetail() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className={`h-9 w-9 ${list.isFavorite ? "bg-amber-100 hover:bg-amber-200" : ""}`}
+                          className={`h-9 w-9 ${list.isFavorite ? "bg-muted hover:bg-primary/10" : ""}`}
                           onClick={async () => {
                             await toggleFavorite(list.id);
                             toast({
@@ -1699,7 +1704,7 @@ export default function ListDetail() {
                         });
                         setIsMobileMenuOpen(false);
                       }}
-                      className={`w-full justify-start min-h-[44px] ${list.isFavorite ? "bg-amber-100 border-amber-300" : ""}`}
+                      className={`w-full justify-start min-h-[44px] ${list.isFavorite ? "bg-muted border-border" : ""}`}
                     >
                       <Star className={`w-4 h-4 mr-2 ${list.isFavorite ? "text-amber-500 fill-amber-500" : ""}`} />
                       {list.isFavorite ? "Remove from Favorites" : "Add to Favorites"}

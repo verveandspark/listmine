@@ -1730,7 +1730,7 @@ export default function Dashboard() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className={`h-7 w-7 rounded-full ${list.isFavorite ? 'bg-amber-100 hover:bg-amber-200' : 'bg-muted hover:bg-primary/10'} transition-colors`}
+                                className={`h-7 w-7 rounded-full ${list.isFavorite ? 'bg-muted hover:bg-primary/10' : 'bg-muted hover:bg-primary/10'} transition-colors`}
                                 onClick={(e) => handleToggleFavorite(e, list.id)}
                               >
                                 <Star className={`w-3.5 h-3.5 ${list.isFavorite ? 'text-amber-500 fill-amber-500' : 'text-gray-500'}`} />
@@ -1887,7 +1887,7 @@ export default function Dashboard() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 rounded-full bg-amber-100 hover:bg-amber-200 transition-colors"
+                              className="h-7 w-7 rounded-full bg-muted hover:bg-primary/10 transition-colors"
                               onClick={(e) => handleToggleFavorite(e, list.id)}
                             >
                               <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />

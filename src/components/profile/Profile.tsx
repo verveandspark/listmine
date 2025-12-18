@@ -818,17 +818,17 @@ export default function Profile() {
                 </p>
               </div>
 
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <div className="bg-muted border border-border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <Star className="w-5 h-5 text-amber-500" />
-                    <p className="text-sm font-medium text-amber-600">
+                    <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+                    <p className="text-sm font-medium text-foreground">
                       Favorites
                     </p>
                   </div>
-                  <TrendingUp className="w-4 h-4 text-amber-500" />
+                  <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
                 </div>
-                <p className="text-3xl font-bold text-amber-600">
+                <p className="text-3xl font-bold text-foreground">
                   {favoriteLists}
                 </p>
               </div>

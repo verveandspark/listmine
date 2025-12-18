@@ -41,6 +41,7 @@ interface AccountOption {
   name: string;
   type: 'personal' | 'team';
   ownerId?: string;
+  ownerTier?: UserTier;
 }
 
 export default function CreateListModal({
@@ -62,7 +63,22 @@ export default function CreateListModal({
   const navigate = useNavigate();
 
   const userTier = (user?.tier || "free") as UserTier;
-  const listTypesWithAvailability = getListTypesWithAvailability(userTier);
+  
+  // Get the effective tier based on ownership selection
+  // For team lists, use the team owner's tier
+  const getEffectiveTier = (): UserTier => {
+    if (ownership === 'personal') {
+      return userTier;
+    }
+    const selectedAccount = availableAccounts.find(a => a.id === ownership);
+    if (selectedAccount?.ownerTier) {
+      return selectedAccount.ownerTier;
+    }
+    return userTier;
+  };
+  
+  const effectiveTier = getEffectiveTier();
+  const listTypesWithAvailability = getListTypesWithAvailability(effectiveTier);
 
   // Fetch available accounts (teams) for the user
   // Always show ownership selector if user owns any team accounts
@@ -86,11 +102,13 @@ export default function CreateListModal({
 
       if (!ownedError && ownedAccounts) {
         for (const account of ownedAccounts) {
+          // For owned accounts, use the current user's tier
           accounts.push({
             id: account.id,
             name: account.name || 'My Team',
             type: 'team',
             ownerId: account.owner_id,
+            ownerTier: user.tier as UserTier,
           });
         }
       }
@@ -110,6 +128,33 @@ export default function CreateListModal({
 
       console.log('[CreateListModal] Team memberships result:', { teamMemberships, memberError });
 
+      // Collect owner IDs to fetch their tiers
+      const ownerIdsToFetch: string[] = [];
+      
+      if (!memberError && teamMemberships) {
+        for (const membership of teamMemberships) {
+          const account = (membership as any).accounts;
+          if (account && !accounts.find(a => a.id === account.id)) {
+            ownerIdsToFetch.push(account.owner_id);
+          }
+        }
+      }
+      
+      // Fetch owner tiers for team accounts where user is a member
+      let ownerTiers: Record<string, UserTier> = {};
+      if (ownerIdsToFetch.length > 0) {
+        const { data: ownersData } = await supabase
+          .from('users')
+          .select('id, tier')
+          .in('id', ownerIdsToFetch);
+        
+        if (ownersData) {
+          ownersData.forEach((owner) => {
+            ownerTiers[owner.id] = (owner.tier || 'free') as UserTier;
+          });
+        }
+      }
+
       if (!memberError && teamMemberships) {
         for (const membership of teamMemberships) {
           const account = (membership as any).accounts;
@@ -121,6 +166,7 @@ export default function CreateListModal({
                 name: account.name || 'Team Account',
                 type: 'team',
                 ownerId: account.owner_id,
+                ownerTier: ownerTiers[account.owner_id] || 'free',
               });
             }
           }

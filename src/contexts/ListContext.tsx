@@ -189,6 +189,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
     let listsChannel: ReturnType<typeof supabase.channel> | null = null;
     let itemsChannel: ReturnType<typeof supabase.channel> | null = null;
     let favoritesChannel: ReturnType<typeof supabase.channel> | null = null;
+    let teamListsChannel: ReturnType<typeof supabase.channel> | null = null;
     
     if (user) {
       // Use a stable channel name based only on user ID
@@ -213,6 +214,32 @@ export function ListProvider({ children }: { children: ReactNode }) {
         )
         .subscribe();
 
+      // Listen for ALL list changes to catch team list updates
+      // This is necessary because team lists have the team owner's user_id, not the member's
+      const teamListsChannelName = `team-lists-changes-${user.id}`;
+      teamListsChannel = supabase
+        .channel(teamListsChannelName)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "lists",
+          },
+          (payload) => {
+            // Check if this is a team list change that affects the current user
+            // We'll reload to be safe - the loadLists function will filter appropriately
+            const record = payload.new as any || payload.old as any;
+            if (record?.account_id) {
+              // This is a team list change - reload to check if user has access
+              if (currentUserIdRef.current && currentUserTierRef.current) {
+                debouncedLoadLists(currentUserIdRef.current, currentUserTierRef.current);
+              }
+            }
+          },
+        )
+        .subscribe();
+
       // Also listen for list_items changes to catch purchase status updates
       const itemsChannelName = `list-items-changes-${user.id}`;
       itemsChannel = supabase
@@ -220,7 +247,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
         .on(
           "postgres_changes",
           {
-            event: "UPDATE",
+            event: "*",
             schema: "public",
             table: "list_items",
           },
@@ -262,6 +289,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
       }
       if (listsChannel) {
         supabase.removeChannel(listsChannel);
+      }
+      if (teamListsChannel) {
+        supabase.removeChannel(teamListsChannel);
       }
       if (itemsChannel) {
         supabase.removeChannel(itemsChannel);
@@ -340,10 +370,13 @@ export function ListProvider({ children }: { children: ReactNode }) {
       // Also get accounts where user is the owner
       const { data: ownedAccounts, error: ownedAccountsError } = await supabase
         .from("accounts")
-        .select("id")
+        .select("id, owner_id")
         .eq("owner_id", userId);
 
       let teamLists: any[] = [];
+      
+      // Create a map of account_id -> owner_id for all team accounts
+      const accountOwnerMap = new Map<string, string>();
       
       // Combine account IDs from memberships and owned accounts
       const memberAccountIds = (!teamMemberError && teamMemberships) 
@@ -353,8 +386,30 @@ export function ListProvider({ children }: { children: ReactNode }) {
         ? ownedAccounts.map((a) => a.id) 
         : [];
       
+      // Populate accountOwnerMap from owned accounts
+      if (!ownedAccountsError && ownedAccounts) {
+        ownedAccounts.forEach((a) => {
+          accountOwnerMap.set(a.id, a.owner_id);
+        });
+      }
+      
       // Deduplicate account IDs
       const allTeamAccountIds = [...new Set([...memberAccountIds, ...ownerAccountIds])];
+      
+      // Fetch owner info for accounts where user is a member (not owner)
+      const memberOnlyIds = memberAccountIds.filter(id => !ownerAccountIds.includes(id));
+      if (memberOnlyIds.length > 0) {
+        const { data: memberAccountsData } = await supabase
+          .from("accounts")
+          .select("id, owner_id")
+          .in("id", memberOnlyIds);
+        
+        if (memberAccountsData) {
+          memberAccountsData.forEach((a) => {
+            accountOwnerMap.set(a.id, a.owner_id);
+          });
+        }
+      }
 
       if (allTeamAccountIds.length > 0) {
         // Check if user can access lists via RLS
@@ -568,6 +623,10 @@ export function ListProvider({ children }: { children: ReactNode }) {
         guestPermission: guestPermissionMap.get(list.id),
         // isTeamMember is true if the list belongs to a team account where user is a member (not owner)
         isTeamMember: list.account_id ? memberOnlyAccountIds.has(list.account_id) : false,
+        // isTeamOwner is true if the list belongs to a team account where user is the owner
+        isTeamOwner: list.account_id ? ownerAccountIds.includes(list.account_id) : false,
+        // Store the account owner ID for team lists
+        accountOwnerId: list.account_id ? accountOwnerMap.get(list.account_id) || null : null,
       })) || [];
 
       // Split lists into categories for tier filtering
@@ -685,11 +744,48 @@ export function ListProvider({ children }: { children: ReactNode }) {
       throw new Error(categoryValidation.error);
     }
 
-    // Validate list type access based on user tier
-    const userTier = (user.tier || 'free') as UserTier;
-    if (!canAccessListType(userTier, listType)) {
+    // For team lists, get the team account owner's tier for limit checks
+    let effectiveTier = (user.tier || 'free') as UserTier;
+    let effectiveListLimit = user.listLimit;
+    let teamOwnerId: string | null = null;
+    
+    if (accountId) {
+      // Fetch the team account to get the owner's tier
+      const { data: teamAccount, error: teamAccountError } = await supabase
+        .from("accounts")
+        .select("owner_id")
+        .eq("id", accountId)
+        .single();
+      
+      if (teamAccountError) {
+        console.error("[ListContext] Error fetching team account:", teamAccountError);
+      } else if (teamAccount) {
+        teamOwnerId = teamAccount.owner_id;
+        
+        // Fetch the team owner's tier
+        const { data: teamOwner, error: teamOwnerError } = await supabase
+          .from("users")
+          .select("tier, list_limit")
+          .eq("id", teamAccount.owner_id)
+          .single();
+        
+        if (!teamOwnerError && teamOwner) {
+          effectiveTier = (teamOwner.tier || 'free') as UserTier;
+          effectiveListLimit = teamOwner.list_limit;
+          console.log("[ListContext] Using team owner's tier for list creation:", {
+            teamOwnerId: teamAccount.owner_id,
+            teamOwnerTier: effectiveTier,
+            teamOwnerListLimit: effectiveListLimit,
+          });
+        }
+      }
+    }
+    
+    // Validate list type access based on effective tier (team owner's tier for team lists)
+    if (!canAccessListType(effectiveTier, listType)) {
+      const tierSource = accountId ? "team owner's" : "your";
       throw new Error(
-        `${listType} lists are not available on your current tier. Please upgrade to access this list type.`
+        `${listType} lists are not available on the ${tierSource} current tier. ${accountId ? "The team owner needs to upgrade" : "Please upgrade"} to access this list type.`
       );
     }
 
@@ -702,30 +798,53 @@ export function ListProvider({ children }: { children: ReactNode }) {
       );
     }
 
-    // Count only owned lists (exclude guest access and archived lists)
-    const ownedActiveListsCount = lists.filter(
-      (l) => l.userId === user.id && !l.isGuestAccess && !l.isArchived && !l.title.startsWith("[Archived]")
-    ).length;
-    
-    console.log("[ListContext] List limit check:", {
-      ownedActiveListsCount,
-      totalLists: lists.length,
-      userListLimit: user.listLimit,
-      userId: user.id,
-    });
-    
-    if (user.listLimit !== -1 && ownedActiveListsCount >= user.listLimit) {
-      const tierName =
-        user.tier === "free"
-          ? "Free"
-          : user.tier === "good"
-            ? "Good"
-            : user.tier === "even_better"
-              ? "Even Better"
-              : "Lots More";
-      throw new Error(
-        `You've reached your limit of ${user.listLimit} lists on the ${tierName} tier. Upgrade to create more lists.`,
-      );
+    // For personal lists, check user's own limits
+    // For team lists, check team owner's limits against team lists only
+    if (!accountId) {
+      // Personal list: count only personal owned lists (exclude guest access, archived, and team lists)
+      const personalActiveListsCount = lists.filter(
+        (l) => l.userId === user.id && !l.isGuestAccess && !l.isArchived && !l.title.startsWith("[Archived]") && !l.accountId
+      ).length;
+      
+      console.log("[ListContext] Personal list limit check:", {
+        personalActiveListsCount,
+        userListLimit: user.listLimit,
+        userId: user.id,
+      });
+      
+      if (user.listLimit !== -1 && personalActiveListsCount >= user.listLimit) {
+        const tierName =
+          user.tier === "free"
+            ? "Free"
+            : user.tier === "good"
+              ? "Good"
+              : user.tier === "even_better"
+                ? "Even Better"
+                : "Lots More";
+        throw new Error(
+          `You've reached your limit of ${user.listLimit} personal lists on the ${tierName} tier. Upgrade to create more lists.`,
+        );
+      }
+    } else {
+      // Team list: count team lists for this account
+      const teamActiveListsCount = lists.filter(
+        (l) => l.accountId === accountId && !l.isArchived && !l.title.startsWith("[Archived]")
+      ).length;
+      
+      console.log("[ListContext] Team list limit check:", {
+        teamActiveListsCount,
+        effectiveListLimit,
+        accountId,
+      });
+      
+      // Team lists use the team owner's list limit
+      // Note: For team accounts, we might want unlimited lists or a separate limit
+      // For now, we'll use the team owner's limit but this could be adjusted
+      if (effectiveListLimit !== -1 && teamActiveListsCount >= effectiveListLimit) {
+        throw new Error(
+          `This team has reached its limit of ${effectiveListLimit} lists. The team owner needs to upgrade to create more team lists.`,
+        );
+      }
     }
 
     try {
@@ -742,8 +861,16 @@ export function ListProvider({ children }: { children: ReactNode }) {
         throw new Error("You must be logged in to create a list. Please log in again.");
       }
       
-      // Always use the authenticated user's ID from getUser() - this is validated server-side
-      const insertUserId = authUser.id;
+      // For team lists, use the team owner's ID as user_id so the owner always has full control
+      // For personal lists, use the authenticated user's ID
+      const insertUserId = (accountId && teamOwnerId) ? teamOwnerId : authUser.id;
+      
+      console.log("[ListContext] List creation user_id:", {
+        isTeamList: !!accountId,
+        teamOwnerId,
+        authUserId: authUser.id,
+        insertUserId,
+      });
       
       // Build the insert payload
       const insertPayload: {
@@ -829,9 +956,12 @@ export function ListProvider({ children }: { children: ReactNode }) {
               throw new Error("Your session has expired. Please log in again.");
             }
             
+            // For team lists, still use the team owner's ID
+            const retryUserId = (accountId && teamOwnerId) ? teamOwnerId : refreshedUser.id;
+            
             // Retry with RPC after refresh
             const { data: retryListId, error: retryRpcError } = await supabase.rpc('create_list_for_user', {
-              p_user_id: refreshedUser.id,
+              p_user_id: retryUserId,
               p_title: nameValidation.value,
               p_category: categoryValidation.value,
               p_list_type: listType,
