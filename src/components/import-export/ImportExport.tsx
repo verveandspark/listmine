@@ -126,15 +126,20 @@ export default function ImportExport() {
       });
       
       // Fetch team accounts where user is owner
-      const accountsQuery = supabase.from('accounts');
-      const ownedQuery = accountsQuery.select('id, name, owner_id').eq('owner_id', user.id).eq('type', 'team');
-      const ownedAccountsRes = (await ownedQuery) as unknown as { data: unknown[] | null; error: unknown };
+      const accountsQuery: any = supabase.from('accounts');
+      const ownedAccountsRes = (await accountsQuery
+        .select('id, name, owner_id')
+        .eq('owner_id', user.id)
+        .eq('type', 'team')
+      ) as { data: unknown[] | null; error: unknown };
       const ownedAccounts = (ownedAccountsRes.data ?? []) as Array<{ id: string; name: string | null; owner_id: string }>;
       
       // Fetch team accounts where user is a member
-      const membershipsQuery = supabase.from('account_team_members');
-      const teamQuery = membershipsQuery.select('accounts:account_id(id, name, owner_id)').eq('user_id', user.id);
-      const teamMembershipsRes = (await teamQuery) as unknown as { data: unknown[] | null; error: unknown };
+      const membershipsQuery: any = supabase.from('account_team_members');
+      const teamMembershipsRes = (await membershipsQuery
+        .select('accounts:account_id(id, name, owner_id)')
+        .eq('user_id', user.id)
+      ) as { data: unknown[] | null; error: unknown };
       const teamMemberships = (teamMembershipsRes.data ?? []) as Array<{ accounts: { id: string; name: string | null; owner_id: string } }>;
       
       // Collect owner IDs to fetch their tiers
@@ -159,11 +164,11 @@ export default function ImportExport() {
       
       // Fetch owner tiers for team accounts where user is a member
       if (ownerIdsToFetch.length > 0) {
-        const ownersRes = (await supabase
-          .from('users')
+        const ownersQuery: any = supabase.from('users');
+        const ownersRes = (await ownersQuery
           .select('id, tier')
           .in('id', ownerIdsToFetch)
-        ) as unknown as { data: unknown[] | null; error: unknown };
+        ) as { data: unknown[] | null; error: unknown };
         const ownersData = (ownersRes.data ?? []) as Array<{ id: string; tier: string | null }>;
         
         const ownerTiers: Record<string, string> = {};
