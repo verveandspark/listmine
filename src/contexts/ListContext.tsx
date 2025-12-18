@@ -324,15 +324,15 @@ export function ListProvider({ children }: { children: ReactNode }) {
       if (couldShareBefore && !canShareNow && currentUserIdRef.current) {
         console.log('[ListContext] User lost sharing capability, unsharing all shared lists');
         try {
-          // Unshare all shared lists owned by the user
-          const userId = currentUserIdRef.current as string;
-          const { error } = await supabase
-            .from('lists')
+          // TS2589 workaround: avoid deep supabase-js builder inference by casting to any
+          const userId: string = currentUserIdRef.current as string;
+          const listsQuery = supabase.from('lists') as any;
+          const { error } = await listsQuery
             .update({
               share_link: null,
               is_shared: false,
               share_mode: null,
-            } as any)
+            })
             .eq('user_id', userId)
             .eq('is_shared', true);
           
@@ -350,10 +350,10 @@ export function ListProvider({ children }: { children: ReactNode }) {
       if (couldInviteGuestsBefore && !canInviteGuestsNow && currentUserIdRef.current) {
         console.log('[ListContext] User lost guest capability, removing all guests');
         try {
-          // Remove all guest relationships for lists owned by this user
-          const userId = currentUserIdRef.current as string;
-          const { error } = await supabase
-            .from('list_guests')
+          // TS2589 workaround: avoid deep supabase-js builder inference by casting to any
+          const userId: string = currentUserIdRef.current as string;
+          const guestsQuery = supabase.from('list_guests') as any;
+          const { error } = await guestsQuery
             .delete()
             .eq('owner_id', userId);
           
