@@ -282,39 +282,57 @@ export default function Dashboard() {
           type: 'personal',
         });
         
-        // Fetch team accounts where user is a member
+        // Fetch team memberships first (just account IDs)
         const { data: teamMemberships, error: memberError } = await supabase
           .from('account_team_members')
-          .select(`
-            account_id,
-            accounts:account_id (
-              id,
-              name,
-              owner_id
-            )
-          `)
+          .select('account_id')
           .eq('user_id', user.id);
         
-        if (!memberError && teamMemberships) {
-          console.log('[Dashboard Debug] Team memberships query result:', {
-            data: teamMemberships,
-            error: memberError,
-            count: teamMemberships?.length || 0,
+        console.log('[Dashboard Debug] Team memberships query result:', {
+          data: teamMemberships,
+          error: memberError,
+          count: teamMemberships?.length || 0,
+        });
+        
+        // Then fetch full account records separately by those IDs
+        if (!memberError && teamMemberships && teamMemberships.length > 0) {
+          const teamAccountIds = teamMemberships.map(m => m.account_id);
+          console.log('[Dashboard Debug] Fetching accounts for IDs:', teamAccountIds);
+          
+          const { data: teamAccountsData, error: teamAccountsError } = await supabase
+            .from('accounts')
+            .select('id, name, owner_id')
+            .in('id', teamAccountIds);
+          
+          console.log('[Dashboard Debug] Team accounts query result:', {
+            data: teamAccountsData,
+            error: teamAccountsError,
+            count: teamAccountsData?.length || 0,
           });
-          for (const membership of teamMemberships) {
-            const account = (membership as any).accounts;
-            console.log('[Dashboard Debug] Processing membership:', {
-              account_id: membership.account_id,
-              account: account,
-              isOwner: account?.owner_id === user.id,
-            });
-            // Include ALL team accounts where user is a member (including if they're the owner)
-            if (account) {
+          
+          if (teamAccountsData) {
+            for (const account of teamAccountsData) {
+              console.log('[Dashboard Debug] Processing team account:', {
+                id: account.id,
+                name: account.name,
+                isOwner: account.owner_id === user.id,
+              });
               accounts.push({
                 id: account.id,
                 name: account.name || 'Team Account',
                 type: 'team',
                 ownerId: account.owner_id,
+              });
+            }
+          } else if (teamMemberships.length > 0) {
+            // Fallback: add team account options even if account data is missing
+            console.log('[Dashboard Debug] Fallback: adding team accounts from membership IDs');
+            for (const membership of teamMemberships) {
+              accounts.push({
+                id: membership.account_id,
+                name: 'Team',
+                type: 'team',
+                ownerId: undefined,
               });
             }
           }
