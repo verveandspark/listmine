@@ -1,5 +1,8 @@
 import { createContext } from "react";
 
+export type TierChangeCallback = (newTier: string, prevTier: string) => void;
+export type TierChangeUnsubscribe = () => void;
+
 export interface AuthContextType {
   user: any | null;
   login: (email: string, password: string) => Promise<void>;
@@ -19,6 +22,7 @@ export interface AuthContextType {
     listLimit: number;
     itemsPerListLimit: number;
   };
+  onTierChange: (callback: TierChangeCallback) => TierChangeUnsubscribe;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(

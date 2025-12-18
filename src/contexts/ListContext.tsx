@@ -325,6 +325,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
         console.log('[ListContext] User lost sharing capability, unsharing all shared lists');
         try {
           // Unshare all shared lists owned by the user
+          const userId = currentUserIdRef.current as string;
           const { error } = await supabase
             .from('lists')
             .update({
@@ -332,7 +333,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
               is_shared: false,
               share_mode: null,
             } as any)
-            .eq('user_id', currentUserIdRef.current)
+            .eq('user_id', userId)
             .eq('is_shared', true);
           
           if (error) {
@@ -350,10 +351,11 @@ export function ListProvider({ children }: { children: ReactNode }) {
         console.log('[ListContext] User lost guest capability, removing all guests');
         try {
           // Remove all guest relationships for lists owned by this user
+          const userId = currentUserIdRef.current as string;
           const { error } = await supabase
             .from('list_guests')
             .delete()
-            .eq('owner_id', currentUserIdRef.current);
+            .eq('owner_id', userId);
           
           if (error) {
             console.error('[ListContext] Error removing guests on downgrade:', error);
