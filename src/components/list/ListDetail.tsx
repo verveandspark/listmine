@@ -385,7 +385,7 @@ export default function ListDetail() {
                 : "Lots More";
         toast({
           title: "⚠️ Item limit reached",
-          description: `This list has reached the ${user.itemsPerListLimit} item limit for your ${tierName} tier.`,
+          description: `This list has reached the ${user.itemsPerListLimit === -1 ? "unlimited" : user.itemsPerListLimit} item limit for your ${tierName} tier.`,
           variant: "destructive",
         });
         return;
@@ -1988,7 +1988,7 @@ export default function ListDetail() {
                   <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      You've reached your item limit ({user?.itemsPerListLimit}{" "}
+                      You've reached your item limit ({user?.itemsPerListLimit === -1 ? "∞" : user?.itemsPerListLimit}{" "}
                       items). Upgrade to add more items.
                     </AlertDescription>
                   </Alert>

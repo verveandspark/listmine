@@ -207,9 +207,59 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     });
 
+    // Set up realtime subscription for user tier changes
+    let userChannel: ReturnType<typeof supabase.channel> | null = null;
+    
+    const setupUserRealtimeSubscription = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) return;
+      
+      const channelName = `user-tier-${session.user.id}`;
+      userChannel = supabase
+        .channel(channelName)
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "users",
+            filter: `id=eq.${session.user.id}`,
+          },
+          async (payload) => {
+            // User record updated - check if tier changed
+            const newData = payload.new as any;
+            if (newData && newData.tier && isMounted) {
+              const newTier = newData.tier as 'free' | 'good' | 'even_better' | 'lots_more';
+              const tierLimits = getTierLimits(newTier);
+              
+              // Update cached tier
+              cachedTierRef.current = newTier;
+              saveTierToStorage(session.user.id, newTier);
+              
+              // Update user state
+              setUser(prev => {
+                if (!prev) return prev;
+                return {
+                  ...prev,
+                  tier: newTier,
+                  listLimit: tierLimits.listLimit,
+                  itemsPerListLimit: tierLimits.itemsPerListLimit,
+                };
+              });
+            }
+          }
+        )
+        .subscribe();
+    };
+    
+    setupUserRealtimeSubscription();
+
     return () => {
       isMounted = false;
       subscription.unsubscribe();
+      if (userChannel) {
+        supabase.removeChannel(userChannel);
+      }
     };
   }, []);
 
@@ -372,7 +422,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         tier: "free",
         list_limit: tierLimits.listLimit,
         items_per_list_limit: tierLimits.itemsPerListLimit,
-      });
+      } as any);
 
       if (profileError) {
         logError("register:createProfile", profileError, data.user.id);
@@ -424,7 +474,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           list_limit: tierLimits.listLimit,
           items_per_list_limit: tierLimits.itemsPerListLimit,
           updated_at: new Date().toISOString(),
-        })
+        } as any)
         .eq("id", user.id)
     )
       .then(() => {

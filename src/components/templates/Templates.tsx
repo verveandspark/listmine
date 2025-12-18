@@ -161,7 +161,7 @@ export default function Templates() {
               ? "Even Better"
               : "Lots More";
       setUpgradeMessage(
-        `You've reached your limit of ${user.listLimit} lists on the ${tierName} tier. Upgrade to create more lists.`,
+        `You've reached your limit of ${user.listLimit === -1 ? "unlimited" : user.listLimit} lists on the ${tierName} tier. Upgrade to create more lists.`,
       );
       setShowUpgradeModal(true);
       return;

@@ -4,6 +4,7 @@ import { NotificationBell } from "@/components/ui/NotificationBell";
 import { useUndoAction } from "@/hooks/useUndoAction";
 import { supabase } from "@/lib/supabase";
 import TeamManagement from "@/components/team/TeamManagement";
+import GuestManagement from "@/components/list/GuestManagement";
 import {
   Plus,
   Search,
@@ -113,7 +114,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { isPaidTier, canShareLists, canExportLists, canImportLists, getAvailableExportFormats, formatLimitCompact, type UserTier } from "@/lib/tierUtils";
+import { isPaidTier, canShareLists, canExportLists, canImportLists, canInviteGuests, canHaveTeamMembers, getAvailableExportFormats, formatLimitCompact, type UserTier } from "@/lib/tierUtils";
 import {
   validateListName,
   validateCategory,
@@ -255,6 +256,10 @@ export default function Dashboard() {
 
   // Team management modal state
   const [isTeamManagementOpen, setIsTeamManagementOpen] = useState(false);
+  
+  // Guest management modal state
+  const [isGuestManagementOpen, setIsGuestManagementOpen] = useState(false);
+  const [selectedListForGuests, setSelectedListForGuests] = useState<string | null>(null);
 
   // Account switcher state
   interface AccountOption {
@@ -951,7 +956,7 @@ export default function Dashboard() {
           <AlertDialogHeader>
             <AlertDialogTitle>List Limit Reached</AlertDialogTitle>
             <AlertDialogDescription>
-              You've reached your list limit of {user?.listLimit} lists on the{" "}
+              You've reached your list limit of {user?.listLimit === -1 ? "unlimited" : user?.listLimit} lists on the{" "}
               {getTierName(user?.tier || "free")} tier. Upgrade to create more
               lists.
             </AlertDialogDescription>
@@ -1908,41 +1913,51 @@ export default function Dashboard() {
                           <TooltipContent>Edit</TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
-                      {/* Share button - only show for paid tiers */}
+                      {/* Share dropdown menu - only show for paid tiers */}
                       {canShareLists(user?.tier) && (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className={`h-7 w-7 rounded-full transition-colors ${list.isShared ? "bg-primary/10 hover:bg-primary/20" : "bg-muted hover:bg-primary/10"}`}
-                                onClick={(e) => handleQuickShare(e, list.id, list.isShared || false)}
-                              >
-                                <Share2 className={`w-3.5 h-3.5 ${list.isShared ? "text-primary" : ""}`} />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>{list.isShared ? "Copy Share Link" : "Share"}</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      )}
-                      {/* Unshare button - only show for shared lists on paid tiers */}
-                      {list.isShared && canShareLists(user?.tier) && (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 rounded-full bg-red-100 hover:bg-red-200 transition-colors"
-                                onClick={(e) => handleQuickUnshare(e, list.id)}
-                              >
-                                <Link2Off className="w-3.5 h-3.5 text-red-600" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Unshare</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                        <DropdownMenu>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <DropdownMenuTrigger asChild>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className={`h-7 w-7 rounded-full transition-colors ${list.isShared ? "bg-primary/10 hover:bg-primary/20" : "bg-muted hover:bg-primary/10"}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <Share2 className={`w-3.5 h-3.5 ${list.isShared ? "text-primary" : ""}`} />
+                                  </Button>
+                                </TooltipTrigger>
+                              </DropdownMenuTrigger>
+                              <TooltipContent>{list.isShared ? "Share Options" : "Share"}</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          <DropdownMenuContent onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenuItem onClick={(e) => { handleQuickShare(e as any, list.id, list.isShared || false); }}>
+                              <Share2 className="w-4 h-4 mr-2" />
+                              {list.isShared ? "Share Settings" : "Share List"}
+                            </DropdownMenuItem>
+                            {canInviteGuests(user?.tier) && (
+                              <DropdownMenuItem onClick={() => { setSelectedListForGuests(list.id); setIsGuestManagementOpen(true); }}>
+                                <Users className="w-4 h-4 mr-2" />
+                                Manage Guests
+                              </DropdownMenuItem>
+                            )}
+                            {canHaveTeamMembers(user?.tier) && (
+                              <DropdownMenuItem onClick={() => setIsTeamManagementOpen(true)}>
+                                <Users className="w-4 h-4 mr-2" />
+                                Manage Team
+                              </DropdownMenuItem>
+                            )}
+                            {list.isShared && (
+                              <DropdownMenuItem onClick={(e) => handleQuickUnshare(e as any, list.id)} className="text-red-600">
+                                <Link2Off className="w-4 h-4 mr-2" />
+                                Unshare List
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       )}
                       <DropdownMenu open={exportDropdownOpen === `fav-${list.id}`} onOpenChange={(open) => setExportDropdownOpen(open ? `fav-${list.id}` : null)}>
                         <TooltipProvider>
@@ -2725,6 +2740,27 @@ export default function Dashboard() {
         <Dialog open={isTeamManagementOpen} onOpenChange={setIsTeamManagementOpen}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <TeamManagement onClose={() => setIsTeamManagementOpen(false)} />
+          </DialogContent>
+        </Dialog>
+      )}
+      
+      {/* Guest Management Modal */}
+      {isGuestManagementOpen && selectedListForGuests && (
+        <Dialog open={isGuestManagementOpen} onOpenChange={(open) => {
+          setIsGuestManagementOpen(open);
+          if (!open) setSelectedListForGuests(null);
+        }}>
+          <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-primary" />
+                Manage Guests
+              </DialogTitle>
+            </DialogHeader>
+            <GuestManagement
+              listId={selectedListForGuests}
+              listOwnerId={user?.id || ''}
+            />
           </DialogContent>
         </Dialog>
       )}
