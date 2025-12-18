@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/useAuthHook";
 import { useLists } from "@/contexts/useListsHook";
 import { resetOnboarding } from "@/components/onboarding/OnboardingTooltips";
-import { getTierDisplayName, getAvailableListTypes, ALL_LIST_TYPES, type UserTier } from "@/lib/tierUtils";
+import { getTierDisplayName, getAvailableListTypes, ALL_LIST_TYPES, canHaveTeamMembers, canShareLists, canInviteGuests, type UserTier } from "@/lib/tierUtils";
 import TeamManagement from "@/components/team/TeamManagement";
+import GuestManagement from "@/components/list/GuestManagement";
 import {
   Card,
   CardContent,
@@ -106,6 +107,8 @@ export default function Profile() {
   // Plan features collapsible state
   const [isPlanFeaturesOpen, setIsPlanFeaturesOpen] = useState(false);
   const [isTeamManagementOpen, setIsTeamManagementOpen] = useState(false);
+  const [isGuestManagementOpen, setIsGuestManagementOpen] = useState(false);
+  const [selectedListForGuests, setSelectedListForGuests] = useState<string | null>(null);
 
   if (!user) {
     navigate("/");
@@ -615,10 +618,22 @@ export default function Profile() {
                         </li>
                       )}
                       {user.tier === "good" && (
-                        <li className="flex items-start gap-2">
-                          <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-accent" />
-                          <span>Share read-only links</span>
-                        </li>
+                        <>
+                          <li className="flex items-start gap-2">
+                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-accent" />
+                            <span>Share read-only links</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <Button
+                              variant="link"
+                              className="p-0 h-auto text-primary"
+                              onClick={() => navigate("/dashboard")}
+                            >
+                              <Share2 className="w-4 h-4 mr-1" />
+                              Manage Shared Lists
+                            </Button>
+                          </li>
+                        </>
                       )}
                       {user.tier === "even_better" && (
                         <>
@@ -629,6 +644,34 @@ export default function Profile() {
                           <li className="flex items-start gap-2">
                             <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-accent" />
                             <span>Invite up to 2 guests to edit</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <Button
+                              variant="link"
+                              className="p-0 h-auto text-primary"
+                              onClick={() => navigate("/dashboard")}
+                            >
+                              <Share2 className="w-4 h-4 mr-1" />
+                              Manage Shared Lists
+                            </Button>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <Button
+                              variant="link"
+                              className="p-0 h-auto text-primary"
+                              onClick={() => {
+                                const sharedList = lists.find(l => l.isShared && l.userId === user.id);
+                                if (sharedList) {
+                                  setSelectedListForGuests(sharedList.id);
+                                  setIsGuestManagementOpen(true);
+                                } else {
+                                  navigate("/dashboard");
+                                }
+                              }}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Manage Guests
+                            </Button>
                           </li>
                         </>
                       )}
@@ -641,6 +684,34 @@ export default function Profile() {
                           <li className="flex items-start gap-2">
                             <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-accent" />
                             <span>3 admin accounts + unlimited guests</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <Button
+                              variant="link"
+                              className="p-0 h-auto text-primary"
+                              onClick={() => navigate("/dashboard")}
+                            >
+                              <Share2 className="w-4 h-4 mr-1" />
+                              Manage Shared Lists
+                            </Button>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <Button
+                              variant="link"
+                              className="p-0 h-auto text-primary"
+                              onClick={() => {
+                                const sharedList = lists.find(l => l.isShared && l.userId === user.id);
+                                if (sharedList) {
+                                  setSelectedListForGuests(sharedList.id);
+                                  setIsGuestManagementOpen(true);
+                                } else {
+                                  navigate("/dashboard");
+                                }
+                              }}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Manage Guests
+                            </Button>
                           </li>
                           <li className="flex items-start gap-2">
                             <Button
@@ -702,14 +773,77 @@ export default function Profile() {
 
                   {/* Upgrade CTA for non-premium users */}
                   {user.tier !== "lots_more" && (
-                    <Button
-                      onClick={() => navigate("/upgrade")}
-                      className="w-full"
-                      variant="default"
-                    >
-                      <Crown className="w-4 h-4 mr-2" />
-                      Upgrade to unlock more features
-                    </Button>
+                    <>
+                      <Button
+                        onClick={() => navigate("/upgrade")}
+                        className="w-full"
+                        variant="default"
+                      >
+                        <Crown className="w-4 h-4 mr-2" />
+                        Upgrade to unlock more features
+                      </Button>
+                      
+                      {/* Missing features for next tier */}
+                      <div className="mt-3 p-3 bg-muted/50 rounded-lg border border-dashed">
+                        <p className="text-xs font-medium text-muted-foreground mb-2">
+                          Features you're missing:
+                        </p>
+                        <ul className="space-y-1 text-xs text-muted-foreground">
+                          {user.tier === "free" && (
+                            <>
+                              <li className="flex items-center gap-1.5">
+                                <Star className="w-3 h-3 text-amber-500" />
+                                Share lists with read-only links
+                              </li>
+                              <li className="flex items-center gap-1.5">
+                                <Star className="w-3 h-3 text-amber-500" />
+                                Import lists from CSV, TXT, and URLs
+                              </li>
+                              <li className="flex items-center gap-1.5">
+                                <Star className="w-3 h-3 text-amber-500" />
+                                Export lists to multiple formats
+                              </li>
+                              <li className="flex items-center gap-1.5">
+                                <Star className="w-3 h-3 text-amber-500" />
+                                Grocery, Idea, and more list types
+                              </li>
+                            </>
+                          )}
+                          {user.tier === "good" && (
+                            <>
+                              <li className="flex items-center gap-1.5">
+                                <Star className="w-3 h-3 text-amber-500" />
+                                Invite guests to edit your lists
+                              </li>
+                              <li className="flex items-center gap-1.5">
+                                <Star className="w-3 h-3 text-amber-500" />
+                                Registry & Wishlist templates
+                              </li>
+                              <li className="flex items-center gap-1.5">
+                                <Star className="w-3 h-3 text-amber-500" />
+                                More lists and items per list
+                              </li>
+                            </>
+                          )}
+                          {user.tier === "even_better" && (
+                            <>
+                              <li className="flex items-center gap-1.5">
+                                <Star className="w-3 h-3 text-amber-500" />
+                                Unlimited lists and items
+                              </li>
+                              <li className="flex items-center gap-1.5">
+                                <Star className="w-3 h-3 text-amber-500" />
+                                3 admin team accounts
+                              </li>
+                              <li className="flex items-center gap-1.5">
+                                <Star className="w-3 h-3 text-amber-500" />
+                                Unlimited guests per list
+                              </li>
+                            </>
+                          )}
+                        </ul>
+                      </div>
+                    </>
                   )}
                 </CollapsibleContent>
               </Collapsible>
@@ -1090,6 +1224,30 @@ export default function Profile() {
           <TeamManagement onClose={() => setIsTeamManagementOpen(false)} />
         </DialogContent>
       </Dialog>
+
+      {/* Guest Management Dialog */}
+      {isGuestManagementOpen && selectedListForGuests && (
+        <Dialog open={isGuestManagementOpen} onOpenChange={(open) => {
+          setIsGuestManagementOpen(open);
+          if (!open) setSelectedListForGuests(null);
+        }}>
+          <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-primary" />
+                Manage Guests
+              </DialogTitle>
+              <DialogDescription>
+                Invite guests to collaborate on your shared list.
+              </DialogDescription>
+            </DialogHeader>
+            <GuestManagement
+              listId={selectedListForGuests}
+              listOwnerId={user?.id || ''}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

@@ -373,15 +373,6 @@ export default function Dashboard() {
   // This prevents flashing when navigating back to dashboard with cached data
   const isLoading = !hasLoadedOnce && lists.length === 0;
 
-  // Debug log for tier display
-  console.log('[Dashboard Debug] User tier info:', {
-    tier: user?.tier,
-    tierName: getTierName(user?.tier || "free"),
-    listLimit: user?.listLimit,
-    itemsPerListLimit: user?.itemsPerListLimit,
-    userId: user?.id
-  });
-
   // Reset view mode to dashboard when landing on dashboard page
   // This ensures back button navigation works correctly
   useEffect(() => {
