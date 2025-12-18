@@ -396,7 +396,8 @@ export default function AdminUsersPage() {
       const oldTier = user?.tier;
       
       // Use secure RPC instead of direct table update
-      const { error } = await supabase.rpc('update_user_tier', {
+      // Type bypass until Supabase types are regenerated
+      const { error } = await (supabase as any).rpc('update_user_tier', {
         p_user_id: userId,
         p_new_tier: newTier
       });
