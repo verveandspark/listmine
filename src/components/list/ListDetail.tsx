@@ -132,7 +132,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/lib/supabase";
-import { canInviteGuests, canHaveTeamMembers } from "@/lib/tierUtils";
+import { canInviteGuests, canHaveTeamMembers, canShareLists, canExportLists, getAvailableExportFormats } from "@/lib/tierUtils";
 import ShareSettingsModal from "./ShareSettingsModal";
 
 export default function ListDetail() {
@@ -1318,30 +1318,17 @@ export default function ListDetail() {
                       </TooltipProvider>
                       <PopoverContent className="w-48">
                         <div className="space-y-2">
-                          <Button
-                            variant="ghost"
-                            className="w-full justify-start"
-                            onClick={() => handleExport("csv")}
-                            disabled={isExporting}
-                          >
-                            Export as CSV
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            className="w-full justify-start"
-                            onClick={() => handleExport("txt")}
-                            disabled={isExporting}
-                          >
-                            Export as TXT
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            className="w-full justify-start"
-                            onClick={() => handleExport("pdf")}
-                            disabled={isExporting}
-                          >
-                            Export as PDF
-                          </Button>
+                          {getAvailableExportFormats(user?.tier).map((format) => (
+                            <Button
+                              key={format}
+                              variant="ghost"
+                              className="w-full justify-start"
+                              onClick={() => handleExport(format as "csv" | "txt" | "pdf")}
+                              disabled={isExporting}
+                            >
+                              Export as {format.toUpperCase()}
+                            </Button>
+                          ))}
                         </div>
                       </PopoverContent>
                     </Popover>
@@ -1372,7 +1359,8 @@ export default function ListDetail() {
                       <TooltipContent>{list.isFavorite ? "Remove from Favorites" : "Add to Favorites"}</TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
-                  {isOwner && (
+                  {/* Share dropdown - only show for owners with paid tier */}
+                  {isOwner && canShareLists(user?.tier) && (
                     <DropdownMenu>
                       <TooltipProvider>
                         <Tooltip>
@@ -1667,15 +1655,11 @@ export default function ListDetail() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="start" className="w-56">
-                          <DropdownMenuItem onClick={() => { handleExport("csv"); setIsMobileMenuOpen(false); }}>
-                            Export as CSV
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => { handleExport("txt"); setIsMobileMenuOpen(false); }}>
-                            Export as TXT
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => { handleExport("pdf"); setIsMobileMenuOpen(false); }}>
-                            Export as PDF
-                          </DropdownMenuItem>
+                          {getAvailableExportFormats(user?.tier).map((format) => (
+                            <DropdownMenuItem key={format} onClick={() => { handleExport(format as "csv" | "txt" | "pdf"); setIsMobileMenuOpen(false); }}>
+                              Export as {format.toUpperCase()}
+                            </DropdownMenuItem>
+                          ))}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     )}
@@ -1700,7 +1684,8 @@ export default function ListDetail() {
                       <Star className={`w-4 h-4 mr-2 ${list.isFavorite ? "text-amber-500 fill-amber-500" : ""}`} />
                       {list.isFavorite ? "Remove from Favorites" : "Add to Favorites"}
                     </Button>
-                    {isOwner && (
+                    {/* Mobile share buttons - only for owners with paid tier */}
+                    {isOwner && canShareLists(user?.tier) && (
                       <>
                         <Button
                           variant="outline"

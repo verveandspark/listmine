@@ -38,6 +38,7 @@ import React, { useState, useEffect } from "react";
 import CreateListModal from "./CreateListModal";
 import { useAuth } from "@/contexts/useAuthHook";
 import { supabase } from "@/lib/supabase";
+import { canImportLists, canShareLists } from "@/lib/tierUtils";
 
 const categoryIcons: Record<string, any> = {
   Tasks: CheckSquare,
@@ -370,14 +371,17 @@ export function ListSidebar() {
             New List
           </Button>
 
-          <Button
-            onClick={() => navigate("/import-export", { state: { from: location.pathname } })}
-            variant="outline"
-            className="w-full min-h-[44px]"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Import List
-          </Button>
+          {/* Import button - only show for paid tiers */}
+          {canImportLists(user?.tier) && (
+            <Button
+              onClick={() => navigate("/import-export", { state: { from: location.pathname } })}
+              variant="outline"
+              className="w-full min-h-[44px]"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Import List
+            </Button>
+          )}
         </div>
 
         {/* Shared With Me section - only in personal mode */}

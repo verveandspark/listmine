@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useLists } from "@/contexts/useListsHook";
 import { useAuth } from "@/contexts/useAuthHook";
 import { supabase } from "@/lib/supabase";
-import { canExportLists, getAvailableExportFormats, type UserTier } from "@/lib/tierUtils";
+import { canExportLists, canImportLists, canPrintLists, getAvailableExportFormats, type UserTier } from "@/lib/tierUtils";
 
 interface AccountOption {
   id: string;
@@ -119,9 +119,13 @@ export default function ImportExport() {
     ? (currentAccount.ownerTier as UserTier)
     : userTier;
   
+  const canImport = canImportLists(effectiveTier);
   const canExport = canExportLists(effectiveTier);
+  const canPrint = canPrintLists(effectiveTier);
   const availableFormats = getAvailableExportFormats(effectiveTier);
   
+  // Show import gating message only for free personal users (not in team context)
+  const showImportGatingMessage = !canImport && !isTeamContext;
   // Show export gating message only for free personal users (not in team context)
   const showExportGatingMessage = !canExport && !isTeamContext;
   
@@ -927,11 +931,29 @@ export default function ImportExport() {
                   </Tooltip>
                 </TooltipProvider>
               </div>
-              <p className="text-sm text-gray-600 mb-4">
-                Upload a file or paste your list below
-              </p>
+              
+              {/* Show import gating message for free tier */}
+              {showImportGatingMessage ? (
+                <Alert className="mb-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription className="flex items-center justify-between">
+                    <span>File import is available on Good and above plans.</span>
+                    <Button
+                      variant="link"
+                      className="p-0 h-auto"
+                      onClick={() => navigate('/upgrade', { state: { from: location.pathname } })}
+                    >
+                      Upgrade now
+                    </Button>
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <p className="text-sm text-gray-600 mb-4">
+                  Upload a file or paste your list below
+                </p>
+              )}
 
-              <div className="space-y-4">
+              <div className={`space-y-4 ${showImportGatingMessage ? 'opacity-50 pointer-events-none' : ''}`}>
                 <div>
                   <Label>Upload File</Label>
                   <Input

@@ -113,7 +113,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { isPaidTier, canShareLists, canExportLists, getAvailableExportFormats, type UserTier } from "@/lib/tierUtils";
+import { isPaidTier, canShareLists, canExportLists, canImportLists, getAvailableExportFormats, formatLimitCompact, type UserTier } from "@/lib/tierUtils";
 import {
   validateListName,
   validateCategory,
@@ -1294,7 +1294,7 @@ export default function Dashboard() {
                 </h2>
                 <p className="text-foreground mb-3">
                   You're all set with a <span className="font-semibold">Free account</span>. 
-                  Start organizing your life with up to 5 lists and unlimited items!
+                  Start organizing your life with up to 5 lists and 20 items per list!
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <Button
@@ -1414,7 +1414,7 @@ export default function Dashboard() {
             <div className="mt-4 pt-4 border-t border-border">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">
-                  Need more lists? Upgrade to unlock unlimited lists and premium features.
+                  Need more lists? Upgrade to Good for 50 lists, or Lots More for unlimited!
                 </p>
                 <Button
                   onClick={() => navigate('/upgrade', { state: { from: location.pathname } })}
@@ -1908,22 +1908,26 @@ export default function Dashboard() {
                           <TooltipContent>Edit</TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className={`h-7 w-7 rounded-full transition-colors ${list.isShared ? "bg-primary/10 hover:bg-primary/20" : "bg-muted hover:bg-primary/10"}`}
-                              onClick={(e) => handleQuickShare(e, list.id, list.isShared || false)}
-                            >
-                              <Share2 className={`w-3.5 h-3.5 ${list.isShared ? "text-primary" : ""}`} />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>{list.isShared ? "Copy Share Link" : "Share"}</TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                      {list.isShared && (
+                      {/* Share button - only show for paid tiers */}
+                      {canShareLists(user?.tier) && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className={`h-7 w-7 rounded-full transition-colors ${list.isShared ? "bg-primary/10 hover:bg-primary/20" : "bg-muted hover:bg-primary/10"}`}
+                                onClick={(e) => handleQuickShare(e, list.id, list.isShared || false)}
+                              >
+                                <Share2 className={`w-3.5 h-3.5 ${list.isShared ? "text-primary" : ""}`} />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{list.isShared ? "Copy Share Link" : "Share"}</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                      {/* Unshare button - only show for shared lists on paid tiers */}
+                      {list.isShared && canShareLists(user?.tier) && (
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>

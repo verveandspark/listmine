@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { UserPlus, Trash2, Mail, Loader2, Users, Crown, Shield, CreditCard, RefreshCw, Clock } from "lucide-react";
 import { TeamMember, Account } from "@/types";
-import { canHaveTeamMembers, TeamMemberRole } from "@/lib/tierUtils";
+import { canHaveTeamMembers, getTeamAccountLimit, TeamMemberRole } from "@/lib/tierUtils";
 import { validateEmail } from "@/lib/validation";
 
 interface TeamManagementProps {
@@ -76,6 +76,9 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   const canManageTeam = canHaveTeamMembers(user?.tier || "free");
+  const teamAccountLimit = getTeamAccountLimit(user?.tier || "free");
+  const totalTeamMembers = teamMembers.length + pendingInvites.length;
+  const isAtTeamLimit = teamAccountLimit !== -1 && totalTeamMembers >= teamAccountLimit;
 
   useEffect(() => {
     if (canManageTeam) {
@@ -612,7 +615,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
           </Select>
           <Button
             onClick={handleInviteTeamMember}
-            disabled={inviting || !inviteEmail.trim()}
+            disabled={inviting || !inviteEmail.trim() || isAtTeamLimit}
           >
             {inviting ? (
               <Loader2 className="w-4 h-4 animate-spin mr-2" />

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/components/ui/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   Eye, 
   Download, 
@@ -19,8 +21,12 @@ import {
   Info,
   Link2,
   Link2Off,
+  AlertCircle,
+  Lock,
 } from "lucide-react";
 import { ShareMode } from "@/types";
+import { useAuth } from "@/contexts/useAuthHook";
+import { canShareLists, getTierDisplayName, type UserTier } from "@/lib/tierUtils";
 
 interface ShareSettingsModalProps {
   open: boolean;
@@ -46,9 +52,13 @@ export default function ShareSettingsModal({
   onUnshare,
 }: ShareSettingsModalProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [shareMode, setShareMode] = useState<ShareMode>(list.shareMode || 'view_only');
   const [isLoading, setIsLoading] = useState(false);
   const [shareLink, setShareLink] = useState<string | null>(null);
+  
+  const userCanShare = canShareLists(user?.tier);
 
   useEffect(() => {
     if (list.isShared && list.shareLink) {
@@ -294,8 +304,28 @@ export default function ShareSettingsModal({
         </DialogHeader>
 
         <div className="space-y-4 py-2">
+          {/* Tier Gating Alert */}
+          {!userCanShare && (
+            <Alert>
+              <Lock className="h-4 w-4" />
+              <AlertDescription className="flex items-center justify-between">
+                <span>Sharing is available on Good and above plans.</span>
+                <Button
+                  variant="link"
+                  className="p-0 h-auto"
+                  onClick={() => {
+                    onOpenChange(false);
+                    navigate('/upgrade');
+                  }}
+                >
+                  Upgrade now
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Share Mode Selection */}
-          <div className="space-y-2">
+          <div className={`space-y-2 ${!userCanShare ? 'opacity-50 pointer-events-none' : ''}`}>
             <Label className="text-sm font-medium">Share Mode</Label>
             <RadioGroup value={shareMode} onValueChange={(v) => setShareMode(v as ShareMode)}>
               <div className="space-y-2">
@@ -387,7 +417,7 @@ export default function ShareSettingsModal({
             </Button>
             <Button
               onClick={handleGenerateOrUpdate}
-              disabled={isLoading}
+              disabled={isLoading || !userCanShare}
               className="min-h-[44px] flex-1 sm:flex-none"
             >
               {isLoading ? (
