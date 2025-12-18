@@ -130,7 +130,7 @@ export default function InviteAccept() {
             result.type === "guest"
               ? `You now have access to "${inviteDetails?.target_name}"`
               : `You've joined the team "${inviteDetails?.target_name}"`,
-          className: "bg-green-50 border-green-200",
+          className: "bg-accent/10 border-accent/30",
         });
 
         // Redirect to appropriate page
@@ -149,7 +149,7 @@ export default function InviteAccept() {
           toast({
             title: "✅ You're Already In!",
             description: `You already have access to "${inviteDetails?.target_name || "this list"}"`,
-            className: "bg-green-50 border-green-200",
+            className: "bg-accent/10 border-accent/30",
           });
           // Redirect to dashboard or provided redirect URL
           navigate(result.redirect || "/dashboard", { replace: true });
@@ -243,8 +243,8 @@ export default function InviteAccept() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-[#298585]" />
-          <p className="text-slate-600">Loading invite...</p>
+          <Loader2 className="h-8 w-8 animate-spin text-accent" />
+          <p className="text-muted-foreground">Loading invite...</p>
         </div>
       </div>
     );
@@ -283,12 +283,12 @@ export default function InviteAccept() {
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className={`mx-auto mb-4 h-12 w-12 rounded-full flex items-center justify-center ${
-              isAlreadyAccepted ? "bg-green-100" : "bg-amber-100"
+              isAlreadyAccepted ? "bg-accent/20" : "bg-primary/20"
             }`}>
               {isAlreadyAccepted ? (
-                <CheckCircle className="h-6 w-6 text-green-600" />
+                <CheckCircle className="h-6 w-6 text-accent" />
               ) : (
-                <AlertCircle className="h-6 w-6 text-amber-600" />
+                <AlertCircle className="h-6 w-6 text-primary" />
               )}
             </div>
             <CardTitle>
@@ -315,14 +315,14 @@ export default function InviteAccept() {
                   Go to Dashboard
                 </Button>
                 {inviteType === "guest" && (
-                  <p className="text-xs text-center text-slate-500">
+                  <p className="text-xs text-center text-muted-foreground">
                     Look for "{inviteDetails.target_name}" in your shared lists
                   </p>
                 )}
               </>
             ) : isAlreadyAccepted && !isAuthenticated ? (
               <>
-                <p className="text-sm text-center text-slate-600 mb-4">
+                <p className="text-sm text-center text-muted-foreground mb-4">
                   Log in to access the {inviteType === "guest" ? "shared list" : "team"}.
                 </p>
                 <Button 
@@ -385,7 +385,7 @@ export default function InviteAccept() {
                 </div>
                 
                 <div className="space-y-2">
-                  <p className="text-sm text-slate-600 font-medium">What would you like to do?</p>
+                  <p className="text-sm text-muted-foreground font-medium">What would you like to do?</p>
                   
                   <Button 
                     onClick={handleLogout} 
@@ -411,7 +411,7 @@ export default function InviteAccept() {
                   <Button 
                     onClick={() => navigate("/dashboard")} 
                     variant="ghost" 
-                    className="w-full text-slate-500"
+                    className="w-full text-muted-foreground"
                   >
                     Cancel and go to dashboard
                   </Button>
@@ -426,9 +426,9 @@ export default function InviteAccept() {
                   </div>
                 ) : (
                   <>
-                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">
-                      <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
-                      <p className="text-sm text-green-800">
+                    <div className="p-4 bg-accent/10 border border-accent/30 rounded-lg flex items-center gap-3">
+                      <CheckCircle className="h-5 w-5 text-accent flex-shrink-0" />
+                      <p className="text-sm text-accent">
                         Logged in as <strong>{user.email}</strong>
                       </p>
                     </div>
@@ -479,7 +479,7 @@ export default function InviteAccept() {
                 className={`flex-1 py-2 text-sm font-medium transition-colors ${
                   authMode === "login"
                     ? "bg-[#298585] text-white"
-                    : "bg-white text-slate-600 hover:bg-slate-50"
+                    : "bg-white text-muted-foreground hover:bg-primary/5"
                 }`}
               >
                 Log In
@@ -490,7 +490,7 @@ export default function InviteAccept() {
                 className={`flex-1 py-2 text-sm font-medium transition-colors ${
                   authMode === "signup"
                     ? "bg-[#298585] text-white"
-                    : "bg-white text-slate-600 hover:bg-slate-50"
+                    : "bg-white text-muted-foreground hover:bg-primary/5"
                 }`}
               >
                 Sign Up
@@ -516,7 +516,7 @@ export default function InviteAccept() {
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="email"
                   type="email"

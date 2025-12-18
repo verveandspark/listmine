@@ -4,6 +4,35 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * ============================================
+ * LISTMINE BRAND COLOR SYSTEM
+ * ============================================
+ * 
+ * ALLOWED COLORS:
+ * - Brand Blue: #1f628e (primary) - Main brand color
+ * - Brand Teal: #2ba8a8 / #298585 (accent) - Success, highlights
+ * - Secondary Blue: #3D7A9E (secondary) - Team badges, secondary actions
+ * - White: #FFFFFF (background)
+ * - Black/Charcoal: #334155 (foreground)
+ * - Grays: muted, muted-foreground (neutral text/backgrounds)
+ * 
+ * SPECIAL USE ONLY:
+ * - Amber: ONLY for favorites star (text-amber-500, fill-amber-500)
+ * - Red/Destructive: ONLY for delete, errors, urgent actions
+ * 
+ * FORBIDDEN COLORS (do not use):
+ * - green-* (use accent instead)
+ * - yellow-* (use warning sparingly, or muted)
+ * - purple-*
+ * - pink-*
+ * - indigo-*
+ * - blue-50/100/200 etc (use primary/secondary with opacity)
+ * - teal-* (use accent instead)
+ * 
+ * ============================================
+ */
+
 @layer base {
   :root {
     --background: 0 0% 100%; /* Pure White #FFFFFF */
@@ -27,7 +56,7 @@
     --accent: 180 55% 35%; /* Teal Accent #298585 - improved contrast */
     --accent-foreground: 0 0% 100%; /* White */
 
-    --destructive: 0 84.2% 60.2%; /* Red */
+    --destructive: 0 84.2% 60.2%; /* Red - ONLY for delete/errors */
     --destructive-foreground: 0 0% 100%; /* White */
 
     --border: 180 50% 67%; /* Light Teal #80D4D4 */
@@ -36,11 +65,11 @@
 
     --radius: 0.75rem;
 
-    /* Success color */
+    /* Success color - uses brand teal */
     --success: 180 55% 35%; /* Teal #298585 - matches brand accent */
     --success-foreground: 0 0% 100%; /* White */
 
-    /* Warning color */
+    /* Warning color - use sparingly */
     --warning: 38 92% 50%; /* Orange */
     --warning-foreground: 0 0% 100%; /* White */
   }
@@ -167,8 +196,14 @@
 
   /* Consistent badge styling using CSS variables */
   .badge-success {
-    @apply bg-success/10 text-success border-success/20;
+    @apply bg-accent/10 text-accent border-accent/20;
   }
+  
+  /* Toast success styling - brand teal */
+  .toast-success {
+    @apply bg-accent/10 border-accent/30 text-accent;
+  }
+  
   .badge-error {
     @apply bg-destructive/10 text-destructive border-destructive/20;
   }
@@ -177,6 +212,31 @@
   }
   .badge-info {
     @apply bg-primary/10 text-primary border-primary/20;
+  }
+  
+  /* Brand hover states - use these instead of gray hover */
+  .hover-brand {
+    @apply hover:bg-primary/10 transition-colors;
+  }
+  .hover-brand-accent {
+    @apply hover:bg-accent/10 transition-colors;
+  }
+  
+  /* Brand button styles */
+  .btn-brand-primary {
+    @apply bg-primary hover:bg-primary/90 text-white;
+  }
+  .btn-brand-secondary {
+    @apply bg-secondary hover:bg-secondary/90 text-white;
+  }
+  .btn-brand-accent {
+    @apply bg-accent hover:bg-accent/90 text-white;
+  }
+  .btn-brand-outline {
+    @apply border border-primary text-primary hover:bg-primary/10;
+  }
+  .btn-brand-ghost {
+    @apply text-primary hover:bg-primary/10;
   }
 }
 

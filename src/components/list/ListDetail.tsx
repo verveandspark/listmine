@@ -781,14 +781,14 @@ export default function ListDetail() {
             type="text" 
             readOnly 
             value={link} 
-            className="bg-gray-100 p-2 rounded text-xs break-all w-full border-0"
+            className="bg-muted p-2 rounded text-xs break-all w-full border-0"
             onClick={(e) => {
               (e.target as HTMLInputElement).select();
             }}
           />
         </div>
       ),
-      className: "bg-teal-50 border-teal-200",
+      className: "bg-accent/10 border-accent/30",
       duration: 15000,
     });
   };
@@ -1061,7 +1061,7 @@ export default function ListDetail() {
     const date = new Date(dueDate);
     if (isToday(date)) return "text-accent bg-accent/10 border-accent/20";
     if (isPast(date)) return "text-red-600 bg-red-50 border-red-200";
-    return "text-gray-600 bg-gray-50 border-gray-200";
+    return "text-muted-foreground bg-muted border-border";
   };
 
   const handleItemSortChange = (value: string) => {
@@ -1232,7 +1232,7 @@ export default function ListDetail() {
                   <ArrowLeft className="w-5 h-5" />
                 </Button>
                 <div className="min-w-0 flex-1">
-                  <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate flex items-center gap-2">
+                  <h1 className="text-lg sm:text-2xl font-bold text-foreground truncate flex items-center gap-2">
                     {list.title}
                     {list.isGuestAccess && (
                       <Badge variant="outline" className="text-xs bg-accent/10 text-accent border-accent/30">
@@ -1248,7 +1248,7 @@ export default function ListDetail() {
                       <Badge variant="secondary" className="text-xs">Archived</Badge>
                     )}
                   </h1>
-                  <p className="text-xs sm:text-sm text-gray-600">
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     {list.category} · {Math.max(0, list.items?.length || 0)}/
                     {user?.itemsPerListLimit === -1 ? "∞" : user?.itemsPerListLimit} items
                   </p>
@@ -1256,7 +1256,7 @@ export default function ListDetail() {
               </div>
 
               {/* View Mode Toggle */}
-              <div className="hidden sm:flex items-center bg-gray-100 rounded-lg p-1">
+              <div className="hidden sm:flex items-center bg-muted rounded-lg p-1">
                 <Button
                   variant={viewMode === "dashboard" ? "default" : "ghost"}
                   size="sm"
@@ -1503,7 +1503,7 @@ export default function ListDetail() {
                             onClick={() => setIsMergeModalOpen(true)}
                             className="h-9 w-9"
                           >
-                            <Merge className="w-4 h-4 text-teal-600" />
+                            <Merge className="w-4 h-4 text-accent" />
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>Merge with another list</TooltipContent>
@@ -1536,10 +1536,10 @@ export default function ListDetail() {
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="h-9 w-9 hover:bg-teal-50"
+                            className="h-9 w-9 hover:bg-accent/10"
                             onClick={handleArchiveList}
                           >
-                            <Archive className="w-4 h-4 text-teal-600" />
+                            <Archive className="w-4 h-4 text-accent" />
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>Archive list (hide from dashboard)</TooltipContent>
@@ -1584,7 +1584,7 @@ export default function ListDetail() {
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel className="bg-gray-100">
+                          <AlertDialogCancel className="bg-muted hover:bg-primary/10">
                             Cancel
                           </AlertDialogCancel>
                           <AlertDialogAction
@@ -1614,7 +1614,7 @@ export default function ListDetail() {
                 <SheetContent side="right" className="w-[280px] overflow-y-auto">
                   <div className="flex flex-col gap-2 mt-8">
                     {/* View Mode Toggle - Mobile */}
-                    <div className="flex items-center bg-gray-100 rounded-lg p-1 mb-2">
+                    <div className="flex items-center bg-muted rounded-lg p-1 mb-2">
                       <Button
                         variant={localStorage.getItem("dashboardViewMode") === "dashboard" || !localStorage.getItem("dashboardViewMode") ? "default" : "ghost"}
                         size="sm"
@@ -1824,7 +1824,7 @@ export default function ListDetail() {
                             handleArchiveList();
                             setIsMobileMenuOpen(false);
                           }}
-                          className="w-full justify-start min-h-[44px] text-teal-600 hover:text-teal-700 hover:bg-teal-50"
+                          className="w-full justify-start min-h-[44px] text-accent hover:text-accent hover:bg-accent/10"
                         >
                           <Archive className="w-4 h-4 mr-2" />
                           Archive List
@@ -1848,7 +1848,7 @@ export default function ListDetail() {
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                              <AlertDialogCancel className="bg-gray-100 min-h-[44px]">
+                              <AlertDialogCancel className="bg-muted hover:bg-primary/10 min-h-[44px]">
                                 Cancel
                               </AlertDialogCancel>
                               <AlertDialogAction
@@ -1883,8 +1883,8 @@ export default function ListDetail() {
         <div className="flex-1 overflow-y-auto">
           {/* Guest Access Banner */}
           {list.isGuestAccess && (
-            <div className="bg-blue-50 border-b border-blue-200 px-4 sm:px-6 lg:px-8 py-2 print:hidden">
-              <p className="text-sm text-blue-700 text-center">
+            <div className="bg-accent/10 border-b border-accent/30 px-4 sm:px-6 lg:px-8 py-2 print:hidden">
+              <p className="text-sm text-accent text-center">
                 {canEditListItems 
                   ? "📝 Shared list: You can add, edit, and remove items."
                   : "👁️ Shared list: View-only access."}
@@ -1913,7 +1913,7 @@ export default function ListDetail() {
                     size="sm"
                     variant="outline"
                     onClick={handleSelectAll}
-                    className="min-h-[36px] bg-white hover:bg-gray-50"
+                    className="min-h-[36px] bg-white hover:bg-primary/5"
                   >
                     {selectedItems.size === list.items.length
                       ? "Deselect All"
@@ -1938,8 +1938,8 @@ export default function ListDetail() {
                                   disabled={allCompleted}
                                   className={`min-h-[44px] w-full sm:w-auto ${
                                     allCompleted 
-                                      ? "bg-gray-300 text-gray-500 cursor-not-allowed" 
-                                      : "bg-success hover:bg-success/90 text-white"
+                                      ? "bg-muted text-muted-foreground cursor-not-allowed" 
+                                      : "bg-accent hover:bg-accent/90 text-white"
                                   }`}
                                 >
                                   <CheckSquare className="w-4 h-4 mr-2" />
@@ -1971,7 +1971,7 @@ export default function ListDetail() {
                         setIsSelectMode(false);
                         setSelectedItems(new Set());
                       }}
-                      className="min-h-[44px] w-full sm:w-auto bg-gray-100 hover:bg-gray-200"
+                      className="min-h-[44px] w-full sm:w-auto bg-muted hover:bg-primary/10 text-foreground"
                     >
                       <X className="w-4 h-4 mr-2" />
                       Cancel
@@ -2773,7 +2773,7 @@ export default function ListDetail() {
                     <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
                       {categoryLabels[category] || category}
                     </h3>
-                    <div className="flex-1 h-px bg-gray-200"></div>
+                    <div className="flex-1 h-px bg-border"></div>
                     <Badge variant="outline" className="text-xs">
                       {categoryItems.length}
                     </Badge>
@@ -2880,7 +2880,7 @@ export default function ListDetail() {
                               {item.attributes.price && (
                                 <Badge
                                   variant="outline"
-                                  className="bg-gray-100 text-gray-700 border-gray-300 text-xs"
+                                  className="bg-muted text-muted-foreground border-border text-xs"
                                 >
                                   ${item.attributes.price}
                                 </Badge>
@@ -3640,7 +3640,7 @@ export default function ListDetail() {
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
-                                  <AlertDialogCancel className="bg-gray-100">
+                                  <AlertDialogCancel className="bg-muted hover:bg-primary/10">
                                     Cancel
                                   </AlertDialogCancel>
                                   <AlertDialogAction
@@ -3846,7 +3846,7 @@ export default function ListDetail() {
                               {item.attributes.price && (
                                 <Badge
                                   variant="outline"
-                                  className="bg-gray-100 text-gray-700 border-gray-300 text-xs"
+                                  className="bg-muted text-muted-foreground border-border text-xs"
                                 >
                                   ${item.attributes.price}
                                 </Badge>
@@ -4630,7 +4630,7 @@ export default function ListDetail() {
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
-                                  <AlertDialogCancel className="bg-gray-100">
+                                  <AlertDialogCancel className="bg-muted hover:bg-primary/10">
                                     Cancel
                                   </AlertDialogCancel>
                                   <AlertDialogAction
@@ -4875,19 +4875,19 @@ export default function ListDetail() {
               <h4 className="font-semibold text-sm mb-3">Keyboard Shortcuts</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-3">
-                  <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono border border-gray-300 min-w-[32px] text-center">
+                  <kbd className="px-2 py-1 bg-muted rounded text-xs font-mono border border-border min-w-[32px] text-center">
                     N
                   </kbd>
                   <span className="text-gray-600">Create new list</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono border border-gray-300 min-w-[32px] text-center">
+                  <kbd className="px-2 py-1 bg-muted rounded text-xs font-mono border border-border min-w-[32px] text-center">
                     /
                   </kbd>
                   <span className="text-gray-600">Search lists</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono border border-gray-300 min-w-[32px] text-center">
+                  <kbd className="px-2 py-1 bg-muted rounded text-xs font-mono border border-border min-w-[32px] text-center">
                     ESC
                   </kbd>
                   <span className="text-gray-600">Close modal</span>

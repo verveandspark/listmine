@@ -197,7 +197,7 @@ export default function Templates() {
       toast({
         title: "✅ List created from template!",
         description: `${selectedTemplate.name} has been added to your lists`,
-        className: "bg-green-50 border-green-200",
+        className: "bg-accent/10 border-accent/30",
       });
 
       setShowPreviewModal(false);
@@ -301,7 +301,7 @@ export default function Templates() {
         {filteredTemplates.length === 0 ? (
           <Card className="p-16 text-center">
             <div className="max-w-md mx-auto">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
                 <Search className="w-8 h-8 text-gray-400" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">

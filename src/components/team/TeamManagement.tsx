@@ -120,7 +120,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
         toast({
           title: "🎉 Team Invite Accepted!",
           description: `${acceptedEmails} joined your team`,
-          className: "bg-green-50 border-green-200",
+          className: "bg-accent/10 border-accent/30",
           duration: 5000,
         });
 
@@ -296,7 +296,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
           toast({
             title: "✅ Invite Sent",
             description: `Invitation sent to ${emailValidation.value}`,
-            className: "bg-green-50 border-green-200",
+            className: "bg-accent/10 border-accent/30",
           });
           setInviteEmail("");
           await fetchAccountAndMembers();
@@ -331,7 +331,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
         toast({
           title: "✅ Team Member Added",
           description: `Successfully added ${emailValidation.value} to your team`,
-          className: "bg-green-50 border-green-200",
+          className: "bg-accent/10 border-accent/30",
         });
       } else {
         // User doesn't exist (existingUser is null) - create pending invite
@@ -354,7 +354,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
         toast({
           title: "✅ Invite Sent",
           description: `Invitation sent to ${emailValidation.value}. They'll be added when they sign up.`,
-          className: "bg-green-50 border-green-200",
+          className: "bg-accent/10 border-accent/30",
         });
       }
 
@@ -426,7 +426,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
       toast({
         title: "✅ Invite Resent",
         description: `Invitation resent to ${invite.guestEmail}`,
-        className: "bg-green-50 border-green-200",
+        className: "bg-accent/10 border-accent/30",
       });
 
       if (account) {
@@ -460,7 +460,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
       toast({
         title: "✅ Invite Cancelled",
         description: "The pending invite has been cancelled",
-        className: "bg-green-50 border-green-200",
+        className: "bg-accent/10 border-accent/30",
       });
     } catch (error: any) {
       console.error("[TeamManagement] Error cancelling invite:", error);
@@ -488,7 +488,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
       toast({
         title: "✅ Team Member Removed",
         description: memberEmail ? `Removed ${memberEmail} from your team` : "Team member removed successfully",
-        className: "bg-green-50 border-green-200",
+        className: "bg-accent/10 border-accent/30",
       });
 
       setTeamMembers(teamMembers.filter(m => m.id !== memberId));
@@ -520,7 +520,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
       toast({
         title: "✅ Role Updated",
         description: `Team member role changed to ${ROLE_LABELS[newRole]}`,
-        className: "bg-green-50 border-green-200",
+        className: "bg-accent/10 border-accent/30",
       });
     } catch (error: any) {
       console.error("[TeamManagement] Error updating role:", error);
@@ -544,7 +544,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
     return (
       <Card className="p-6">
         <div className="text-center space-y-4">
-          <Crown className="w-12 h-12 mx-auto text-teal-500" />
+          <Crown className="w-12 h-12 mx-auto text-accent" />
           <h3 className="text-lg font-semibold">Team Members</h3>
           <p className="text-gray-600">
             Team members are available exclusively for <strong>Lots More</strong> tier users.
@@ -628,7 +628,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
       {pendingInvites.length > 0 && (
         <div className="space-y-2">
           <h4 className="font-medium text-sm flex items-center gap-2">
-            <Clock className="w-4 h-4 text-teal-600" />
+            <Clock className="w-4 h-4 text-accent" />
             Pending Invites
             <Badge variant="secondary" className="text-xs">
               {pendingInvites.length}
@@ -638,11 +638,11 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
             {pendingInvites.map((invite) => (
               <div
                 key={invite.id}
-                className="flex items-center justify-between p-4 bg-teal-50 border border-teal-200 rounded-lg"
+                className="flex items-center justify-between p-4 bg-accent/10 border border-accent/30 rounded-lg"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center">
-                    <Mail className="w-5 h-5 text-teal-600" />
+                  <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center">
+                    <Mail className="w-5 h-5 text-accent" />
                   </div>
                   <div>
                     <p className="font-medium">{invite.guestEmail}</p>
@@ -662,7 +662,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
                     size="sm"
                     onClick={() => handleResendInvite(invite)}
                     disabled={resendingId === invite.id}
-                    className="text-teal-600 hover:text-teal-700 hover:bg-teal-100"
+                    className="text-accent hover:text-accent hover:bg-accent/20"
                   >
                     {resendingId === invite.id ? (
                       <Loader2 className="w-4 h-4 animate-spin" />

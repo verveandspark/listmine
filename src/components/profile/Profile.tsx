@@ -372,7 +372,7 @@ export default function Profile() {
                   <p className="text-sm text-red-600 mt-1">{avatarError}</p>
                 )}
                 {avatarSuccess && (
-                  <p className="text-sm text-green-600 mt-1">Profile picture updated!</p>
+                  <p className="text-sm text-accent mt-1">Profile picture updated!</p>
                 )}
                 {isUploadingAvatar && (
                   <div className="mt-2 w-32">
@@ -381,7 +381,7 @@ export default function Profile() {
                 )}
                 {user.tier !== "free" ? (
                   <div className="mt-2 space-y-2">
-                    <Badge className="bg-gradient-to-r from-teal-500 to-teal-600 text-white text-base px-4 py-1">
+                    <Badge className="bg-gradient-to-r from-accent to-accent/90 text-white text-base px-4 py-1">
                       <Crown className="w-4 h-4 mr-2" />
                       {getTierDisplayName(user.tier)} Tier
                     </Badge>
@@ -417,7 +417,7 @@ export default function Profile() {
                         variant="ghost"
                         onClick={handleSaveName}
                         disabled={isSavingName}
-                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                        className="text-accent hover:text-accent hover:bg-accent/10"
                       >
                         {isSavingName ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
@@ -453,7 +453,7 @@ export default function Profile() {
                   </div>
                 )}
                 {nameSuccess && (
-                  <p className="text-sm text-green-600">Name updated successfully!</p>
+                  <p className="text-sm text-accent">Name updated successfully!</p>
                 )}
               </div>
               <div className="space-y-2">
@@ -475,7 +475,7 @@ export default function Profile() {
                         variant="ghost"
                         onClick={handleSaveEmail}
                         disabled={isSavingEmail}
-                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                        className="text-accent hover:text-accent hover:bg-accent/10"
                       >
                         {isSavingEmail ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
@@ -515,7 +515,7 @@ export default function Profile() {
                   </div>
                 )}
                 {emailSuccess && (
-                  <p className="text-sm text-green-600">
+                  <p className="text-sm text-accent">
                     Email update initiated! Check your inbox to confirm.
                   </p>
                 )}
@@ -616,18 +616,18 @@ export default function Profile() {
                       )}
                       {user.tier === "good" && (
                         <li className="flex items-start gap-2">
-                          <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                          <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-accent" />
                           <span>Share read-only links</span>
                         </li>
                       )}
                       {user.tier === "even_better" && (
                         <>
                           <li className="flex items-start gap-2">
-                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-accent" />
                             <span>Share read-only links</span>
                           </li>
                           <li className="flex items-start gap-2">
-                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-accent" />
                             <span>Invite up to 2 guests to edit</span>
                           </li>
                         </>
@@ -635,11 +635,11 @@ export default function Profile() {
                       {user.tier === "lots_more" && (
                         <>
                           <li className="flex items-start gap-2">
-                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-accent" />
                             <span>Share read-only links</span>
                           </li>
                           <li className="flex items-start gap-2">
-                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-accent" />
                             <span>3 admin accounts + unlimited guests</span>
                           </li>
                           <li className="flex items-start gap-2">
@@ -676,11 +676,11 @@ export default function Profile() {
                       {user.tier === "good" && (
                         <>
                           <li className="flex items-start gap-2">
-                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-accent" />
                             <span>Import from multiple sources</span>
                           </li>
                           <li className="flex items-start gap-2">
-                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-accent" />
                             <span>Export to CSV/TXT</span>
                           </li>
                         </>
@@ -688,11 +688,11 @@ export default function Profile() {
                       {(user.tier === "even_better" || user.tier === "lots_more") && (
                         <>
                           <li className="flex items-start gap-2">
-                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-accent" />
                             <span>Import from multiple sources</span>
                           </li>
                           <li className="flex items-start gap-2">
-                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-accent" />
                             <span>Export to CSV/TXT/PDF</span>
                           </li>
                         </>
@@ -722,7 +722,7 @@ export default function Profile() {
                       {totalLists} / {user.listLimit === -1 ? "∞" : user.listLimit}
                     </p>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-3">
+                  <div className="w-full bg-muted rounded-full h-3">
                     <div
                       className={`h-3 rounded-full transition-all ${
                         user.listLimit !== -1 && totalLists >= user.listLimit * 0.9
@@ -749,8 +749,8 @@ export default function Profile() {
               </div>
 
               {user.tier === "free" && (
-                <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
-                  <p className="text-sm text-teal-900 mb-3">
+                <div className="bg-accent/10 border border-accent/30 rounded-lg p-4">
+                  <p className="text-sm text-accent mb-3">
                     Upgrade to Premium for higher limits and advanced features!
                   </p>
                   <Button
@@ -872,7 +872,7 @@ export default function Profile() {
                     {Math.round((completedItems / totalItems) * 100)}%
                   </p>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-3">
+                <div className="w-full bg-muted rounded-full h-3">
                   <div
                     className="bg-primary h-3 rounded-full transition-all"
                     style={{ width: `${(completedItems / totalItems) * 100}%` }}
@@ -955,10 +955,10 @@ export default function Profile() {
 
           {passwordSuccess ? (
             <div className="py-6 text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
-                <Check className="w-8 h-8 text-green-600" />
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-accent/20 flex items-center justify-center">
+                <Check className="w-8 h-8 text-accent" />
               </div>
-              <p className="text-lg font-medium text-green-600">
+              <p className="text-lg font-medium text-accent">
                 Password changed successfully!
               </p>
             </div>

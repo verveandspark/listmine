@@ -55,7 +55,7 @@ function TierFeatureItem({ tierName, tierKey, currentTier, children }: TierFeatu
   return (
     <li className={`flex items-center gap-2 ${isCurrentTier ? "bg-primary/10 -mx-2 px-2 py-1 rounded" : ""}`}>
       {hasAccess ? (
-        <Check className="w-3 h-3 text-green-600 flex-shrink-0" />
+        <Check className="w-3 h-3 text-accent flex-shrink-0" />
       ) : (
         <Sparkles className="w-3 h-3 text-primary flex-shrink-0" />
       )}

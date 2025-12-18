@@ -61,7 +61,7 @@ export function useUndoAction() {
             toast({
               title: "✅ Undone!",
               description: pendingAction.description,
-              className: "bg-green-50 border-green-200",
+              className: "bg-accent/10 border-accent/30",
             });
           } catch (error: any) {
             toast({

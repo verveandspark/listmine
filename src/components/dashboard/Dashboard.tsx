@@ -1010,7 +1010,7 @@ export default function Dashboard() {
                       className="h-8 px-3 gap-2"
                     >
                       {currentAccount?.type === 'team' ? (
-                        <Users className="w-4 h-4 text-teal-600" />
+                        <Users className="w-4 h-4 text-accent" />
                       ) : (
                         <User className="w-4 h-4" />
                       )}
@@ -1025,16 +1025,16 @@ export default function Dashboard() {
                       <DropdownMenuItem
                         key={account.id}
                         onClick={() => setCurrentAccountId(account.id)}
-                        className={currentAccountId === account.id ? 'bg-teal-50' : ''}
+                        className={currentAccountId === account.id ? 'bg-accent/10' : ''}
                       >
                         {account.type === 'team' ? (
-                          <Users className="w-4 h-4 mr-2 text-teal-600" />
+                          <Users className="w-4 h-4 mr-2 text-accent" />
                         ) : (
                           <User className="w-4 h-4 mr-2" />
                         )}
                         <span className="flex-1 truncate">{account.name}</span>
                         {currentAccountId === account.id && (
-                          <Badge variant="outline" className="text-xs bg-teal-50 text-teal-700 border-teal-200 ml-2">Active</Badge>
+                          <Badge variant="outline" className="text-xs bg-accent/10 text-accent border-accent/30 ml-2">Active</Badge>
                         )}
                       </DropdownMenuItem>
                     ))}
@@ -1043,7 +1043,7 @@ export default function Dashboard() {
               )}
               
               {/* View Mode Toggle */}
-              <div className="flex items-center bg-gray-100 rounded-lg p-1">
+              <div className="flex items-center bg-muted rounded-lg p-1">
                 <Button
                   variant={viewMode === "dashboard" ? "default" : "ghost"}
                   size="sm"
@@ -1067,7 +1067,7 @@ export default function Dashboard() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700"
+                className="w-8 h-8 rounded-full bg-muted hover:bg-primary/10 text-gray-700"
                 onClick={() => setIsHelpModalOpen(true)}
               >
                 <HelpCircle className="w-4 h-4" />
@@ -1171,7 +1171,7 @@ export default function Dashboard() {
                             key={account.id}
                             variant={currentAccountId === account.id ? "default" : "ghost"}
                             size="sm"
-                            className={`w-full justify-start h-10 ${currentAccountId === account.id ? 'bg-teal-600 hover:bg-teal-700' : ''}`}
+                            className={`w-full justify-start h-10 ${currentAccountId === account.id ? 'bg-accent hover:bg-accent/90' : ''}`}
                             onClick={() => {
                               setCurrentAccountId(account.id);
                               setIsMobileMenuOpen(false);
@@ -1190,7 +1190,7 @@ export default function Dashboard() {
                   )}
                   
                   {/* Mobile View Mode Toggle */}
-                  <div className="flex items-center bg-gray-100 rounded-lg p-1 mb-2">
+                  <div className="flex items-center bg-muted rounded-lg p-1 mb-2">
                     <Button
                       variant={viewMode === "dashboard" ? "default" : "ghost"}
                       size="sm"
@@ -1223,7 +1223,7 @@ export default function Dashboard() {
                         setIsMobileMenuOpen(false);
                       }}
                       variant="outline"
-                      className="w-full justify-start border-teal-400 text-teal-700 min-h-[44px]"
+                      className="w-full justify-start border-accent text-accent min-h-[44px]"
                     >
                       <Crown className="w-4 h-4 mr-2" />
                       Upgrade to Premium
@@ -1339,7 +1339,7 @@ export default function Dashboard() {
             </div>
 
             {/* Divider */}
-            <div className="hidden sm:block h-6 w-px bg-gray-200" />
+            <div className="hidden sm:block h-6 w-px bg-border" />
 
             {/* Total Lists */}
             <div className="flex items-center gap-2">
@@ -1376,7 +1376,7 @@ export default function Dashboard() {
             </div>
 
             {/* Divider */}
-            <div className="hidden sm:block h-6 w-px bg-gray-200" />
+            <div className="hidden sm:block h-6 w-px bg-border" />
 
             {/* Total Items */}
             <div className="flex items-center gap-2">
@@ -1715,7 +1715,7 @@ export default function Dashboard() {
                   return (
                     <Card
                       key={list.id}
-                      className="hover:shadow-lg hover:bg-gray-50 transition-all cursor-pointer group relative animate-slide-up"
+                      className="hover:shadow-lg hover:bg-primary/5 transition-all cursor-pointer group relative animate-slide-up"
                       style={{ animationDelay: `${index * 50}ms` }}
                       onClick={() => {
                         localStorage.setItem("last_list_id", list.id);
@@ -1730,7 +1730,7 @@ export default function Dashboard() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className={`h-7 w-7 rounded-full ${list.isFavorite ? 'bg-amber-100 hover:bg-amber-200' : 'bg-gray-100 hover:bg-gray-200'} transition-colors`}
+                                className={`h-7 w-7 rounded-full ${list.isFavorite ? 'bg-amber-100 hover:bg-amber-200' : 'bg-muted hover:bg-primary/10'} transition-colors`}
                                 onClick={(e) => handleToggleFavorite(e, list.id)}
                               >
                                 <Star className={`w-3.5 h-3.5 ${list.isFavorite ? 'text-amber-500 fill-amber-500' : 'text-gray-500'}`} />
@@ -1769,19 +1769,19 @@ export default function Dashboard() {
                               <CardTitle className="text-lg flex items-center gap-2 flex-wrap">
                                 {list.title}
                                 {list.isGuestAccess && (
-                                  <Badge variant="outline" className="text-xs bg-teal-50 text-teal-700 border-teal-200">
+                                  <Badge variant="outline" className="text-xs bg-accent/10 text-accent border-accent/30">
                                     <Share2 className="w-3 h-3 mr-1" />
                                     Shared
                                   </Badge>
                                 )}
                                 {list.accountId && (
-                                  <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600 border-blue-200">
+                                  <Badge variant="outline" className="text-xs bg-secondary/10 text-secondary border-secondary/30">
                                     <Users className="w-3 h-3 mr-1" />
                                     Team
                                   </Badge>
                                 )}
                                 {!list.accountId && !list.isGuestAccess && (
-                                  <Badge variant="outline" className="text-xs bg-gray-50 text-gray-600 border-gray-200">
+                                  <Badge variant="outline" className="text-xs bg-muted text-muted-foreground border-border">
                                     <User className="w-3 h-3 mr-1" />
                                     Personal
                                   </Badge>
@@ -1812,7 +1812,7 @@ export default function Dashboard() {
                             </span>
                           </div>
                           {itemCount > 0 && (
-                            <div className="w-full bg-gray-200 rounded-full h-1.5">
+                            <div className="w-full bg-muted rounded-full h-1.5">
                               <div
                                 className="bg-primary h-1.5 rounded-full transition-all"
                                 style={{
@@ -1872,7 +1872,7 @@ export default function Dashboard() {
                 return (
                   <Card
                     key={list.id}
-                    className="hover:shadow-lg hover:bg-gray-50 transition-all cursor-pointer group relative animate-slide-up"
+                    className="hover:shadow-lg hover:bg-primary/5 transition-all cursor-pointer group relative animate-slide-up"
                     style={{ animationDelay: `${index * 50}ms` }}
                     onClick={() => {
                       localStorage.setItem("last_list_id", list.id);
@@ -1902,7 +1902,7 @@ export default function Dashboard() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                              className="h-7 w-7 rounded-full bg-muted hover:bg-primary/10 transition-colors"
                               onClick={(e) => openEditDialog(list, e)}
                             >
                               <Edit className="w-3.5 h-3.5" />
@@ -1917,7 +1917,7 @@ export default function Dashboard() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className={`h-7 w-7 rounded-full transition-colors ${list.isShared ? "bg-primary/10 hover:bg-primary/20" : "bg-gray-100 hover:bg-gray-200"}`}
+                              className={`h-7 w-7 rounded-full transition-colors ${list.isShared ? "bg-primary/10 hover:bg-primary/20" : "bg-muted hover:bg-primary/10"}`}
                               onClick={(e) => handleQuickShare(e, list.id, list.isShared || false)}
                             >
                               <Share2 className={`w-3.5 h-3.5 ${list.isShared ? "text-primary" : ""}`} />
@@ -1951,7 +1951,7 @@ export default function Dashboard() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-7 w-7 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                                  className="h-7 w-7 rounded-full bg-muted hover:bg-primary/10 transition-colors"
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   <Download className="w-3.5 h-3.5" />
@@ -1987,7 +1987,7 @@ export default function Dashboard() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 rounded-full bg-gray-100 hover:bg-teal-100 transition-colors"
+                              className="h-7 w-7 rounded-full bg-muted hover:bg-accent/20 transition-colors"
                               onClick={async (e) => {
                                 e.stopPropagation();
                                 const archivedTitle = list.title.startsWith("[Archived]") 
@@ -2010,7 +2010,7 @@ export default function Dashboard() {
                                 }
                               }}
                             >
-                              <Archive className="w-3.5 h-3.5 text-teal-600" />
+                              <Archive className="w-3.5 h-3.5 text-accent" />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>Archive list (hide from dashboard)</TooltipContent>
@@ -2040,14 +2040,14 @@ export default function Dashboard() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-7 w-7 rounded-full bg-gray-100 hover:bg-teal-100 transition-colors"
+                                className="h-7 w-7 rounded-full bg-muted hover:bg-accent/20 transition-colors"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setMergeSourceListId(list.id);
                                   setIsMergeModalOpen(true);
                                 }}
                               >
-                                <Merge className="w-3.5 h-3.5 text-teal-600" />
+                                <Merge className="w-3.5 h-3.5 text-accent" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>Merge with another list</TooltipContent>
@@ -2062,7 +2062,7 @@ export default function Dashboard() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-7 w-7 rounded-full bg-gray-100 hover:bg-red-100 transition-colors"
+                                  className="h-7 w-7 rounded-full bg-muted hover:bg-destructive/20 transition-colors"
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   <Trash2 className="w-3.5 h-3.5 text-red-600" />
@@ -2128,7 +2128,7 @@ export default function Dashboard() {
                             <CardTitle className="text-lg flex items-center gap-2">
                               {list.title}
                               {list.isGuestAccess && (
-                                <Badge variant="outline" className="text-xs bg-teal-50 text-teal-700 border-teal-200">Shared</Badge>
+                                <Badge variant="outline" className="text-xs bg-accent/10 text-accent border-accent/30">Shared</Badge>
                               )}
                             </CardTitle>
                             <CardDescription>
@@ -2153,7 +2153,7 @@ export default function Dashboard() {
                           </span>
                         </div>
                         {itemCount > 0 && (
-                          <div className="w-full bg-gray-200 rounded-full h-1.5">
+                          <div className="w-full bg-muted rounded-full h-1.5">
                             <div
                               className="bg-primary h-1.5 rounded-full transition-all"
                               style={{
@@ -2207,7 +2207,7 @@ export default function Dashboard() {
         {!searchQuery.trim() && sharedLists.length > 0 && (
         <div className="mb-6 sm:mb-8">
           <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Users className="w-5 h-5 text-teal-600" />
+            <Users className="w-5 h-5 text-accent" />
             Shared With Me
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-2">
@@ -2220,7 +2220,7 @@ export default function Dashboard() {
               return (
                 <Card
                   key={list.id}
-                  className="hover:shadow-lg hover:bg-gray-50 transition-all cursor-pointer group relative animate-slide-up border-teal-200"
+                  className="hover:shadow-lg hover:bg-primary/5 transition-all cursor-pointer group relative animate-slide-up border-accent/30"
                   style={{ animationDelay: `${index * 50}ms` }}
                   onClick={() => {
                     localStorage.setItem("last_list_id", list.id);
@@ -2235,7 +2235,7 @@ export default function Dashboard() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                            className="h-7 w-7 rounded-full bg-muted hover:bg-primary/10 transition-colors"
                             onClick={(e) => openEditDialog(list, e)}
                           >
                             <Edit className="w-3.5 h-3.5" />
@@ -2257,7 +2257,7 @@ export default function Dashboard() {
                         <div>
                           <CardTitle className="text-lg flex items-center gap-2">
                             {list.title}
-                            <Badge variant="outline" className="text-xs bg-teal-50 text-teal-700 border-teal-200">Shared</Badge>
+                            <Badge variant="outline" className="text-xs bg-accent/10 text-accent border-accent/30">Shared</Badge>
                           </CardTitle>
                           <CardDescription>
                             {list.category} ·{" "}
@@ -2281,9 +2281,9 @@ export default function Dashboard() {
                         </span>
                       </div>
                       {itemCount > 0 && (
-                        <div className="w-full bg-gray-200 rounded-full h-1.5">
+                        <div className="w-full bg-muted rounded-full h-1.5">
                           <div
-                            className="bg-teal-500 h-1.5 rounded-full transition-all"
+                            className="bg-accent/100 h-1.5 rounded-full transition-all"
                             style={{
                               width: `${(completedItems / itemCount) * 100}%`,
                             }}
@@ -2435,7 +2435,7 @@ export default function Dashboard() {
                             <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
                           )}
                           {list.isGuestAccess && (
-                            <Badge variant="outline" className="text-xs bg-teal-50 text-teal-700 border-teal-200">Shared</Badge>
+                            <Badge variant="outline" className="text-xs bg-accent/10 text-accent border-accent/30">Shared</Badge>
                           )}
                           {list.isShared && (
                             <Share2 className="w-4 h-4 text-primary" />
@@ -2561,19 +2561,19 @@ export default function Dashboard() {
               <h4 className="font-semibold text-sm mb-3">Keyboard Shortcuts</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-3">
-                  <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono border border-gray-300 min-w-[32px] text-center">
+                  <kbd className="px-2 py-1 bg-muted rounded text-xs font-mono border border-border min-w-[32px] text-center">
                     N
                   </kbd>
                   <span className="text-gray-600">Create new list</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono border border-gray-300 min-w-[32px] text-center">
+                  <kbd className="px-2 py-1 bg-muted rounded text-xs font-mono border border-border min-w-[32px] text-center">
                     /
                   </kbd>
                   <span className="text-gray-600">Search lists</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono border border-gray-300 min-w-[32px] text-center">
+                  <kbd className="px-2 py-1 bg-muted rounded text-xs font-mono border border-border min-w-[32px] text-center">
                     ESC
                   </kbd>
                   <span className="text-gray-600">Close modal</span>

@@ -18,9 +18,9 @@ export const LinkPreviewCard = ({
     return (
       <div className="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 rounded-lg shadow-lg p-3 w-64 z-50">
         <div className="animate-pulse space-y-2">
-          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-          <div className="h-3 bg-gray-200 rounded w-full"></div>
-          <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+          <div className="h-4 bg-muted rounded w-3/4"></div>
+          <div className="h-3 bg-muted rounded w-full"></div>
+          <div className="h-3 bg-muted rounded w-2/3"></div>
         </div>
       </div>
     );

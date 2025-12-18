@@ -236,7 +236,7 @@ export default function ImportExport() {
         toast({
           title: "⚠️ List imported with warnings",
           description: `${skippedItems} item${skippedItems > 1 ? 's were' : ' was'} skipped because ${skippedItems > 1 ? 'they had' : 'it had'} no text.`,
-          className: "bg-teal-50 border-teal-200",
+          className: "bg-accent/10 border-accent/30",
         });
       } else {
         toast({
@@ -718,7 +718,7 @@ export default function ImportExport() {
                         {scrapedItems.map((item, index) => (
                           <div
                             key={index}
-                            className="flex items-start gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+                            className="flex items-start gap-3 p-3 border rounded-lg hover:bg-primary/5 transition-colors"
                           >
                             <Checkbox
                               checked={item.selected}

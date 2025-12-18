@@ -325,7 +325,7 @@ export default function ScrapeWishlistModal({
                   {scrapedItems.map((item, index) => (
                     <div
                       key={index}
-                      className="flex items-start gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+                      className="flex items-start gap-3 p-3 border rounded-lg hover:bg-primary/5 transition-colors"
                     >
                       <Checkbox
                         checked={item.selected}

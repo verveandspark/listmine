@@ -330,7 +330,7 @@ export default function UpdateFromRetailerModal({
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="bg-gray-100 text-gray-600">
+                  <Badge variant="outline" className="bg-muted text-muted-foreground">
                     <Check className="w-3 h-3 mr-1" />
                     {compareResult.summary.existingCount} Unchanged
                   </Badge>

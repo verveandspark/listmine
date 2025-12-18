@@ -311,7 +311,7 @@ export default function AddToExistingListModal({
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="bg-gray-50 text-gray-600">
+                  <Badge variant="outline" className="bg-muted text-muted-foreground">
                     <Check className="w-3 h-3 mr-1" />
                     {compareResult.summary.existingCount} already exist
                   </Badge>
@@ -337,7 +337,7 @@ export default function AddToExistingListModal({
                       {compareResult.newItems.map((item, index) => (
                         <div
                           key={index}
-                          className="flex items-start gap-3 p-2 rounded hover:bg-gray-50"
+                          className="flex items-start gap-3 p-2 rounded hover:bg-primary/5"
                         >
                           <Checkbox
                             checked={selectedNewItems.has(index)}

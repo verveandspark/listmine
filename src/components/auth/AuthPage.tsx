@@ -328,16 +328,16 @@ export default function AuthPage() {
                       Must be at least 8 characters
                     </p>
                   </div>
-                  <div className="bg-teal-50 border border-teal-200 rounded-lg p-3">
-                    <p className="text-sm text-teal-900 font-medium mb-1">
+                  <div className="bg-accent/10 border border-accent/30 rounded-lg p-3">
+                    <p className="text-sm text-accent font-medium mb-1">
                       ✨ Free Tier Includes:
                     </p>
-                    <ul className="text-xs text-teal-800 space-y-1 ml-4 list-disc">
+                    <ul className="text-xs text-accent space-y-1 ml-4 list-disc">
                       <li>Create up to 5 lists</li>
                       <li>Unlimited items per list</li>
                       <li>Share lists with others</li>
                     </ul>
-                    <p className="text-xs text-teal-700 mt-2">
+                    <p className="text-xs text-accent/80 mt-2">
                       Upgrade anytime from inside the app for more features!
                     </p>
                   </div>

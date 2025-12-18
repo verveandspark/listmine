@@ -128,7 +128,7 @@ export const useSupabaseError = () => {
       toast({
         title: `✅ ${title}`,
         description,
-        className: "bg-green-50 border-green-200",
+        className: "bg-accent/10 border-accent/30",
       });
     },
     [toast]

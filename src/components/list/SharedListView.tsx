@@ -443,14 +443,14 @@ export default function SharedListView() {
               type="text" 
               readOnly 
               value={link} 
-              className="bg-gray-100 p-2 rounded text-xs break-all w-full border-0"
+              className="bg-muted p-2 rounded text-xs break-all w-full border-0"
               onClick={(e) => {
                 (e.target as HTMLInputElement).select();
               }}
             />
           </div>
         ),
-        className: "bg-teal-50 border-teal-200",
+        className: "bg-accent/10 border-accent/30",
         duration: 15000,
       });
     }
@@ -491,7 +491,7 @@ export default function SharedListView() {
     const date = new Date(dueDate);
     if (isToday(date)) return "text-accent bg-accent/10 border-accent/20";
     if (isPast(date)) return "text-red-600 bg-red-50 border-red-200";
-    return "text-gray-600 bg-gray-50 border-gray-200";
+    return "text-muted-foreground bg-muted border-border";
   };
 
   const priorityColors: any = {
@@ -692,7 +692,7 @@ export default function SharedListView() {
                         {item.attributes.price && (
                           <Badge
                             variant="outline"
-                            className="bg-gray-100 text-gray-700 border-gray-300 text-xs"
+                            className="bg-muted text-muted-foreground border-border text-xs"
                           >
                             ${item.attributes.price}
                           </Badge>

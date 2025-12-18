@@ -202,7 +202,7 @@ export function ListSidebar() {
   const getOwnershipBadge = (list: typeof lists[0]) => {
     if (list.isGuestAccess) {
       return (
-        <Badge variant="outline" className="text-[10px] px-1 py-0 bg-teal-50 text-teal-700 border-teal-200">
+        <Badge variant="outline" className="text-[10px] px-1 py-0 bg-accent/10 text-accent border-accent/30">
           <Share2 className="w-2.5 h-2.5 mr-0.5" />
           Shared
         </Badge>
@@ -210,7 +210,7 @@ export function ListSidebar() {
     }
     if (list.accountId) {
       return (
-        <Badge variant="outline" className="text-[10px] px-1 py-0 bg-blue-50 text-blue-600 border-blue-200">
+        <Badge variant="outline" className="text-[10px] px-1 py-0 bg-secondary/10 text-secondary border-secondary/30">
           <Users className="w-2.5 h-2.5 mr-0.5" />
           Team
         </Badge>
@@ -315,12 +315,12 @@ export function ListSidebar() {
 
         {/* Shared With Me section - only in personal mode */}
         {currentAccount?.type === 'personal' && filteredLists.some(l => l.isGuestAccess) && (
-          <div className="mb-4 p-2 bg-teal-50 rounded-lg border border-teal-100">
-            <div className="flex items-center gap-2 text-teal-700 text-sm font-medium mb-1">
+          <div className="mb-4 p-2 bg-accent/10 rounded-lg border border-accent/20">
+            <div className="flex items-center gap-2 text-accent text-sm font-medium mb-1">
               <Share2 className="w-4 h-4" />
               Shared With Me
             </div>
-            <p className="text-xs text-teal-600">
+            <p className="text-xs text-accent">
               {filteredLists.filter(l => l.isGuestAccess).length} shared list(s)
             </p>
           </div>
@@ -407,7 +407,7 @@ export function ListSidebar() {
               <Button
                 onClick={handleLogout}
                 variant="outline"
-                className="w-full border-gray-300 text-gray-700 hover:bg-gray-100 min-h-[44px]"
+                className="w-full border-gray-300 text-gray-700 hover:bg-primary/10 min-h-[44px]"
               >
                 <LogOut className="w-4 h-4 mr-2" />
                 Logout

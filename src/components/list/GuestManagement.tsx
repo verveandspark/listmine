@@ -86,7 +86,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
         toast({
           title: "🎉 Invite Accepted!",
           description: `${acceptedEmails} joined your list`,
-          className: "bg-green-50 border-green-200",
+          className: "bg-accent/10 border-accent/30",
           duration: 5000,
         });
 
@@ -271,7 +271,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
           toast({
             title: "✅ Invite Sent",
             description: `Invitation sent to ${emailValidation.value}`,
-            className: "bg-green-50 border-green-200",
+            className: "bg-accent/10 border-accent/30",
           });
           setInviteEmail("");
           await fetchGuests();
@@ -583,7 +583,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
             </Button>
           </div>
           {isAtLimit && (
-            <p className="text-xs text-teal-600">
+            <p className="text-xs text-accent">
               Guest limit reached. Upgrade to Lots More for unlimited guests.
             </p>
           )}
@@ -592,8 +592,8 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
 
       {/* Upgrade prompt for non-eligible tiers */}
       {isOwner && !canInvite && (
-        <div className="bg-teal-50 border border-teal-200 rounded-lg p-3">
-          <p className="text-sm text-teal-800">
+        <div className="bg-accent/10 border border-accent/30 rounded-lg p-3">
+          <p className="text-sm text-accent">
             <Crown className="w-4 h-4 inline mr-1" />
             Upgrade to <strong>Even Better</strong> or <strong>Lots More</strong> tier to invite guests to collaborate on your lists.
           </p>

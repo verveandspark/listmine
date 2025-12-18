@@ -136,7 +136,7 @@ export default function Upgrade() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {/* Monthly/Annual Toggle */}
         <div className="flex justify-center mb-8">
-          <div className="inline-flex items-center bg-gray-100 rounded-lg p-1">
+          <div className="inline-flex items-center bg-muted rounded-lg p-1">
             <Button
               variant={!isAnnual ? "default" : "ghost"}
               size="sm"
@@ -239,7 +239,7 @@ export default function Upgrade() {
 
                       return (
                         <li key={index} className="flex items-start gap-2">
-                          <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                          <Check className="w-5 h-5 text-accent mt-0.5 flex-shrink-0" />
                           <span
                             className={`text-sm ${
                               feature.includes("coming soon")

@@ -125,7 +125,7 @@ export function NotificationBell() {
         <Button
           variant="ghost"
           size="icon"
-          className="relative w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700"
+          className="relative w-8 h-8 rounded-full bg-muted hover:bg-primary/10 text-gray-700"
         >
           <Bell className="w-4 h-4" />
           {unreadCount > 0 && (
@@ -164,7 +164,7 @@ export function NotificationBell() {
               {notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`p-3 hover:bg-gray-50 transition-colors ${
+                  className={`p-3 hover:bg-primary/5 transition-colors ${
                     !notification.is_read ? "bg-primary/5" : ""
                   }`}
                 >

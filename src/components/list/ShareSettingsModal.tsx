@@ -134,14 +134,14 @@ export default function ShareSettingsModal({
               type="text" 
               readOnly 
               value={shareLink} 
-              className="bg-gray-100 p-2 rounded text-xs break-all w-full border-0"
+              className="bg-muted p-2 rounded text-xs break-all w-full border-0"
               onClick={(e) => {
                 (e.target as HTMLInputElement).select();
               }}
             />
           </div>
         ),
-        className: "bg-teal-50 border-teal-200",
+        className: "bg-accent/10 border-accent/30",
         duration: 15000,
       });
     }
@@ -180,7 +180,7 @@ export default function ShareSettingsModal({
           toast({
             title: "✅ Settings saved and link copied!",
             description: `Link is now ${shareMode === 'view_only' ? 'view-only' : 'importable'}`,
-            className: "bg-green-50 border-green-200",
+            className: "bg-accent/10 border-accent/30",
           });
         } else {
           toast({
@@ -192,14 +192,14 @@ export default function ShareSettingsModal({
                   type="text" 
                   readOnly 
                   value={shareLink} 
-                  className="bg-gray-100 p-2 rounded text-xs break-all w-full border-0"
+                  className="bg-muted p-2 rounded text-xs break-all w-full border-0"
                   onClick={(e) => {
                     (e.target as HTMLInputElement).select();
                   }}
                 />
               </div>
             ),
-            className: "bg-teal-50 border-teal-200",
+            className: "bg-accent/10 border-accent/30",
             duration: 15000,
           });
         }
@@ -245,14 +245,14 @@ export default function ShareSettingsModal({
                   type="text" 
                   readOnly 
                   value={link} 
-                  className="bg-gray-100 p-2 rounded text-xs break-all w-full border-0"
+                  className="bg-muted p-2 rounded text-xs break-all w-full border-0"
                   onClick={(e) => {
                     (e.target as HTMLInputElement).select();
                   }}
                 />
               </div>
             ),
-            className: "bg-teal-50 border-teal-200",
+            className: "bg-accent/10 border-accent/30",
             duration: 15000,
           });
         }
@@ -276,7 +276,7 @@ export default function ShareSettingsModal({
       toast({
         title: "✅ List unshared",
         description: "Previous share links will no longer work",
-        className: "bg-green-50 border-green-200",
+        className: "bg-accent/10 border-accent/30",
       });
       onOpenChange(false);
     } catch (error: any) {
@@ -309,7 +309,7 @@ export default function ShareSettingsModal({
             <Label className="text-sm font-medium">Share Mode</Label>
             <RadioGroup value={shareMode} onValueChange={(v) => setShareMode(v as ShareMode)}>
               <div className="space-y-2">
-                <label className="flex items-start gap-3 p-2.5 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                <label className="flex items-start gap-3 p-2.5 border rounded-lg cursor-pointer hover:bg-primary/5 transition-colors">
                   <RadioGroupItem value="view_only" id="view_only" className="mt-0.5" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
@@ -322,7 +322,7 @@ export default function ShareSettingsModal({
                   </div>
                 </label>
 
-                <label className="flex items-start gap-3 p-2.5 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                <label className="flex items-start gap-3 p-2.5 border rounded-lg cursor-pointer hover:bg-primary/5 transition-colors">
                   <RadioGroupItem value="importable" id="importable" className="mt-0.5" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
@@ -347,7 +347,7 @@ export default function ShareSettingsModal({
                   type="text"
                   readOnly
                   value={shareLink}
-                  className="flex-1 bg-gray-100 px-3 py-2 rounded-md text-sm border border-gray-200 truncate"
+                  className="flex-1 bg-muted px-3 py-2 rounded-md text-sm border border-border truncate"
                   onClick={(e) => (e.target as HTMLInputElement).select()}
                 />
                 <Button variant="outline" size="sm" onClick={handleCopyLink} className="min-h-[40px] px-3">

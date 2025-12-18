@@ -381,7 +381,7 @@ export default function MergeListsModal({
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="archive" id="action-archive" />
                       <Label htmlFor="action-archive" className="font-normal cursor-pointer flex items-center gap-2">
-                        <Archive className="w-4 h-4 text-teal-600" />
+                        <Archive className="w-4 h-4 text-accent" />
                         Archive (rename with [Archived] prefix)
                       </Label>
                     </div>
@@ -418,23 +418,23 @@ export default function MergeListsModal({
             <div className="flex-1 overflow-hidden flex flex-col space-y-4">
               {/* Summary */}
               <div className="flex gap-4 text-sm flex-wrap">
-                <Badge variant="outline" className="bg-green-50 text-green-700">
+                <Badge variant="outline" className="bg-accent/10 text-accent">
                   <Plus className="w-3 h-3 mr-1" />
                   {compareResult.summary.newCount} new items
                 </Badge>
-                <Badge variant="outline" className="bg-gray-50 text-gray-600">
+                <Badge variant="outline" className="bg-muted text-muted-foreground">
                   <Check className="w-3 h-3 mr-1" />
                   {compareResult.summary.existingCount} duplicates (will be skipped)
                 </Badge>
               </div>
 
               {/* Merge Preview */}
-              <div className="p-3 bg-teal-50 rounded-lg border border-teal-200">
-                <p className="text-sm text-teal-800">
+              <div className="p-3 bg-accent/10 rounded-lg border border-accent/30">
+                <p className="text-sm text-accent">
                   <strong>Merge Preview:</strong> {selectedNewItems.size} items from "{sourceList?.title}" 
                   → "{targetList?.title}"
                 </p>
-                <p className="text-xs text-teal-600 mt-1">
+                <p className="text-xs text-accent mt-1">
                   Source list will be: {sourceAction === "archive" ? "archived" : sourceAction === "delete" ? "deleted" : "kept unchanged"}
                 </p>
               </div>
@@ -444,7 +444,7 @@ export default function MergeListsModal({
                 <div className="flex-1 overflow-hidden flex flex-col">
                   <div className="flex items-center justify-between mb-2">
                     <Label className="flex items-center gap-2">
-                      <Plus className="w-4 h-4 text-green-600" />
+                      <Plus className="w-4 h-4 text-accent" />
                       Items to Add ({selectedNewItems.size}/{compareResult.newItems.length})
                     </Label>
                     <Button variant="ghost" size="sm" onClick={toggleAllNewItems}>
@@ -458,7 +458,7 @@ export default function MergeListsModal({
                       {compareResult.newItems.map((item, index) => (
                         <div
                           key={index}
-                          className="flex items-start gap-3 p-2 rounded hover:bg-gray-50"
+                          className="flex items-start gap-3 p-2 rounded hover:bg-primary/5"
                         >
                           <Checkbox
                             checked={selectedNewItems.has(index)}

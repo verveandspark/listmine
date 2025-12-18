@@ -235,7 +235,7 @@ export default function PurchaseHistoryModal({
                               {purchase.purchaser_name}
                             </Badge>
                           ) : (
-                            <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200">
+                            <Badge variant="outline" className="bg-muted text-muted-foreground border-border">
                               Anonymous
                             </Badge>
                           )}
