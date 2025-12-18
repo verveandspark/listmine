@@ -1235,8 +1235,13 @@ export default function ListDetail() {
                   <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate flex items-center gap-2">
                     {list.title}
                     {list.isGuestAccess && (
-                      <Badge variant="outline" className="text-xs bg-teal-50 text-teal-700 border-teal-200">
+                      <Badge variant="outline" className="text-xs bg-accent/10 text-accent border-accent/30">
                         {list.guestPermission === 'edit' ? 'Shared (can edit items)' : 'Shared (view only)'}
+                      </Badge>
+                    )}
+                    {list.isTeamMember && (
+                      <Badge variant="outline" className="text-xs bg-secondary/10 text-secondary border-secondary/30">
+                        Team (can edit)
                       </Badge>
                     )}
                     {list.isArchived && (
@@ -2631,8 +2636,8 @@ export default function ListDetail() {
             </div>
           </Card>
           ) : (
-            <Card className="p-4 mb-4 sm:mb-6 print:hidden bg-primary/10 border-primary/30">
-              <p className="text-sm text-primary text-center">
+            <Card className="p-4 mb-4 sm:mb-6 print:hidden bg-muted border-border">
+              <p className="text-sm text-muted-foreground text-center">
                 {list.isGuestAccess 
                   ? "Shared list: You have view-only access. Contact the list owner to request edit permissions."
                   : "You have view-only access to this list."}

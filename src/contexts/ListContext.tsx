@@ -528,6 +528,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
       // Track which list IDs are guest-accessed (not owned by user)
       const guestListIdSet = new Set(guestLists.map((l) => l.id));
       
+      // Track which account IDs the user is a member of (not owner) for team member permission
+      const memberOnlyAccountIds = new Set(memberAccountIds.filter(id => !ownerAccountIds.includes(id)));
+      
       const listsWithItems: List[] = listsData?.map((list) => ({
         id: list.id,
         userId: list.user_id,
@@ -563,6 +566,8 @@ export function ListProvider({ children }: { children: ReactNode }) {
         showPurchaserInfo: list.show_purchaser_info || false,
         isGuestAccess: guestListIdSet.has(list.id),
         guestPermission: guestPermissionMap.get(list.id),
+        // isTeamMember is true if the list belongs to a team account where user is a member (not owner)
+        isTeamMember: list.account_id ? memberOnlyAccountIds.has(list.account_id) : false,
       })) || [];
 
       // Split lists into categories for tier filtering

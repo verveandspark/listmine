@@ -90,6 +90,7 @@ export interface List {
   isArchived?: boolean;
   isGuestAccess?: boolean;
   guestPermission?: 'view' | 'edit'; // Current user's guest permission (if guest)
+  isTeamMember?: boolean; // True if current user is a team member (not owner) of the team that owns this list
   shareLink?: string;
   shareMode?: ShareMode;
   tags?: string[];
@@ -103,7 +104,11 @@ export interface List {
 // Permission helper functions
 export const canEditListMeta = (list: List, currentUserId: string | undefined): boolean => {
   if (!currentUserId) return false;
-  return list.userId === currentUserId;
+  // Owner can always edit list metadata
+  if (list.userId === currentUserId) return true;
+  // Team members can edit list metadata on team-owned lists
+  if (list.accountId && list.isTeamMember) return true;
+  return false;
 };
 
 export const canEditItems = (list: List, currentUserId: string | undefined): boolean => {
@@ -112,6 +117,8 @@ export const canEditItems = (list: List, currentUserId: string | undefined): boo
   if (list.userId === currentUserId) return true;
   // Guest with edit permission can edit items
   if (list.isGuestAccess && list.guestPermission === 'edit') return true;
+  // Team members can edit items on team-owned lists
+  if (list.accountId && list.isTeamMember) return true;
   return false;
 };
 
