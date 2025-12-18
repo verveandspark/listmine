@@ -1647,14 +1647,16 @@ export default function Dashboard() {
         {/* Action Bar */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-end justify-end gap-3 mb-6">
           <div className="flex items-center gap-2 flex-wrap sm:justify-end">
-            <Button 
-              variant="outline"
-              className="min-h-[44px]"
-              onClick={() => navigate("/import-export", { state: { from: location.pathname } })}
-            >
-              <Upload className="w-4 h-4 mr-2" />
-              Import/Export
-            </Button>
+{canImportLists(user?.tier) && (
+              <Button 
+                variant="outline"
+                className="min-h-[44px]"
+                onClick={() => navigate("/import-export", { state: { from: location.pathname } })}
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Import/Export
+              </Button>
+            )}
             <Select 
               value="" 
               onValueChange={(listId) => {

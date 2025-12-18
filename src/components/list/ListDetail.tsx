@@ -1226,8 +1226,8 @@ export default function ListDetail() {
                   <h1 className="text-lg sm:text-2xl font-bold text-foreground truncate flex items-center gap-2">
                     {list.title}
                     {list.isGuestAccess && (
-                      <Badge variant="outline" className="text-xs bg-accent/10 text-accent border-accent/30">
-                        {list.guestPermission === 'edit' ? 'Shared (can edit items)' : 'Shared (view only)'}
+                      <Badge variant="outline" className="text-xs bg-teal-100 text-teal-700 border-teal-300">
+                        {list.guestPermission === 'edit' ? 'Guest (can edit)' : 'Guest (view only)'}
                       </Badge>
                     )}
                     {list.isTeamOwner && list.accountId && (
@@ -1864,11 +1864,11 @@ export default function ListDetail() {
         <div className="flex-1 overflow-y-auto">
           {/* Guest Access Banner */}
           {list.isGuestAccess && (
-            <div className="bg-accent/10 border-b border-accent/30 px-4 sm:px-6 lg:px-8 py-2 print:hidden">
-              <p className="text-sm text-accent text-center">
+            <div className="bg-teal-50 border-b border-teal-200 px-4 sm:px-6 lg:px-8 py-2 print:hidden">
+              <p className="text-sm text-teal-700 text-center">
                 {canEditListItems 
-                  ? "📝 Shared list: You can add, edit, and remove items."
-                  : "👁️ Shared list: View-only access."}
+                  ? "📝 Guest access: You can add, edit, and remove items."
+                  : "👁️ Guest access: View-only."}
               </p>
             </div>
           )}
@@ -2620,7 +2620,7 @@ export default function ListDetail() {
             <Card className="p-4 mb-4 sm:mb-6 print:hidden bg-muted border-border">
               <p className="text-sm text-muted-foreground text-center">
                 {list.isGuestAccess 
-                  ? "Shared list: You have view-only access. Contact the list owner to request edit permissions."
+                  ? "Guest access: You have view-only access. Contact the list owner to request edit permissions."
                   : "You have view-only access to this list."}
               </p>
             </Card>

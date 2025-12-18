@@ -731,10 +731,16 @@ export default function Profile() {
                     </div>
                     <ul className="space-y-2 text-sm">
                       {user.tier === "free" && (
-                        <li className="flex items-start gap-2 text-muted-foreground">
-                          <X className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                          <span>Import/Export not available on Free plan</span>
-                        </li>
+                        <>
+                          <li className="flex items-start gap-2">
+                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-accent" />
+                            <span>Print lists</span>
+                          </li>
+                          <li className="flex items-start gap-2 text-muted-foreground">
+                            <X className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                            <span>Import/Export not available on Free plan</span>
+                          </li>
+                        </>
                       )}
                       {user.tier === "good" && (
                         <>
