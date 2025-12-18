@@ -1775,7 +1775,7 @@ export default function Dashboard() {
                                   <TooltipProvider>
                                     <Tooltip>
                                       <TooltipTrigger asChild>
-                                        <Badge variant="outline" className="text-xs bg-green-100 text-green-700 border-green-300">
+                                        <Badge variant="outline" className="text-xs bg-teal-100 text-teal-700 border-teal-300">
                                           <Users className="w-3 h-3 mr-1" />
                                           Guest (can edit)
                                         </Badge>
@@ -2163,7 +2163,7 @@ export default function Dashboard() {
                             <CardTitle className="text-lg flex items-center gap-2">
                               {list.title}
                               {list.isGuestAccess && (
-                                <Badge variant="outline" className="text-xs bg-green-100 text-green-700 border-green-300">Guest (can edit)</Badge>
+                                <Badge variant="outline" className="text-xs bg-teal-100 text-teal-700 border-teal-300">Guest (can edit)</Badge>
                               )}
                             </CardTitle>
                             <CardDescription>
@@ -2304,7 +2304,7 @@ export default function Dashboard() {
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Badge variant="outline" className="text-xs bg-green-100 text-green-700 border-green-300">Guest (can edit)</Badge>
+                                  <Badge variant="outline" className="text-xs bg-teal-100 text-teal-700 border-teal-300">Guest (can edit)</Badge>
                                 </TooltipTrigger>
                                 <TooltipContent>
                                   <p>You have guest access to edit this list</p>
@@ -2488,7 +2488,7 @@ export default function Dashboard() {
                             <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
                           )}
                           {list.isGuestAccess && (
-                            <Badge variant="outline" className="text-xs bg-green-100 text-green-700 border-green-300">Guest (can edit)</Badge>
+                            <Badge variant="outline" className="text-xs bg-teal-100 text-teal-700 border-teal-300">Guest (can edit)</Badge>
                           )}
                           {list.isShared && canShareLists(user?.tier) && (
                             <Share2 className="w-4 h-4 text-primary" />

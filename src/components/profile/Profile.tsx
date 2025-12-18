@@ -6,6 +6,8 @@ import { resetOnboarding } from "@/components/onboarding/OnboardingTooltips";
 import { getTierDisplayName, getAvailableListTypes, ALL_LIST_TYPES, canHaveTeamMembers, canShareLists, canInviteGuests, type UserTier } from "@/lib/tierUtils";
 import TeamManagement from "@/components/team/TeamManagement";
 import GuestManagement from "@/components/list/GuestManagement";
+import ShareSettingsModal from "@/components/list/ShareSettingsModal";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Card,
   CardContent,
@@ -71,7 +73,7 @@ import { Progress } from "@/components/ui/progress";
 export default function Profile() {
   const navigate = useNavigate();
   const { user, updateProfile, updateEmail, updatePassword, updateAvatar } = useAuth();
-  const { lists } = useLists();
+  const { lists, generateShareLink, updateShareMode, unshareList } = useLists();
 
   // Edit states
   const [isEditingName, setIsEditingName] = useState(false);
@@ -109,6 +111,12 @@ export default function Profile() {
   const [isTeamManagementOpen, setIsTeamManagementOpen] = useState(false);
   const [isGuestManagementOpen, setIsGuestManagementOpen] = useState(false);
   const [selectedListForGuests, setSelectedListForGuests] = useState<string | null>(null);
+  
+  // List selector dialogs for Share and Guest management
+  const [isSelectSharedListOpen, setIsSelectSharedListOpen] = useState(false);
+  const [isSelectGuestListOpen, setIsSelectGuestListOpen] = useState(false);
+  const [selectedListForShare, setSelectedListForShare] = useState<string | null>(null);
+  const [isShareSettingsOpen, setIsShareSettingsOpen] = useState(false);
 
   if (!user) {
     navigate("/");
@@ -627,7 +635,7 @@ export default function Profile() {
                             <Button
                               variant="link"
                               className="p-0 h-auto text-primary"
-                              onClick={() => navigate("/dashboard")}
+                              onClick={() => setIsSelectSharedListOpen(true)}
                             >
                               <Share2 className="w-4 h-4 mr-1" />
                               Manage Shared Lists
@@ -649,7 +657,7 @@ export default function Profile() {
                             <Button
                               variant="link"
                               className="p-0 h-auto text-primary"
-                              onClick={() => navigate("/dashboard")}
+                              onClick={() => setIsSelectSharedListOpen(true)}
                             >
                               <Share2 className="w-4 h-4 mr-1" />
                               Manage Shared Lists
@@ -659,15 +667,7 @@ export default function Profile() {
                             <Button
                               variant="link"
                               className="p-0 h-auto text-primary"
-                              onClick={() => {
-                                const sharedList = lists.find(l => l.isShared && l.userId === user.id);
-                                if (sharedList) {
-                                  setSelectedListForGuests(sharedList.id);
-                                  setIsGuestManagementOpen(true);
-                                } else {
-                                  navigate("/dashboard");
-                                }
-                              }}
+                              onClick={() => setIsSelectGuestListOpen(true)}
                             >
                               <Users className="w-4 h-4 mr-1" />
                               Manage Guests
@@ -689,7 +689,7 @@ export default function Profile() {
                             <Button
                               variant="link"
                               className="p-0 h-auto text-primary"
-                              onClick={() => navigate("/dashboard")}
+                              onClick={() => setIsSelectSharedListOpen(true)}
                             >
                               <Share2 className="w-4 h-4 mr-1" />
                               Manage Shared Lists
@@ -699,15 +699,7 @@ export default function Profile() {
                             <Button
                               variant="link"
                               className="p-0 h-auto text-primary"
-                              onClick={() => {
-                                const sharedList = lists.find(l => l.isShared && l.userId === user.id);
-                                if (sharedList) {
-                                  setSelectedListForGuests(sharedList.id);
-                                  setIsGuestManagementOpen(true);
-                                } else {
-                                  navigate("/dashboard");
-                                }
-                              }}
+                              onClick={() => setIsSelectGuestListOpen(true)}
                             >
                               <Users className="w-4 h-4 mr-1" />
                               Manage Guests
@@ -1248,6 +1240,131 @@ export default function Profile() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Select Shared List Dialog */}
+      <Dialog open={isSelectSharedListOpen} onOpenChange={setIsSelectSharedListOpen}>
+        <DialogContent className="sm:max-w-md max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Share2 className="w-5 h-5 text-primary" />
+              Select a Shared List
+            </DialogTitle>
+            <DialogDescription>
+              Choose a list to manage its share settings.
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[50vh] pr-4">
+            <div className="space-y-2">
+              {lists.filter(l => l.userId === user?.id && l.isShared && !l.isArchived).length === 0 ? (
+                <div className="text-center py-6 text-muted-foreground">
+                  <Share2 className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No shared lists yet</p>
+                  <p className="text-xs mt-1">Share a list from your dashboard to see it here.</p>
+                </div>
+              ) : (
+                lists.filter(l => l.userId === user?.id && l.isShared && !l.isArchived).map((list) => (
+                  <Button
+                    key={list.id}
+                    variant="outline"
+                    className="w-full justify-start h-auto py-3 px-4"
+                    onClick={() => {
+                      setSelectedListForShare(list.id);
+                      setIsSelectSharedListOpen(false);
+                      setIsShareSettingsOpen(true);
+                    }}
+                  >
+                    <div className="flex flex-col items-start gap-1">
+                      <span className="font-medium">{list.title}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {list.items?.length || 0} items • {list.category}
+                      </span>
+                    </div>
+                  </Button>
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      {/* Select Guest List Dialog */}
+      <Dialog open={isSelectGuestListOpen} onOpenChange={setIsSelectGuestListOpen}>
+        <DialogContent className="sm:max-w-md max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-primary" />
+              Select a List for Guests
+            </DialogTitle>
+            <DialogDescription>
+              Choose a list to manage its guest access.
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[50vh] pr-4">
+            <div className="space-y-2">
+              {lists.filter(l => l.userId === user?.id && !l.isArchived).length === 0 ? (
+                <div className="text-center py-6 text-muted-foreground">
+                  <Users className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No lists available</p>
+                  <p className="text-xs mt-1">Create a list from your dashboard first.</p>
+                </div>
+              ) : (
+                lists.filter(l => l.userId === user?.id && !l.isArchived).map((list) => (
+                  <Button
+                    key={list.id}
+                    variant="outline"
+                    className="w-full justify-start h-auto py-3 px-4"
+                    onClick={() => {
+                      setSelectedListForGuests(list.id);
+                      setIsSelectGuestListOpen(false);
+                      setIsGuestManagementOpen(true);
+                    }}
+                  >
+                    <div className="flex flex-col items-start gap-1">
+                      <span className="font-medium">{list.title}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {list.items?.length || 0} items • {list.category}
+                      </span>
+                    </div>
+                  </Button>
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      {/* Share Settings Modal */}
+      {selectedListForShare && (() => {
+        const shareList = lists.find(l => l.id === selectedListForShare);
+        if (!shareList) return null;
+        return (
+          <ShareSettingsModal
+            open={isShareSettingsOpen}
+            onOpenChange={(open) => {
+              setIsShareSettingsOpen(open);
+              if (!open) setSelectedListForShare(null);
+            }}
+            list={{
+              id: shareList.id,
+              title: shareList.title,
+              isShared: shareList.isShared || false,
+              shareLink: shareList.shareLink,
+              shareMode: shareList.shareMode,
+            }}
+            onGenerateLink={async (shareMode) => {
+              return await generateShareLink(shareList.id, shareMode);
+            }}
+            onUpdateShareMode={async (shareMode) => {
+              await updateShareMode(shareList.id, shareMode);
+            }}
+            onUnshare={async () => {
+              await unshareList(shareList.id);
+              setIsShareSettingsOpen(false);
+              setSelectedListForShare(null);
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }
