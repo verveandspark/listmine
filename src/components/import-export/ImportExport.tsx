@@ -126,17 +126,19 @@ export default function ImportExport() {
       });
       
       // Fetch team accounts where user is owner
-      const { data: ownedAccounts } = await supabase
+      const ownedAccountsResult = await supabase
         .from('accounts')
         .select('id, name, owner_id')
         .eq('owner_id', user.id)
-        .eq('type', 'team') as { data: { id: string; name: string | null; owner_id: string }[] | null };
+        .eq('type', 'team');
+      const ownedAccounts = ownedAccountsResult.data as { id: string; name: string | null; owner_id: string }[] | null;
       
       // Fetch team accounts where user is a member
-      const { data: teamMemberships } = await supabase
+      const teamMembershipsResult = await supabase
         .from('account_team_members')
         .select('accounts:account_id(id, name, owner_id)')
-        .eq('user_id', user.id) as { data: { accounts: { id: string; name: string | null; owner_id: string } }[] | null };
+        .eq('user_id', user.id);
+      const teamMemberships = teamMembershipsResult.data as unknown as { accounts: { id: string; name: string | null; owner_id: string } }[] | null;
       
       // Collect owner IDs to fetch their tiers
       const ownerIdsToFetch: string[] = [];
@@ -164,10 +166,11 @@ export default function ImportExport() {
       
       // Fetch owner tiers for team accounts where user is a member
       if (ownerIdsToFetch.length > 0) {
-        const { data: ownersData } = await supabase
+        const ownersResult = await supabase
           .from('users')
           .select('id, tier')
           .in('id', ownerIdsToFetch);
+        const ownersData = ownersResult.data as { id: string; tier: string | null }[] | null;
         
         const ownerTiers: Record<string, UserTier> = {};
         if (ownersData) {
