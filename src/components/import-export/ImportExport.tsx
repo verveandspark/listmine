@@ -92,20 +92,18 @@ export default function ImportExport() {
   const { user } = useAuth();
   const { toast } = useToast();
   
-  // Get where the user came from for navigation back
-  // Use location.state.from if available, else check for last visited list, else fallback to dashboard
-  const getBackPath = () => {
+  // Get where the user came from for navigation back - use native history
+  const handleBack = () => {
+    // Use browser native back navigation with replace to avoid ping-pong
     const stateFrom = (location.state as any)?.from;
     if (stateFrom && stateFrom !== '/import-export') {
-      return stateFrom;
+      navigate(stateFrom, { replace: true });
+    } else if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      navigate('/dashboard', { replace: true });
     }
-    const lastListId = localStorage.getItem('last_list_id');
-    if (lastListId) {
-      return `/list/${lastListId}`;
-    }
-    return '/dashboard';
   };
-  const fromPath = getBackPath();
   
   // Account context state
   const [availableAccounts, setAvailableAccounts] = useState<AccountOption[]>([]);
@@ -617,7 +615,7 @@ export default function ImportExport() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate(fromPath)}
+              onClick={handleBack}
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>

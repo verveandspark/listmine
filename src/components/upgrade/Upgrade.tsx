@@ -24,20 +24,17 @@ export default function Upgrade() {
   const { user, updateUserTier } = useAuth();
   const [isAnnual, setIsAnnual] = useState(false);
   
-  // Get where the user came from for navigation back
-  // Use location.state.from if available, else check for last visited list, else fallback to dashboard
-  const getBackPath = () => {
+  // Handle back navigation - use native history with replace to avoid ping-pong
+  const handleBack = () => {
     const stateFrom = (location.state as any)?.from;
     if (stateFrom && stateFrom !== '/upgrade') {
-      return stateFrom;
+      navigate(stateFrom, { replace: true });
+    } else if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      navigate('/dashboard', { replace: true });
     }
-    const lastListId = localStorage.getItem('last_list_id');
-    if (lastListId) {
-      return `/list/${lastListId}`;
-    }
-    return '/dashboard';
   };
-  const fromPath = getBackPath();
 
   const tiers = [
     {
@@ -118,7 +115,7 @@ export default function Upgrade() {
     console.log(`Upgrading to ${tierId}`);
     // For now, just update the tier
     updateUserTier(tierId as any);
-    navigate(fromPath);
+    handleBack();
   };
 
   const calculateSavings = (monthlyPrice: number, annualPrice: number) => {
@@ -133,7 +130,7 @@ export default function Upgrade() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate(fromPath)}
+              onClick={handleBack}
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>

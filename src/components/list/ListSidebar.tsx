@@ -34,7 +34,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ListCategory } from "@/types";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import CreateListModal from "./CreateListModal";
 import { useAuth } from "@/contexts/useAuthHook";
 import { supabase } from "@/lib/supabase";
@@ -261,20 +261,33 @@ export function ListSidebar() {
     {} as Record<ListCategory, typeof lists>,
   );
 
-  // Auto-expand category containing the active list - ALWAYS sync on navigation
+  // Track previous list id to detect navigation from dashboard vs list-to-list
+  const prevIdRef = React.useRef<string | undefined>(undefined);
+  
+  // Auto-expand category containing the active list
   useEffect(() => {
-    if (id && lists.length > 0) {
-      const activeList = lists.find(l => l.id === id);
-      if (activeList) {
-        // Always expand the active list's category and update localStorage
+    if (lists.length === 0) return;
+    
+    const activeList = id ? lists.find(l => l.id === id) : null;
+    const cameFromDashboard = prevIdRef.current === undefined && id !== undefined;
+    
+    if (id && activeList) {
+      if (cameFromDashboard) {
+        // Coming from dashboard or page reload: reset to only active category
+        const resetState = { [activeList.category]: true };
+        setExpandedCategories(resetState);
+        localStorage.setItem('listSidebarExpandedCategories', JSON.stringify(resetState));
+      } else {
+        // List-to-list navigation: just ensure active category is open, keep others as-is
         setExpandedCategories(prev => {
+          if (prev[activeList.category]) return prev; // Already open
           const updated = { ...prev, [activeList.category]: true };
           localStorage.setItem('listSidebarExpandedCategories', JSON.stringify(updated));
           return updated;
         });
       }
-    } else if (lists.length > 0) {
-      // No active list - check if we have stored state, otherwise expand first category
+    } else if (!id) {
+      // On dashboard/no list selected - use stored state or expand first category
       const saved = localStorage.getItem('listSidebarExpandedCategories');
       if (!saved) {
         const categories = Object.keys(groupedLists);
@@ -285,6 +298,9 @@ export function ListSidebar() {
         }
       }
     }
+    
+    // Update ref for next render
+    prevIdRef.current = id;
   }, [id, lists]);
 
   return (
