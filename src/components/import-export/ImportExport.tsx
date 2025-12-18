@@ -126,20 +126,15 @@ export default function ImportExport() {
       });
       
       // Fetch team accounts where user is owner
-      const ownedAccountsRes = (await supabase
-        .from('accounts')
-        .select('id, name, owner_id')
-        .eq('owner_id', user.id)
-        .eq('type', 'team')
-      ) as unknown as { data: unknown[] | null; error: unknown };
+      const accountsQuery = supabase.from('accounts');
+      const ownedQuery = accountsQuery.select('id, name, owner_id').eq('owner_id', user.id).eq('type', 'team');
+      const ownedAccountsRes = (await ownedQuery) as unknown as { data: unknown[] | null; error: unknown };
       const ownedAccounts = (ownedAccountsRes.data ?? []) as Array<{ id: string; name: string | null; owner_id: string }>;
       
       // Fetch team accounts where user is a member
-      const teamMembershipsRes = (await supabase
-        .from('account_team_members')
-        .select('accounts:account_id(id, name, owner_id)')
-        .eq('user_id', user.id)
-      ) as unknown as { data: unknown[] | null; error: unknown };
+      const membershipsQuery = supabase.from('account_team_members');
+      const teamQuery = membershipsQuery.select('accounts:account_id(id, name, owner_id)').eq('user_id', user.id);
+      const teamMembershipsRes = (await teamQuery) as unknown as { data: unknown[] | null; error: unknown };
       const teamMemberships = (teamMembershipsRes.data ?? []) as Array<{ accounts: { id: string; name: string | null; owner_id: string } }>;
       
       // Collect owner IDs to fetch their tiers
