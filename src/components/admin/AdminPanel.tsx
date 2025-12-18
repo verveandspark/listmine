@@ -394,11 +394,20 @@ export default function AdminUsersPage() {
       setActionLoading(true);
       const user = users.find(u => u.id === userId);
       const oldTier = user?.tier;
-      const { error } = await supabase
-        .from("users")
-        .update({ tier: newTier })
-        .eq("id", userId);
-      if (error) throw error;
+      
+      // Use secure RPC instead of direct table update
+      const { error } = await supabase.rpc('update_user_tier', {
+        p_user_id: userId,
+        p_new_tier: newTier
+      });
+      
+      if (error) {
+        // Handle specific error messages
+        if (error.message?.includes('Admin access required') || error.message?.includes('Unauthorized')) {
+          throw new Error('Unauthorized: Admin access required to update user tiers');
+        }
+        throw error;
+      }
       
       // Log the action
       await logAdminAction("tier_changed", userId, user?.email, { old_tier: oldTier, new_tier: newTier });

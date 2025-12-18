@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/useAuthHook";
 import {
   Card,
@@ -20,8 +20,12 @@ import {
 
 export default function Upgrade() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, updateUserTier } = useAuth();
   const [isAnnual, setIsAnnual] = useState(false);
+  
+  // Get where the user came from for navigation back
+  const fromPath = (location.state as any)?.from || '/dashboard';
 
   const tiers = [
     {
@@ -102,7 +106,7 @@ export default function Upgrade() {
     console.log(`Upgrading to ${tierId}`);
     // For now, just update the tier
     updateUserTier(tierId as any);
-    navigate("/dashboard");
+    navigate(fromPath);
   };
 
   const calculateSavings = (monthlyPrice: number, annualPrice: number) => {
@@ -117,7 +121,7 @@ export default function Upgrade() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate("/dashboard")}
+              onClick={() => navigate(fromPath)}
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>

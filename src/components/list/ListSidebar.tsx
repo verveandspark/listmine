@@ -1,5 +1,5 @@
 import { useLists } from "@/contexts/useListsHook";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -9,6 +9,7 @@ import {
   Plane,
   ListChecks,
   ChevronRight,
+  ChevronDown,
   Archive,
   LayoutDashboard,
   Plus,
@@ -52,10 +53,29 @@ const categoryIcons: Record<string, any> = {
 export function ListSidebar() {
   const { lists } = useLists();
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams<{ id: string }>();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const { signOut, user } = useAuth();
+
+  // Category accordion state - persisted in localStorage
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>(() => {
+    const saved = localStorage.getItem('listSidebarExpandedCategories');
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  // Update localStorage when expanded categories change
+  useEffect(() => {
+    localStorage.setItem('listSidebarExpandedCategories', JSON.stringify(expandedCategories));
+  }, [expandedCategories]);
+
+  const toggleCategory = (category: string) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [category]: !prev[category]
+    }));
+  };
 
   // Account switcher state
   interface AccountOption {
@@ -236,6 +256,22 @@ export function ListSidebar() {
     {} as Record<ListCategory, typeof lists>,
   );
 
+  // Auto-expand category containing the active list
+  useEffect(() => {
+    if (id && lists.length > 0) {
+      const activeList = lists.find(l => l.id === id);
+      if (activeList) {
+        setExpandedCategories(prev => {
+          // Only update if this category isn't explicitly set
+          if (prev[activeList.category] === undefined) {
+            return { ...prev, [activeList.category]: true };
+          }
+          return prev;
+        });
+      }
+    }
+  }, [id, lists]);
+
   return (
     <div className="w-64 bg-white border-r border-gray-200 h-screen sticky top-0 overflow-y-auto">
       <div className="p-4">
@@ -255,9 +291,9 @@ export function ListSidebar() {
                 <SelectValue placeholder="Select account">
                   <div className="flex items-center gap-2">
                     {currentAccount?.type === 'team' ? (
-                      <Users className="w-4 h-4 text-blue-600" />
+                      <Users className="w-4 h-4 text-primary" />
                     ) : (
-                      <User className="w-4 h-4 text-gray-600" />
+                      <User className="w-4 h-4 text-muted-foreground" />
                     )}
                     <span className="truncate">{currentAccount?.name || 'Select account'}</span>
                   </div>
@@ -268,9 +304,9 @@ export function ListSidebar() {
                   <SelectItem key={account.id} value={account.id}>
                     <div className="flex items-center gap-2">
                       {account.type === 'team' ? (
-                        <Users className="w-4 h-4 text-blue-600" />
+                        <Users className="w-4 h-4 text-primary" />
                       ) : (
-                        <User className="w-4 h-4 text-gray-600" />
+                        <User className="w-4 h-4 text-muted-foreground" />
                       )}
                       <span>{account.name}</span>
                     </div>
@@ -304,7 +340,7 @@ export function ListSidebar() {
           </Button>
 
           <Button
-            onClick={() => navigate("/import-export")}
+            onClick={() => navigate("/import-export", { state: { from: location.pathname } })}
             variant="outline"
             className="w-full min-h-[44px]"
           >
@@ -344,55 +380,67 @@ export function ListSidebar() {
         <div className="space-y-4">
           {Object.entries(groupedLists).map(([category, categoryLists]) => {
             const Icon = categoryIcons[category] || ListChecks;
+            const isExpanded = expandedCategories[category] ?? true; // Default to expanded
             return (
               <div key={category}>
-                <div className="flex items-center gap-2 mb-2">
+                <Button
+                  variant="ghost"
+                  className="flex items-center gap-2 mb-2 w-full justify-start p-2 hover:bg-gray-100"
+                  onClick={() => toggleCategory(category)}
+                >
+                  {isExpanded ? (
+                    <ChevronDown className="w-4 h-4 text-gray-600" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-gray-600" />
+                  )}
                   <Icon className="w-4 h-4 text-gray-600" />
                   <h3 className="text-sm font-semibold text-gray-700">
                     {category}
                   </h3>
-                  <Badge variant="outline" className="text-xs">
+                  <Badge variant="outline" className="text-xs ml-auto">
                     {categoryLists.length}
                   </Badge>
-                </div>
-                <div className="space-y-1 ml-6">
-                  {categoryLists.map((list) => {
-                    const isArchived = list.isArchived || list.title.startsWith("[Archived]");
-                    const ownershipBadge = getOwnershipBadge(list);
-                    return (
-                      <Button
-                        key={list.id}
-                        variant={list.id === id ? "secondary" : "ghost"}
-                        className={`w-full justify-between text-left h-auto py-2 ${
-                          list.id === id ? "bg-primary/20 text-primary font-semibold" : ""
-                        } ${isArchived ? "opacity-60" : ""}`}
-                        onClick={() => {
-                          // Store the current list ID before navigating
-                          localStorage.setItem("last_list_id", list.id);
-                          navigate(`/list/${list.id}`);
-                        }}
-                      >
-                        <div className="flex flex-col items-start gap-0.5 min-w-0 flex-1">
-                          <span className={`truncate text-sm w-full ${isArchived ? "italic" : ""}`}>
-                            {list.title}
-                          </span>
-                          {ownershipBadge && (
-                            <div className="flex items-center">
-                              {ownershipBadge}
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          {isArchived && <Archive className="w-3 h-3 text-gray-400" />}
-                          <Badge variant="outline" className="text-xs">
-                            {list.items.length}
-                          </Badge>
-                          {list.id === id && <ChevronRight className="w-4 h-4" />}
-                        </div>
-                      </Button>
-                    );
-                  })}
-                </div>
+                </Button>
+                {isExpanded && (
+                  <div className="space-y-1 ml-6">
+                    {categoryLists.map((list) => {
+                      const isArchived = list.isArchived || list.title.startsWith("[Archived]");
+                      const ownershipBadge = getOwnershipBadge(list);
+                      return (
+                        <Button
+                          key={list.id}
+                          variant={list.id === id ? "secondary" : "ghost"}
+                          className={`w-full justify-between text-left h-auto py-2 ${
+                            list.id === id ? "bg-primary/20 text-primary font-semibold" : ""
+                          } ${isArchived ? "opacity-60" : ""}`}
+                          onClick={() => {
+                            // Store the current list ID before navigating
+                            localStorage.setItem("last_list_id", list.id);
+                            navigate(`/list/${list.id}`);
+                          }}
+                        >
+                          <div className="flex flex-col items-start gap-0.5 min-w-0 flex-1">
+                            <span className={`truncate text-sm w-full ${isArchived ? "italic" : ""}`}>
+                              {list.title}
+                            </span>
+                            {ownershipBadge && (
+                              <div className="flex items-center">
+                                {ownershipBadge}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            {isArchived && <Archive className="w-3 h-3 text-gray-400" />}
+                            <Badge variant="outline" className="text-xs">
+                              {list.items.length}
+                            </Badge>
+                            {list.id === id && <ChevronRight className="w-4 h-4" />}
+                          </div>
+                        </Button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}

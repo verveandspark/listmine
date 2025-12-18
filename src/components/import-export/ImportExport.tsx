@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useLists } from "@/contexts/useListsHook";
 import { useAuth } from "@/contexts/useAuthHook";
 import { supabase } from "@/lib/supabase";
@@ -86,10 +86,14 @@ interface ScrapedItem {
 
 export default function ImportExport() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { importList, exportList, lists, importFromShareLink, importFromWishlist } = useLists();
   const { user } = useAuth();
   const { toast } = useToast();
+  
+  // Get where the user came from for navigation back
+  const fromPath = (location.state as any)?.from || '/dashboard';
   
   // Account context state
   const [availableAccounts, setAvailableAccounts] = useState<AccountOption[]>([]);
@@ -126,6 +130,7 @@ export default function ImportExport() {
       });
       
       // Fetch team accounts where user is owner
+      // TS2589 workaround: avoid deep supabase-js builder inference by casting to any
       const accountsQuery: any = supabase.from('accounts');
       const ownedAccountsRes = (await accountsQuery
         .select('id, name, owner_id')
@@ -135,6 +140,7 @@ export default function ImportExport() {
       const ownedAccounts = (ownedAccountsRes.data ?? []) as Array<{ id: string; name: string | null; owner_id: string }>;
       
       // Fetch team accounts where user is a member
+      // TS2589 workaround: avoid deep supabase-js builder inference by casting to any
       const membershipsQuery: any = supabase.from('account_team_members');
       const teamMembershipsRes = (await membershipsQuery
         .select('accounts:account_id(id, name, owner_id)')
@@ -164,6 +170,7 @@ export default function ImportExport() {
       
       // Fetch owner tiers for team accounts where user is a member
       if (ownerIdsToFetch.length > 0) {
+        // TS2589 workaround: avoid deep supabase-js builder inference by casting to any
         const ownersQuery: any = supabase.from('users');
         const ownersRes = (await ownersQuery
           .select('id, tier')
@@ -598,7 +605,7 @@ export default function ImportExport() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate("/dashboard")}
+              onClick={() => navigate(fromPath)}
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>

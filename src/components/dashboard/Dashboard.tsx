@@ -78,7 +78,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -184,6 +184,7 @@ export default function Dashboard() {
     unarchiveList,
   } = useLists();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const importShareId = searchParams.get('importShareId');
 
@@ -1070,7 +1071,7 @@ export default function Dashboard() {
               </Button>
               {user?.tier === "free" && (
                 <Button
-                  onClick={() => navigate("/upgrade")}
+                  onClick={() => navigate("/upgrade", { state: { from: location.pathname } })}
                   variant="outline"
                   size="sm"
                   className="border-warning text-warning min-h-[44px]"
@@ -1643,7 +1644,7 @@ export default function Dashboard() {
             <Button 
               variant="outline"
               className="min-h-[44px]"
-              onClick={() => navigate("/import-export")}
+              onClick={() => navigate("/import-export", { state: { from: location.pathname } })}
             >
               <Upload className="w-4 h-4 mr-2" />
               Import/Export
@@ -2648,7 +2649,7 @@ export default function Dashboard() {
                 About ListMine
               </a>
               <button
-                onClick={() => navigate('/upgrade')}
+                onClick={() => navigate('/upgrade', { state: { from: location.pathname } })}
                 className="text-muted-foreground hover:text-primary underline"
               >
                 Pricing
