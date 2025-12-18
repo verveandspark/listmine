@@ -508,7 +508,6 @@ export default function Dashboard() {
       toast({
         title: "✅ List created successfully!",
         description: `${nameValidation.value} has been added to your lists`,
-        className: "bg-accent/10 border-accent/20",
       });
     } catch (error: any) {
       toast({
@@ -568,7 +567,6 @@ export default function Dashboard() {
       toast({
         title: "✅ List updated successfully!",
         description: `${nameValidation.value} has been updated`,
-        className: "bg-accent/10 border-accent/20",
       });
     } catch (error: any) {
       toast({
@@ -723,7 +721,6 @@ export default function Dashboard() {
       toast({
         title: "✅ List exported!",
         description: `${format.toUpperCase()} file downloaded successfully`,
-        className: "bg-accent/10 border-accent/20",
       });
       setExportDropdownOpen(null);
     } catch (error: any) {
@@ -743,7 +740,6 @@ export default function Dashboard() {
       toast({
         title: "✅ List unshared",
         description: "This list is no longer shared. Previous share links will no longer work.",
-        className: "bg-accent/10 border-accent/20",
       });
     } catch (error: any) {
       toast({

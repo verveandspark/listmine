@@ -85,7 +85,6 @@ export default function ScrapeWishlistModal({
       toast({
         title: "✅ Wishlist scraped successfully",
         description: `Found ${data.items.length} items from ${data.retailer}`,
-        className: "bg-accent/10 border-accent/20",
       });
     } catch (err: any) {
       console.error("Error:", err);

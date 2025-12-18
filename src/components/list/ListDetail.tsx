@@ -472,7 +472,6 @@ export default function ListDetail() {
       toast({
         title: "✅ Item added!",
         description: `${nameValidation.value} has been added to the list`,
-        className: "bg-accent/10 border-accent/20",
       });
 
       // Focus back on the text input
@@ -737,7 +736,6 @@ export default function ListDetail() {
           toast({
             title: "✅ Share link ready!",
             description: "Link shared successfully",
-            className: "bg-primary/10 border-primary/20",
           });
           return;
         } catch (shareErr: any) {
@@ -756,7 +754,6 @@ export default function ListDetail() {
         toast({
           title: "✅ Share link copied!",
           description: link,
-          className: "bg-primary/10 border-primary/20",
         });
       } else {
         showLinkToast(link);
@@ -843,7 +840,6 @@ export default function ListDetail() {
       toast({
         title: "✅ List unshared",
         description: "This list is no longer shared. Previous share links will no longer work.",
-        className: "bg-accent/10 border-accent/20",
       });
     } catch (error: any) {
       toast({
@@ -881,7 +877,6 @@ export default function ListDetail() {
       toast({
         title: "✅ Collaborator added",
         description: `${emailValidation.value} can now edit this list`,
-        className: "bg-accent/10 border-accent/20",
       });
     } catch (error: any) {
       toast({
@@ -922,7 +917,6 @@ export default function ListDetail() {
       toast({
         title: "✅ Tag added",
         description: `Tag "${tagValidation.value}" has been added`,
-        className: "bg-accent/10 border-accent/20",
       });
     } catch (error: any) {
       toast({
@@ -957,7 +951,6 @@ export default function ListDetail() {
       toast({
         title: "✅ List updated successfully!",
         description: `${nameValidation.value} has been updated`,
-        className: "bg-accent/10 border-accent/20",
       });
     } catch (error: any) {
       toast({
@@ -1031,7 +1024,6 @@ export default function ListDetail() {
       toast({
         title: "✅ List exported!",
         description: `${format.toUpperCase()} file downloaded successfully`,
-        className: "bg-accent/10 border-accent/20",
       });
     } catch (error: any) {
       setIsExporting(false);
@@ -1047,7 +1039,6 @@ export default function ListDetail() {
     toast({
       title: "🖨️ Opening print dialog",
       description: "Preparing your list for printing...",
-      className: "bg-primary/10 border-primary/20",
     });
     
     // Small delay to show toast before print dialog

@@ -314,7 +314,6 @@ export default function SharedListView() {
       toast({
         title: "✅ Thank you!",
         description: "Item marked as purchased",
-        className: "bg-success/10 border-success/20",
       });
 
       setIsPurchaseModalOpen(false);
@@ -418,7 +417,6 @@ export default function SharedListView() {
         toast({
           title: "✅ Link shared!",
           description: "Link shared successfully",
-          className: "bg-primary/10 border-primary/20",
         });
         return;
       } catch (shareErr: any) {
@@ -431,7 +429,6 @@ export default function SharedListView() {
       toast({
         title: "✅ Link copied!",
         description: "Share link copied to clipboard",
-        className: "bg-primary/10 border-primary/20",
       });
     } else {
       toast({

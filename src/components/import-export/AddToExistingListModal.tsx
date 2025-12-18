@@ -140,7 +140,6 @@ export default function AddToExistingListModal({
         toast({
           title: "✅ Comparison complete",
           description: `Found ${compareData.summary.newCount} new items and ${compareData.summary.updatedCount} updates`,
-          className: "bg-accent/10 border-accent/20",
         });
       }
     } catch (err: any) {
@@ -188,7 +187,6 @@ export default function AddToExistingListModal({
       toast({
         title: "✅ Items added!",
         description: `Added ${newItemsToAdd.length} items to "${selectedList.title}"`,
-        className: "bg-accent/10 border-accent/20",
       });
 
       onSuccess?.();

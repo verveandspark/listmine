@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useLists } from "@/contexts/useListsHook";
+import { useAuth } from "@/contexts/useAuthHook";
 import { supabase } from "@/lib/supabase";
+import { canExportLists, getAvailableExportFormats, type UserTier } from "@/lib/tierUtils";
 import { ListCategory, ListType } from "@/types";
 import {
   Card,
@@ -78,7 +80,14 @@ export default function ImportExport() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { importList, exportList, lists, importFromShareLink, importFromWishlist } = useLists();
+  const { user } = useAuth();
   const { toast } = useToast();
+  
+  // Determine effective tier for export gating
+  // For now, use user's personal tier. Team context can be added later.
+  const effectiveTier = (user?.tier || 'free') as UserTier;
+  const canExport = canExportLists(effectiveTier);
+  const availableFormats = getAvailableExportFormats(effectiveTier);
   const [importData, setImportData] = useState("");
   const [importCategory, setImportCategory] = useState<ListCategory>("Tasks");
   const [importListType, setImportListType] = useState<ListType>("custom");
@@ -166,7 +175,6 @@ export default function ImportExport() {
       toast({
         title: "✅ List imported successfully!",
         description: "Your list has been added to your dashboard",
-        className: "bg-accent/10 border-accent/20",
       });
       setImportData("");
       navigate("/dashboard");
@@ -236,13 +244,11 @@ export default function ImportExport() {
         toast({
           title: "⚠️ List imported with warnings",
           description: `${skippedItems} item${skippedItems > 1 ? 's were' : ' was'} skipped because ${skippedItems > 1 ? 'they had' : 'it had'} no text.`,
-          className: "bg-accent/10 border-accent/30",
         });
       } else {
         toast({
           title: "✅ List imported successfully!",
           description: "The list has been added to your account.",
-          className: "bg-accent/10 border-accent/20",
         });
       }
       
@@ -331,7 +337,6 @@ export default function ImportExport() {
       toast({
         title: "✅ List exported successfully!",
         description: `${exportFormat.toUpperCase()} file downloaded`,
-        className: "bg-accent/10 border-accent/20",
       });
     } catch (error: any) {
       toast({
@@ -380,7 +385,6 @@ export default function ImportExport() {
       toast({
         title: "✅ Wishlist scraped successfully",
         description: `Found ${data.items.length} items from ${data.retailer}`,
-        className: "bg-accent/10 border-accent/20",
       });
     } catch (err: any) {
       console.error("Error:", err);
@@ -427,7 +431,6 @@ export default function ImportExport() {
       toast({
         title: "✅ Wishlist imported successfully!",
         description: `Created "${wishlistName}" with ${selectedItems.length} items`,
-        className: "bg-accent/10 border-accent/20",
       });
       
       // Reset state
@@ -959,78 +962,107 @@ export default function ImportExport() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label>Select List</Label>
-                  <Select
-                    value={selectedListId}
-                    onValueChange={setSelectedListId}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose a list to export" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {lists.map((list) => (
-                        <SelectItem key={list.id} value={list.id}>
-                          {list.title} ({list.category}) - {list.items.length}{" "}
-                          items
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Format</Label>
-                  <Select
-                    value={exportFormat}
-                    onValueChange={(value) =>
-                      setExportFormat(value as "csv" | "txt" | "pdf")
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="txt">
-                        <div className="flex items-center">
-                          <FileText className="w-4 h-4 mr-2" />
-                          Text File (.txt)
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="csv">
-                        <div className="flex items-center">
-                          <FileSpreadsheet className="w-4 h-4 mr-2" />
-                          CSV File (.csv)
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="pdf">
-                        <div className="flex items-center">
-                          <FileText className="w-4 h-4 mr-2" />
-                          PDF File (.pdf)
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {selectedListId && (
-                  <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
-                    <p className="text-sm text-primary">
-                      <strong>Preview:</strong> The selected list will be
-                      exported with all items, quantities, links, and
-                      attributes.
-                    </p>
+                {!canExport ? (
+                  <div className="space-y-4">
+                    <Alert>
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        <strong>Export is available on paid plans.</strong>
+                        <br />
+                        Free tier users can print lists directly from the list view.
+                        Upgrade to export your lists to CSV, TXT, or PDF.
+                      </AlertDescription>
+                    </Alert>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => navigate("/upgrade")}
+                    >
+                      Upgrade to Export
+                    </Button>
                   </div>
-                )}
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Select List</Label>
+                      <Select
+                        value={selectedListId}
+                        onValueChange={setSelectedListId}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Choose a list to export" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {lists.map((list) => (
+                            <SelectItem key={list.id} value={list.id}>
+                              {list.title} ({list.category}) - {list.items.length}{" "}
+                              items
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                <Button
-                  onClick={handleExport}
-                  className="w-full"
-                  disabled={!selectedListId}
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Export List
-                </Button>
+                    <div className="space-y-2">
+                      <Label>Format</Label>
+                      <Select
+                        value={exportFormat}
+                        onValueChange={(value) =>
+                          setExportFormat(value as "csv" | "txt" | "pdf")
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableFormats.includes("txt") && (
+                            <SelectItem value="txt">
+                              <div className="flex items-center">
+                                <FileText className="w-4 h-4 mr-2" />
+                                Text File (.txt)
+                              </div>
+                            </SelectItem>
+                          )}
+                          {availableFormats.includes("csv") && (
+                            <SelectItem value="csv">
+                              <div className="flex items-center">
+                                <FileSpreadsheet className="w-4 h-4 mr-2" />
+                                CSV File (.csv)
+                              </div>
+                            </SelectItem>
+                          )}
+                          {availableFormats.includes("pdf") && (
+                            <SelectItem value="pdf">
+                              <div className="flex items-center">
+                                <FileText className="w-4 h-4 mr-2" />
+                                PDF File (.pdf)
+                              </div>
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {selectedListId && (
+                      <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
+                        <p className="text-sm text-primary">
+                          <strong>Preview:</strong> The selected list will be
+                          exported with all items, quantities, links, and
+                          attributes.
+                        </p>
+                      </div>
+                    )}
+
+                    <Button
+                      onClick={handleExport}
+                      className="w-full"
+                      disabled={!selectedListId}
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Export List
+                    </Button>
+                  </>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
