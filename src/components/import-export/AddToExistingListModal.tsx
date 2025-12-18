@@ -138,7 +138,7 @@ export default function AddToExistingListModal({
         });
       } else {
         toast({
-          title: "✅ Comparison complete",
+          title: "Comparison complete",
           description: `Found ${compareData.summary.newCount} new items and ${compareData.summary.updatedCount} updates`,
         });
       }
@@ -185,7 +185,7 @@ export default function AddToExistingListModal({
       }
 
       toast({
-        title: "✅ Items added!",
+        title: "Items added!",
         description: `Added ${newItemsToAdd.length} items to "${selectedList.title}"`,
       });
 

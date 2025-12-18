@@ -125,9 +125,8 @@ export default function UpdateFromRetailerModal({
       setSelectedUpdates(updateIndices);
 
       toast({
-        title: "✅ Comparison complete",
+        title: "Comparison complete",
         description: `Found ${compareData.summary.newCount} new items and ${compareData.summary.updatedCount} updates`,
-        className: "bg-accent/10 border-accent/20",
       });
     } catch (err: any) {
       console.error("Error:", err);
@@ -185,9 +184,8 @@ export default function UpdateFromRetailerModal({
       }
 
       toast({
-        title: "✅ List updated!",
+        title: "List updated!",
         description: `Added ${newItemsToAdd.length} new items${selectedUpdates.size > 0 ? ` and updated ${selectedUpdates.size} items` : ""}`,
-        className: "bg-accent/10 border-accent/20",
       });
 
       handleClose();

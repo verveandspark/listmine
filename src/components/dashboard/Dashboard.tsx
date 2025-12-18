@@ -506,7 +506,7 @@ export default function Dashboard() {
       setNewListTitle("");
       setIsCreateDialogOpen(false);
       toast({
-        title: "✅ List created successfully!",
+        title: "List created successfully!",
         description: `${nameValidation.value} has been added to your lists`,
       });
     } catch (error: any) {
@@ -565,7 +565,7 @@ export default function Dashboard() {
       setIsEditDialogOpen(false);
       setEditingList(null);
       toast({
-        title: "✅ List updated successfully!",
+        title: "List updated successfully!",
         description: `${nameValidation.value} has been updated`,
       });
     } catch (error: any) {
@@ -644,7 +644,7 @@ export default function Dashboard() {
     try {
       await unarchiveList(listId);
       toast({
-        title: "✅ List restored",
+        title: "List restored",
         description: "The list has been restored from archive.",
       });
     } catch (error: any) {
@@ -719,7 +719,7 @@ export default function Dashboard() {
     try {
       exportList(listId, format as "csv" | "txt" | "pdf");
       toast({
-        title: "✅ List exported!",
+        title: "List exported!",
         description: `${format.toUpperCase()} file downloaded successfully`,
       });
       setExportDropdownOpen(null);
@@ -738,7 +738,7 @@ export default function Dashboard() {
     try {
       await unshareList(listId);
       toast({
-        title: "✅ List unshared",
+        title: "List unshared",
         description: "This list is no longer shared. Previous share links will no longer work.",
       });
     } catch (error: any) {

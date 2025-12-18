@@ -107,9 +107,8 @@ export default function ShareSettingsModal({
           url: shareLink,
         });
         toast({
-          title: "✅ Link shared!",
+          title: "Link shared!",
           description: "Link shared successfully",
-          className: "bg-primary/10 border-primary/20",
         });
         return;
       } catch (shareErr: any) {
@@ -120,9 +119,8 @@ export default function ShareSettingsModal({
     const copied = await copyToClipboard(shareLink);
     if (copied) {
       toast({
-        title: "✅ Link copied!",
+        title: "Link copied!",
         description: "Share link copied to clipboard",
-        className: "bg-primary/10 border-primary/20",
       });
     } else {
       toast({
@@ -141,7 +139,6 @@ export default function ShareSettingsModal({
             />
           </div>
         ),
-        className: "bg-accent/10 border-accent/30",
         duration: 15000,
       });
     }
@@ -164,8 +161,7 @@ export default function ShareSettingsModal({
               url: shareLink,
             });
             toast({
-              title: "✅ Settings saved and link shared!",
-              className: "bg-primary/10 border-primary/20",
+              title: "Settings saved and link shared!",
             });
             return;
           } catch (shareErr: any) {
@@ -178,13 +174,12 @@ export default function ShareSettingsModal({
         const copied = await copyToClipboard(shareLink);
         if (copied) {
           toast({
-            title: "✅ Settings saved and link copied!",
+            title: "Settings saved and link copied!",
             description: `Link is now ${shareMode === 'view_only' ? 'view-only' : 'importable'}`,
-            className: "bg-accent/10 border-accent/30",
           });
         } else {
           toast({
-            title: "✅ Share settings updated",
+            title: "Share settings updated",
             description: (
               <div className="flex flex-col gap-2">
                 <span>Tap and hold to copy:</span>
@@ -199,7 +194,6 @@ export default function ShareSettingsModal({
                 />
               </div>
             ),
-            className: "bg-accent/10 border-accent/30",
             duration: 15000,
           });
         }
@@ -217,8 +211,7 @@ export default function ShareSettingsModal({
               url: link,
             });
             toast({
-              title: "✅ Link created and shared!",
-              className: "bg-primary/10 border-primary/20",
+              title: "Link created and shared!",
             });
             return;
           } catch (shareErr: any) {
@@ -231,13 +224,12 @@ export default function ShareSettingsModal({
         const copied = await copyToClipboard(link);
         if (copied) {
           toast({
-            title: "✅ Share link created and copied!",
+            title: "Share link created and copied!",
             description: link,
-            className: "bg-primary/10 border-primary/20",
           });
         } else {
           toast({
-            title: "✅ Share link created",
+            title: "Share link created",
             description: (
               <div className="flex flex-col gap-2">
                 <span>Tap and hold to copy:</span>
@@ -252,7 +244,6 @@ export default function ShareSettingsModal({
                 />
               </div>
             ),
-            className: "bg-accent/10 border-accent/30",
             duration: 15000,
           });
         }
@@ -274,9 +265,8 @@ export default function ShareSettingsModal({
       await onUnshare();
       setShareLink(null);
       toast({
-        title: "✅ List unshared",
+        title: "List unshared",
         description: "Previous share links will no longer work",
-        className: "bg-accent/10 border-accent/30",
       });
       onOpenChange(false);
     } catch (error: any) {

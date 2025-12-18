@@ -84,9 +84,8 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
       if (data && data.length > 0) {
         const acceptedEmails = data.map(inv => inv.guest_email).join(", ");
         toast({
-          title: "🎉 Invite Accepted!",
+          title: "Invite Accepted!",
           description: `${acceptedEmails} joined your list`,
-          className: "bg-accent/10 border-accent/30",
           duration: 5000,
         });
 
@@ -269,9 +268,8 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
           });
           
           toast({
-            title: "✅ Invite Sent",
+            title: "Invite Sent",
             description: `Invitation sent to ${emailValidation.value}`,
-            className: "bg-accent/10 border-accent/30",
           });
           setInviteEmail("");
           await fetchGuests();
@@ -342,7 +340,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
         }
 
         toast({
-          title: "✅ Guest Invited",
+          title: "Guest Invited",
           description: `Successfully invited ${emailValidation.value} as a guest`,
           duration: 5000,
         });
@@ -448,7 +446,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
       if (error) throw error;
 
       toast({
-        title: "✅ Invite Cancelled",
+        title: "Invite Cancelled",
         description: `Cancelled invitation to ${email}`,
         duration: 5000,
       });
@@ -476,7 +474,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
       if (error) throw error;
 
       toast({
-        title: "✅ Guest Removed",
+        title: "Guest Removed",
         description: guestEmail ? `Removed ${guestEmail} from this list` : "Guest removed successfully",
         duration: 5000,
       });
@@ -508,9 +506,8 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
       ));
 
       toast({
-        title: "✅ Permission Updated",
+        title: "Permission Updated",
         description: `Guest permission changed to ${newPermission}`,
-        className: "bg-accent/10 border-accent/20",
       });
     } catch (error: any) {
       console.error("[GuestManagement] Error updating permission:", error);

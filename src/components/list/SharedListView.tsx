@@ -312,7 +312,7 @@ export default function SharedListView() {
       }));
 
       toast({
-        title: "✅ Thank you!",
+        title: "Thank you!",
         description: "Item marked as purchased",
       });
 
@@ -415,7 +415,7 @@ export default function SharedListView() {
           url: link,
         });
         toast({
-          title: "✅ Link shared!",
+          title: "Link shared!",
           description: "Link shared successfully",
         });
         return;
@@ -427,7 +427,7 @@ export default function SharedListView() {
     const copied = await copyToClipboard(link);
     if (copied) {
       toast({
-        title: "✅ Link copied!",
+        title: "Link copied!",
         description: "Share link copied to clipboard",
       });
     } else {

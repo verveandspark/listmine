@@ -125,7 +125,7 @@ export default function InviteAccept() {
 
       if (result.success) {
         toast({
-          title: "✅ Invite Accepted!",
+          title: "Invite Accepted!",
           description:
             result.type === "guest"
               ? `You now have access to "${inviteDetails?.target_name}"`
@@ -147,7 +147,7 @@ export default function InviteAccept() {
         if (isAlreadyAccepted) {
           // Treat as success - user likely already has access
           toast({
-            title: "✅ You're Already In!",
+            title: "You're Already In!",
             description: `You already have access to "${inviteDetails?.target_name || "this list"}"`,
             className: "bg-accent/10 border-accent/30",
           });
@@ -222,7 +222,7 @@ export default function InviteAccept() {
       if (error) throw error;
 
       toast({
-        title: "✅ Reset Link Sent",
+        title: "Reset Link Sent",
         description: "Check your email for the password reset link.",
       });
       setIsForgotPasswordOpen(false);

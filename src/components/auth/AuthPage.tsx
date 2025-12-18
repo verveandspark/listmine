@@ -163,7 +163,7 @@ export default function AuthPage() {
       if (error) throw error;
 
       toast({
-        title: "✅ Reset Link Sent",
+        title: "Reset Link Sent",
         description: "Check your email for the password reset link.",
       });
       setIsForgotPasswordOpen(false);

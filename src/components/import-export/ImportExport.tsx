@@ -4,6 +4,14 @@ import { useLists } from "@/contexts/useListsHook";
 import { useAuth } from "@/contexts/useAuthHook";
 import { supabase } from "@/lib/supabase";
 import { canExportLists, getAvailableExportFormats, type UserTier } from "@/lib/tierUtils";
+
+interface AccountOption {
+  id: string;
+  name: string;
+  type: 'personal' | 'team';
+  ownerId?: string;
+  ownerTier?: UserTier;
+}
 import { ListCategory, ListType } from "@/types";
 import {
   Card,
@@ -83,11 +91,117 @@ export default function ImportExport() {
   const { user } = useAuth();
   const { toast } = useToast();
   
+  // Account context state
+  const [availableAccounts, setAvailableAccounts] = useState<AccountOption[]>([]);
+  const [currentAccountId, setCurrentAccountId] = useState<string | null>(null);
+  
   // Determine effective tier for export gating
-  // For now, use user's personal tier. Team context can be added later.
-  const effectiveTier = (user?.tier || 'free') as UserTier;
+  const currentAccount = availableAccounts.find(a => a.id === currentAccountId);
+  const isTeamContext = currentAccount?.type === 'team';
+  const userTier = (user?.tier || 'free') as UserTier;
+  
+  // For team context, use team owner's tier; for personal, use user's tier
+  const effectiveTier = isTeamContext && currentAccount?.ownerTier 
+    ? currentAccount.ownerTier 
+    : userTier;
+  
   const canExport = canExportLists(effectiveTier);
   const availableFormats = getAvailableExportFormats(effectiveTier);
+  
+  // Show export gating message only for free personal users (not in team context)
+  const showExportGatingMessage = !canExport && !isTeamContext;
+  
+  // Fetch available accounts (personal + team)
+  useEffect(() => {
+    const fetchAccounts = async () => {
+      if (!user?.id) return;
+      
+      const accounts: AccountOption[] = [];
+      
+      // Add personal account
+      accounts.push({
+        id: `personal-${user.id}`,
+        name: 'Personal',
+        type: 'personal',
+      });
+      
+      // Fetch team accounts where user is owner
+      const { data: ownedAccounts } = await supabase
+        .from('accounts')
+        .select('id, name, owner_id')
+        .eq('owner_id', user.id)
+        .eq('type', 'team');
+      
+      // Fetch team accounts where user is a member
+      const { data: teamMemberships } = await supabase
+        .from('account_team_members')
+        .select('accounts:account_id(id, name, owner_id)')
+        .eq('user_id', user.id);
+      
+      // Collect owner IDs to fetch their tiers
+      const ownerIdsToFetch: string[] = [];
+      
+      if (ownedAccounts) {
+        for (const account of ownedAccounts) {
+          accounts.push({
+            id: account.id,
+            name: account.name || 'Team Account',
+            type: 'team',
+            ownerId: account.owner_id,
+            ownerTier: (user.tier || 'free') as UserTier, // User is owner, use their tier
+          });
+        }
+      }
+      
+      if (teamMemberships) {
+        for (const membership of teamMemberships) {
+          const account = (membership as any).accounts;
+          if (account && !accounts.find(a => a.id === account.id)) {
+            ownerIdsToFetch.push(account.owner_id);
+          }
+        }
+      }
+      
+      // Fetch owner tiers for team accounts where user is a member
+      if (ownerIdsToFetch.length > 0) {
+        const { data: ownersData } = await supabase
+          .from('users')
+          .select('id, tier')
+          .in('id', ownerIdsToFetch);
+        
+        const ownerTiers: Record<string, UserTier> = {};
+        if (ownersData) {
+          ownersData.forEach((owner) => {
+            ownerTiers[owner.id] = (owner.tier || 'free') as UserTier;
+          });
+        }
+        
+        if (teamMemberships) {
+          for (const membership of teamMemberships) {
+            const account = (membership as any).accounts;
+            if (account && !accounts.find(a => a.id === account.id)) {
+              accounts.push({
+                id: account.id,
+                name: account.name || 'Team Account',
+                type: 'team',
+                ownerId: account.owner_id,
+                ownerTier: ownerTiers[account.owner_id] || 'free',
+              });
+            }
+          }
+        }
+      }
+      
+      setAvailableAccounts(accounts);
+      // Default to personal account
+      if (accounts.length > 0 && !currentAccountId) {
+        setCurrentAccountId(accounts[0].id);
+      }
+    };
+    
+    fetchAccounts();
+  }, [user?.id]);
+  
   const [importData, setImportData] = useState("");
   const [importCategory, setImportCategory] = useState<ListCategory>("Tasks");
   const [importListType, setImportListType] = useState<ListType>("custom");
@@ -173,7 +287,7 @@ export default function ImportExport() {
         importListType,
       );
       toast({
-        title: "✅ List imported successfully!",
+        title: "List imported successfully!",
         description: "Your list has been added to your dashboard",
       });
       setImportData("");
@@ -247,7 +361,7 @@ export default function ImportExport() {
         });
       } else {
         toast({
-          title: "✅ List imported successfully!",
+          title: "List imported successfully!",
           description: "The list has been added to your account.",
         });
       }
@@ -335,7 +449,7 @@ export default function ImportExport() {
     try {
       exportList(selectedListId, exportFormat);
       toast({
-        title: "✅ List exported successfully!",
+        title: "List exported successfully!",
         description: `${exportFormat.toUpperCase()} file downloaded`,
       });
     } catch (error: any) {
@@ -383,7 +497,7 @@ export default function ImportExport() {
       setWishlistName(`${data.retailer} Wishlist`);
 
       toast({
-        title: "✅ Wishlist scraped successfully",
+        title: "Wishlist scraped successfully",
         description: `Found ${data.items.length} items from ${data.retailer}`,
       });
     } catch (err: any) {
@@ -429,7 +543,7 @@ export default function ImportExport() {
       const newListId = await importFromWishlist(selectedItems, wishlistName, "Shopping");
       
       toast({
-        title: "✅ Wishlist imported successfully!",
+        title: "Wishlist imported successfully!",
         description: `Created "${wishlistName}" with ${selectedItems.length} items`,
       });
       
@@ -955,14 +1069,21 @@ export default function ImportExport() {
           <TabsContent value="export" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Export List</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Export List</CardTitle>
+                  {isTeamContext && canExport && (
+                    <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                      Based on team plan
+                    </span>
+                  )}
+                </div>
                 <CardDescription>
                   Export your list to CSV, TXT, or PDF format for backup or
                   sharing.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {!canExport ? (
+                {showExportGatingMessage ? (
                   <div className="space-y-4">
                     <Alert>
                       <AlertCircle className="h-4 w-4" />

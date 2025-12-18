@@ -294,7 +294,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
           if (inviteError) throw inviteError;
           await sendTeamInviteEmail(emailValidation.value, inviteData?.id);
           toast({
-            title: "✅ Invite Sent",
+            title: "Invite Sent",
             description: `Invitation sent to ${emailValidation.value}`,
             className: "bg-accent/10 border-accent/30",
           });
@@ -329,7 +329,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
         await sendTeamInviteEmail(emailValidation.value);
 
         toast({
-          title: "✅ Team Member Added",
+          title: "Team Member Added",
           description: `Successfully added ${emailValidation.value} to your team`,
           className: "bg-accent/10 border-accent/30",
         });
@@ -424,7 +424,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
       await sendTeamInviteEmail(invite.guestEmail, invite.id);
 
       toast({
-        title: "✅ Invite Resent",
+          title: "Invite Resent",
         description: `Invitation resent to ${invite.guestEmail}`,
         className: "bg-accent/10 border-accent/30",
       });
@@ -458,7 +458,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
       setPendingInvites(pendingInvites.filter((inv) => inv.id !== inviteId));
 
       toast({
-        title: "✅ Invite Cancelled",
+        title: "Invite Cancelled",
         description: "The pending invite has been cancelled",
         className: "bg-accent/10 border-accent/30",
       });
@@ -486,7 +486,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
       if (error) throw error;
 
       toast({
-        title: "✅ Team Member Removed",
+        title: "Team Member Removed",
         description: memberEmail ? `Removed ${memberEmail} from your team` : "Team member removed successfully",
         className: "bg-accent/10 border-accent/30",
       });
@@ -518,7 +518,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
       ));
 
       toast({
-        title: "✅ Role Updated",
+        title: "Role Updated",
         description: `Team member role changed to ${ROLE_LABELS[newRole]}`,
         className: "bg-accent/10 border-accent/30",
       });

@@ -63,7 +63,7 @@ export default function ResetPassword() {
       if (error) throw error;
 
       toast({
-        title: "✅ Password Reset Successful",
+        title: "Password Reset Successful",
         description: "Your password has been updated. You can now log in.",
       });
 

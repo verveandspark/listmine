@@ -83,7 +83,7 @@ export default function ScrapeWishlistModal({
       setListName(`${data.retailer} Wishlist`);
 
       toast({
-        title: "✅ Wishlist scraped successfully",
+        title: "Wishlist scraped successfully",
         description: `Found ${data.items.length} items from ${data.retailer}`,
       });
     } catch (err: any) {

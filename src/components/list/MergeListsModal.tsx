@@ -151,9 +151,8 @@ export default function MergeListsModal({
         });
       } else {
         toast({
-          title: "✅ Comparison complete",
+          title: "Comparison complete",
           description: `Found ${compareData.summary.newCount} new items and ${compareData.summary.existingCount} duplicates`,
-          className: "bg-accent/10 border-accent/20",
         });
       }
     } catch (err: any) {
@@ -203,9 +202,8 @@ export default function MergeListsModal({
       if (sourceAction === "delete") {
         await deleteList(sourceListId);
         toast({
-          title: "✅ Lists merged!",
+          title: "Lists merged!",
           description: `Added ${newItemsToAdd.length} items to "${targetList.title}" and deleted "${sourceList.title}"`,
-          className: "bg-accent/10 border-accent/20",
         });
       } else if (sourceAction === "archive") {
         // For archive, we'll add a prefix to the title to indicate it's archived
@@ -215,16 +213,14 @@ export default function MergeListsModal({
           description: `Merged into "${targetList.title}" on ${new Date().toLocaleDateString()}. ${sourceList.description || ""}`.trim(),
         });
         toast({
-          title: "✅ Lists merged!",
+          title: "Lists merged!",
           description: `Added ${newItemsToAdd.length} items to "${targetList.title}" and archived "${sourceList.title}"`,
-          className: "bg-accent/10 border-accent/20",
         });
       } else {
         // Keep - do nothing to source list
         toast({
-          title: "✅ Lists merged!",
+          title: "Lists merged!",
           description: `Added ${newItemsToAdd.length} items to "${targetList.title}"`,
-          className: "bg-accent/10 border-accent/20",
         });
       }
 

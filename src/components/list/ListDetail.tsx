@@ -470,7 +470,7 @@ export default function ListDetail() {
       setShowItemLimitError(false);
       
       toast({
-        title: "✅ Item added!",
+        title: "Item added!",
         description: `${nameValidation.value} has been added to the list`,
       });
 
@@ -651,7 +651,7 @@ export default function ListDetail() {
     try {
       await unarchiveList(list.id);
       toast({
-        title: "✅ List restored",
+        title: "List restored",
         description: "The list has been restored from archive.",
       });
     } catch (error) {
@@ -734,7 +734,7 @@ export default function ListDetail() {
             url: link,
           });
           toast({
-            title: "✅ Share link ready!",
+            title: "Share link ready!",
             description: "Link shared successfully",
           });
           return;
@@ -752,7 +752,7 @@ export default function ListDetail() {
       const copied = await copyToClipboard(link);
       if (copied) {
         toast({
-          title: "✅ Share link copied!",
+          title: "Share link copied!",
           description: link,
         });
       } else {
@@ -838,7 +838,7 @@ export default function ListDetail() {
       await unshareList(list.id);
       setShareLink(null);
       toast({
-        title: "✅ List unshared",
+        title: "List unshared",
         description: "This list is no longer shared. Previous share links will no longer work.",
       });
     } catch (error: any) {
@@ -875,7 +875,7 @@ export default function ListDetail() {
       addCollaborator(list.id, emailValidation.value!);
       setCollaboratorEmail("");
       toast({
-        title: "✅ Collaborator added",
+        title: "Collaborator added",
         description: `${emailValidation.value} can now edit this list`,
       });
     } catch (error: any) {
@@ -915,7 +915,7 @@ export default function ListDetail() {
       addTagToList(list.id, tagValidation.value!);
       setNewTag("");
       toast({
-        title: "✅ Tag added",
+        title: "Tag added",
         description: `Tag "${tagValidation.value}" has been added`,
       });
     } catch (error: any) {
@@ -949,7 +949,7 @@ export default function ListDetail() {
       });
       setIsEditListDialogOpen(false);
       toast({
-        title: "✅ List updated successfully!",
+        title: "List updated successfully!",
         description: `${nameValidation.value} has been updated`,
       });
     } catch (error: any) {
@@ -1022,7 +1022,7 @@ export default function ListDetail() {
       exportList(list.id, format);
       setIsExporting(false);
       toast({
-        title: "✅ List exported!",
+        title: "List exported!",
         description: `${format.toUpperCase()} file downloaded successfully`,
       });
     } catch (error: any) {

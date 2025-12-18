@@ -195,7 +195,7 @@ export default function Templates() {
       }
 
       toast({
-        title: "✅ List created from template!",
+        title: "List created from template!",
         description: `${selectedTemplate.name} has been added to your lists`,
         className: "bg-accent/10 border-accent/30",
       });
