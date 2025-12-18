@@ -126,71 +126,66 @@ export default function ImportExport() {
       });
       
       // Fetch team accounts where user is owner
-      const ownedAccountsResult = await supabase
+      const ownedAccountsRes = (await supabase
         .from('accounts')
         .select('id, name, owner_id')
         .eq('owner_id', user.id)
-        .eq('type', 'team');
-      const ownedAccounts = ownedAccountsResult.data as { id: string; name: string | null; owner_id: string }[] | null;
+        .eq('type', 'team')
+      ) as unknown as { data: unknown[] | null; error: unknown };
+      const ownedAccounts = (ownedAccountsRes.data ?? []) as Array<{ id: string; name: string | null; owner_id: string }>;
       
       // Fetch team accounts where user is a member
-      const teamMembershipsResult = await supabase
+      const teamMembershipsRes = (await supabase
         .from('account_team_members')
         .select('accounts:account_id(id, name, owner_id)')
-        .eq('user_id', user.id);
-      const teamMemberships = teamMembershipsResult.data as unknown as { accounts: { id: string; name: string | null; owner_id: string } }[] | null;
+        .eq('user_id', user.id)
+      ) as unknown as { data: unknown[] | null; error: unknown };
+      const teamMemberships = (teamMembershipsRes.data ?? []) as Array<{ accounts: { id: string; name: string | null; owner_id: string } }>;
       
       // Collect owner IDs to fetch their tiers
       const ownerIdsToFetch: string[] = [];
       
-      if (ownedAccounts) {
-        for (const account of ownedAccounts) {
-          accounts.push({
-            id: account.id,
-            name: account.name || 'Team Account',
-            type: 'team',
-            ownerId: account.owner_id,
-            ownerTier: (user.tier || 'free') as UserTier, // User is owner, use their tier
-          });
-        }
+      for (const account of ownedAccounts) {
+        accounts.push({
+          id: account.id,
+          name: account.name || 'Team Account',
+          type: 'team',
+          ownerId: account.owner_id,
+          ownerTier: (user.tier || 'free') as string, // User is owner, use their tier
+        });
       }
       
-      if (teamMemberships) {
-        for (const membership of teamMemberships) {
-          const account = membership.accounts;
-          if (account && !accounts.find(a => a.id === account.id)) {
-            ownerIdsToFetch.push(account.owner_id);
-          }
+      for (const membership of teamMemberships) {
+        const account = membership.accounts;
+        if (account && !accounts.find(a => a.id === account.id)) {
+          ownerIdsToFetch.push(account.owner_id);
         }
       }
       
       // Fetch owner tiers for team accounts where user is a member
       if (ownerIdsToFetch.length > 0) {
-        const ownersResult = await supabase
+        const ownersRes = (await supabase
           .from('users')
           .select('id, tier')
-          .in('id', ownerIdsToFetch);
-        const ownersData = ownersResult.data as { id: string; tier: string | null }[] | null;
+          .in('id', ownerIdsToFetch)
+        ) as unknown as { data: unknown[] | null; error: unknown };
+        const ownersData = (ownersRes.data ?? []) as Array<{ id: string; tier: string | null }>;
         
-        const ownerTiers: Record<string, UserTier> = {};
-        if (ownersData) {
-          ownersData.forEach((owner) => {
-            ownerTiers[owner.id] = (owner.tier || 'free') as UserTier;
-          });
-        }
+        const ownerTiers: Record<string, string> = {};
+        ownersData.forEach((owner) => {
+          ownerTiers[owner.id] = owner.tier || 'free';
+        });
         
-        if (teamMemberships) {
-          for (const membership of teamMemberships) {
-            const account = membership.accounts;
-            if (account && !accounts.find(a => a.id === account.id)) {
-              accounts.push({
-                id: account.id,
-                name: account.name || 'Team Account',
-                type: 'team',
-                ownerId: account.owner_id,
-                ownerTier: ownerTiers[account.owner_id] || 'free',
-              });
-            }
+        for (const membership of teamMemberships) {
+          const account = membership.accounts;
+          if (account && !accounts.find(a => a.id === account.id)) {
+            accounts.push({
+              id: account.id,
+              name: account.name || 'Team Account',
+              type: 'team',
+              ownerId: account.owner_id,
+              ownerTier: ownerTiers[account.owner_id] || 'free',
+            });
           }
         }
       }
