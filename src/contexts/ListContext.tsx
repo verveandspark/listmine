@@ -248,9 +248,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
           },
           (payload) => {
             // User favorites realtime event received
-            console.log("[ListMine Debug] user_favorites realtime event:", payload);
             if (currentUserIdRef.current && currentUserTierRef.current) {
-              console.log("[ListMine Debug] Triggering loadLists after favorites change");
               debouncedLoadLists(currentUserIdRef.current, currentUserTierRef.current);
             }
           },
@@ -334,26 +332,16 @@ export function ListProvider({ children }: { children: ReactNode }) {
 
       // Fetch team lists where user is a team member OR team owner
       // First, get accounts where user is a member
-      console.log("[ListMine Debug] Fetching team memberships for userId:", userId);
       const { data: teamMemberships, error: teamMemberError } = await supabase
         .from("account_team_members")
         .select("account_id")
         .eq("user_id", userId);
-
-      console.log("[ListMine Debug] Team memberships query result:", {
-        data: teamMemberships,
-        error: teamMemberError,
-        count: teamMemberships?.length || 0,
-      });
 
       // Also get accounts where user is the owner
       const { data: ownedAccounts, error: ownedAccountsError } = await supabase
         .from("accounts")
         .select("id")
         .eq("owner_id", userId);
-
-      console.log("[ListMine Debug] Team memberships:", teamMemberships);
-      console.log("[ListMine Debug] Owned accounts:", ownedAccounts);
 
       let teamLists: any[] = [];
       
@@ -367,34 +355,17 @@ export function ListProvider({ children }: { children: ReactNode }) {
       
       // Deduplicate account IDs
       const allTeamAccountIds = [...new Set([...memberAccountIds, ...ownerAccountIds])];
-      
-      console.log("[ListMine Debug] All team account IDs (member + owner):", allTeamAccountIds);
 
       if (allTeamAccountIds.length > 0) {
-        console.log("[ListMine Debug] Fetching team lists for account IDs:", allTeamAccountIds);
-        console.log("[ListMine Debug] Current user ID:", userId);
-        
-        // Debug: Check if user can access lists via RLS
+        // Check if user can access lists via RLS
         const { data: teamListsData, error: teamListsError } = await supabase
           .from("lists")
           .select("id, title, account_id, user_id, created_at")
           .in("account_id", allTeamAccountIds)
           .order("created_at", { ascending: false });
         
-        console.log("[ListMine Debug] Team lists query response:", {
-          data: teamListsData,
-          error: teamListsError,
-          dataLength: teamListsData?.length || 0,
-        });
-        
         if (teamListsError) {
           console.error("[ListMine Error] teamLists query error:", teamListsError);
-          console.error("[ListMine Error] teamLists error details:", {
-            code: teamListsError.code,
-            message: teamListsError.message,
-            details: teamListsError.details,
-            hint: teamListsError.hint,
-          });
         } else {
           // If we got results, fetch full data
           if (teamListsData && teamListsData.length > 0) {
@@ -414,18 +385,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
           } else {
             teamLists = [];
           }
-          
-          console.log("[ListMine Debug] teamLists count:", teamLists.length);
-          console.log("[ListMine Debug] teamLists raw first item:", teamLists[0] ? JSON.stringify(teamLists[0]) : 'none');
-          console.log("[ListMine Debug] teamLists details:", teamLists.map(l => ({
-            id: l.id,
-            title: l.title,
-            account_id: l.account_id,
-            user_id: l.user_id,
-          })));
         }
-      } else {
-        console.log("[ListMine Debug] No team accounts found for user:", userId);
       }
 
       // Fetch lists where user is a guest (with permission)
@@ -433,9 +393,6 @@ export function ListProvider({ children }: { children: ReactNode }) {
         .from("list_guests")
         .select("list_id, permission")
         .eq("user_id", userId);
-
-      console.log("[ListMine Debug] ownedLists count:", (ownedLists || []).length);
-      console.log("[ListMine Debug] guestListData:", guestListData);
 
       // Create a map of list_id -> permission for guest lists
       const guestPermissionMap = new Map<string, 'view' | 'edit'>();
@@ -452,7 +409,6 @@ export function ListProvider({ children }: { children: ReactNode }) {
       let guestLists: any[] = [];
       if (guestListData && guestListData.length > 0) {
         const guestIds = guestListData.map((g) => g.list_id);
-        console.log("[ListMine Debug] Fetching guest lists for IDs:", guestIds);
         
         const { data: guestListsData, error: guestListsError } = await supabase
           .from("lists")
@@ -465,7 +421,6 @@ export function ListProvider({ children }: { children: ReactNode }) {
         }
         
         guestLists = guestListsData || [];
-        console.log("[ListMine Debug] guestLists count:", guestLists.length, "data:", guestLists);
       }
 
       // Combine owned, team, and guest lists (deduplicate by ID)
@@ -477,36 +432,21 @@ export function ListProvider({ children }: { children: ReactNode }) {
         ...guestLists.filter((l) => !ownedIds.has(l.id) && !teamIds.has(l.id)),
       ];
       const listsData = combinedLists;
-      
-      console.log("[ListMine Debug] finalDisplayedLists count:", listsData.length);
-      
-      // Debug: Log raw database account_id values BEFORE mapping
-      console.log("[ListMine Debug] Raw listsData with account_id:", listsData.map(l => ({
-        id: l.id,
-        title: l.title,
-        account_id: l.account_id,
-        user_id: l.user_id,
-      })));
-      console.log("[ListMine Debug] Lists with account_id (raw):", listsData.filter(l => l.account_id).length);
 
       // Check if this request is still valid (user hasn't changed)
       if (requestId !== loadRequestIdRef.current || userId !== currentUserIdRef.current) {
-      // Stale request detected
+        // Stale request detected
         isLoadingRef.current = false;
         return;
       }
 
-
       // Fetch user favorites
-      console.log("[ListMine Debug] Fetching user favorites for userId:", userId);
       const { data: userFavorites, error: favoritesError } = await supabase
         .from("user_favorites")
         .select("list_id")
         .eq("user_id", userId);
       
-      console.log("[ListMine Debug] userFavorites query result:", { userFavorites, favoritesError });
       const userFavoriteIds = new Set((userFavorites || []).map((f) => f.list_id));
-      console.log("[ListMine Debug] userFavoriteIds Set:", Array.from(userFavoriteIds));
 
       // Only fetch items if we have lists
       let itemsData: any[] = [];
@@ -625,18 +565,6 @@ export function ListProvider({ children }: { children: ReactNode }) {
         guestPermission: guestPermissionMap.get(list.id),
       })) || [];
 
-      console.log("[ListMine Debug] Lists mapped with favorites. Sample favorites:", listsWithItems.filter(l => l.isFavorite).map(l => ({ id: l.id, title: l.title })));
-      
-      // Debug: Log lists with their accountId values
-      console.log("[ListMine Debug] Lists with accountId:", listsWithItems.map(l => ({
-        id: l.id,
-        title: l.title,
-        accountId: l.accountId,
-        userId: l.userId,
-      })));
-      console.log("[ListMine Debug] Team lists (accountId not null):", listsWithItems.filter(l => l.accountId).length);
-      console.log("[ListMine Debug] Personal lists (accountId null):", listsWithItems.filter(l => !l.accountId).length);
-
       // Split lists into categories for tier filtering
       // Tier limits should ONLY apply to personal owned lists, NOT team or guest/shared lists
       const personalOwnedLists = listsWithItems.filter(
@@ -649,29 +577,13 @@ export function ListProvider({ children }: { children: ReactNode }) {
         (list) => list.isGuestAccess
       );
       
-      console.log("[ListMine Debug] Split lists - personal:", personalOwnedLists.length, 
-        "team:", teamOwnedLists.length, "guest/shared:", guestSharedLists.length);
-      
       // Apply tier limits ONLY to personal owned lists
       const limitedPersonalLists = personalOwnedLists.filter((list) => 
         canAccessListType(userTier, list.listType)
       );
       
-      console.log("[ListMine Debug] After tier filter - limitedPersonal:", limitedPersonalLists.length);
-      
       // Recombine: tier-limited personal + all team + all guest/shared
       const filteredLists = [...limitedPersonalLists, ...teamOwnedLists, ...guestSharedLists];
-      
-      console.log("[ListMine Debug] After tier filter - filteredLists count:", filteredLists.length);
-      
-      // Debug: Verify accountId is preserved after tier filter
-      console.log("[ListMine Debug] After tier filter - lists with accountId:", 
-        filteredLists.filter(l => l.accountId !== null && l.accountId !== undefined).map(l => ({
-          id: l.id,
-          title: l.title,
-          accountId: l.accountId,
-        }))
-      );
 
       // Final check before setting state
       if (requestId !== loadRequestIdRef.current || userId !== currentUserIdRef.current) {
@@ -828,10 +740,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
       // Always use the authenticated user's ID from getUser() - this is validated server-side
       const insertUserId = authUser.id;
       
-      console.log("Type of insertUserId:", typeof insertUserId);
-      console.log("Value of insertUserId:", insertUserId);
-      
-      // Log the exact payload being sent
+      // Build the insert payload
       const insertPayload: {
         user_id: string;
         title: string;
@@ -846,26 +755,8 @@ export function ListProvider({ children }: { children: ReactNode }) {
       };
       
       // Add account_id if provided (for team lists)
-      // Note: accountId can be a string (team ID) or null (personal)
       if (accountId !== undefined && accountId !== null) {
         insertPayload.account_id = accountId;
-        console.log("[ListContext] Setting account_id for team list:", accountId);
-      } else {
-        console.log("[ListContext] Creating personal list (no account_id)");
-      }
-      
-      console.log("[ListContext] Insert payload:", JSON.stringify(insertPayload, null, 2));
-      console.log("[ListContext] Auth user ID (from getUser):", authUser.id);
-      console.log("[ListContext] Context user ID:", user.id);
-      console.log("[ListContext] Using user_id:", insertUserId);
-      console.log("[ListContext] User IDs match:", authUser.id === user.id);
-      
-      // Debug: Check auth state from database
-      try {
-        const { data: authDebug, error: debugError } = await supabase.rpc('debug_auth_state' as any);
-        console.log("[ListContext] Database auth state:", authDebug, debugError);
-      } catch (e) {
-        console.log("[ListContext] Debug auth state not available:", e);
       }
       
       // Verify user exists in public.users table
@@ -876,7 +767,6 @@ export function ListProvider({ children }: { children: ReactNode }) {
         .single();
       
       if (userCheckError || !userExists) {
-        console.error("[ListContext] User not found in public.users table:", userCheckError);
         // Try to create the user profile if it doesn't exist
         const { error: createUserError } = await supabase.from("users").insert({
           id: authUser.id,
@@ -891,7 +781,6 @@ export function ListProvider({ children }: { children: ReactNode }) {
           console.error("[ListContext] Failed to create user profile:", createUserError);
           throw new Error("Failed to create user profile. Please try logging out and back in.");
         }
-        console.log("[ListContext] Created missing user profile");
       }
       
       const { data: newList, error } = await supabase
@@ -1437,12 +1326,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
 
     try {
       // Use the RPC function to toggle user-specific favorite
-      console.log("[ListMine Debug] Calling toggle_user_favorite RPC for list:", listId);
       const { data, error } = await supabase.rpc("toggle_user_favorite", {
         p_list_id: listId,
       });
-
-      console.log("[ListMine Debug] toggle_user_favorite response:", { data, error });
 
       if (error) throw error;
       
@@ -1452,19 +1338,14 @@ export function ListProvider({ children }: { children: ReactNode }) {
         if (!result.success) {
           throw new Error(result.error || "Failed to toggle favorite");
         }
-        console.log("[ListMine Debug] Favorite toggled successfully:", result.action, "is_favorite:", result.is_favorite);
         
         // Update state with the actual result from the server
-        console.log("[ListMine Debug] Updating lists state with new favorite status for listId:", listId, "to:", result.is_favorite);
         setLists((prevLists) => {
           const updatedLists = prevLists.map((l) =>
             l.id === listId ? { ...l, isFavorite: result.is_favorite } : l
           );
-          console.log("[ListMine Debug] Lists state updated. List favorite status:", updatedLists.find(l => l.id === listId)?.isFavorite);
           return updatedLists;
         });
-      } else {
-        console.warn("[ListMine Debug] toggle_user_favorite returned unexpected data format:", data);
       }
     } catch (error: any) {
       console.error("[ListMine Error] toggleFavorite failed:", error);

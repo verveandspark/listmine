@@ -72,8 +72,6 @@ export function ListSidebar() {
     const fetchAccounts = async () => {
       if (!user?.id) return;
       
-      console.log('[ListSidebar Debug] Fetching accounts for user:', user.id);
-      
       const accounts: AccountOption[] = [];
       
       // Add personal account
@@ -84,40 +82,22 @@ export function ListSidebar() {
       });
       
       // Fetch team memberships first (just account IDs)
-      const { data: teamMemberships, error: teamMembershipError } = await supabase
+      const { data: teamMemberships } = await supabase
         .from('account_team_members')
         .select('account_id')
         .eq('user_id', user.id);
       
-      console.log('[ListSidebar Debug] Team memberships query result:', {
-        data: teamMemberships,
-        error: teamMembershipError,
-        count: teamMemberships?.length || 0,
-      });
-      
       // Then fetch full account records separately by those IDs
       if (teamMemberships && teamMemberships.length > 0) {
         const teamAccountIds = teamMemberships.map(m => m.account_id);
-        console.log('[ListSidebar Debug] Fetching accounts for IDs:', teamAccountIds);
         
-        const { data: teamAccountsData, error: teamAccountsError } = await supabase
+        const { data: teamAccountsData } = await supabase
           .from('accounts')
           .select('id, name, owner_id')
           .in('id', teamAccountIds);
         
-        console.log('[ListSidebar Debug] Team accounts query result:', {
-          data: teamAccountsData,
-          error: teamAccountsError,
-          count: teamAccountsData?.length || 0,
-        });
-        
         if (teamAccountsData) {
           for (const account of teamAccountsData) {
-            console.log('[ListSidebar Debug] Processing team account:', {
-              id: account.id,
-              name: account.name,
-              isOwner: account.owner_id === user.id,
-            });
             accounts.push({
               id: account.id,
               name: account.name || 'Team',
@@ -127,7 +107,6 @@ export function ListSidebar() {
           }
         } else if (teamMemberships.length > 0) {
           // Fallback: add team account options even if account data is missing
-          console.log('[ListSidebar Debug] Fallback: adding team accounts from membership IDs');
           for (const membership of teamMemberships) {
             accounts.push({
               id: membership.account_id,
@@ -140,16 +119,10 @@ export function ListSidebar() {
       }
       
       // Also check if user owns any accounts
-      const { data: ownedAccounts, error: ownedAccountsError } = await supabase
+      const { data: ownedAccounts } = await supabase
         .from('accounts')
         .select('id, name, owner_id')
         .eq('owner_id', user.id);
-      
-      console.log('[ListSidebar Debug] Owned accounts query result:', {
-        data: ownedAccounts,
-        error: ownedAccountsError,
-        count: ownedAccounts?.length || 0,
-      });
       
       if (ownedAccounts) {
         for (const account of ownedAccounts) {
@@ -164,7 +137,6 @@ export function ListSidebar() {
         }
       }
       
-      console.log('[ListSidebar Debug] Final available accounts:', accounts);
       setAvailableAccounts(accounts);
       
       // Set default to personal if not set
@@ -183,18 +155,6 @@ export function ListSidebar() {
     navigate("/", { replace: true });
   };
 
-  // Debug: Log all lists with their accountId values
-  console.log('[ListSidebar Debug] All lists from context:', lists.map(l => ({
-    id: l.id,
-    title: l.title,
-    accountId: l.accountId,
-    userId: l.userId,
-    isGuestAccess: l.isGuestAccess,
-  })));
-  console.log('[ListSidebar Debug] Lists with accountId:', lists.filter(l => l.accountId).length);
-  console.log('[ListSidebar Debug] Current account:', currentAccount);
-  console.log('[ListSidebar Debug] Current account ID:', currentAccountId);
-
   // Filter lists based on selected account context
   let accountFilteredLists = lists;
   
@@ -206,19 +166,11 @@ export function ListSidebar() {
         const isGuestList = list.isGuestAccess;
         return isPersonalList || isGuestList;
       });
-      console.log('[ListSidebar Debug] Personal mode filtered lists:', accountFilteredLists.length);
     } else if (currentAccount.type === 'team') {
       // Team mode: show ONLY lists that belong to this team (NO shared/guest lists)
-      console.log('[ListSidebar Debug] Team mode - filtering for accountId:', currentAccountId);
       accountFilteredLists = lists.filter(
         (list) => list.accountId === currentAccountId && !list.isGuestAccess
       );
-      console.log('[ListSidebar Debug] Team mode filtered lists:', accountFilteredLists.length);
-      console.log('[ListSidebar Debug] Team mode filtered list details:', accountFilteredLists.map(l => ({
-        id: l.id,
-        title: l.title,
-        accountId: l.accountId,
-      })));
     }
   }
 

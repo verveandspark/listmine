@@ -288,35 +288,17 @@ export default function Dashboard() {
           .select('account_id')
           .eq('user_id', user.id);
         
-        console.log('[Dashboard Debug] Team memberships query result:', {
-          data: teamMemberships,
-          error: memberError,
-          count: teamMemberships?.length || 0,
-        });
-        
         // Then fetch full account records separately by those IDs
         if (!memberError && teamMemberships && teamMemberships.length > 0) {
           const teamAccountIds = teamMemberships.map(m => m.account_id);
-          console.log('[Dashboard Debug] Fetching accounts for IDs:', teamAccountIds);
           
           const { data: teamAccountsData, error: teamAccountsError } = await supabase
             .from('accounts')
             .select('id, name, owner_id')
             .in('id', teamAccountIds);
           
-          console.log('[Dashboard Debug] Team accounts query result:', {
-            data: teamAccountsData,
-            error: teamAccountsError,
-            count: teamAccountsData?.length || 0,
-          });
-          
           if (teamAccountsData) {
             for (const account of teamAccountsData) {
-              console.log('[Dashboard Debug] Processing team account:', {
-                id: account.id,
-                name: account.name,
-                isOwner: account.owner_id === user.id,
-              });
               accounts.push({
                 id: account.id,
                 name: account.name || 'Team Account',
@@ -326,7 +308,6 @@ export default function Dashboard() {
             }
           } else if (teamMemberships.length > 0) {
             // Fallback: add team account options even if account data is missing
-            console.log('[Dashboard Debug] Fallback: adding team accounts from membership IDs');
             for (const membership of teamMemberships) {
               accounts.push({
                 id: membership.account_id,
@@ -344,12 +325,6 @@ export default function Dashboard() {
           .select('id, name, owner_id')
           .eq('owner_id', user.id);
         
-        console.log('[Dashboard Debug] Owned accounts query result:', {
-          data: ownedAccounts,
-          error: ownedError,
-          count: ownedAccounts?.length || 0,
-        });
-        
         if (!ownedError && ownedAccounts) {
           for (const account of ownedAccounts) {
             // Only add if not already in list
@@ -364,7 +339,6 @@ export default function Dashboard() {
           }
         }
         
-        console.log('[Dashboard Debug] Final available accounts:', accounts);
         setAvailableAccounts(accounts);
         
         // Set default to personal if not set
@@ -387,17 +361,6 @@ export default function Dashboard() {
   const canManageTeam = currentAccount?.type === 'team' && 
                         currentAccount?.ownerId === user?.id && 
                         user?.tier === 'lots_more';
-
-  // Debug log for Manage Team button visibility
-  console.log('[ManageTeam Debug]', {
-    currentUserId: user?.id,
-    selectedAccountOwnerId: currentAccount?.ownerId,
-    selectedAccountType: currentAccount?.type,
-    userTier: user?.tier,
-    canManageTeam,
-  });
-
-  // Debug log for account switching (moved detailed logs after variable declarations)
 
   // Use the actual loading state from the lists context
   // Only show loading skeleton if we haven't loaded once yet AND there are no lists
@@ -847,31 +810,7 @@ export default function Dashboard() {
     displayLists = searchLists(searchQuery);
   }
 
-  // Debug: Log sample list object to verify accountId property exists
-  if (displayLists.length > 0) {
-    const sampleList = displayLists[0];
-    console.log('[Dashboard Filter Debug] Sample list object keys:', Object.keys(sampleList));
-    console.log('[Dashboard Filter Debug] Sample list accountId value:', sampleList.accountId);
-    console.log('[Dashboard Filter Debug] Sample list full object:', JSON.stringify(sampleList, null, 2));
-  }
-
-  // Count lists with accountId BEFORE any filtering
-  const listsWithAccountIdCount = displayLists.filter(l => l.accountId !== null && l.accountId !== undefined).length;
-  const listsWithoutAccountIdCount = displayLists.filter(l => l.accountId === null || l.accountId === undefined).length;
-
   // Apply account filter based on selected account
-  console.log('[Dashboard Filter Debug] Before filtering:', {
-    currentAccountId,
-    currentAccountType: currentAccount?.type,
-    totalListsBeforeFilter: displayLists.length,
-    listsWithAccountIdCount,
-    listsWithoutAccountIdCount,
-    listsWithAccountId: displayLists.filter(l => l.accountId).map(l => ({ id: l.id, title: l.title, accountId: l.accountId })),
-    listsWithoutAccountId: displayLists.filter(l => !l.accountId).map(l => ({ id: l.id, title: l.title, accountId: l.accountId })),
-  });
-
-  let teamFilteredCount = 0;
-
   if (currentAccountId && currentAccount) {
     if (currentAccount.type === 'personal') {
       // Personal account: show user's own lists that are NOT team lists (accountId is null)
@@ -885,23 +824,12 @@ export default function Dashboard() {
           return isPersonalList || isGuestList;
         }
       );
-      console.log('[Dashboard Filter Debug] After personal filter:', {
-        count: displayLists.length,
-        titles: displayLists.map(l => l.title),
-      });
     } else if (currentAccount.type === 'team') {
       // Team account: show ONLY lists that belong to this team (by accountId)
       // Do NOT show guest/shared lists in team mode
-      console.log('[Dashboard Filter Debug] Filtering for team accountId:', currentAccountId);
       displayLists = displayLists.filter(
         (list) => list.accountId === currentAccountId && !list.isGuestAccess
       );
-      teamFilteredCount = displayLists.length;
-      console.log('[Dashboard Filter Debug] After team filter:', {
-        count: displayLists.length,
-        titles: displayLists.map(l => l.title),
-        matchingLists: displayLists.map(l => ({ id: l.id, title: l.title, accountId: l.accountId })),
-      });
     }
   }
 
@@ -981,21 +909,6 @@ export default function Dashboard() {
     (list) => list.isArchived || list.title.startsWith("[Archived]")
   ).length;
 
-  // Debug log for account switching and list rendering
-  console.log('[Account Switch Debug]', {
-    currentAccountId,
-    currentAccountType: currentAccount?.type,
-    currentAccountOwnerId: currentAccount?.ownerId,
-    totalLists: lists.length,
-    ownedActiveListsCount,
-    accountFilteredCount: accountFilteredLists.length,
-    displayListsCount: displayLists?.length || 0,
-    selectedCategory,
-    filterType,
-    showFavoritesOnly,
-    showArchived,
-  });
-
   const getCategoryStats = (category: ListCategory) => {
     const categoryLists = accountFilteredLists.filter((list) => list.category === category);
     const totalItems = categoryLists.reduce(
@@ -1030,22 +943,8 @@ export default function Dashboard() {
     return <DashboardSkeleton />;
   }
 
-  // Debug info for Safari (no devtools)
-  const debugInfo = {
-    mode: currentAccount?.type || 'none',
-    teamId: currentAccount?.type === 'team' ? currentAccountId : 'N/A',
-    total: lists.length,
-    withAccountId: lists.filter(l => l.accountId !== null && l.accountId !== undefined).length,
-    teamFiltered: teamFilteredCount,
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 animate-in fade-in duration-200">
-      {/* Debug Banner - Safari friendly */}
-      <div className="bg-yellow-100 border-b border-yellow-300 px-4 py-1 text-xs text-yellow-800 font-mono">
-        Debug: mode={debugInfo.mode}, teamId={debugInfo.teamId?.slice(0, 8) || 'N/A'}..., total={debugInfo.total}, withAccountId={debugInfo.withAccountId}, teamFiltered={debugInfo.teamFiltered}
-      </div>
-      
       {/* Onboarding Tooltips for New Users */}
       <OnboardingTooltips />
 

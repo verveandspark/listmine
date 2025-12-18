@@ -83,6 +83,14 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
     icon: <Users className="w-8 h-8 text-primary" />,
   },
   {
+    id: "guests-and-teams",
+    title: "Guests & Teams",
+    description:
+      "Collaborate with others using Guests and Teams! Guests can view or edit specific lists you share with them. Teams let you create a shared workspace where all members can access team lists. Use the account switcher in the sidebar to switch between Personal and Team modes.",
+    icon: <Users className="w-8 h-8 text-primary" />,
+    // Only show for even_better and lots_more tiers
+  },
+  {
     id: "import-export",
     title: "Import & Export Lists",
     description:
@@ -126,6 +134,10 @@ export function OnboardingTooltips() {
     // Hide upgrade step if user is already on "lots_more" tier
     if (step.id === "upgrade-tier" && user?.tier === "lots_more") {
       return false;
+    }
+    // Show guests-and-teams step only for even_better and lots_more tiers
+    if (step.id === "guests-and-teams") {
+      return user?.tier === "even_better" || user?.tier === "lots_more";
     }
     return true;
   });
@@ -200,6 +212,11 @@ export function OnboardingTooltips() {
             {step.id === "invite-collaborators" && (
               <>
                 Share your lists with friends and family! Open any list and click the <span className="font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded">Share</span> button to invite others.
+              </>
+            )}
+            {step.id === "guests-and-teams" && (
+              <>
+                <span className="font-semibold text-primary">Guests</span> can view or edit specific lists you share with them. <span className="font-semibold text-primary">Teams</span> let you create a shared workspace where all members can access team lists. Use the <span className="font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded">account switcher</span> in the sidebar to switch between Personal and Team modes.
               </>
             )}
             {step.id === "import-export" && (
