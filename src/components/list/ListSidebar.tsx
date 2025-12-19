@@ -224,13 +224,30 @@ export function ListSidebar() {
   });
 
   // Helper to get ownership badge for a list
-  // Using brand colors: blues, greens, grays only
+  // Using brand colors: blues for read-only shares, teal for guest edit access
   const getOwnershipBadge = (list: typeof lists[0]) => {
     if (list.isGuestAccess) {
+      const isEditAccess = list.guestPermission === 'edit';
       return (
-        <Badge variant="outline" className="text-[10px] px-1 py-0 bg-accent/10 text-accent border-accent/30">
-          <Share2 className="w-2.5 h-2.5 mr-0.5" />
-          Shared
+        <Badge 
+          variant="outline" 
+          className={`text-[10px] px-1 py-0 ${
+            isEditAccess 
+              ? 'bg-teal-100 text-teal-700 border-teal-300' 
+              : 'bg-primary/10 text-primary border-primary/20'
+          }`}
+        >
+          {isEditAccess ? (
+            <>
+              <Users className="w-2.5 h-2.5 mr-0.5" />
+              Guest (can edit)
+            </>
+          ) : (
+            <>
+              <Share2 className="w-2.5 h-2.5 mr-0.5" />
+              Shared
+            </>
+          )}
         </Badge>
       );
     }

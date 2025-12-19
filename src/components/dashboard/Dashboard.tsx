@@ -1417,21 +1417,16 @@ export default function Dashboard() {
             )}
           </div>
           {user?.tier === "free" && (
-            <div className="mt-4 pt-4 border-t border-border">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">
-                  Need more lists? Upgrade to unlock more.
-                </p>
-                <Button
+            <div className="mt-3 pt-3 border-t border-border">
+              <p className="text-sm text-muted-foreground">
+                Need more lists?{' '}
+                <button
                   onClick={() => navigate('/upgrade', { state: { from: location.pathname } })}
-                  variant="outline"
-                  size="sm"
-                  className="border-primary text-primary hover:bg-primary/10 min-h-[36px] ml-4"
+                  className="text-primary hover:underline font-medium"
                 >
-                  <Crown className="w-4 h-4 mr-2" />
-                  View Plans
-                </Button>
-              </div>
+                  Upgrade
+                </button>
+              </p>
             </div>
           )}
         </div>
