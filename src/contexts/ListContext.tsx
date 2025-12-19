@@ -23,7 +23,7 @@ import {
   validateTag,
 } from "@/lib/validation";
 import html2pdf from "html2pdf.js";
-import { canAccessListType, getAvailableListTypes, getTierDisplayName, canShareLists, canInviteGuests, UserTier } from "@/lib/tierUtils";
+import { canAccessListType, getAvailableListTypes, getTierDisplayName, canShareLists, canInviteGuests, canImportLists, getAvailableExportFormats, UserTier } from "@/lib/tierUtils";
 import { useToast } from "@/components/ui/use-toast";
 
 const OPERATION_TIMEOUT = 15000;
@@ -304,15 +304,32 @@ export function ListProvider({ children }: { children: ReactNode }) {
     };
   }, [user?.id, user?.tier]);
 
+  // Guard to prevent stale UI during tier change processing
+  const tierChangeInProgressRef = useRef<boolean>(false);
+  
   // Subscribe to tier changes and refresh lists + show toast
   useEffect(() => {
-    if (!onTierChange) return;
+    if (!onTierChange) {
+      console.log('[ListContext TierChange] onTierChange not available, skipping subscription');
+      return;
+    }
+    
+    console.log('[ListContext TierChange] Registering tier change callback');
     
     const unsubscribe = onTierChange(async (newTier, prevTier) => {
-      console.log('[ListContext] Tier changed from', prevTier, 'to', newTier);
+      console.log('[ListContext TierChange] ====== TIER CHANGE CALLBACK FIRED ======');
+      console.log('[ListContext TierChange] Tier changed from', prevTier, 'to', newTier);
+      console.log('[ListContext TierChange] Current user ID:', currentUserIdRef.current);
+      console.log('[ListContext TierChange] Timestamp:', new Date().toISOString());
+      
+      // Set guard to prevent stale UI
+      tierChangeInProgressRef.current = true;
       
       const newTierTyped = newTier as UserTier;
       const prevTierTyped = prevTier as UserTier;
+      
+      // Update the current tier ref immediately
+      currentUserTierRef.current = newTier;
       
       // Check if this is a downgrade that removes sharing capability
       const couldShareBefore = canShareLists(prevTierTyped);
@@ -320,14 +337,22 @@ export function ListProvider({ children }: { children: ReactNode }) {
       const couldInviteGuestsBefore = canInviteGuests(prevTierTyped);
       const canInviteGuestsNow = canInviteGuests(newTierTyped);
       
+      console.log('[ListContext TierChange] Capability check:', {
+        couldShareBefore,
+        canShareNow,
+        couldInviteGuestsBefore,
+        canInviteGuestsNow
+      });
+      
       // Auto-unshare lists if user lost sharing capability
+      // Policy: When downgrading from Good+ to Free, shared lists are unshared
       if (couldShareBefore && !canShareNow && currentUserIdRef.current) {
-        console.log('[ListContext] User lost sharing capability, unsharing all shared lists');
+        console.log('[ListContext TierChange] User lost sharing capability, unsharing all shared lists in DB');
         try {
           // TS2589 workaround: avoid deep supabase-js builder inference by casting to any
           const userId: string = currentUserIdRef.current as string;
           const listsQuery = supabase.from('lists') as any;
-          const { error } = await listsQuery
+          const { error, count } = await listsQuery
             .update({
               share_link: null,
               is_shared: false,
@@ -337,55 +362,101 @@ export function ListProvider({ children }: { children: ReactNode }) {
             .eq('is_shared', true);
           
           if (error) {
-            console.error('[ListContext] Error unsharing lists on downgrade:', error);
+            console.error('[ListContext TierChange] Error unsharing lists on downgrade:', error);
           } else {
-            console.log('[ListContext] Successfully unshared all lists');
+            console.log('[ListContext TierChange] Successfully unshared all lists in DB, count:', count);
+            // Show specific toast about unsharing
+            if (count && count > 0) {
+              toast({
+                title: "Shared Lists Unshared",
+                description: `Your plan no longer supports sharing. ${count} shared list(s) have been made private.`,
+                variant: "destructive",
+                duration: 8000,
+              });
+            }
           }
         } catch (err) {
-          console.error('[ListContext] Exception unsharing lists on downgrade:', err);
+          console.error('[ListContext TierChange] Exception unsharing lists on downgrade:', err);
         }
       }
       
       // Remove all guests if user lost guest invite capability
+      // Policy: When downgrading from Even Better/Lots More to Good/Free, 
+      // existing guests are removed since the plan no longer supports guest invites
       if (couldInviteGuestsBefore && !canInviteGuestsNow && currentUserIdRef.current) {
-        console.log('[ListContext] User lost guest capability, removing all guests');
+        console.log('[ListContext TierChange] User lost guest capability, removing all guests from DB');
         try {
           // TS2589 workaround: avoid deep supabase-js builder inference by casting to any
           const userId: string = currentUserIdRef.current as string;
           const guestsQuery = supabase.from('list_guests') as any;
-          const { error } = await guestsQuery
+          const { error, count } = await guestsQuery
             .delete()
             .eq('owner_id', userId);
           
           if (error) {
-            console.error('[ListContext] Error removing guests on downgrade:', error);
+            console.error('[ListContext TierChange] Error removing guests on downgrade:', error);
           } else {
-            console.log('[ListContext] Successfully removed all guests');
+            console.log('[ListContext TierChange] Successfully removed all guests from DB, count:', count);
+            // Show specific toast about guest removal
+            if (count && count > 0) {
+              toast({
+                title: "Guests Removed",
+                description: `Your plan no longer supports guest invites. ${count} guest(s) have been removed from your lists.`,
+                variant: "destructive",
+                duration: 8000,
+              });
+            }
           }
         } catch (err) {
-          console.error('[ListContext] Exception removing guests on downgrade:', err);
+          console.error('[ListContext TierChange] Exception removing guests on downgrade:', err);
         }
       }
       
+      // Clear any pending/optimistic state
+      console.log('[ListContext TierChange] Clearing pending state and forcing fresh load');
+      isLoadingRef.current = false; // Reset loading flag to allow new load
+      lastLoadTimeRef.current = 0; // Force fresh load
+      
       // Refresh lists immediately with the new tier
       if (currentUserIdRef.current) {
-        // Force refresh by resetting the last load time
-        lastLoadTimeRef.current = 0;
-        await loadLists(currentUserIdRef.current, newTier);
+        console.log('[ListContext TierChange] Triggering loadLists with new tier:', newTier);
+        try {
+          await loadLists(currentUserIdRef.current, newTier);
+          console.log('[ListContext TierChange] Lists reloaded successfully');
+        } catch (loadErr) {
+          console.error('[ListContext TierChange] Error reloading lists:', loadErr);
+        }
       }
       
-      // Show toast notification
+      // Show toast notification - different messaging for upgrade vs downgrade
       const newTierName = getTierDisplayName(newTierTyped);
       const prevTierName = getTierDisplayName(prevTierTyped);
       
+      // Determine if this is a downgrade based on tier order
+      const tierOrder = ['free', 'good', 'even_better', 'lots_more'];
+      const isDowngrade = tierOrder.indexOf(newTier) < tierOrder.indexOf(prevTier);
+      
+      // Always show main tier change toast
       toast({
-        title: "Account Tier Changed",
-        description: `Your account has been updated from ${prevTierName} to ${newTierName}. The app has refreshed to apply new limits.`,
-        duration: 6000,
+        title: isDowngrade ? "Plan Downgraded" : "Plan Upgraded",
+        description: isDowngrade 
+          ? `Your plan was changed from ${prevTierName} to ${newTierName}. Some features may no longer be available.`
+          : `Your plan was changed from ${prevTierName} to ${newTierName}. Enjoy your new features!`,
+        variant: isDowngrade ? "destructive" : "default",
+        duration: 8000,
       });
+      
+      // Clear the guard
+      tierChangeInProgressRef.current = false;
+      console.log('[ListContext TierChange] ====== TIER CHANGE PROCESSING COMPLETE ======');
     });
     
-    return unsubscribe;
+    console.log('[ListContext TierChange] Tier change callback registered successfully');
+    
+    return () => {
+      console.log('[ListContext TierChange] Unsubscribing tier change callback');
+      unsubscribe();
+    };
   }, [onTierChange, toast]);
 
   const loadLists = async (targetUserId?: string, targetUserTier?: string) => {
@@ -732,8 +803,26 @@ export function ListProvider({ children }: { children: ReactNode }) {
         canAccessListType(userTier, list.listType)
       );
       
+      // DEFENSIVE UI: For Free tier users, sanitize any shared state that shouldn't exist
+      // This prevents shared state from reappearing after refresh if DB cleanup failed
+      const canShareNow = canShareLists(userTier);
+      // Note: canInviteGuests check can be added here if needed for guest-related UI sanitization
+      
+      const sanitizedPersonalLists = limitedPersonalLists.map((list) => {
+        if (!canShareNow && (list.isShared || list.shareLink)) {
+          console.log('[ListContext] Defensive UI: Hiding share state for free tier list:', list.id);
+          return {
+            ...list,
+            isShared: false,
+            shareLink: undefined,
+            shareMode: 'view_only' as const,
+          };
+        }
+        return list;
+      });
+      
       // Recombine: tier-limited personal + all team + all guest/shared
-      const filteredLists = [...limitedPersonalLists, ...teamOwnedLists, ...guestSharedLists];
+      const filteredLists = [...sanitizedPersonalLists, ...teamOwnedLists, ...guestSharedLists];
 
       // Final check before setting state
       if (requestId !== loadRequestIdRef.current || userId !== currentUserIdRef.current) {
@@ -1588,6 +1677,17 @@ export function ListProvider({ children }: { children: ReactNode }) {
     listType: ListType = "custom",
   ) => {
     if (!user) return;
+    
+    // Check tier permission for import
+    if (!canImportLists(user.tier as UserTier)) {
+      toast({
+        title: "Plan Changed",
+        description: "Your plan changed. Import is no longer available.",
+        variant: "destructive",
+        duration: 5000,
+      });
+      throw new Error("Import is not available on your current plan.");
+    }
 
     if (!data.trim()) {
       throw new Error(
@@ -1840,6 +1940,23 @@ export function ListProvider({ children }: { children: ReactNode }) {
     if (!list) {
       throw new Error("List not found. Please select a valid list to export.");
     }
+    
+    // Check tier permission for export
+    // Free: print only (no export)
+    // Good: csv, txt
+    // Even Better+: csv, txt, pdf
+    const userTier = (user?.tier || 'free') as UserTier;
+    const availableFormats = getAvailableExportFormats(userTier);
+    
+    if (!availableFormats.includes(format)) {
+      toast({
+        title: "Plan Changed",
+        description: `Your plan changed. ${format.toUpperCase()} export is no longer available.`,
+        variant: "destructive",
+        duration: 5000,
+      });
+      throw new Error(`${format.toUpperCase()} export is not available on your current plan.`);
+    }
 
     try {
       let content = "";
@@ -1986,6 +2103,18 @@ export function ListProvider({ children }: { children: ReactNode }) {
   };
 
   const generateShareLink = async (listId: string, shareMode: 'view_only' | 'importable' = 'view_only'): Promise<string> => {
+    // Check tier permission for sharing
+    const userTier = (user?.tier || 'free') as UserTier;
+    if (!canShareLists(userTier)) {
+      toast({
+        title: "Plan Changed",
+        description: "Your plan changed. Sharing is no longer available.",
+        variant: "destructive",
+        duration: 5000,
+      });
+      throw new Error("Sharing is not available on your current plan.");
+    }
+    
     const shareId =
       Math.random().toString(36).substring(2, 15) +
       Math.random().toString(36).substring(2, 15);
@@ -2091,6 +2220,18 @@ export function ListProvider({ children }: { children: ReactNode }) {
   const addCollaborator = async (listId: string, email: string) => {
     const list = lists.find((l) => l.id === listId);
     if (!list) return;
+    
+    // Check tier permission for guest invites
+    const userTier = (user?.tier || 'free') as UserTier;
+    if (!canInviteGuests(userTier)) {
+      toast({
+        title: "Plan Changed",
+        description: "Your plan changed. Guest invites are no longer available.",
+        variant: "destructive",
+        duration: 5000,
+      });
+      throw new Error("Guest invites are not available on your current plan.");
+    }
 
     const emailValidation = validateEmail(email);
     if (!emailValidation.valid) {

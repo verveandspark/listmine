@@ -239,9 +239,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     const setupUserRealtimeSubscription = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.id) return;
+      if (!session?.user?.id) {
+        console.log('[Auth Realtime] No session user, skipping realtime subscription setup');
+        return;
+      }
       
       const channelName = `user-tier-${session.user.id}`;
+      console.log('[Auth Realtime] Setting up realtime subscription:', { channelName, userId: session.user.id });
+      
       userChannel = supabase
         .channel(channelName)
         .on(
@@ -255,10 +260,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           async (payload) => {
             // User record updated - check if tier changed
             const newData = payload.new as any;
-            console.log('[Auth Debug] Realtime UPDATE received:', {
+            console.log('[Auth Realtime] ====== TIER UPDATE EVENT RECEIVED ======');
+            console.log('[Auth Realtime] Payload:', {
               userId: newData?.id,
               newTier: newData?.tier,
-              isMounted
+              oldTier: (payload.old as any)?.tier,
+              isMounted,
+              timestamp: new Date().toISOString()
             });
             
             if (newData && newData.tier && isMounted) {
@@ -266,22 +274,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               const tierLimits = getTierLimits(newTier);
               const prevTier = cachedTierRef.current || 'free';
               
-              console.log('[Auth Debug] Applying realtime tier update:', {
+              console.log('[Auth Realtime] Processing tier change:', {
                 newTier,
                 prevTier,
+                tierChanged: prevTier !== newTier,
                 listLimit: tierLimits.listLimit,
                 itemsPerListLimit: tierLimits.itemsPerListLimit
               });
               
-              // Update cached tier
+              // Update cached tier FIRST
               cachedTierRef.current = newTier;
               saveTierToStorage(session.user.id, newTier);
+              console.log('[Auth Realtime] Cached tier updated to:', newTier);
               
-              // Update user state
+              // Update user state synchronously
               setUser(prev => {
-                console.log('[Auth Debug] setUser callback:', {
-                  prevTier: prev?.tier,
-                  newTier
+                console.log('[Auth Realtime] setUser callback executing:', {
+                  prevState: prev?.tier,
+                  newTier,
+                  userId: prev?.id
                 });
                 if (!prev) return prev;
                 return {
@@ -292,14 +303,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 };
               });
               
-              // Notify subscribers of tier change (for list refresh and toast)
+              // Notify subscribers of tier change AFTER state update
+              // This triggers list refresh and UI updates
               if (prevTier !== newTier) {
-                notifyTierChange(newTier, prevTier);
+                console.log('[Auth Realtime] Notifying tier change subscribers:', { prevTier, newTier });
+                // Small delay to ensure React state has propagated
+                setTimeout(() => {
+                  notifyTierChange(newTier, prevTier);
+                  console.log('[Auth Realtime] Tier change notification sent');
+                }, 50);
               }
+              
+              console.log('[Auth Realtime] ====== TIER UPDATE PROCESSING COMPLETE ======');
             }
           }
         )
-        .subscribe();
+        .subscribe((status, err) => {
+          console.log('[Auth Realtime] Subscription status changed:', { status, error: err?.message });
+          if (status === 'SUBSCRIBED') {
+            console.log('[Auth Realtime] Successfully subscribed to user tier changes');
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.error('[Auth Realtime] Subscription failed:', { status, error: err });
+          }
+        });
     };
     
     setupUserRealtimeSubscription();
