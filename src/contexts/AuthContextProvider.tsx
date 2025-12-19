@@ -324,8 +324,57 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             console.log('[Auth Realtime] Successfully subscribed to user tier changes');
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
             console.error('[Auth Realtime] Subscription failed:', { status, error: err });
+            // Start polling as fallback if realtime fails
+            startTierPolling();
           }
         });
+    };
+    
+    // Fallback polling mechanism if realtime subscription fails
+    let pollingInterval: ReturnType<typeof setInterval> | null = null;
+    const startTierPolling = async () => {
+      console.log('[Auth Polling] Starting tier polling fallback');
+      // Poll every 30 seconds
+      pollingInterval = setInterval(async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user?.id || !isMounted) {
+          if (pollingInterval) clearInterval(pollingInterval);
+          return;
+        }
+        
+        try {
+          const { data: userData, error } = await (supabase.from('users') as any)
+            .select('tier')
+            .eq('id', session.user.id)
+            .single();
+          
+          if (error || !userData) return;
+          
+          const fetchedTier = userData.tier as 'free' | 'good' | 'even_better' | 'lots_more';
+          const currentTier = cachedTierRef.current || 'free';
+          
+          if (fetchedTier !== currentTier) {
+            console.log('[Auth Polling] Tier change detected:', { currentTier, fetchedTier });
+            cachedTierRef.current = fetchedTier;
+            saveTierToStorage(session.user.id, fetchedTier);
+            
+            const tierLimits = getTierLimits(fetchedTier);
+            setUser(prev => {
+              if (!prev) return prev;
+              return {
+                ...prev,
+                tier: fetchedTier,
+                listLimit: tierLimits.listLimit,
+                itemsPerListLimit: tierLimits.itemsPerListLimit,
+              };
+            });
+            
+            notifyTierChange(fetchedTier, currentTier);
+          }
+        } catch (err) {
+          console.error('[Auth Polling] Error polling tier:', err);
+        }
+      }, 30000);
     };
     
     setupUserRealtimeSubscription();
@@ -335,6 +384,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       subscription.unsubscribe();
       if (userChannel) {
         supabase.removeChannel(userChannel);
+      }
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
       }
     };
   }, []);

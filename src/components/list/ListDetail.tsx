@@ -1381,7 +1381,7 @@ export default function ListDetail() {
                       <DropdownMenuContent align="end" className="w-56">
                         <DropdownMenuItem onClick={() => setIsShareSettingsOpen(true)}>
                           <Share2 className="w-4 h-4 mr-2" />
-                          {list.isShared ? "Share Settings" : "Share (view-only link)"}
+                          {list.isShared ? "Share Settings" : "Share options"}
                         </DropdownMenuItem>
                         {canInviteGuests(user?.tier) && (
                           <DropdownMenuItem onClick={() => setIsGuestManagementOpen(true)}>
@@ -1696,7 +1696,7 @@ export default function ListDetail() {
                           className={`w-full justify-start min-h-[44px] ${list.isShared ? "bg-primary/10 border-primary/20" : ""}`}
                         >
                           <Share2 className={`w-4 h-4 mr-2 ${list.isShared ? "text-primary" : ""}`} />
-                          {list.isShared ? "Share Settings" : "Share (view-only link)"}
+                          {list.isShared ? "Share Settings" : "Share options"}
                         </Button>
                         {canInviteGuests(user?.tier) && (
                           <Button

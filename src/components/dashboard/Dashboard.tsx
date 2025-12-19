@@ -1845,11 +1845,15 @@ export default function Dashboard() {
                                         className="bg-primary/10 border-primary/20 text-xs"
                                       >
                                         <Share2 className="w-3 h-3 mr-1 text-primary" />
-                                        <span className="text-primary">Shared (View only)</span>
+                                        <span className="text-primary">Shared</span>
                                       </Badge>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                      <p>Anyone with the link can view this list. Editing is disabled.</p>
+                                      <p>
+                                        {list.shareMode === 'view_only' 
+                                          ? "Shared link active: View only"
+                                          : "Shared link active: Importable (copy)"}
+                                      </p>
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
@@ -1952,7 +1956,7 @@ export default function Dashboard() {
                           <DropdownMenuContent onClick={(e) => e.stopPropagation()}>
                             <DropdownMenuItem onClick={(e) => { handleQuickShare(e as any, list.id, list.isShared || false); }}>
                               <Share2 className="w-4 h-4 mr-2" />
-                              {list.isShared ? "Share Settings" : "Share (view-only link)"}
+                              {list.isShared ? "Share Settings" : "Share options"}
                             </DropdownMenuItem>
                             {canInviteGuests(user?.tier) && (
                               <DropdownMenuItem onClick={() => { setSelectedListForGuests(list.id); setIsGuestManagementOpen(true); }}>
@@ -2211,11 +2215,15 @@ export default function Dashboard() {
                                         onClick={(e) => handleQuickShare(e, list.id, true)}
                                       >
                                         <Share2 className="w-3 h-3 mr-1 text-primary" />
-                                        <span className="text-primary underline">Shared (View only)</span>
+                                        <span className="text-primary underline">Shared</span>
                                       </Badge>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                      <p>Anyone with the link can view this list. Editing is disabled.</p>
+                                      <p>
+                                        {list.shareMode === 'view_only' 
+                                          ? "Shared link active: View only"
+                                          : "Shared link active: Importable (copy)"}
+                                      </p>
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
