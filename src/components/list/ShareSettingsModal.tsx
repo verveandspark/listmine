@@ -337,7 +337,7 @@ export default function ShareSettingsModal({
                       <span className="font-medium text-sm">View Only</span>
                     </div>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      Others can view but cannot import to their account
+                      Anyone with the link can view. They can't edit or import.
                     </p>
                   </div>
                 </label>
@@ -350,7 +350,7 @@ export default function ShareSettingsModal({
                       <span className="font-medium text-sm">Importable Only</span>
                     </div>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      Others can import a copy (requires sign in)
+                      Anyone with the link can import a copy to their account (sign-in required). They can't edit your original list.
                     </p>
                   </div>
                 </label>

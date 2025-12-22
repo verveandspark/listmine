@@ -404,13 +404,10 @@ export function ListSidebar() {
         {/* My Guest Access Lists section - only in personal mode */}
         {currentAccount?.type === 'personal' && filteredLists.some(l => l.isGuestAccess) && (
           <div className="mb-4 p-2 bg-teal-50 rounded-lg border border-teal-200">
-            <div className="flex items-center gap-2 text-teal-700 text-sm font-medium mb-1">
+            <div className="flex items-center gap-2 text-teal-700 text-sm font-medium">
               <Users className="w-4 h-4" />
-              My Guest Access Lists
+              My Guest Access Lists ({filteredLists.filter(l => l.isGuestAccess).length})
             </div>
-            <p className="text-xs text-teal-600">
-              {filteredLists.filter(l => l.isGuestAccess).length} list(s) you can edit as guest
-            </p>
           </div>
         )}
 

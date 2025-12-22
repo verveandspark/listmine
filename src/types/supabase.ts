@@ -839,29 +839,29 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
-          position: number | null
-          priority: string | null
+          name: string
+          notes: string | null
           quantity: number | null
+          sort_order: number
           template_id: string
-          text: string
         }
         Insert: {
           created_at?: string | null
           id?: string
-          position?: number | null
-          priority?: string | null
+          name: string
+          notes?: string | null
           quantity?: number | null
+          sort_order?: number
           template_id: string
-          text: string
         }
         Update: {
           created_at?: string | null
           id?: string
-          position?: number | null
-          priority?: string | null
+          name?: string
+          notes?: string | null
           quantity?: number | null
+          sort_order?: number
           template_id?: string
-          text?: string
         }
         Relationships: [
           {
@@ -873,33 +873,81 @@ export type Database = {
           },
         ]
       }
+      template_redemption_codes: {
+        Row: {
+          code: string
+          created_at: string
+          expires_at: string | null
+          is_redeemed: boolean
+          redeemed_at: string | null
+          redeemed_by: string | null
+          template_id: string
+          tier_required: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          expires_at?: string | null
+          is_redeemed?: boolean
+          redeemed_at?: string | null
+          redeemed_by?: string | null
+          template_id: string
+          tier_required: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          expires_at?: string | null
+          is_redeemed?: boolean
+          redeemed_at?: string | null
+          redeemed_by?: string | null
+          template_id?: string
+          tier_required?: string
+        }
+        Relationships: []
+      }
       templates: {
         Row: {
           category: string
           created_at: string | null
           description: string | null
+          icon_emoji: string | null
           id: string
+          is_active: boolean | null
           is_premium: boolean | null
+          item_count: number | null
           list_type: string
-          title: string
+          name: string
+          slug: string
+          updated_at: string | null
         }
         Insert: {
-          category: string
+          category?: string
           created_at?: string | null
           description?: string | null
+          icon_emoji?: string | null
           id?: string
+          is_active?: boolean | null
           is_premium?: boolean | null
-          list_type: string
-          title: string
+          item_count?: number | null
+          list_type?: string
+          name: string
+          slug: string
+          updated_at?: string | null
         }
         Update: {
           category?: string
           created_at?: string | null
           description?: string | null
+          icon_emoji?: string | null
           id?: string
+          is_active?: boolean | null
           is_premium?: boolean | null
+          item_count?: number | null
           list_type?: string
-          title?: string
+          name?: string
+          slug?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -966,6 +1014,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_template_entitlements: {
+        Row: {
+          created_at: string
+          source: string
+          template_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          source: string
+          template_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          source?: string
+          template_id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       users: {
         Row: {
@@ -1146,6 +1215,15 @@ export type Database = {
         }
         Returns: string
       }
+      create_list_from_template:
+        | {
+            Args: { p_list_name: string; p_template_id: string }
+            Returns: string
+          }
+        | {
+            Args: { p_template_id: string; p_title: string; p_user_id: string }
+            Returns: string
+          }
       debug_all: {
         Args: never
         Returns: {
@@ -1270,6 +1348,7 @@ export type Database = {
         }
         Returns: string
       }
+      redeem_template_code: { Args: { p_code: string }; Returns: Json }
       toggle_user_favorite: { Args: { p_list_id: string }; Returns: Json }
       update_user_avatar: {
         Args: { new_avatar_url: string; user_id: string }
@@ -1277,6 +1356,10 @@ export type Database = {
       }
       update_user_name: {
         Args: { new_name: string; user_id: string }
+        Returns: undefined
+      }
+      update_user_tier: {
+        Args: { p_new_tier: string; p_user_id: string }
         Returns: undefined
       }
     }

@@ -20,195 +20,230 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import {
-  Search,
+  ArrowLeft,
   Loader2,
   AlertCircle,
-  Star,
-  Check,
-  ArrowLeft,
+  Gift,
+  ExternalLink,
+  Sparkles,
+  Crown,
+  Package,
 } from "lucide-react";
-import { ListCategory, ListType } from "@/types";
+import { ListCategory } from "@/types";
+import { UserTier, getTierDisplayName } from "@/lib/tierUtils";
 
 interface Template {
   id: string;
+  slug: string;
   name: string;
   description: string;
   category: ListCategory;
+  list_type: string;
   is_premium: boolean;
   item_count: number;
   icon_emoji: string;
 }
 
-interface TemplateItem {
-  id: string;
-  template_id: string;
-  name: string;
-  quantity?: number;
-  notes?: string;
-  sort_order: number;
-}
+// Hardcoded included template slugs for Even Better tier
+const EVEN_BETTER_INCLUDED_SLUGS = [
+  "grocery-complete",
+  "recipe-starter",
+  "vacation-packing",
+];
+
+const MARKETPLACE_URL = "https://listmine.com/templates";
 
 export default function Templates() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { addList, addItemToList, lists } = useLists();
+  const { lists } = useLists();
   const { toast } = useToast();
 
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [entitledTemplateIds, setEntitledTemplateIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [tierFilter, setTierFilter] = useState<"all" | "free" | "premium">(
-    "all",
-  );
 
-  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(
-    null,
-  );
-  const [templateItems, setTemplateItems] = useState<TemplateItem[]>([]);
-  const [loadingItems, setLoadingItems] = useState(false);
-  const [showPreviewModal, setShowPreviewModal] = useState(false);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [upgradeMessage, setUpgradeMessage] = useState("");
+  // Redemption code state
+  const [redemptionCode, setRedemptionCode] = useState("");
+  const [redeeming, setRedeeming] = useState(false);
+
+  // Create list modal state
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+  const [listName, setListName] = useState("");
   const [creating, setCreating] = useState(false);
 
-  useEffect(() => {
-    loadTemplates();
-  }, []);
+  const userTier = (user?.tier || "free") as UserTier;
 
-  const loadTemplates = async () => {
+  useEffect(() => {
+    loadTemplatesAndEntitlements();
+  }, [user?.id, userTier]);
+
+  const loadTemplatesAndEntitlements = async () => {
     try {
       setError(null);
-      const { data, error: templatesError } = await supabase
+      setLoading(true);
+
+      // Load all active templates
+      const { data: templatesData, error: templatesError } = await supabase
         .from("templates")
         .select("*")
+        .eq("is_active", true)
         .order("name", { ascending: true });
 
       if (templatesError) throw templatesError;
+      setTemplates((templatesData as Template[]) || []);
 
-      setTemplates(data as any);
+      // Load user's entitlements if logged in
+      if (user?.id) {
+        const { data: entitlements, error: entitlementsError } = await supabase
+          .from("user_template_entitlements")
+          .select("template_id")
+          .eq("user_id", user.id);
+
+        if (entitlementsError) {
+          console.error("[Templates] Error loading entitlements:", entitlementsError);
+        } else {
+          setEntitledTemplateIds((entitlements || []).map((e) => e.template_id));
+        }
+      }
     } catch (error: any) {
       console.error("[ListMine Error]", { operation: "loadTemplates", error });
-      setError(
-        "Failed to load templates. Check your connection and try again.",
-      );
+      setError("Failed to load templates. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  const loadTemplateItems = async (templateId: string) => {
-    setLoadingItems(true);
-    try {
-      const { data, error: itemsError } = await supabase
-        .from("template_items")
-        .select("*")
-        .eq("template_id", templateId)
-        .order("sort_order", { ascending: true });
-
-      if (itemsError) throw itemsError;
-
-      setTemplateItems(data as any);
-    } catch (error: any) {
-      console.error("[ListMine Error]", {
-        operation: "loadTemplateItems",
-        error,
-      });
-      toast({
-        title: "❌ Failed to load template items",
-        description: "Try again or contact support.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingItems(false);
+  const getAvailableTemplates = (): Template[] => {
+    switch (userTier) {
+      case "free":
+        return [];
+      case "good":
+        // Only purchased templates
+        return templates.filter((t) => entitledTemplateIds.includes(t.id));
+      case "even_better":
+        // Included templates + purchased
+        return templates.filter(
+          (t) =>
+            EVEN_BETTER_INCLUDED_SLUGS.includes(t.slug) ||
+            entitledTemplateIds.includes(t.id)
+        );
+      case "lots_more":
+        // All active templates
+        return templates;
+      default:
+        return [];
     }
   };
 
-  const handlePreview = async (template: Template) => {
-    setSelectedTemplate(template);
-    setShowPreviewModal(true);
-    await loadTemplateItems(template.id);
-  };
-
-  const handleCreateFromTemplate = async () => {
-    if (!selectedTemplate || !user) return;
-
-    // Check if premium template and user is free tier
-    if (selectedTemplate.is_premium && user.tier === "free") {
-      setUpgradeMessage(
-        "This template requires Good tier or higher. Upgrade to unlock premium templates.",
-      );
-      setShowUpgradeModal(true);
+  const handleRedeemCode = async () => {
+    if (!redemptionCode.trim()) {
+      toast({
+        title: "Enter a code",
+        description: "Please enter a redemption code to continue.",
+        variant: "destructive",
+      });
       return;
     }
 
-    // Check list limit - count only owned active lists (exclude guest access and archived)
+    setRedeeming(true);
+    try {
+      const { data, error } = await supabase.rpc("redeem_template_code", {
+        p_code: redemptionCode.trim(),
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast({
+          title: "Template Redeemed!",
+          description: `You now have access to "${data.template_name}".`,
+          className: "bg-accent/10 border-accent/30",
+        });
+        setRedemptionCode("");
+        // Refresh entitlements
+        loadTemplatesAndEntitlements();
+      } else {
+        toast({
+          title: "Redemption Failed",
+          description: data?.error || "Invalid or expired code.",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error("[Templates] Redemption error:", error);
+      toast({
+        title: "Redemption Error",
+        description: error.message || "Failed to redeem code. Try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setRedeeming(false);
+    }
+  };
+
+  const handleUseTemplate = (template: Template) => {
+    setSelectedTemplate(template);
+    setListName(template.name);
+    setShowCreateModal(true);
+  };
+
+  const handleCreateList = async () => {
+    if (!selectedTemplate || !listName.trim()) return;
+
+    // Check list limit
     const ownedActiveListsCount = lists.filter(
-      (l) => l.userId === user.id && !l.isGuestAccess && !l.isArchived && !l.title.startsWith("[Archived]")
+      (l) =>
+        l.userId === user?.id &&
+        !l.isGuestAccess &&
+        !l.isArchived &&
+        !l.title.startsWith("[Archived]")
     ).length;
-    
-    if (user.listLimit !== -1 && ownedActiveListsCount >= user.listLimit) {
-      const tierName =
-        user.tier === "free"
-          ? "Free"
-          : user.tier === "good"
-            ? "Good"
-            : user.tier === "even_better"
-              ? "Even Better"
-              : "Lots More";
-      setUpgradeMessage(
-        `You've reached your limit of ${user.listLimit === -1 ? "unlimited" : user.listLimit} lists on the ${tierName} tier. Upgrade to create more lists.`,
-      );
-      setShowUpgradeModal(true);
+
+    if (
+      user?.listLimit !== -1 &&
+      ownedActiveListsCount >= (user?.listLimit || 5)
+    ) {
+      toast({
+        title: "List Limit Reached",
+        description: `You've reached your limit of ${user?.listLimit} lists. Upgrade to create more.`,
+        variant: "destructive",
+      });
+      setShowCreateModal(false);
       return;
     }
 
     setCreating(true);
     try {
-      // Create list
-      await addList(selectedTemplate.name, selectedTemplate.category, "custom");
+      const { data: newListId, error } = await supabase.rpc(
+        "create_list_from_template",
+        {
+          p_template_id: selectedTemplate.id,
+          p_list_name: listName.trim(),
+        }
+      );
 
-      // Get the newly created list
-      const { data: newListData, error: listError } = await supabase
-        .from("lists")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("title", selectedTemplate.name)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
-
-      if (listError) throw listError;
-
-      // Add items to the list
-      for (const item of templateItems) {
-        await addItemToList(newListData.id, {
-          text: item.name,
-          quantity: item.quantity,
-          notes: item.notes,
-          completed: false,
-        });
-      }
+      if (error) throw error;
 
       toast({
-        title: "List created from template!",
-        description: `${selectedTemplate.name} has been added to your lists`,
+        title: "List Created!",
+        description: `"${listName}" has been created from the template.`,
         className: "bg-accent/10 border-accent/30",
       });
 
-      setShowPreviewModal(false);
-      navigate(`/list/${newListData.id}`);
+      setShowCreateModal(false);
+      navigate(`/list/${newListId}`);
     } catch (error: any) {
-      console.error("[ListMine Error]", {
-        operation: "createFromTemplate",
-        error,
-      });
+      console.error("[Templates] Create list error:", error);
       toast({
-        title: "❌ Failed to create list",
+        title: "Failed to Create List",
         description: error.message || "Try again or contact support.",
         variant: "destructive",
       });
@@ -216,17 +251,6 @@ export default function Templates() {
       setCreating(false);
     }
   };
-
-  const filteredTemplates = templates.filter((template) => {
-    const matchesSearch =
-      template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      template.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesTier =
-      tierFilter === "all" ||
-      (tierFilter === "free" && !template.is_premium) ||
-      (tierFilter === "premium" && template.is_premium);
-    return matchesSearch && matchesTier;
-  });
 
   if (loading) {
     return <TemplatesSkeleton />;
@@ -239,15 +263,65 @@ export default function Templates() {
           <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="w-8 h-8 text-destructive" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          <h2 className="text-2xl font-bold text-foreground mb-2">
             Failed to Load Templates
           </h2>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <Button onClick={loadTemplates} className="w-full">
-            <Loader2 className="w-4 h-4 mr-2" />
+          <p className="text-muted-foreground mb-6">{error}</p>
+          <Button onClick={loadTemplatesAndEntitlements} className="w-full">
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             Retry
           </Button>
         </Card>
+      </div>
+    );
+  }
+
+  const availableTemplates = getAvailableTemplates();
+
+  // Free tier - show upgrade message
+  if (userTier === "free") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 animate-in fade-in duration-200">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header */}
+          <div className="mb-8">
+            <Button
+              variant="ghost"
+              onClick={() => navigate("/dashboard")}
+              className="mb-4"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Dashboard
+            </Button>
+            <h1 className="text-4xl font-bold text-foreground mb-2">Templates</h1>
+            <p className="text-muted-foreground">
+              Create lists from pre-made templates to get started quickly
+            </p>
+          </div>
+
+          {/* Free tier message */}
+          <Card className="p-12 text-center">
+            <div className="max-w-md mx-auto">
+              <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Crown className="w-10 h-10 text-primary" />
+              </div>
+              <h2 className="text-2xl font-bold text-foreground mb-3">
+                Templates are available on paid plans
+              </h2>
+              <p className="text-muted-foreground mb-6">
+                Upgrade to access professionally designed templates that help you
+                organize faster and more effectively.
+              </p>
+              <Button
+                onClick={() => window.open(MARKETPLACE_URL, "_blank")}
+                className="bg-primary hover:bg-primary/90"
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Upgrade to Access
+              </Button>
+            </div>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -265,197 +339,189 @@ export default function Templates() {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Dashboard
           </Button>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Templates</h1>
-          <p className="text-gray-600">
-            Create lists from pre-made templates to get started quickly
-          </p>
-        </div>
-
-        {/* Search and Filters */}
-        <div className="mb-6 space-y-4">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <Input
-              placeholder="Search templates..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-12 h-12"
-            />
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <h1 className="text-4xl font-bold text-foreground mb-2">Templates</h1>
+              <p className="text-muted-foreground">
+                Create lists from pre-made templates to get started quickly
+              </p>
+            </div>
+            <Badge variant="outline" className="bg-primary/10 border-primary/20">
+              <Sparkles className="w-3 h-3 mr-1 text-primary" />
+              <span className="text-primary">{getTierDisplayName(userTier)} Plan</span>
+            </Badge>
           </div>
-
-          <Tabs
-            value={tierFilter}
-            onValueChange={(value) =>
-              setTierFilter(value as "all" | "free" | "premium")
-            }
-          >
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="all">All Templates</TabsTrigger>
-              <TabsTrigger value="free">Free</TabsTrigger>
-              <TabsTrigger value="premium">Premium</TabsTrigger>
-            </TabsList>
-          </Tabs>
         </div>
 
-        {/* Templates Grid */}
-        {filteredTemplates.length === 0 ? (
-          <Card className="p-16 text-center">
+        {/* Redemption Code Input */}
+        <Card className="mb-8 p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Gift className="w-5 h-5 text-accent" />
+            <h3 className="font-semibold text-foreground">Redeem a Code</h3>
+          </div>
+          <div className="flex gap-3">
+            <Input
+              placeholder="Enter redemption code..."
+              value={redemptionCode}
+              onChange={(e) => setRedemptionCode(e.target.value.toUpperCase())}
+              className="flex-1 uppercase"
+              maxLength={20}
+            />
+            <Button
+              onClick={handleRedeemCode}
+              disabled={redeeming || !redemptionCode.trim()}
+              className="bg-accent hover:bg-accent/90"
+            >
+              {redeeming ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                "Redeem"
+              )}
+            </Button>
+          </div>
+        </Card>
+
+        {/* Templates Grid or Empty State */}
+        {availableTemplates.length === 0 ? (
+          <Card className="p-12 text-center">
             <div className="max-w-md mx-auto">
               <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-                <Search className="w-8 h-8 text-gray-400" />
+                <Package className="w-8 h-8 text-muted-foreground" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                No templates found
+              <h3 className="text-xl font-semibold text-foreground mb-2">
+                No Templates Available
               </h3>
-              <p className="text-gray-600">Try a different search or filter.</p>
+              <p className="text-muted-foreground mb-6">
+                {userTier === "good"
+                  ? "Purchase templates from the marketplace or redeem a code to get started."
+                  : "Check back later for new templates or browse the marketplace."}
+              </p>
+              <Button
+                onClick={() => window.open(MARKETPLACE_URL, "_blank")}
+                variant="outline"
+                className="border-primary text-primary hover:bg-primary/10"
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Browse Marketplace
+              </Button>
             </div>
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredTemplates.map((template) => (
-              <Card
-                key={template.id}
-                className="transition-all duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
-                onClick={() => handlePreview(template)}
-              >
-                <CardHeader>
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="text-4xl">{template.icon_emoji}</div>
-                    <Badge
-                      variant={template.is_premium ? "default" : "secondary"}
-                      className={
-                        template.is_premium
-                          ? "bg-warning text-warning-foreground"
-                          : "bg-success/10 text-success border-success/20"
-                      }
-                    >
-                      {template.is_premium ? (
-                        <>
-                          <Star className="w-3 h-3 mr-1" />
-                          PREMIUM
-                        </>
-                      ) : (
-                        <>
-                          <Check className="w-3 h-3 mr-1" />
-                          FREE
-                        </>
-                      )}
-                    </Badge>
-                  </div>
-                  <CardTitle className="text-xl">{template.name}</CardTitle>
-                  <CardDescription className="line-clamp-2">
-                    {template.description}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-gray-500">
-                      {template.item_count} items
-                    </p>
-                    <Button
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handlePreview(template);
-                      }}
-                    >
-                      Preview
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+            {availableTemplates.map((template) => {
+              const isIncluded =
+                userTier === "even_better" &&
+                EVEN_BETTER_INCLUDED_SLUGS.includes(template.slug);
+              const isPurchased = entitledTemplateIds.includes(template.id);
+
+              return (
+                <Card
+                  key={template.id}
+                  className="transition-all duration-200 hover:shadow-lg hover:border-primary/30"
+                >
+                  <CardHeader>
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="text-4xl">{template.icon_emoji}</div>
+                      {userTier === "lots_more" ? (
+                        <Badge
+                          variant="outline"
+                          className="bg-accent/10 text-accent border-accent/20"
+                        >
+                          Included
+                        </Badge>
+                      ) : isIncluded ? (
+                        <Badge
+                          variant="outline"
+                          className="bg-primary/10 text-primary border-primary/20"
+                        >
+                          Included
+                        </Badge>
+                      ) : isPurchased ? (
+                        <Badge
+                          variant="outline"
+                          className="bg-accent/10 text-accent border-accent/20"
+                        >
+                          Purchased
+                        </Badge>
+                      ) : null}
+                    </div>
+                    <CardTitle className="text-xl text-foreground">
+                      {template.name}
+                    </CardTitle>
+                    <CardDescription className="line-clamp-2">
+                      {template.description}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        {template.item_count} items
+                      </span>
+                      <Button
+                        onClick={() => handleUseTemplate(template)}
+                        className="bg-primary hover:bg-primary/90"
+                      >
+                        Use Template
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Link to marketplace for more templates */}
+        {availableTemplates.length > 0 && userTier !== "lots_more" && (
+          <div className="mt-8 text-center">
+            <Button
+              variant="outline"
+              onClick={() => window.open(MARKETPLACE_URL, "_blank")}
+              className="border-primary text-primary hover:bg-primary/10"
+            >
+              <ExternalLink className="w-4 h-4 mr-2" />
+              Browse More Templates
+            </Button>
           </div>
         )}
       </div>
 
-      {/* Preview Modal */}
-      <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      {/* Create List Modal */}
+      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="text-5xl">{selectedTemplate?.icon_emoji}</div>
-              <div className="flex-1">
-                <DialogTitle className="text-2xl">
-                  {selectedTemplate?.name}
-                </DialogTitle>
-                <Badge
-                  variant={
-                    selectedTemplate?.is_premium ? "default" : "secondary"
-                  }
-                  className={
-                    selectedTemplate?.is_premium
-                      ? "bg-warning text-warning-foreground mt-2"
-                      : "bg-success/10 text-success border-success/20 mt-2"
-                  }
-                >
-                  {selectedTemplate?.is_premium ? (
-                    <>
-                      <Star className="w-3 h-3 mr-1" />
-                      PREMIUM
-                    </>
-                  ) : (
-                    <>
-                      <Check className="w-3 h-3 mr-1" />
-                      FREE
-                    </>
-                  )}
-                </Badge>
-              </div>
-            </div>
-            <DialogDescription className="text-base">
-              {selectedTemplate?.description}
+            <DialogTitle className="flex items-center gap-2">
+              <span className="text-2xl">{selectedTemplate?.icon_emoji}</span>
+              Create List from Template
+            </DialogTitle>
+            <DialogDescription>
+              Enter a name for your new list based on "{selectedTemplate?.name}".
             </DialogDescription>
           </DialogHeader>
-
-          <div className="mt-6">
-            <h3 className="font-semibold text-lg mb-4">
-              Template Items ({templateItems.length})
-            </h3>
-            {loadingItems ? (
-              <div className="text-center py-8">
-                <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-2" />
-                <p className="text-gray-600">Loading items...</p>
-              </div>
-            ) : (
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {templateItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg"
-                  >
-                    <div className="w-5 h-5 border-2 border-gray-300 rounded flex-shrink-0 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900">
-                        {item.quantity &&
-                          item.quantity > 1 &&
-                          `${item.quantity}x `}
-                        {item.name}
-                      </p>
-                      {item.notes && (
-                        <p className="text-sm text-gray-600 mt-1">
-                          {item.notes}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="list-name">List Name</Label>
+              <Input
+                id="list-name"
+                value={listName}
+                onChange={(e) => setListName(e.target.value)}
+                placeholder="Enter list name..."
+                autoFocus
+              />
+            </div>
           </div>
-
-          <div className="flex gap-3 mt-6">
+          <DialogFooter className="gap-2">
             <Button
               variant="outline"
-              onClick={() => setShowPreviewModal(false)}
-              className="flex-1"
+              onClick={() => setShowCreateModal(false)}
+              disabled={creating}
             >
               Cancel
             </Button>
             <Button
-              onClick={handleCreateFromTemplate}
-              disabled={creating || loadingItems}
-              className="flex-1"
+              onClick={handleCreateList}
+              disabled={creating || !listName.trim()}
+              className="bg-primary hover:bg-primary/90"
             >
               {creating ? (
                 <>
@@ -463,32 +529,10 @@ export default function Templates() {
                   Creating...
                 </>
               ) : (
-                "Create List from Template"
+                "Create List"
               )}
             </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Upgrade Modal */}
-      <Dialog open={showUpgradeModal} onOpenChange={setShowUpgradeModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Upgrade Required</DialogTitle>
-            <DialogDescription>{upgradeMessage}</DialogDescription>
-          </DialogHeader>
-          <div className="flex gap-3 mt-4">
-            <Button
-              variant="outline"
-              onClick={() => setShowUpgradeModal(false)}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button onClick={() => navigate("/upgrade")} className="flex-1">
-              View Plans
-            </Button>
-          </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

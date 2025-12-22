@@ -52,6 +52,15 @@ const getErrorMessage = (error: SupabaseError | Error | any): string => {
     return "Access denied. You may not have permission to view or modify this data.";
   }
 
+  // Tier-related constraint violations (server-side enforcement)
+  if (error.message?.includes("tier_list_type_check") || error.message?.includes("list type not allowed")) {
+    return "This list type is not available on your current tier. Your account may have been recently updated. Please refresh the page or upgrade your plan.";
+  }
+
+  if (error.message?.includes("tier_limit") || error.message?.includes("exceeds tier limit")) {
+    return "You've reached your tier limit. Your account may have been recently updated. Please refresh the page or upgrade your plan.";
+  }
+
   // Validation errors
   if (error.code === "23505" || error.message?.includes("duplicate key")) {
     return "This item already exists. Please use a different name.";

@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { UserPlus, Trash2, Mail, Loader2, Users, Crown, Clock } from "lucide-react";
 import { ListGuest } from "@/types";
-import { canInviteGuests, getGuestLimit } from "@/lib/tierUtils";
+import { canInviteGuests, getGuestLimit, formatGuestLimit } from "@/lib/tierUtils";
 import { validateEmail } from "@/lib/validation";
 
 interface PendingInvite {
