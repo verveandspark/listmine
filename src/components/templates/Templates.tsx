@@ -161,10 +161,12 @@ export default function Templates() {
 
       if (error) throw error;
 
-      if (data?.success) {
+      const result = data as { success: boolean; template_name?: string; error?: string } | null;
+
+      if (result?.success) {
         toast({
           title: "Template Redeemed!",
-          description: `You now have access to "${data.template_name}".`,
+          description: `You now have access to "${result.template_name}".`,
           className: "bg-accent/10 border-accent/30",
         });
         setRedemptionCode("");
@@ -173,7 +175,7 @@ export default function Templates() {
       } else {
         toast({
           title: "Redemption Failed",
-          description: data?.error || "Invalid or expired code.",
+          description: result?.error || "Invalid or expired code.",
           variant: "destructive",
         });
       }
