@@ -48,7 +48,7 @@ import {
   Merge,
 } from "lucide-react";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/useAuthHook";
 import { useLists } from "@/contexts/useListsHook";
 import { ListCategory, ListType } from "@/types";
@@ -793,8 +793,8 @@ export default function Dashboard() {
     }
   };
 
-  const categories: (ListCategory | "All")[] = [
-    "All",
+  // Static fallback categories
+  const staticCategories: ListCategory[] = [
     "Home",
     "Shopping",
     "Work",
@@ -802,6 +802,26 @@ export default function Dashboard() {
     "Tasks",
     "Other",
   ];
+  
+  // Get dynamic categories from user's lists
+  const dynamicCategories = useMemo(() => {
+    const categoriesFromLists = new Set<string>();
+    accountFilteredLists.forEach((list) => {
+      if (list.category) {
+        categoriesFromLists.add(list.category);
+      }
+    });
+    // Combine static and dynamic, maintaining order (static first, then dynamic new ones)
+    const allCategories = [...staticCategories];
+    categoriesFromLists.forEach((cat) => {
+      if (!allCategories.includes(cat as ListCategory)) {
+        allCategories.push(cat as ListCategory);
+      }
+    });
+    return allCategories;
+  }, [accountFilteredLists]);
+  
+  const categories: (ListCategory | "All")[] = ["All", ...dynamicCategories];
 
   // Use search results if available, otherwise use loaded lists
   let displayLists = searchQuery.trim() && searchResults !== null 
@@ -2381,10 +2401,14 @@ export default function Dashboard() {
             Categories
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {(categories.filter((c) => c !== "All") as ListCategory[]).map((category) => {
+            {dynamicCategories.filter((category) => {
+              // Only show categories that have at least one list
+              const stats = getCategoryStats(category);
+              return stats.count > 0;
+            }).map((category) => {
               const Icon = categoryIcons[category] || ListChecks;
               const stats = getCategoryStats(category);
-              const descriptions: Record<ListCategory, string> = {
+              const descriptions: Record<string, string> = {
                 Tasks: "Track your to-dos",
                 Groceries: "Shopping essentials",
                 Ideas: "Capture inspiration",
@@ -2394,6 +2418,9 @@ export default function Dashboard() {
                 Home: "Household items",
                 School: "Academic & learning",
                 Other: "Miscellaneous lists",
+                travel: "Trip planning",
+                recipes: "Recipe collection",
+                shopping: "Shopping lists",
               };
               return (
                 <Card
@@ -2406,18 +2433,18 @@ export default function Dashboard() {
                 >
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-lg ${categoryColors[category]} flex items-center justify-center`}>
+                      <div className={`w-10 h-10 rounded-lg ${categoryColors[category] || "bg-gray-100 text-gray-600"} flex items-center justify-center`}>
                         <Icon className="w-5 h-5" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-foreground text-sm truncate">
+                        <h3 className="font-semibold text-foreground text-sm truncate capitalize">
                           {category}
                         </h3>
                         <p className="text-xs text-muted-foreground">
                           {stats.count} {stats.count === 1 ? "list" : "lists"}
                         </p>
                         <p className="text-xs text-muted-foreground truncate">
-                          {descriptions[category]}
+                          {descriptions[category] || `${category} lists`}
                         </p>
                       </div>
                     </div>

@@ -635,7 +635,23 @@ export default function ListDetail() {
         undoDescription: `"${list.title}" has been restored`,
       }
     );
-    navigate("/dashboard");
+    
+    // Navigate based on user's view preference
+    const viewPreference = localStorage.getItem("dashboardViewMode");
+    if (viewPreference === "list") {
+      // Find another list to navigate to, or fallback to dashboard
+      const remainingLists = lists.filter(l => l.id !== list.id && !l.isArchived);
+      if (remainingLists.length > 0) {
+        const nextList = remainingLists[0];
+        localStorage.setItem("last_list_id", nextList.id);
+        navigate(`/list/${nextList.id}`);
+      } else {
+        localStorage.setItem("dashboardViewMode", "dashboard");
+        navigate("/dashboard");
+      }
+    } else {
+      navigate("/dashboard");
+    }
   };
 
   const handleArchiveList = async () => {
@@ -1152,16 +1168,30 @@ export default function ListDetail() {
     
     const items = getSortedItems();
     const grouped: Record<string, ListItemType[]> = {};
+    const sectionOrder: string[] = []; // Track order sections first appear
     
     items.forEach((item) => {
-      const category = item.attributes?.category || "other";
-      if (!grouped[category]) {
-        grouped[category] = [];
+      // Use section if available, fallback to category, then "other"
+      const rawSection = item.attributes?.section;
+      const rawCategory = item.attributes?.category;
+      const section = (rawSection && rawSection.trim()) 
+        ? rawSection.trim() 
+        : (rawCategory || "other");
+      
+      if (!grouped[section]) {
+        grouped[section] = [];
+        sectionOrder.push(section);
       }
-      grouped[category].push(item);
+      grouped[section].push(item);
     });
     
-    return grouped;
+    // Return with stable order (first appearance order)
+    const orderedGrouped: Record<string, ListItemType[]> = {};
+    sectionOrder.forEach((section) => {
+      orderedGrouped[section] = grouped[section];
+    });
+    
+    return orderedGrouped;
   };
 
   // Group items by section attribute (for templates with sections)
@@ -1203,6 +1233,7 @@ export default function ListDetail() {
   };
 
   const categoryLabels: Record<string, string> = {
+    // Legacy category labels
     produce: "Produce",
     dairy: "Dairy",
     meat: "Meat",
@@ -1210,6 +1241,24 @@ export default function ListDetail() {
     frozen: "Frozen",
     bakery: "Bakery",
     other: "Other",
+    // Section labels from templates
+    Fruit: "Fruit",
+    Dairy: "Dairy",
+    Meat: "Meat",
+    Bakery: "Bakery",
+    Produce: "Produce",
+    Pantry: "Pantry",
+    Basics: "Basics",
+    Ingredients: "Ingredients",
+    Instructions: "Instructions",
+    Notes: "Notes",
+    Documents: "Documents",
+    Financials: "Financials",
+    Electronics: "Electronics",
+    Toiletries: "Toiletries",
+    Clothing: "Clothing",
+    Accessories: "Accessories",
+    Other: "Other",
   };
 
   const LinkIconWithPreview = ({ url }: { url: string }) => {
