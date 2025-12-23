@@ -839,27 +839,33 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          item_section: string | null
           name: string
           notes: string | null
           quantity: number | null
+          section: string | null
           sort_order: number
           template_id: string
         }
         Insert: {
           created_at?: string | null
           id?: string
+          item_section?: string | null
           name: string
           notes?: string | null
           quantity?: number | null
+          section?: string | null
           sort_order?: number
           template_id: string
         }
         Update: {
           created_at?: string | null
           id?: string
+          item_section?: string | null
           name?: string
           notes?: string | null
           quantity?: number | null
+          section?: string | null
           sort_order?: number
           template_id?: string
         }

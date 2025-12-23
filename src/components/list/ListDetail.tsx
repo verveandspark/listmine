@@ -1164,6 +1164,44 @@ export default function ListDetail() {
     return grouped;
   };
 
+  // Group items by section attribute (for templates with sections)
+  const getGroupedItemsBySection = () => {
+    if (!list) return {};
+    
+    const items = getSortedItems();
+    const grouped: Record<string, ListItemType[]> = {};
+    const sectionOrder: string[] = []; // Track order sections first appear
+    
+    items.forEach((item) => {
+      // Get section, normalize empty/whitespace to 'Other'
+      const rawSection = item.attributes?.section;
+      const section = (rawSection && rawSection.trim()) ? rawSection.trim() : 'Other';
+      
+      if (!grouped[section]) {
+        grouped[section] = [];
+        sectionOrder.push(section);
+      }
+      grouped[section].push(item);
+    });
+    
+    // Return with stable order (first appearance order)
+    const orderedGrouped: Record<string, ListItemType[]> = {};
+    sectionOrder.forEach((section) => {
+      orderedGrouped[section] = grouped[section];
+    });
+    
+    return orderedGrouped;
+  };
+
+  // Check if any items have a section attribute
+  const hasItemsWithSections = () => {
+    if (!list) return false;
+    return list.items.some((item) => {
+      const section = item.attributes?.section;
+      return section && section.trim();
+    });
+  };
+
   const categoryLabels: Record<string, string> = {
     produce: "Produce",
     dairy: "Dairy",
@@ -3694,8 +3732,208 @@ export default function ListDetail() {
                   })}
                 </div>
               ))
+            ) : hasItemsWithSections() ? (
+              // Grouped display by section (for templates with sections)
+              Object.entries(getGroupedItemsBySection()).map(([section, sectionItems]) => (
+                <div key={section} className="space-y-2">
+                  <div className="flex items-center gap-2 mt-4 mb-2">
+                    <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                      {section}
+                    </h3>
+                    <div className="flex-1 h-px bg-border"></div>
+                    <Badge variant="outline" className="text-xs">
+                      {sectionItems.length}
+                    </Badge>
+                  </div>
+                  {sectionItems.map((item, index) => {
+                    const isPurchased = item.attributes?.purchaseStatus === "purchased";
+                    const isDropTarget = dropTargetId === item.id;
+                    
+                    return (
+                    <div key={item.id} className="relative">
+                      {/* Drop indicator - before */}
+                      {isDropTarget && dropPosition === "before" && itemSortBy === "manual" && (
+                        <div className="absolute -top-1 left-0 right-0 h-1 bg-primary rounded-full z-10 animate-pulse" />
+                      )}
+                    <Card
+                      className={`p-3 sm:p-4 hover:shadow-md transition-all ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2 opacity-50" : ""} ${isDropTarget && itemSortBy === "manual" ? "ring-2 ring-primary/30" : ""}`}
+                      draggable={itemSortBy === "manual" && canEditListItems}
+                      onDragStart={(e) =>
+                        itemSortBy === "manual" && canEditListItems && handleDragStart(e, item)
+                      }
+                      onDragOver={(e) =>
+                        itemSortBy === "manual" && handleDragOver(e, item)
+                      }
+                      onDragLeave={(e) =>
+                        itemSortBy === "manual" && handleDragLeave(e)
+                      }
+                      onDrop={(e) =>
+                        itemSortBy === "manual" && handleDrop(e, item)
+                      }
+                      onDragEnd={(e) =>
+                        itemSortBy === "manual" && handleDragEnd(e)
+                      }
+                    >
+                      <div className="flex items-start gap-2 sm:gap-3 w-full">
+                        {isSelectMode && (
+                          <Checkbox
+                            checked={selectedItems.has(item.id)}
+                            onCheckedChange={() => toggleItemSelection(item.id)}
+                            className="mt-1 h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0"
+                          />
+                        )}
+                        {itemSortBy === "manual" && (
+                          <div className="cursor-grab active:cursor-grabbing mt-1 touch-none">
+                            <GripVertical className="w-5 h-5 text-gray-400 hover:text-gray-600" />
+                          </div>
+                        )}
+                        <Checkbox
+                          checked={item.completed}
+                          onCheckedChange={(checked) =>
+                            updateListItem(list.id, item.id, {
+                              completed: checked as boolean,
+                            })
+                          }
+                          className={`mt-1 h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform border-gray-400 ${item.completed ? "animate-check-bounce bg-gray-700 border-gray-700" : ""}`}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-col gap-1 min-w-0 w-full">
+                            <p
+                              className={`text-sm sm:text-base text-gray-900 transition-all duration-200 ${item.completed ? "line-through opacity-50" : ""} break-words overflow-hidden w-full`}
+                                              style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
+                            >
+                              {item.quantity && (
+                                <span className="font-semibold text-primary">
+                                  {item.quantity}× {" "}
+                                </span>
+                              )}
+                              {item.text}
+                            </p>
+                            <div className="flex items-center gap-2 flex-wrap">
+                            {isPurchased && (
+                              <Badge className="bg-accent/10 text-accent border-accent/20">
+                                ✓ Purchased
+                              </Badge>
+                            )}
+                            {item.dueDate && (
+                              <Badge
+                                variant="outline"
+                                className={`${getDueDateColor(item.dueDate)} flex items-center gap-1 text-xs`}
+                              >
+                                <Calendar className="w-3 h-3" />
+                                {format(new Date(item.dueDate), "MMM d")}
+                              </Badge>
+                            )}
+                            {item.assignedTo && (
+                              <Badge variant="outline" className="text-xs">
+                                <UserIcon className="w-3 h-3 mr-1" />
+                                {item.assignedTo}
+                              </Badge>
+                            )}
+                            </div>
+                          </div>
+
+                          {item.notes && !item.completed && (
+                            <p className="text-xs sm:text-sm text-gray-600 mt-2 break-words">
+                              {item.notes}
+                            </p>
+                          )}
+
+                          {item.links && item.links.length > 0 && (
+                            <div className="mt-2 space-y-1">
+                              {item.links.map((link, idx) => (
+                                <LinkIconWithPreview key={idx} url={link} />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        {!isSelectMode && canEditListItems && (
+                          <div className="flex flex-col sm:flex-row items-center gap-1">
+                            <Dialog
+                              open={editingItem?.id === item.id}
+                              onOpenChange={(open) => !open && setEditingItem(null)}
+                            >
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setEditingItem(item)}
+                                >
+                                  Edit
+                                </Button>
+                              </DialogTrigger>
+                            </Dialog>
+                            <AlertDialog
+                              open={itemToDelete === item.id}
+                              onOpenChange={(open) =>
+                                setItemToDelete(open ? item.id : null)
+                              }
+                            >
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  Delete
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete this item? You can
+                                    undo this action for a few seconds after deletion.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel className="bg-muted hover:bg-primary/10">
+                                    Cancel
+                                  </AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={async () => {
+                                      const itemData = { ...item };
+                                      const itemText = item.text;
+                                      
+                                      await executeWithUndo(
+                                        `delete-item-${item.id}`,
+                                        itemData,
+                                        async () => {
+                                          await deleteListItem(list.id, item.id);
+                                        },
+                                        async (data) => {
+                                          await restoreListItem(list.id, data);
+                                        },
+                                        {
+                                          title: "Item deleted",
+                                          description: `"${itemText}" removed from list`,
+                                          undoDescription: `"${itemText}" has been restored`,
+                                        }
+                                      );
+                                      setItemToDelete(null);
+                                    }}
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        )}
+                      </div>
+                    </Card>
+                    {/* Drop indicator - after */}
+                    {isDropTarget && dropPosition === "after" && itemSortBy === "manual" && (
+                      <div className="absolute -bottom-1 left-0 right-0 h-1 bg-primary rounded-full z-10 animate-pulse" />
+                    )}
+                    </div>
+                    );
+                  })}
+                </div>
+              ))
             ) : (
-              // Regular display for non-grocery lists
+              // Regular display for non-grocery lists (no sections)
               (() => {
                 const sortedItems = getSortedItems();
                 const isRegistryOrWishlist = list.listType === "registry-list" || list.listType === "shopping-list";
