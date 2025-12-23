@@ -169,6 +169,31 @@ export default function ListDetail() {
 
   const list = lists.find((l) => l.id === id);
   
+  // Retry state for newly created lists
+  const [retryCount, setRetryCount] = useState(0);
+  const [retrying, setRetrying] = useState(false);
+  const maxRetries = 3;
+  const retryDelay = 250;
+  
+  // Retry fetching the list if not found (handles race condition with newly created lists)
+  useEffect(() => {
+    if (!list && id && hasLoadedOnce && retryCount < maxRetries && !retrying) {
+      setRetrying(true);
+      const timer = setTimeout(async () => {
+        setRetryCount(prev => prev + 1);
+        await refreshLists();
+        setRetrying(false);
+      }, retryDelay);
+      return () => clearTimeout(timer);
+    }
+  }, [list, id, hasLoadedOnce, retryCount, retrying, refreshLists]);
+  
+  // Reset retry count when navigating to a different list
+  useEffect(() => {
+    setRetryCount(0);
+    setRetrying(false);
+  }, [id]);
+  
   // Permission checks for guest access (only compute if list exists)
   const isOwner = list ? canEditListMeta(list, user?.id) : false;
   const canEditListItems = list ? canEditItems(list, user?.id) : false;
@@ -285,8 +310,11 @@ export default function ListDetail() {
   // Only show skeleton if we haven't loaded once yet AND the list isn't found
   // This prevents flashing when navigating between lists with cached data
   const isLoading = !hasLoadedOnce && !list;
+  
+  // Also show skeleton while retrying to find a newly created list
+  const isRetrying = !list && retryCount < maxRetries && hasLoadedOnce;
 
-  if (isLoading) {
+  if (isLoading || isRetrying) {
     return <ListDetailSkeleton />;
   }
 

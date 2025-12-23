@@ -233,6 +233,11 @@ export default function Templates() {
       );
 
       if (error) throw error;
+      
+      // Ensure we have a valid UUID before navigating
+      if (!newListId || typeof newListId !== "string") {
+        throw new Error("Failed to create list - no list ID returned");
+      }
 
       toast({
         title: "List Created!",
@@ -241,6 +246,9 @@ export default function Templates() {
       });
 
       setShowCreateModal(false);
+      
+      // Small delay to ensure DB write is complete before navigation
+      await new Promise(resolve => setTimeout(resolve, 100));
       navigate(`/list/${newListId}`);
     } catch (error: any) {
       console.error("[Templates] Create list error:", error);

@@ -1652,6 +1652,16 @@ export default function Dashboard() {
                 Import/Export
               </Button>
             )}
+            {user?.tier && user.tier !== "free" && (
+              <Button 
+                variant="outline"
+                className="min-h-[44px] border-primary/30 text-primary hover:bg-primary/10"
+                onClick={() => navigate("/templates", { state: { from: location.pathname } })}
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Templates
+              </Button>
+            )}
             <Select 
               value="" 
               onValueChange={(listId) => {

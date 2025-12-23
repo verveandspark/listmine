@@ -19,6 +19,7 @@ import {
   Users,
   User,
   Share2,
+  FileText,
 } from "lucide-react";
 import {
   Tooltip,
@@ -397,6 +398,18 @@ export function ListSidebar() {
             >
               <Download className="w-4 h-4 mr-2" />
               Import List
+            </Button>
+          )}
+
+          {/* Templates button - only show for paid tiers */}
+          {user?.tier && user.tier !== "free" && (
+            <Button
+              onClick={() => navigate("/templates", { state: { from: location.pathname } })}
+              variant="outline"
+              className="w-full min-h-[44px]"
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Templates
             </Button>
           )}
         </div>
