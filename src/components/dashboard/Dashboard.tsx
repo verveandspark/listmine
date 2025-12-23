@@ -802,26 +802,6 @@ export default function Dashboard() {
     "Tasks",
     "Other",
   ];
-  
-  // Get dynamic categories from user's lists
-  const dynamicCategories = useMemo(() => {
-    const categoriesFromLists = new Set<string>();
-    accountFilteredLists.forEach((list) => {
-      if (list.category) {
-        categoriesFromLists.add(list.category);
-      }
-    });
-    // Combine static and dynamic, maintaining order (static first, then dynamic new ones)
-    const allCategories = [...staticCategories];
-    categoriesFromLists.forEach((cat) => {
-      if (!allCategories.includes(cat as ListCategory)) {
-        allCategories.push(cat as ListCategory);
-      }
-    });
-    return allCategories;
-  }, [accountFilteredLists]);
-  
-  const categories: (ListCategory | "All")[] = ["All", ...dynamicCategories];
 
   // Use search results if available, otherwise use loaded lists
   let displayLists = searchQuery.trim() && searchResults !== null 
@@ -940,6 +920,26 @@ export default function Dashboard() {
     );
     return { count: Math.max(0, categoryLists.length), items: Math.max(0, totalItems) };
   };
+
+  // Get dynamic categories from user's lists (declared after accountFilteredLists)
+  const dynamicCategories = useMemo(() => {
+    const categoriesFromLists = new Set<string>();
+    accountFilteredLists.forEach((list) => {
+      if (list.category) {
+        categoriesFromLists.add(list.category);
+      }
+    });
+    // Combine static and dynamic, maintaining order (static first, then dynamic new ones)
+    const allCategories = [...staticCategories];
+    categoriesFromLists.forEach((cat) => {
+      if (!allCategories.includes(cat as ListCategory)) {
+        allCategories.push(cat as ListCategory);
+      }
+    });
+    return allCategories;
+  }, [accountFilteredLists]);
+  
+  const categories: (ListCategory | "All")[] = ["All", ...dynamicCategories];
 
   // Show error state if loading failed
   if (error && !loading) {
