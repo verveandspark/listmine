@@ -33,6 +33,7 @@ import {
   Sparkles,
   Crown,
   Package,
+  Lock,
 } from "lucide-react";
 import { ListCategory } from "@/types";
 import { UserTier, getTierDisplayName } from "@/lib/tierUtils";
@@ -121,25 +122,41 @@ export default function Templates() {
     }
   };
 
-  const getAvailableTemplates = (): Template[] => {
+  // Helper to check if a template is available (included or unlocked) for current user
+  const isTemplateAvailable = (template: Template): boolean => {
+    // User has an entitlement for this template
+    if (entitledTemplateIds.includes(template.id)) return true;
+    
     switch (userTier) {
-      case "free":
-        return [];
-      case "good":
-        // Only purchased templates
-        return templates.filter((t) => entitledTemplateIds.includes(t.id));
-      case "even_better":
-        // Included templates + purchased
-        return templates.filter(
-          (t) =>
-            EVEN_BETTER_INCLUDED_SLUGS.includes(t.slug) ||
-            entitledTemplateIds.includes(t.id)
-        );
       case "lots_more":
-        // All active templates
-        return templates;
+        // All templates included
+        return true;
+      case "even_better":
+        // Only specific slugs are included
+        return EVEN_BETTER_INCLUDED_SLUGS.includes(template.slug);
+      case "good":
+      case "free":
       default:
-        return [];
+        // No templates included by tier
+        return false;
+    }
+  };
+
+  // Helper to get template status
+  const getTemplateStatus = (template: Template): "included" | "unlocked" | "locked" => {
+    // Check if user has entitlement first
+    if (entitledTemplateIds.includes(template.id)) return "unlocked";
+    
+    switch (userTier) {
+      case "lots_more":
+        return "included";
+      case "even_better":
+        if (EVEN_BETTER_INCLUDED_SLUGS.includes(template.slug)) return "included";
+        return "locked";
+      case "good":
+      case "free":
+      default:
+        return "locked";
     }
   };
 
@@ -286,56 +303,6 @@ export default function Templates() {
     );
   }
 
-  const availableTemplates = getAvailableTemplates();
-
-  // Free tier - show upgrade message
-  if (userTier === "free") {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 animate-in fade-in duration-200">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Header */}
-          <div className="mb-8">
-            <Button
-              variant="ghost"
-              onClick={() => navigate("/dashboard")}
-              className="mb-4"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Dashboard
-            </Button>
-            <h1 className="text-4xl font-bold text-foreground mb-2">Templates</h1>
-            <p className="text-muted-foreground">
-              Create lists from pre-made templates to get started quickly
-            </p>
-          </div>
-
-          {/* Free tier message */}
-          <Card className="p-12 text-center">
-            <div className="max-w-md mx-auto">
-              <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Crown className="w-10 h-10 text-primary" />
-              </div>
-              <h2 className="text-2xl font-bold text-foreground mb-3">
-                Templates are available on paid plans
-              </h2>
-              <p className="text-muted-foreground mb-6">
-                Upgrade to access professionally designed templates that help you
-                organize faster and more effectively.
-              </p>
-              <Button
-                onClick={() => window.open(MARKETPLACE_URL, "_blank")}
-                className="bg-primary hover:bg-primary/90"
-              >
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Upgrade to Access
-              </Button>
-            </div>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 animate-in fade-in duration-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -391,8 +358,33 @@ export default function Templates() {
           </div>
         </Card>
 
+        {/* Free tier upgrade banner */}
+        {userTier === "free" && (
+          <Card className="mb-8 p-6 bg-primary/5 border-primary/20">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                <Crown className="w-6 h-6 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-foreground mb-1">
+                  Upgrade to unlock templates
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Templates are available on paid plans. Upgrade to create lists from professionally designed templates.
+                </p>
+              </div>
+              <Button
+                onClick={() => navigate("/upgrade")}
+                className="bg-primary hover:bg-primary/90"
+              >
+                Upgrade
+              </Button>
+            </div>
+          </Card>
+        )}
+
         {/* Templates Grid or Empty State */}
-        {availableTemplates.length === 0 ? (
+        {templates.length === 0 ? (
           <Card className="p-12 text-center">
             <div className="max-w-md mx-auto">
               <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
@@ -402,9 +394,7 @@ export default function Templates() {
                 No Templates Available
               </h3>
               <p className="text-muted-foreground mb-6">
-                {userTier === "good"
-                  ? "Purchase templates from the marketplace or redeem a code to get started."
-                  : "Check back later for new templates or browse the marketplace."}
+                Check back later for new templates or browse the marketplace.
               </p>
               <Button
                 onClick={() => window.open(MARKETPLACE_URL, "_blank")}
@@ -418,42 +408,44 @@ export default function Templates() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {availableTemplates.map((template) => {
-              const isIncluded =
-                userTier === "even_better" &&
-                EVEN_BETTER_INCLUDED_SLUGS.includes(template.slug);
-              const isPurchased = entitledTemplateIds.includes(template.id);
+            {templates.map((template) => {
+              const status = getTemplateStatus(template);
+              const isAvailable = status === "included" || status === "unlocked";
 
               return (
                 <Card
                   key={template.id}
-                  className="transition-all duration-200 hover:shadow-lg hover:border-primary/30"
+                  className={`transition-all duration-200 hover:shadow-lg ${
+                    isAvailable ? "hover:border-primary/30" : "opacity-90 hover:border-muted-foreground/30"
+                  }`}
                 >
                   <CardHeader>
                     <div className="flex items-start justify-between mb-2">
                       <div className="text-4xl">{template.icon_emoji}</div>
-                      {userTier === "lots_more" ? (
+                      {status === "included" && (
                         <Badge
                           variant="outline"
                           className="bg-accent/10 text-accent border-accent/20"
                         >
                           Included
                         </Badge>
-                      ) : isIncluded ? (
+                      )}
+                      {status === "unlocked" && (
                         <Badge
                           variant="outline"
                           className="bg-primary/10 text-primary border-primary/20"
                         >
-                          Included
+                          Unlocked
                         </Badge>
-                      ) : isPurchased ? (
+                      )}
+                      {status === "locked" && (
                         <Badge
                           variant="outline"
-                          className="bg-accent/10 text-accent border-accent/20"
+                          className="bg-muted text-muted-foreground border-muted-foreground/20"
                         >
-                          Purchased
+                          Locked
                         </Badge>
-                      ) : null}
+                      )}
                     </div>
                     <CardTitle className="text-xl text-foreground">
                       {template.name}
@@ -467,12 +459,23 @@ export default function Templates() {
                       <span className="text-sm text-muted-foreground">
                         {template.item_count} items
                       </span>
-                      <Button
-                        onClick={() => handleUseTemplate(template)}
-                        className="bg-primary hover:bg-primary/90"
-                      >
-                        Use Template
-                      </Button>
+                      {isAvailable ? (
+                        <Button
+                          onClick={() => handleUseTemplate(template)}
+                          className="bg-primary hover:bg-primary/90"
+                        >
+                          Use Template
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={() => window.open(MARKETPLACE_URL, "_blank")}
+                          variant="outline"
+                          className="border-primary text-primary hover:bg-primary/10"
+                        >
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          Browse Templates
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -482,7 +485,7 @@ export default function Templates() {
         )}
 
         {/* Link to marketplace for more templates */}
-        {availableTemplates.length > 0 && userTier !== "lots_more" && (
+        {templates.length > 0 && userTier !== "lots_more" && (
           <div className="mt-8 text-center">
             <Button
               variant="outline"
