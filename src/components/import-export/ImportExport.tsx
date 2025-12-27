@@ -602,12 +602,12 @@ export default function ImportExport() {
 
   const categories: ListCategory[] = [
     "Tasks",
-    "Groceries",
-    "Ideas",
     "Shopping",
-    "Travel",
+    "Meals",
+    "Household",
+    "Planning",
+    "School",
     "Work",
-    "Home",
     "Other",
   ];
 

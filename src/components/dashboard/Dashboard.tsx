@@ -809,7 +809,7 @@ export default function Dashboard() {
 
   // Static fallback categories
   const staticCategories: ListCategory[] = [
-    "Home",
+    "Household",
     "Shopping",
     "Work",
     "School",
@@ -2607,12 +2607,12 @@ export default function Dashboard() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Tasks">Tasks</SelectItem>
-                  <SelectItem value="Groceries">Groceries</SelectItem>
-                  <SelectItem value="Ideas">Ideas</SelectItem>
                   <SelectItem value="Shopping">Shopping</SelectItem>
-                  <SelectItem value="Travel">Travel</SelectItem>
+                  <SelectItem value="Meals">Meals</SelectItem>
+                  <SelectItem value="Household">Household</SelectItem>
+                  <SelectItem value="Planning">Planning</SelectItem>
+                  <SelectItem value="School">School</SelectItem>
                   <SelectItem value="Work">Work</SelectItem>
-                  <SelectItem value="Home">Home</SelectItem>
                   <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
