@@ -3049,7 +3049,7 @@ export default function ListDetail() {
                         <div className="absolute -top-1 left-0 right-0 h-1 bg-primary rounded-full z-10 animate-pulse" />
                       )}
                     <Card
-                      className={`p-3 sm:p-4 hover:shadow-md transition-all ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2 opacity-50" : ""} ${isDropTarget && itemSortBy === "manual" ? "ring-2 ring-primary/30" : ""}`}
+                      className={`p-3 sm:p-4 hover:shadow-md transition-all relative ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2 opacity-50" : ""} ${isDropTarget && itemSortBy === "manual" ? "ring-2 ring-primary/30" : ""}`}
                       draggable={itemSortBy === "manual" && canEditListItems}
                       onDragStart={(e) =>
                         itemSortBy === "manual" && canEditListItems && handleDragStart(e, item)
@@ -3102,6 +3102,11 @@ export default function ListDetail() {
                               )}
                               {item.text}
                             </p>
+                            {item.notes && !item.completed && (
+                              <p className="text-xs text-gray-500 -mt-0.5 break-words italic pointer-events-none">
+                                {item.notes}
+                              </p>
+                            )}
                             <div className="flex items-center gap-2 flex-wrap">
                             {isPurchased && (
                               <Badge className="bg-accent/10 text-accent border-accent/20">
@@ -3146,12 +3151,6 @@ export default function ListDetail() {
                                 </Badge>
                               )}
                             </div>
-                          )}
-
-                          {item.notes && !item.completed && (
-                            <p className="text-xs sm:text-sm text-gray-600 mt-2 break-words">
-                              {item.notes}
-                            </p>
                           )}
 
                           {/* Link Preview Card for Registry/Wishlist/Idea items */}
@@ -3202,7 +3201,7 @@ export default function ListDetail() {
                           )}
                         </div>
                         {!isSelectMode && canEditListItems && (
-                          <div className="flex flex-col sm:flex-row items-center gap-1">
+                          <div className="flex flex-col sm:flex-row items-center gap-1 shrink-0 relative z-10 pointer-events-auto">
                             <Dialog
                               open={editingItem?.id === item.id}
                               onOpenChange={(open) => !open && setEditingItem(null)}
@@ -3211,7 +3210,10 @@ export default function ListDetail() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => setEditingItem(item)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingItem(item);
+                                  }}
                                 >
                                   Edit
                                 </Button>
@@ -3969,7 +3971,7 @@ export default function ListDetail() {
                         <div className="absolute -top-1 left-0 right-0 h-1 bg-primary rounded-full z-10 animate-pulse" />
                       )}
                     <Card
-                      className={`p-3 sm:p-4 hover:shadow-md transition-all ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2 opacity-50" : ""} ${isDropTarget && itemSortBy === "manual" ? "ring-2 ring-primary/30" : ""}`}
+                      className={`p-3 sm:p-4 hover:shadow-md transition-all relative ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2 opacity-50" : ""} ${isDropTarget && itemSortBy === "manual" ? "ring-2 ring-primary/30" : ""}`}
                       draggable={itemSortBy === "manual" && canEditListItems}
                       onDragStart={(e) =>
                         itemSortBy === "manual" && canEditListItems && handleDragStart(e, item)
@@ -4022,6 +4024,11 @@ export default function ListDetail() {
                               )}
                               {item.text}
                             </p>
+                            {item.notes && !item.completed && (
+                              <p className="text-xs text-gray-500 -mt-0.5 break-words italic pointer-events-none">
+                                {item.notes}
+                              </p>
+                            )}
                             <div className="flex items-center gap-2 flex-wrap">
                             {isPurchased && (
                               <Badge className="bg-accent/10 text-accent border-accent/20">
@@ -4046,12 +4053,6 @@ export default function ListDetail() {
                             </div>
                           </div>
 
-                          {item.notes && !item.completed && (
-                            <p className="text-xs sm:text-sm text-gray-600 mt-2 break-words">
-                              {item.notes}
-                            </p>
-                          )}
-
                           {item.links && item.links.length > 0 && (
                             <div className="mt-2 space-y-1">
                               {item.links.map((link, idx) => (
@@ -4061,7 +4062,7 @@ export default function ListDetail() {
                           )}
                         </div>
                         {!isSelectMode && canEditListItems && (
-                          <div className="flex flex-col sm:flex-row items-center gap-1">
+                          <div className="flex flex-col sm:flex-row items-center gap-1 shrink-0 relative z-10 pointer-events-auto">
                             <Dialog
                               open={editingItem?.id === item.id}
                               onOpenChange={(open) => !open && setEditingItem(null)}
@@ -4070,7 +4071,10 @@ export default function ListDetail() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => setEditingItem(item)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingItem(item);
+                                  }}
                                 >
                                   Edit
                                 </Button>
@@ -4194,7 +4198,7 @@ export default function ListDetail() {
                     )}
                     
                     <Card
-                      className={`p-3 sm:p-4 hover:shadow-md transition-all ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${isPurchased ? "border-success/20 bg-success/5" : ""} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2 opacity-50" : ""} ${isDropTarget && itemSortBy === "manual" ? "ring-2 ring-primary/30" : ""}`}
+                      className={`p-3 sm:p-4 hover:shadow-md transition-all relative ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${isPurchased ? "border-success/20 bg-success/5" : ""} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2 opacity-50" : ""} ${isDropTarget && itemSortBy === "manual" ? "ring-2 ring-primary/30" : ""}`}
                       draggable={itemSortBy === "manual" && canEditListItems}
                       onDragStart={(e) =>
                         itemSortBy === "manual" && canEditListItems && handleDragStart(e, item)
@@ -4252,6 +4256,11 @@ export default function ListDetail() {
                               )}
                               {item.text}
                             </p>
+                            {item.notes && !item.completed && (
+                              <p className="text-xs text-gray-500 -mt-0.5 break-words italic pointer-events-none">
+                                {item.notes}
+                              </p>
+                            )}
                             <div className="flex items-center gap-2 flex-wrap">
                             {isPurchased && (
                               <Badge className="bg-success/10 text-success border-success/30">
@@ -4344,11 +4353,6 @@ export default function ListDetail() {
                               </Badge>
                             )}
                           </div>
-                          {item.notes && !item.completed && (
-                            <p className="text-xs sm:text-sm text-gray-600 mt-2 break-words">
-                              {item.notes}
-                            </p>
-                          )}
 
                           {/* Link Preview Card for Registry/Wishlist/Idea items */}
                           {(item.attributes?.productLink || item.attributes?.inspirationLink) && (
@@ -4398,7 +4402,7 @@ export default function ListDetail() {
                           )}
                         </div>
                         {!isSelectMode && canEditListItems && (
-                          <div className="flex flex-col sm:flex-row items-center gap-1">
+                          <div className="flex flex-col sm:flex-row items-center gap-1 shrink-0 relative z-10 pointer-events-auto">
                             <Dialog
                               open={editingItem?.id === item.id}
                               onOpenChange={(open) => !open && setEditingItem(null)}
@@ -4407,7 +4411,10 @@ export default function ListDetail() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => setEditingItem(item)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingItem(item);
+                                  }}
                                 >
                                   Edit
                                 </Button>
