@@ -204,6 +204,15 @@ export default function ListDetail() {
     return list.items.some(item => item.attributes?.section && item.attributes.section.trim() !== '');
   }, [list?.items]);
   
+  // Check if list is categorized (grocery lists use category attribute)
+  const isCategorized = useMemo(() => {
+    if (!list?.items) return false;
+    return list.items.some(item => {
+      const cat = item.attributes?.category || item.attributes?.section;
+      return cat && cat.trim() !== '';
+    });
+  }, [list?.items]);
+  
   // Get available sections for sectioned lists
   const availableSections = useMemo(() => {
     if (!list?.items) return ['Extras'];
@@ -218,15 +227,31 @@ export default function ListDetail() {
     return Array.from(sectionsSet).sort();
   }, [list?.items]);
   
+  // Get available categories for grocery lists (use category, fallback to section for older rows)
+  const availableCategories = useMemo(() => {
+    if (!list?.items) return ['Other'];
+    const categoriesSet = new Set<string>();
+    list.items.forEach(item => {
+      const cat = item.attributes?.category || item.attributes?.section;
+      if (cat && cat.trim() !== '') {
+        categoriesSet.add(cat.trim());
+      }
+    });
+    // Always ensure 'Other' is available
+    categoriesSet.add('Other');
+    return Array.from(categoriesSet).sort();
+  }, [list?.items]);
+  
   // Save last opened list ID for "List View" toggle
   if (id) {
     localStorage.setItem("last_list_id", id);
   }
   
-  // Safe list type checks (support both 'todo' and 'todo-list' formats)
+  // Safe list type checks (support both short and long formats)
   const lt = list?.listType;
   const isTodo = lt === 'todo' || lt === 'todo-list';
   const isIdea = lt === 'idea' || lt === 'idea-list';
+  const isGrocery = lt === 'grocery' || lt === 'grocery-list';
   
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [newItemText, setNewItemText] = useState("");
@@ -308,6 +333,9 @@ export default function ListDetail() {
   // Section state for sectioned lists (todo/idea)
   const [newItemSection, setNewItemSection] = useState<string>("");
   
+  // Category state for grocery lists
+  const [newItemGroceryCategory, setNewItemGroceryCategory] = useState<string>("");
+  
   // Initialize section from localStorage when list changes
   useEffect(() => {
     if (list?.id && isSectioned) {
@@ -316,11 +344,27 @@ export default function ListDetail() {
     }
   }, [list?.id, isSectioned]);
   
+  // Initialize category from localStorage for grocery lists
+  useEffect(() => {
+    if (list?.id && isGrocery && isCategorized) {
+      const savedCategory = localStorage.getItem(`listmine:lastCategory:${list.id}`);
+      setNewItemGroceryCategory(savedCategory || 'Other');
+    }
+  }, [list?.id, isGrocery, isCategorized]);
+  
   // Save section selection to localStorage
   const handleSectionChange = (section: string) => {
     setNewItemSection(section);
     if (list?.id) {
       localStorage.setItem(`listmine:lastSection:${list.id}`, section);
+    }
+  };
+  
+  // Save category selection to localStorage for grocery lists
+  const handleGroceryCategoryChange = (category: string) => {
+    setNewItemGroceryCategory(category);
+    if (list?.id) {
+      localStorage.setItem(`listmine:lastCategory:${list.id}`, category);
     }
   };
   
@@ -467,8 +511,14 @@ export default function ListDetail() {
       // Build attributes object based on list type
       const attributes: any = {};
       
-      if (list.listType === "grocery-list") {
-        if (newItemCategory) attributes.category = newItemCategory;
+      if (isGrocery) {
+        // Always use category for grocery lists (not section)
+        if (newItemCategory) {
+          attributes.category = newItemCategory;
+        } else if (isCategorized && newItemGroceryCategory) {
+          // Use selected category from dropdown for categorized grocery lists
+          attributes.category = newItemGroceryCategory;
+        }
         if (newItemUnit) attributes.unit = newItemUnit;
         if (newItemPrice) attributes.price = newItemPrice;
       } else if (list.listType === "registry-list") {
@@ -2320,8 +2370,29 @@ export default function ListDetail() {
                 )}
 
                 {/* GROCERY LIST - Grocery fields */}
-                {list.listType === "grocery-list" && (
+                {isGrocery && (
                   <>
+                    {/* Category dropdown for categorized grocery lists */}
+                    {isCategorized && (
+                      <div className="mb-2">
+                        <Label className="text-xs mb-2">Category</Label>
+                        <Select
+                          value={newItemGroceryCategory || "Other"}
+                          onValueChange={handleGroceryCategoryChange}
+                        >
+                          <SelectTrigger className="min-h-[44px]">
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableCategories.map((category) => (
+                              <SelectItem key={category} value={category}>
+                                {category}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                     {!detailedMode && (
                       <div className="flex gap-2">
                         <Input
