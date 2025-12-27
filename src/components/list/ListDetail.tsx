@@ -223,6 +223,11 @@ export default function ListDetail() {
     localStorage.setItem("last_list_id", id);
   }
   
+  // Safe list type checks (support both 'todo' and 'todo-list' formats)
+  const lt = list?.listType;
+  const isTodo = lt === 'todo' || lt === 'todo-list';
+  const isIdea = lt === 'idea' || lt === 'idea-list';
+  
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [newItemText, setNewItemText] = useState("");
   const [newItemQuantity, setNewItemQuantity] = useState<number | undefined>();
@@ -488,13 +493,13 @@ export default function ListDetail() {
           if (newItemLinkDescription) attributes.customLinkDescription = newItemLinkDescription;
           if (newItemLinkImage) attributes.customLinkImage = newItemLinkImage;
         }
-      } else if (list.listType === "todo-list") {
+      } else if (isTodo) {
         if (newItemStatus) attributes.status = newItemStatus;
         // Add section for sectioned todo lists
         if (isSectioned && newItemSection) {
           attributes.section = newItemSection;
         }
-      } else if (list.listType === "idea-list") {
+      } else if (isIdea) {
         if (newItemStatus) attributes.status = newItemStatus;
         // Add section for sectioned idea lists
         if (isSectioned && newItemSection) {
@@ -2194,7 +2199,7 @@ export default function ListDetail() {
                 )}
 
                 {/* TO-DO LIST - Task fields */}
-                {list.listType === "todo-list" && (
+                {isTodo && (
                   <>
                     {/* Section dropdown for sectioned todo lists */}
                     {isSectioned && (
@@ -2697,7 +2702,7 @@ export default function ListDetail() {
                 )}
 
                 {/* IDEA LIST - Idea fields */}
-                {list.listType === "idea-list" && (
+                {isIdea && (
                   <>
                     {/* Section dropdown for sectioned idea lists */}
                     {isSectioned && (
@@ -3265,7 +3270,7 @@ export default function ListDetail() {
                                     )}
 
                                     {/* TO-DO LIST FIELDS */}
-                                    {list.listType === "todo-list" && (
+                                    {isTodo && (
                                       <>
                                         <div className="space-y-2">
                                           <Label>Due Date</Label>
@@ -3648,7 +3653,7 @@ export default function ListDetail() {
                                     )}
 
                                     {/* IDEA LIST FIELDS */}
-                                    {list.listType === "idea-list" && (
+                                    {isIdea && (
                                       <>
                                         <div className="space-y-2">
                                           <Label>Inspiration Link (optional)</Label>
@@ -4257,7 +4262,7 @@ export default function ListDetail() {
                             {(item.attributes?.productLink || item.attributes?.inspirationLink) && (
                               <Badge variant="outline" className="text-xs bg-primary/10 border-primary/20">
                                 <LinkIcon className="w-3 h-3 mr-1 text-primary" />
-                                <span className="text-primary underline">{list.listType === "idea-list" ? "Inspiration" : "Product"} Link</span>
+                                <span className="text-primary underline">{isIdea ? "Inspiration" : "Product"} Link</span>
                               </Badge>
                             )}
                             {item.links && item.links.length > 0 && (
@@ -4461,7 +4466,7 @@ export default function ListDetail() {
                                     )}
 
                                     {/* TO-DO LIST FIELDS */}
-                                    {list.listType === "todo-list" && (
+                                    {isTodo && (
                                       <>
                                         <div className="space-y-2">
                                           <Label>Due Date</Label>
@@ -4853,7 +4858,7 @@ export default function ListDetail() {
                                     )}
 
                                     {/* IDEA LIST FIELDS */}
-                                    {list.listType === "idea-list" && (
+                                    {isIdea && (
                                       <>
                                         <div className="space-y-2">
                                           <Label>Inspiration Link (optional)</Label>
