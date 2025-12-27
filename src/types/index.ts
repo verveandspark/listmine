@@ -139,7 +139,7 @@ export const canManageSharing = (list: List, currentUserId: string | undefined):
   return false;
 };
 
-export type ListCategory = 'Tasks' | 'Groceries' | 'Ideas' | 'Shopping' | 'Travel' | 'Work' | 'Home' | 'School' | 'Other';
+export type ListCategory = 'Tasks' | 'Shopping' | 'Meals' | 'Household' | 'Planning' | 'Other' | 'School' | 'Work';
 
 export type ListType = 
   | 'task-list'

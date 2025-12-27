@@ -209,16 +209,43 @@ export default function CreateListModal({
 
   const categories: ListCategory[] = [
     "Tasks",
-    "Work",
-    "Home",
-    "School",
     "Shopping",
+    "Meals",
+    "Household",
+    "Planning",
     "Other",
+    "School",
+    "Work",
   ];
+  
+  // Map list types to default categories
+  const getDefaultCategoryForListType = (type: ListType): ListCategory => {
+    switch (type) {
+      case 'todo':
+      case 'todo-list':
+      case 'task-list':
+      case 'checklist':
+        return 'Tasks';
+      case 'registry':
+      case 'registry-list':
+      case 'wishlist':
+      case 'shopping-list':
+      case 'grocery':
+      case 'grocery-list':
+        return 'Shopping';
+      case 'idea':
+      case 'idea-list':
+      case 'custom':
+      default:
+        return 'Other';
+    }
+  };
 
   const handleListTypeClick = (typeInfo: typeof listTypesWithAvailability[0]) => {
     if (typeInfo.available) {
       setListType(typeInfo.value);
+      // Auto-set category based on list type (user can still override)
+      setCategory(getDefaultCategoryForListType(typeInfo.value));
     } else {
       setUpsellListType({ label: typeInfo.label, tier: typeInfo.requiredTier });
       setUpsellOpen(true);

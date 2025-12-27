@@ -13,10 +13,10 @@ export interface ListTypeInfo {
 export const ALL_LIST_TYPES: ListTypeInfo[] = [
   { value: "custom", label: "Custom", requiredTier: "free", tierLabel: "Free" },
   { value: "todo-list", label: "To-Do", requiredTier: "free", tierLabel: "Free" },
-  { value: "grocery-list", label: "Grocery", requiredTier: "good", tierLabel: "Good" },
+  { value: "shopping-list", label: "Shopping List", requiredTier: "good", tierLabel: "Good" },
   { value: "idea-list", label: "Idea", requiredTier: "good", tierLabel: "Good" },
   { value: "registry-list", label: "Registry", requiredTier: "even_better", tierLabel: "Even Better" },
-  { value: "shopping-list", label: "Wishlist", requiredTier: "even_better", tierLabel: "Even Better" },
+  { value: "wishlist", label: "Wishlist", requiredTier: "even_better", tierLabel: "Even Better" },
 ];
 
 // Tier hierarchy for comparison

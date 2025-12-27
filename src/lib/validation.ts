@@ -6,6 +6,30 @@ export interface ValidationResult {
   value?: string;
 }
 
+// Canonical category values
+export const CANONICAL_CATEGORIES = [
+  'Tasks',
+  'Shopping',
+  'Meals',
+  'Household',
+  'Planning',
+  'Other',
+  'School',
+  'Work',
+] as const;
+
+// Normalize category to canonical values
+export const normalizeCategory = (category: string | undefined | null): string => {
+  if (!category) return 'Other';
+  
+  // Find matching canonical category (case-insensitive)
+  const normalized = CANONICAL_CATEGORIES.find(
+    c => c.toLowerCase() === category.toLowerCase()
+  );
+  
+  return normalized || 'Other';
+};
+
 // Sanitize input to prevent XSS and SQL injection
 export function sanitizeInput(input: string): string {
   if (!input) return '';

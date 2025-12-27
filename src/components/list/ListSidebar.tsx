@@ -43,13 +43,18 @@ import { canImportLists, canShareLists } from "@/lib/tierUtils";
 
 const categoryIcons: Record<string, any> = {
   Tasks: CheckSquare,
+  Shopping: ShoppingCart,
+  Meals: ShoppingCart,
+  Household: CheckSquare,
+  Planning: ListChecks,
+  Other: ListChecks,
+  School: CheckSquare,
+  Work: CheckSquare,
+  // Legacy categories (for backward compatibility)
   Groceries: ShoppingCart,
   Ideas: Lightbulb,
-  Shopping: ShoppingCart,
   Travel: Plane,
-  Work: CheckSquare,
   Home: CheckSquare,
-  Other: ListChecks,
 };
 
 export function ListSidebar() {

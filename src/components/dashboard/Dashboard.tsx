@@ -126,35 +126,49 @@ import ShareSettingsModal from "@/components/list/ShareSettingsModal";
 
 const categoryIcons: Record<string, any> = {
   Tasks: CheckSquare,
+  Shopping: ShoppingCart,
+  Meals: ShoppingCart,
+  Household: CheckSquare,
+  Planning: ListChecks,
+  Other: ListChecks,
+  School: CheckSquare,
+  Work: CheckSquare,
+  // Legacy categories (for backward compatibility)
   Groceries: ShoppingCart,
   Ideas: Lightbulb,
-  Shopping: ShoppingCart,
   Travel: Plane,
-  Work: CheckSquare,
   Home: CheckSquare,
-  Other: ListChecks,
 };
 
 const categoryColors: Record<string, string> = {
-  Home: "bg-[#5789aa]/10 text-[#5789aa] border-[#5789aa]/20",
-  Shopping: "bg-[#2ba8a8]/10 text-[#2ba8a8] border-[#2ba8a8]/20",
-  Work: "bg-[#1f628e]/10 text-[#1f628e] border-[#1f628e]/20",
-  School: "bg-[#80d4d4]/10 text-[#80d4d4] border-[#80d4d4]/20",
   Tasks: "bg-[#2ba8a8]/10 text-[#2ba8a8] border-[#2ba8a8]/20",
+  Shopping: "bg-[#2ba8a8]/10 text-[#2ba8a8] border-[#2ba8a8]/20",
+  Meals: "bg-[#5789aa]/10 text-[#5789aa] border-[#5789aa]/20",
+  Household: "bg-[#1f628e]/10 text-[#1f628e] border-[#1f628e]/20",
+  Planning: "bg-[#80d4d4]/10 text-[#80d4d4] border-[#80d4d4]/20",
   Other: "bg-[#cbd5e1]/10 text-[#cbd5e1] border-[#cbd5e1]/20",
+  School: "bg-[#80d4d4]/10 text-[#80d4d4] border-[#80d4d4]/20",
+  Work: "bg-[#1f628e]/10 text-[#1f628e] border-[#1f628e]/20",
+  // Legacy categories (for backward compatibility)
   Groceries: "bg-[#2ba8a8]/10 text-[#2ba8a8] border-[#2ba8a8]/20",
   Ideas: "bg-[#5789aa]/10 text-[#5789aa] border-[#5789aa]/20",
   Travel: "bg-[#80d4d4]/10 text-[#80d4d4] border-[#80d4d4]/20",
+  Home: "bg-[#5789aa]/10 text-[#5789aa] border-[#5789aa]/20",
 };
 
 const listTypes: { value: ListType; label: string }[] = [
   { value: "task-list", label: "Task List" },
   { value: "todo-list", label: "To-Do List" },
+  { value: "todo", label: "To-Do" },
   { value: "registry-list", label: "Registry List" },
+  { value: "registry", label: "Registry" },
   { value: "checklist", label: "Checklist" },
   { value: "grocery-list", label: "Grocery List" },
-  { value: "shopping-list", label: "Wishlist" },
+  { value: "grocery", label: "Grocery" },
+  { value: "shopping-list", label: "Shopping List" },
+  { value: "wishlist", label: "Wishlist" },
   { value: "idea-list", label: "Idea List" },
+  { value: "idea", label: "Idea" },
   { value: "multi-topic", label: "Multi-Topic" },
   { value: "compare-contrast", label: "Compare & Contrast" },
   { value: "pro-con", label: "Pro/Con List" },
