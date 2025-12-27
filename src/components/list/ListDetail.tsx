@@ -7,7 +7,7 @@ import GuestManagement from "./GuestManagement";
 import TeamManagement from "@/components/team/TeamManagement";
 import UpdateFromRetailerModal from "./UpdateFromRetailerModal";
 import MergeListsModal from "./MergeListsModal";
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useLists } from "@/contexts/useListsHook";
 import { useAuth } from "@/contexts/useAuthHook";
@@ -116,7 +116,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useEffect } from "react";
 import {
   validateItemName,
   validateQuantity,
@@ -199,6 +198,26 @@ export default function ListDetail() {
   const canEditListItems = list ? canEditItems(list, user?.id) : false;
   const canShare = list ? canManageSharing(list, user?.id) : false;
   
+  // Check if list is sectioned (has items with section attribute)
+  const isSectioned = useMemo(() => {
+    if (!list?.items) return false;
+    return list.items.some(item => item.attributes?.section && item.attributes.section.trim() !== '');
+  }, [list?.items]);
+  
+  // Get available sections for sectioned lists
+  const availableSections = useMemo(() => {
+    if (!list?.items) return ['Extras'];
+    const sectionsSet = new Set<string>();
+    list.items.forEach(item => {
+      if (item.attributes?.section && item.attributes.section.trim() !== '') {
+        sectionsSet.add(item.attributes.section.trim());
+      }
+    });
+    // Always ensure 'Extras' is available
+    sectionsSet.add('Extras');
+    return Array.from(sectionsSet).sort();
+  }, [list?.items]);
+  
   // Save last opened list ID for "List View" toggle
   if (id) {
     localStorage.setItem("last_list_id", id);
@@ -280,6 +299,25 @@ export default function ListDetail() {
   
   // Help modal state
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  
+  // Section state for sectioned lists (todo/idea)
+  const [newItemSection, setNewItemSection] = useState<string>("");
+  
+  // Initialize section from localStorage when list changes
+  useEffect(() => {
+    if (list?.id && isSectioned) {
+      const savedSection = localStorage.getItem(`listmine:lastSection:${list.id}`);
+      setNewItemSection(savedSection || 'Extras');
+    }
+  }, [list?.id, isSectioned]);
+  
+  // Save section selection to localStorage
+  const handleSectionChange = (section: string) => {
+    setNewItemSection(section);
+    if (list?.id) {
+      localStorage.setItem(`listmine:lastSection:${list.id}`, section);
+    }
+  };
   
   // View mode state for toggle
   const [viewMode, setViewMode] = useState<"dashboard" | "list">(() => {
@@ -452,8 +490,16 @@ export default function ListDetail() {
         }
       } else if (list.listType === "todo-list") {
         if (newItemStatus) attributes.status = newItemStatus;
+        // Add section for sectioned todo lists
+        if (isSectioned && newItemSection) {
+          attributes.section = newItemSection;
+        }
       } else if (list.listType === "idea-list") {
         if (newItemStatus) attributes.status = newItemStatus;
+        // Add section for sectioned idea lists
+        if (isSectioned && newItemSection) {
+          attributes.section = newItemSection;
+        }
         if (newItemProductLink) {
           attributes.inspirationLink = newItemProductLink;
           // Save manual link preview data
@@ -2150,6 +2196,27 @@ export default function ListDetail() {
                 {/* TO-DO LIST - Task fields */}
                 {list.listType === "todo-list" && (
                   <>
+                    {/* Section dropdown for sectioned todo lists */}
+                    {isSectioned && (
+                      <div className="mb-2">
+                        <Label className="text-xs mb-2">Section</Label>
+                        <Select
+                          value={newItemSection || "Extras"}
+                          onValueChange={handleSectionChange}
+                        >
+                          <SelectTrigger className="min-h-[44px]">
+                            <SelectValue placeholder="Select section" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableSections.map((section) => (
+                              <SelectItem key={section} value={section}>
+                                {section}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                     {!detailedMode && (
                       <div className="space-y-2">
                         <Input
@@ -2632,6 +2699,27 @@ export default function ListDetail() {
                 {/* IDEA LIST - Idea fields */}
                 {list.listType === "idea-list" && (
                   <>
+                    {/* Section dropdown for sectioned idea lists */}
+                    {isSectioned && (
+                      <div className="mb-2">
+                        <Label className="text-xs mb-2">Section</Label>
+                        <Select
+                          value={newItemSection || "Extras"}
+                          onValueChange={handleSectionChange}
+                        >
+                          <SelectTrigger className="min-h-[44px]">
+                            <SelectValue placeholder="Select section" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableSections.map((section) => (
+                              <SelectItem key={section} value={section}>
+                                {section}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                     {!detailedMode && (
                       <div className="space-y-2">
                         <Input
