@@ -784,6 +784,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
         isTeamOwner: list.account_id ? ownerAccountIds.includes(list.account_id) : false,
         // Store the account owner ID for team lists
         accountOwnerId: list.account_id ? accountOwnerMap.get(list.account_id) || null : null,
+        // Source and template tracking
+        source: list.source || 'standard',
+        templateId: list.template_id || null,
       })) || [];
 
       // Split lists into categories for tier filtering

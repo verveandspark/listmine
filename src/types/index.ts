@@ -101,6 +101,8 @@ export interface List {
   createdAt: Date;
   updatedAt: Date;
   showPurchaserInfo?: boolean;
+  source?: 'standard' | 'template';
+  templateId?: string | null;
 }
 
 // Permission helper functions

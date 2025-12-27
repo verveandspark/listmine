@@ -23,8 +23,8 @@ BEGIN
     RAISE EXCEPTION 'Template not found or inactive';
   END IF;
 
-  INSERT INTO public.lists (user_id, title, category, list_type)
-  VALUES (v_user_id, p_list_name, v_template.category, v_template.list_type)
+  INSERT INTO public.lists (user_id, title, category, list_type, source, template_id)
+  VALUES (v_user_id, p_list_name, v_template.category, v_template.list_type, 'template', p_template_id)
   RETURNING id INTO v_new_list_id;
 
   INSERT INTO public.list_items (list_id, text, quantity, notes, item_order, attributes)
@@ -48,5 +48,3 @@ BEGIN
   RETURN v_new_list_id;
 END;
 $$;
-
-ALTER TABLE public.template_items DROP COLUMN IF EXISTS category;
