@@ -130,26 +130,31 @@ export default function ShareSettingsModal({
     if (copied) {
       toast({
         title: "Link copied!",
-        description: "Share link copied to clipboard",
+        duration: 2000,
       });
     } else {
       toast({
-        title: "📋 Share link",
+        title: "Share link ready",
         description: (
-          <div className="flex flex-col gap-2">
-            <span>Tap and hold to copy:</span>
-            <input 
-              type="text" 
-              readOnly 
-              value={shareLink} 
-              className="bg-muted p-2 rounded text-xs break-all w-full border-0"
-              onClick={(e) => {
-                (e.target as HTMLInputElement).select();
+          <div className="flex items-center justify-between gap-2 mt-1">
+            <span className="text-sm text-muted-foreground">Tap to copy</span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 px-2 text-xs shrink-0"
+              onClick={async () => {
+                const success = await copyToClipboard(shareLink);
+                if (success) {
+                  toast({ title: "Copied!", duration: 1500 });
+                }
               }}
-            />
+            >
+              <Copy className="w-3 h-3 mr-1" />
+              Copy link
+            </Button>
           </div>
         ),
-        duration: 15000,
+        duration: 8000,
       });
     }
   };
@@ -184,27 +189,51 @@ export default function ShareSettingsModal({
         const copied = await copyToClipboard(shareLink);
         if (copied) {
           toast({
-            title: "Settings saved and link copied!",
-            description: `Link is now ${shareMode === 'view_only' ? 'view-only' : 'importable'}`,
+            title: "Settings saved!",
+            description: (
+              <div className="flex items-center justify-between gap-2 mt-1">
+                <span className="text-sm text-muted-foreground">Link copied ({shareMode === 'view_only' ? 'view-only' : 'importable'})</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 px-2 text-xs shrink-0"
+                  onClick={async () => {
+                    const success = await copyToClipboard(shareLink);
+                    if (success) {
+                      toast({ title: "Copied!", duration: 1500 });
+                    }
+                  }}
+                >
+                  <Copy className="w-3 h-3 mr-1" />
+                  Copy link
+                </Button>
+              </div>
+            ),
+            duration: 5000,
           });
         } else {
           toast({
-            title: "Share settings updated",
+            title: "Share settings updated!",
             description: (
-              <div className="flex flex-col gap-2">
-                <span>Tap and hold to copy:</span>
-                <input 
-                  type="text" 
-                  readOnly 
-                  value={shareLink} 
-                  className="bg-muted p-2 rounded text-xs break-all w-full border-0"
-                  onClick={(e) => {
-                    (e.target as HTMLInputElement).select();
+              <div className="flex items-center justify-between gap-2 mt-1">
+                <span className="text-sm text-muted-foreground">{shareMode === 'view_only' ? 'View-only' : 'Importable'}</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 px-2 text-xs shrink-0"
+                  onClick={async () => {
+                    const success = await copyToClipboard(shareLink);
+                    if (success) {
+                      toast({ title: "Copied!", duration: 1500 });
+                    }
                   }}
-                />
+                >
+                  <Copy className="w-3 h-3 mr-1" />
+                  Copy link
+                </Button>
               </div>
             ),
-            duration: 15000,
+            duration: 8000,
           });
         }
       } else {
@@ -234,27 +263,51 @@ export default function ShareSettingsModal({
         const copied = await copyToClipboard(link);
         if (copied) {
           toast({
-            title: "Share link created and copied!",
-            description: link,
+            title: "Share link created!",
+            description: (
+              <div className="flex items-center justify-between gap-2 mt-1">
+                <span className="text-sm text-muted-foreground">Link copied to clipboard</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 px-2 text-xs shrink-0"
+                  onClick={async () => {
+                    const success = await copyToClipboard(link);
+                    if (success) {
+                      toast({ title: "Copied!", duration: 1500 });
+                    }
+                  }}
+                >
+                  <Copy className="w-3 h-3 mr-1" />
+                  Copy link
+                </Button>
+              </div>
+            ),
+            duration: 5000,
           });
         } else {
           toast({
-            title: "Share link created",
+            title: "Share link created!",
             description: (
-              <div className="flex flex-col gap-2">
-                <span>Tap and hold to copy:</span>
-                <input 
-                  type="text" 
-                  readOnly 
-                  value={link} 
-                  className="bg-muted p-2 rounded text-xs break-all w-full border-0"
-                  onClick={(e) => {
-                    (e.target as HTMLInputElement).select();
+              <div className="flex items-center justify-between gap-2 mt-1">
+                <span className="text-sm text-muted-foreground">Ready to share</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 px-2 text-xs shrink-0"
+                  onClick={async () => {
+                    const success = await copyToClipboard(link);
+                    if (success) {
+                      toast({ title: "Copied!", duration: 1500 });
+                    }
                   }}
-                />
+                >
+                  <Copy className="w-3 h-3 mr-1" />
+                  Copy link
+                </Button>
               </div>
             ),
-            duration: 15000,
+            duration: 8000,
           });
         }
       }

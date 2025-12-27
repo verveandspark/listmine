@@ -1468,7 +1468,7 @@ export default function ListDetail() {
               </div>
 
               {/* View Mode Toggle */}
-              <div className="hidden sm:flex items-center bg-muted rounded-lg p-1">
+              <div className="hidden sm:flex items-center bg-muted rounded-lg p-1 shrink-0">
                 <Button
                   variant={viewMode === "dashboard" ? "default" : "ghost"}
                   size="sm"
@@ -1498,7 +1498,7 @@ export default function ListDetail() {
               </div>
 
               {/* Desktop Actions - Grouped logically */}
-              <div className="hidden md:flex items-center gap-1">
+              <div className="hidden md:flex items-center gap-1 shrink-0">
                 {/* Primary Actions Group */}
                 <div className="flex items-center gap-1 pr-2 border-r border-gray-200">
                   {user?.tier === "free" ? (
@@ -5170,12 +5170,12 @@ export default function ListDetail() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Tasks">Tasks</SelectItem>
-                  <SelectItem value="Groceries">Groceries</SelectItem>
-                  <SelectItem value="Ideas">Ideas</SelectItem>
                   <SelectItem value="Shopping">Shopping</SelectItem>
-                  <SelectItem value="Travel">Travel</SelectItem>
+                  <SelectItem value="Meals">Meals</SelectItem>
+                  <SelectItem value="Household">Household</SelectItem>
+                  <SelectItem value="Planning">Planning</SelectItem>
+                  <SelectItem value="School">School</SelectItem>
                   <SelectItem value="Work">Work</SelectItem>
-                  <SelectItem value="Home">Home</SelectItem>
                   <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>

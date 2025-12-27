@@ -465,7 +465,9 @@ export type Database = {
           share_link: string | null
           share_mode: string | null
           show_purchaser_info: boolean | null
+          source: string
           tags: string[] | null
+          template_id: string | null
           title: string
           updated_at: string | null
           user_id: string
@@ -488,7 +490,9 @@ export type Database = {
           share_link?: string | null
           share_mode?: string | null
           show_purchaser_info?: boolean | null
+          source?: string
           tags?: string[] | null
+          template_id?: string | null
           title: string
           updated_at?: string | null
           user_id: string
@@ -511,7 +515,9 @@ export type Database = {
           share_link?: string | null
           share_mode?: string | null
           show_purchaser_info?: boolean | null
+          source?: string
           tags?: string[] | null
+          template_id?: string | null
           title?: string
           updated_at?: string | null
           user_id?: string
