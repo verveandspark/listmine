@@ -142,15 +142,20 @@ export type ListCategory = 'Tasks' | 'Groceries' | 'Ideas' | 'Shopping' | 'Trave
 export type ListType = 
   | 'task-list'
   | 'todo-list'
+  | 'todo'
   | 'registry-list'
+  | 'registry'
   | 'checklist'
   | 'grocery-list'
+  | 'grocery'
   | 'shopping-list'
   | 'idea-list'
+  | 'idea'
   | 'multi-topic'
   | 'compare-contrast'
   | 'pro-con'
   | 'multi-option'
+  | 'wishlist'
   | 'custom';
 
 export interface ListTemplate {
