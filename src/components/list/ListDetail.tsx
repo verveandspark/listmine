@@ -3133,7 +3133,7 @@ export default function ListDetail() {
 
                           {/* Grocery-specific attributes */}
                           {item.attributes && (
-                            <div className="flex items-center gap-2 mt-2 flex-wrap">
+                            <div className="flex items-center gap-2 mt-2 flex-wrap pointer-events-none">
                               {item.attributes.unit && (
                                 <Badge
                                   variant="outline"
@@ -3153,14 +3153,14 @@ export default function ListDetail() {
                             </div>
                           )}
 
-                          {/* Link Preview Card for Registry/Wishlist/Idea items */}
+                          {/* Link Preview Card for Registry/Wishlist/Idea items - VIEW 1 */}
                           {(item.attributes?.productLink || item.attributes?.inspirationLink) && (
-                            <div className="mt-3">
+                            <div className="mt-3 pointer-events-none">
                               <a
                                 href={item.attributes.productLink || item.attributes.inspirationLink}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="block border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow bg-white"
+                                className="block border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow bg-white pointer-events-auto"
                               >
                                 {item.attributes.customLinkImage && (
                                   <img
@@ -3193,31 +3193,31 @@ export default function ListDetail() {
                           )}
 
                           {item.links && item.links.length > 0 && (
-                            <div className="mt-2 space-y-1">
+                            <div className="mt-2 space-y-1 pointer-events-none">
                               {item.links.map((link, idx) => (
                                 <LinkIconWithPreview key={idx} url={link} />
                               ))}
                             </div>
                           )}
                         </div>
+                        {/* VIEW 1 Actions - Standard/Category View */}
                         {!isSelectMode && canEditListItems && (
-                          <div className="flex flex-col sm:flex-row items-center gap-1 shrink-0 relative z-10 pointer-events-auto">
+                          <div className="flex flex-col sm:flex-row items-center gap-1 shrink-0 relative z-50 pointer-events-auto">
+                            <button
+                              type="button"
+                              className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 px-3"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                setEditingItem(item);
+                              }}
+                            >
+                              Edit
+                            </button>
                             <Dialog
                               open={editingItem?.id === item.id}
                               onOpenChange={(open) => !open && setEditingItem(null)}
                             >
-                              <DialogTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setEditingItem(item);
-                                  }}
-                                >
-                                  Edit
-                                </Button>
-                              </DialogTrigger>
                               <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                                 <DialogHeader>
                                   <DialogTitle>Edit Item</DialogTitle>
@@ -4054,31 +4054,31 @@ export default function ListDetail() {
                           </div>
 
                           {item.links && item.links.length > 0 && (
-                            <div className="mt-2 space-y-1">
+                            <div className="mt-2 space-y-1 pointer-events-none">
                               {item.links.map((link, idx) => (
                                 <LinkIconWithPreview key={idx} url={link} />
                               ))}
                             </div>
                           )}
                         </div>
+                        {/* VIEW 2 Actions - Section View */}
                         {!isSelectMode && canEditListItems && (
-                          <div className="flex flex-col sm:flex-row items-center gap-1 shrink-0 relative z-10 pointer-events-auto">
+                          <div className="flex flex-col sm:flex-row items-center gap-1 shrink-0 relative z-50 pointer-events-auto">
+                            <button
+                              type="button"
+                              className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 px-3"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                setEditingItem(item);
+                              }}
+                            >
+                              Edit
+                            </button>
                             <Dialog
                               open={editingItem?.id === item.id}
                               onOpenChange={(open) => !open && setEditingItem(null)}
                             >
-                              <DialogTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setEditingItem(item);
-                                  }}
-                                >
-                                  Edit
-                                </Button>
-                              </DialogTrigger>
                             </Dialog>
                             <AlertDialog
                               open={itemToDelete === item.id}
@@ -4394,31 +4394,31 @@ export default function ListDetail() {
                           )}
 
                           {item.links && item.links.length > 0 && (
-                            <div className="mt-2 space-y-1">
+                            <div className="mt-2 space-y-1 pointer-events-none">
                               {item.links.map((link, idx) => (
                                 <LinkIconWithPreview key={idx} url={link} />
                               ))}
                             </div>
                           )}
                         </div>
+                        {/* VIEW 3 Actions - Compact View */}
                         {!isSelectMode && canEditListItems && (
-                          <div className="flex flex-col sm:flex-row items-center gap-1 shrink-0 relative z-10 pointer-events-auto">
+                          <div className="flex flex-col sm:flex-row items-center gap-1 shrink-0 relative z-50 pointer-events-auto">
+                            <button
+                              type="button"
+                              className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 px-3"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                setEditingItem(item);
+                              }}
+                            >
+                              Edit
+                            </button>
                             <Dialog
                               open={editingItem?.id === item.id}
                               onOpenChange={(open) => !open && setEditingItem(null)}
                             >
-                              <DialogTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setEditingItem(item);
-                                  }}
-                                >
-                                  Edit
-                                </Button>
-                              </DialogTrigger>
                               <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                                 <DialogHeader>
                                   <DialogTitle>Edit Item</DialogTitle>
