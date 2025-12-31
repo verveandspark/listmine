@@ -361,13 +361,18 @@ export default function ListDetail() {
   // Category state for grocery lists
   const [newItemGroceryCategory, setNewItemGroceryCategory] = useState<string>("");
   
-  // Initialize section from localStorage when list changes
+  // Initialize section from localStorage when list changes (or default to first section)
   useEffect(() => {
     if (list?.id && isSectioned) {
       const savedSection = localStorage.getItem(`listmine:lastSection:${list.id}`);
-      setNewItemSection(savedSection || 'Extras');
+      // Use saved section if it exists in available sections, otherwise use first available
+      if (savedSection && availableSections.includes(savedSection)) {
+        setNewItemSection(savedSection);
+      } else {
+        setNewItemSection(availableSections[0] || 'Extras');
+      }
     }
-  }, [list?.id, isSectioned]);
+  }, [list?.id, isSectioned, availableSections]);
   
   // Initialize category from localStorage for grocery lists
   useEffect(() => {
@@ -605,6 +610,11 @@ export default function ListDetail() {
           if (newItemLinkTitle) attributes.customLinkTitle = newItemLinkTitle;
           if (newItemLinkDescription) attributes.customLinkDescription = newItemLinkDescription;
           if (newItemLinkImage) attributes.customLinkImage = newItemLinkImage;
+        }
+      } else if (list.listType === "custom") {
+        // Add section for sectioned custom lists (Recipe, Vacation Packing, Home Maintenance, Moving Checklist)
+        if (isSectioned && newItemSection) {
+          attributes.section = newItemSection;
         }
       }
 
@@ -2884,6 +2894,27 @@ export default function ListDetail() {
                 {/* CUSTOM LIST - Simple fields */}
                 {list.listType === "custom" && (
                   <>
+                    {/* Section dropdown for sectioned custom lists (Recipe, Vacation Packing, etc.) */}
+                    {isSectioned && (
+                      <div className="mb-2">
+                        <Label className="text-xs mb-2">Section</Label>
+                        <Select
+                          value={newItemSection || availableSections[0] || "Extras"}
+                          onValueChange={handleSectionChange}
+                        >
+                          <SelectTrigger className="min-h-[44px]">
+                            <SelectValue placeholder="Select section" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableSections.map((section) => (
+                              <SelectItem key={section} value={section}>
+                                {section}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                     {!detailedMode && (
                       <div className="space-y-2">
                         <Input
@@ -3100,26 +3131,6 @@ export default function ListDetail() {
                         />
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <Label className="text-xs mb-2">Category</Label>
-                            <Select
-                              value={newItemCategory || ""}
-                              onValueChange={setNewItemCategory}
-                            >
-                              <SelectTrigger className="min-h-[44px]">
-                                <SelectValue placeholder="Select category" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="produce">Produce</SelectItem>
-                                <SelectItem value="dairy">Dairy</SelectItem>
-                                <SelectItem value="meat">Meat</SelectItem>
-                                <SelectItem value="pantry">Pantry</SelectItem>
-                                <SelectItem value="frozen">Frozen</SelectItem>
-                                <SelectItem value="bakery">Bakery</SelectItem>
-                                <SelectItem value="other">Other</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
                             <Label className="text-xs mb-2">Quantity</Label>
                             <Input
                               type="number"
@@ -3132,8 +3143,6 @@ export default function ListDetail() {
                               min="1"
                             />
                           </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
                           <div>
                             <Label className="text-xs mb-2">Unit</Label>
                             <Select
@@ -3155,6 +3164,8 @@ export default function ListDetail() {
                               </SelectContent>
                             </Select>
                           </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
                           <div>
                             <Label className="text-xs mb-2">Est. Price</Label>
                             <Input
