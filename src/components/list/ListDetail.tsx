@@ -3074,27 +3074,6 @@ export default function ListDetail() {
                 {/* GROCERY LIST - Grocery fields */}
                 {isGrocery && (
                   <>
-                    {/* Category dropdown - ONLY shown in Detailed mode (Quick mode hides it since grocery auto-sorts) */}
-                    {isCategorized && detailedMode && (
-                      <div className="mb-2">
-                        <Label className="text-xs mb-2">Category</Label>
-                        <Select
-                          value={newItemGroceryCategory || "Other"}
-                          onValueChange={handleGroceryCategoryChange}
-                        >
-                          <SelectTrigger className="min-h-[44px]">
-                            <SelectValue placeholder="Select category" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {availableCategories.map((category) => (
-                              <SelectItem key={category} value={category}>
-                                {category}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
                     {!detailedMode && (
                       <div className="flex gap-2">
                         <Input
@@ -3123,13 +3102,35 @@ export default function ListDetail() {
                     )}
                     {detailedMode && (
                       <div className="space-y-3">
+                        {/* Row 1: Item name (full width) */}
                         <Input
                           placeholder="Item name"
                           value={newItemText}
                           onChange={(e) => setNewItemText(e.target.value)}
                           className="min-h-[44px]"
                         />
+                        {/* Row 2: Category (left 50%) + Quantity (right 50%) */}
                         <div className="grid grid-cols-2 gap-3">
+                          {isCategorized && (
+                            <div>
+                              <Label className="text-xs mb-2">Category</Label>
+                              <Select
+                                value={newItemGroceryCategory || "Other"}
+                                onValueChange={handleGroceryCategoryChange}
+                              >
+                                <SelectTrigger className="min-h-[44px]">
+                                  <SelectValue placeholder="Select category" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {availableCategories.map((category) => (
+                                    <SelectItem key={category} value={category}>
+                                      {category}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
                           <div>
                             <Label className="text-xs mb-2">Quantity</Label>
                             <Input
@@ -3143,6 +3144,9 @@ export default function ListDetail() {
                               min="1"
                             />
                           </div>
+                        </div>
+                        {/* Row 3: Unit (left 50%) + Est. Price (right 50%) */}
+                        <div className="grid grid-cols-2 gap-3">
                           <div>
                             <Label className="text-xs mb-2">Unit</Label>
                             <Select
@@ -3164,8 +3168,6 @@ export default function ListDetail() {
                               </SelectContent>
                             </Select>
                           </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
                           <div>
                             <Label className="text-xs mb-2">Est. Price</Label>
                             <Input
@@ -3181,6 +3183,7 @@ export default function ListDetail() {
                             />
                           </div>
                         </div>
+                        {/* Notes (full width) */}
                         <Textarea
                           placeholder="Notes (optional)"
                           value={newItemNotes}
