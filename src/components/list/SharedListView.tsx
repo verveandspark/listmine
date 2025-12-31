@@ -737,7 +737,9 @@ export default function SharedListView() {
                           {item.priority}
                         </Badge>
                       )}
-                      {item.notes && !item.text.match(/^(Main idea|Supporting details|Action items|Follow-up needed|Resources\/links)$/) && (
+                      {item.notes && 
+                        !item.text.match(/^(Main idea|Supporting details|Action items|Follow-up needed|Resources\/links|Breakfast|Lunch|Dinner|Snack|Notes)$/) &&
+                        !item.notes.match(/^(Add meal|Add snack|Add idea|Add item|Ideas for next week)/) && (
                         <Badge variant="outline" className="text-xs">
                           <StickyNote className="w-3 h-3 mr-1" />
                           Note
@@ -752,11 +754,7 @@ export default function SharedListView() {
                       )}
                     </div>
 
-                    {item.attributes?.purchaseStatus === "purchased" && (
-                      <Badge className="bg-success/10 text-success border-success/30">
-                        ✓ Purchased
-                      </Badge>
-                    )}
+
 
                     {item.notes && !item.completed && (
                       <p className="text-xs sm:text-sm text-gray-600 mt-2 break-words">

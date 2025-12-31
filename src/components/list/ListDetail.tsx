@@ -3719,7 +3719,7 @@ export default function ListDetail() {
                     </Badge>
                   </div>
                   {categoryItems.map((item, index) => {
-                    const isPurchased = item.attributes?.purchaseStatus === "purchased";
+                    const isPurchased = isRegistryOrWishlist(list.listType) && item.attributes?.purchaseStatus === "purchased";
                     const isDropTarget = dropTargetId === item.id;
                     
                     return (
@@ -3986,7 +3986,7 @@ export default function ListDetail() {
                     </Badge>
                   </div>
                   {sectionItems.map((item, index) => {
-                    const isPurchased = item.attributes?.purchaseStatus === "purchased";
+                    const isPurchased = isRegistryOrWishlist(list.listType) && item.attributes?.purchaseStatus === "purchased";
                     const isDropTarget = dropTargetId === item.id;
                     
                     return (
@@ -4363,7 +4363,9 @@ export default function ListDetail() {
                                 {item.priority}
                               </Badge>
                             )}
-                            {item.notes && !item.text.match(/^(Main idea|Supporting details|Action items|Follow-up needed|Resources\/links)$/) && (
+                            {item.notes && 
+                              !item.text.match(/^(Main idea|Supporting details|Action items|Follow-up needed|Resources\/links|Breakfast|Lunch|Dinner|Snack|Notes)$/) &&
+                              !item.notes.match(/^(Add meal|Add snack|Add idea|Add item|Ideas for next week)/) && (
                               <Badge variant="outline" className="text-xs">
                                 <FileText className="w-3 h-3 mr-1" />
                                 Note
