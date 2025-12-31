@@ -60,6 +60,30 @@ const EVEN_BETTER_INCLUDED_SLUGS = [
 
 const MARKETPLACE_URL = "https://listmine.com/templates";
 
+// Category order for grouping templates
+const CATEGORY_ORDER = [
+  "planning",
+  "work",
+  "shopping",
+  "household",
+  "meals",
+  "tasks",
+  "other",
+  "school",
+];
+
+// Category labels for headers
+const CATEGORY_LABELS: Record<string, string> = {
+  planning: "Planning",
+  work: "Work",
+  shopping: "Shopping",
+  household: "Household",
+  meals: "Meals",
+  tasks: "Tasks",
+  other: "Other",
+  school: "School",
+};
+
 export default function Templates() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -186,6 +210,21 @@ export default function Templates() {
         return "locked";
     }
   };
+
+  // Sort templates by category order then by name
+  const sortedTemplates = [...templates].sort((a, b) => {
+    const categoryA = (a.category || "other").toLowerCase();
+    const categoryB = (b.category || "other").toLowerCase();
+    const orderA = CATEGORY_ORDER.indexOf(categoryA);
+    const orderB = CATEGORY_ORDER.indexOf(categoryB);
+    const effectiveOrderA = orderA === -1 ? CATEGORY_ORDER.length : orderA;
+    const effectiveOrderB = orderB === -1 ? CATEGORY_ORDER.length : orderB;
+    
+    if (effectiveOrderA !== effectiveOrderB) {
+      return effectiveOrderA - effectiveOrderB;
+    }
+    return a.name.localeCompare(b.name);
+  });
 
   const handleRedeemCode = async () => {
     if (!redemptionCode.trim()) {
@@ -434,80 +473,113 @@ export default function Templates() {
             </div>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {templates.map((template) => {
-              const status = getTemplateStatus(template);
-              const isAvailable = status === "included" || status === "unlocked";
+          <div className="space-y-6">
+            {(() => {
+              // Group templates by category
+              const groupedByCategory: Record<string, Template[]> = {};
+              sortedTemplates.forEach((template) => {
+                const category = (template.category || "other").toLowerCase();
+                if (!groupedByCategory[category]) {
+                  groupedByCategory[category] = [];
+                }
+                groupedByCategory[category].push(template);
+              });
 
-              return (
-                <Card
-                  key={template.id}
-                  className={`transition-all duration-200 hover:shadow-lg ${
-                    isAvailable ? "hover:border-primary/30" : "opacity-90 hover:border-muted-foreground/30"
-                  }`}
-                >
-                  <CardHeader>
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="text-4xl">{template.icon_emoji}</div>
-                      {status === "included" && (
-                        <Badge
-                          variant="outline"
-                          className="bg-accent/10 text-accent border-accent/20"
-                        >
-                          Included
-                        </Badge>
-                      )}
-                      {status === "unlocked" && (
-                        <Badge
-                          variant="outline"
-                          className="bg-primary/10 text-primary border-primary/20"
-                        >
-                          Unlocked
-                        </Badge>
-                      )}
-                      {status === "locked" && (
-                        <Badge
-                          variant="outline"
-                          className="bg-muted text-muted-foreground border-muted-foreground/20"
-                        >
-                          Locked
-                        </Badge>
-                      )}
+              // Get categories in order - use CATEGORY_ORDER, then append unknown categories alphabetically
+              const knownCategories = CATEGORY_ORDER.filter((c) => groupedByCategory[c]?.length);
+              const unknownCategories = Object.keys(groupedByCategory)
+                .filter((c) => !CATEGORY_ORDER.includes(c))
+                .sort((a, b) => a.localeCompare(b));
+              const orderedCategories = [...knownCategories, ...unknownCategories];
+
+              return orderedCategories.map((category) => {
+                const categoryTemplates = groupedByCategory[category];
+                const categoryLabel = CATEGORY_LABELS[category] || category.charAt(0).toUpperCase() + category.slice(1);
+
+                return (
+                  <div key={category}>
+                    <h3 className="text-sm font-extrabold text-foreground/70 tracking-wide mb-4">
+                      {categoryLabel}
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {categoryTemplates.map((template) => {
+                        const status = getTemplateStatus(template);
+                        const isAvailable = status === "included" || status === "unlocked";
+
+                        return (
+                          <Card
+                            key={template.id}
+                            className={`transition-all duration-200 hover:shadow-lg ${
+                              isAvailable ? "hover:border-primary/30" : "opacity-90 hover:border-muted-foreground/30"
+                            }`}
+                          >
+                            <CardHeader>
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="text-4xl">{template.icon_emoji}</div>
+                                {status === "included" && (
+                                  <Badge
+                                    variant="outline"
+                                    className="bg-accent/10 text-accent border-accent/20"
+                                  >
+                                    Included
+                                  </Badge>
+                                )}
+                                {status === "unlocked" && (
+                                  <Badge
+                                    variant="outline"
+                                    className="bg-primary/10 text-primary border-primary/20"
+                                  >
+                                    Unlocked
+                                  </Badge>
+                                )}
+                                {status === "locked" && (
+                                  <Badge
+                                    variant="outline"
+                                    className="bg-muted text-muted-foreground border-muted-foreground/20"
+                                  >
+                                    Locked
+                                  </Badge>
+                                )}
+                              </div>
+                              <CardTitle className="text-xl text-foreground">
+                                {template.name}
+                              </CardTitle>
+                              <CardDescription className="line-clamp-2">
+                                {template.description}
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground">
+                                  {template.item_count} items
+                                </span>
+                                {isAvailable ? (
+                                  <Button
+                                    onClick={() => handleUseTemplate(template)}
+                                    className="bg-primary hover:bg-primary/90"
+                                  >
+                                    Use Template
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    onClick={() => window.open(MARKETPLACE_URL, "_blank")}
+                                    variant="outline"
+                                    className="border-primary text-primary hover:bg-primary/10"
+                                  >
+                                    <ExternalLink className="w-4 h-4 mr-2" />
+                                    Browse Templates
+                                  </Button>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
                     </div>
-                    <CardTitle className="text-xl text-foreground">
-                      {template.name}
-                    </CardTitle>
-                    <CardDescription className="line-clamp-2">
-                      {template.description}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">
-                        {template.item_count} items
-                      </span>
-                      {isAvailable ? (
-                        <Button
-                          onClick={() => handleUseTemplate(template)}
-                          className="bg-primary hover:bg-primary/90"
-                        >
-                          Use Template
-                        </Button>
-                      ) : (
-                        <Button
-                          onClick={() => window.open(MARKETPLACE_URL, "_blank")}
-                          variant="outline"
-                          className="border-primary text-primary hover:bg-primary/10"
-                        >
-                          <ExternalLink className="w-4 h-4 mr-2" />
-                          Browse Templates
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                  </div>
+                );
+              });
+            })()}
           </div>
         )}
 
