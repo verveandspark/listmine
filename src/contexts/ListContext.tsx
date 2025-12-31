@@ -694,17 +694,18 @@ export function ListProvider({ children }: { children: ReactNode }) {
         
         itemsData = items || [];
 
-        // Sync purchase statuses from purchases table for registry/shopping lists
-        const registryShoppingListIds = listsData
-          .filter((l) => l.list_type === "registry-list" || l.list_type === "shopping-list")
+        // Sync purchase statuses from purchases table for registry/wishlist lists only
+        // Note: shopping-list does NOT support purchase tracking
+        const registryWishlistListIds = listsData
+          .filter((l) => l.list_type === "registry-list" || l.list_type === "registry" || l.list_type === "wishlist")
           .map((l) => l.id);
 
-        if (registryShoppingListIds.length > 0) {
+        if (registryWishlistListIds.length > 0) {
           try {
             const { data: purchases } = await supabase
               .from("purchases")
               .select("item_id")
-              .in("list_id", registryShoppingListIds);
+              .in("list_id", registryWishlistListIds);
 
             if (purchases && purchases.length > 0) {
               const purchasedItemIds = new Set(purchases.map((p) => p.item_id));

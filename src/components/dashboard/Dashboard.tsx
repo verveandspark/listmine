@@ -156,25 +156,33 @@ const categoryColors: Record<string, string> = {
   Home: "bg-[#5789aa]/10 text-[#5789aa] border-[#5789aa]/20",
 };
 
+// Filter dropdown list types (simplified, no duplicates)
 const listTypes: { value: ListType; label: string }[] = [
-  { value: "task-list", label: "Task List" },
-  { value: "todo-list", label: "To-Do List" },
-  { value: "todo", label: "To-Do" },
-  { value: "registry-list", label: "Registry List" },
-  { value: "registry", label: "Registry" },
-  { value: "checklist", label: "Checklist" },
-  { value: "grocery-list", label: "Grocery List" },
-  { value: "grocery", label: "Grocery" },
-  { value: "shopping-list", label: "Shopping List" },
-  { value: "wishlist", label: "Wishlist" },
-  { value: "idea-list", label: "Idea List" },
-  { value: "idea", label: "Idea" },
-  { value: "multi-topic", label: "Multi-Topic" },
-  { value: "compare-contrast", label: "Compare & Contrast" },
-  { value: "pro-con", label: "Pro/Con List" },
-  { value: "multi-option", label: "Multi-Option" },
   { value: "custom", label: "Custom" },
+  { value: "todo", label: "To-Do" },
+  { value: "shopping-list", label: "Shopping List" },
+  { value: "idea", label: "Idea" },
+  { value: "registry", label: "Registry" },
+  { value: "wishlist", label: "Wishlist" },
 ];
+
+// Normalize legacy list types for filtering
+const normalizeListType = (listType: string | undefined): string => {
+  if (!listType) return "custom";
+  const normalizations: Record<string, string> = {
+    "todo-list": "todo",
+    "task-list": "todo",
+    "idea-list": "idea",
+    "registry-list": "registry",
+    "checklist": "todo",
+    "grocery-list": "shopping-list",
+    "multi-topic": "custom",
+    "compare-contrast": "custom",
+    "pro-con": "custom",
+    "multi-option": "custom",
+  };
+  return normalizations[listType] || listType;
+};
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
@@ -857,9 +865,9 @@ export default function Dashboard() {
     );
   }
 
-  // Apply type filter
+  // Apply type filter (using normalizeListType for legacy value support)
   if (filterType !== "all") {
-    displayLists = displayLists.filter((list) => list.listType === filterType);
+    displayLists = displayLists.filter((list) => normalizeListType(list.listType) === filterType);
   }
 
   // Apply favorites filter

@@ -303,9 +303,10 @@ export function canAccessBilling(role: TeamMemberRole | string | undefined): boo
 /**
  * Check if list type supports anonymous claim / purchase tracking
  * Registry and Wishlist types (even_better+) have this feature
+ * Note: shopping-list does NOT support this feature
  */
 export function supportsAnonymousClaim(listType: ListType): boolean {
-  return listType === "registry-list" || listType === "shopping-list";
+  return listType === "registry-list" || listType === "registry" || listType === "wishlist";
 }
 
 /**

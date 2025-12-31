@@ -365,36 +365,51 @@ export default function CreateListModal({
             </div>
             <div className="grid grid-cols-2 gap-2">
               <TooltipProvider>
-                {listTypesWithAvailability.map((typeInfo) => (
-                  <Tooltip key={typeInfo.value}>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        variant={listType === typeInfo.value ? "default" : "outline"}
-                        className={`relative justify-start ${
-                          !typeInfo.available
-                            ? "opacity-60 cursor-not-allowed border-dashed"
-                            : ""
-                        } ${
-                          listType === typeInfo.value
-                            ? "ring-2 ring-primary ring-offset-2"
-                            : ""
-                        }`}
-                        onClick={() => handleListTypeClick(typeInfo)}
-                      >
-                        {typeInfo.label}
-                        {!typeInfo.available && (
-                          <Lock className="w-3 h-3 ml-auto text-muted-foreground" />
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    {!typeInfo.available && (
-                      <TooltipContent>
-                        <p>Available on {typeInfo.tierLabel} tier</p>
-                      </TooltipContent>
-                    )}
-                  </Tooltip>
-                ))}
+                {listTypesWithAvailability.map((typeInfo) => {
+                  const helperTexts: Record<string, string> = {
+                    custom: "Flexible lists for anything (notes, plans, collections).",
+                    todo: "Tasks with due dates and status.",
+                    "shopping-list": "Track items to buy (links, quantities).",
+                    idea: "Capture and organize ideas.",
+                    registry: "Shareable gift registry with purchase tracking.",
+                    wishlist: "Shareable wish list with purchase tracking.",
+                  };
+                  return (
+                    <Tooltip key={typeInfo.value}>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant={listType === typeInfo.value ? "default" : "outline"}
+                          className={`relative flex-col items-start h-auto py-2 px-3 ${
+                            !typeInfo.available
+                              ? "opacity-60 cursor-not-allowed border-dashed"
+                              : ""
+                          } ${
+                            listType === typeInfo.value
+                              ? "ring-2 ring-primary ring-offset-2"
+                              : ""
+                          }`}
+                          onClick={() => handleListTypeClick(typeInfo)}
+                        >
+                          <span className="flex items-center w-full justify-between">
+                            {typeInfo.label}
+                            {!typeInfo.available && (
+                              <Lock className="w-3 h-3 ml-auto text-muted-foreground" />
+                            )}
+                          </span>
+                          <span className="text-[10px] sm:text-xs font-normal text-muted-foreground mt-0.5 text-left leading-tight">
+                            {helperTexts[typeInfo.value] || ""}
+                          </span>
+                        </Button>
+                      </TooltipTrigger>
+                      {!typeInfo.available && (
+                        <TooltipContent>
+                          <p>Available on {typeInfo.tierLabel} tier</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  );
+                })}
               </TooltipProvider>
             </div>
           </div>
