@@ -7,7 +7,7 @@ CHECK (share_mode IN ('view_only', 'importable', 'both', 'registry_buyer'));
 UPDATE public.lists
 SET share_mode = 'registry_buyer'
 WHERE is_shared = TRUE
-  AND list_type IN ('registry-list', 'wishlist', 'shopping-list')
+  AND list_type IN ('registry-list', 'wishlist')
   AND (share_mode = 'view_only' OR share_mode IS NULL);
 
 DROP FUNCTION IF EXISTS get_shared_list_by_share_link(TEXT);
@@ -24,7 +24,6 @@ RETURNS TABLE (
   share_link TEXT,
   share_mode TEXT,
   tags TEXT[],
-  collaborators TEXT[],
   created_at TIMESTAMPTZ,
   updated_at TIMESTAMPTZ,
   show_purchaser_info BOOLEAN,
@@ -33,9 +32,9 @@ RETURNS TABLE (
 ) AS $$
 BEGIN
   RETURN QUERY
-  SELECT
-    l.id,
-    l.user_id,
+  SELECT 
+    l.id::UUID,
+    l.user_id::UUID,
     l.title::TEXT,
     l.category::TEXT,
     l.list_type::TEXT,
@@ -44,14 +43,22 @@ BEGIN
     l.share_link::TEXT,
     COALESCE(l.share_mode, 'view_only')::TEXT,
     l.tags::TEXT[],
-    l.collaborators::TEXT[],
     l.created_at::TIMESTAMPTZ,
     l.updated_at::TIMESTAMPTZ,
     l.show_purchaser_info::BOOLEAN,
     l.is_archived::BOOLEAN,
     l.is_favorite::BOOLEAN
   FROM public.lists l
-  WHERE LOWER(l.share_link) = LOWER(p_share_link)
-    AND l.is_shared = TRUE;
+  WHERE (
+    l.share_link = p_share_link
+    OR l.share_link LIKE '%/shared/' || p_share_link
+    OR l.share_link LIKE '%/' || p_share_link
+    OR SUBSTRING(l.share_link FROM '/shared/([^/]+)$') = p_share_link
+    OR SUBSTRING(l.share_link FROM '/([^/]+)$') = p_share_link
+  )
+  AND l.is_shared = TRUE;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
+
+GRANT EXECUTE ON FUNCTION get_shared_list_by_share_link(TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION get_shared_list_by_share_link(TEXT) TO anon;
