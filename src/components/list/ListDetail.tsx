@@ -285,6 +285,8 @@ export default function ListDetail() {
   });
 
   const [editingItem, setEditingItem] = useState<ListItemType | null>(null);
+  // Separate boolean to persist modal open state across item refreshes
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // Link preview for new items
   const { previewData, loading: previewLoading, error: previewError, fetchPreview } = useOpenGraphPreview();
@@ -379,6 +381,7 @@ export default function ListDetail() {
       // Press 'Escape' to close dialogs
       if (e.key === "Escape") {
         setIsShareDialogOpen(false);
+        setIsEditModalOpen(false);
         setEditingItem(null);
         setItemToDelete(null);
       }
@@ -387,6 +390,20 @@ export default function ListDetail() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
+
+  // DEV-only debug logging for editingItem changes
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      console.log('[DEV] editingItem changed:', editingItem ? { id: editingItem.id, text: editingItem.text } : null, 'isEditModalOpen:', isEditModalOpen);
+    }
+  }, [editingItem, isEditModalOpen]);
+
+  // DEV-only debug logging for list/items changes
+  useEffect(() => {
+    if (import.meta.env.DEV && list) {
+      console.log('[DEV] list.items changed, count:', list.items?.length, 'editingItem:', editingItem?.id, 'isEditModalOpen:', isEditModalOpen);
+    }
+  }, [list?.items]);
 
   const priorityColors = {
     low: "bg-success/10 text-success border-success/20",
@@ -1380,6 +1397,137 @@ export default function ListDetail() {
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 animate-in fade-in duration-200 print:bg-white print:min-h-0">
+      {/* DEV-only debug badge for editingItem */}
+      {import.meta.env.DEV && (editingItem || isEditModalOpen) && (
+        <div className="fixed top-2 left-1/2 -translate-x-1/2 z-[9999] bg-yellow-400 text-black px-3 py-1 rounded-full text-xs font-mono shadow-lg">
+          {editingItem ? `Editing: ${editingItem.text} (ID: ${editingItem.id.slice(0, 8)}...)` : 'No editingItem'} | Modal: {isEditModalOpen ? 'OPEN' : 'CLOSED'}
+        </div>
+      )}
+
+      {/* GLOBAL Edit Modal - Rendered at top level for all views */}
+      {isEditModalOpen && editingItem && (
+        <Dialog
+          open={true}
+          onOpenChange={(open) => {
+            if (import.meta.env.DEV) console.log('[DEV] GLOBAL Edit Dialog onOpenChange:', open);
+            if (!open) {
+              setIsEditModalOpen(false);
+              setEditingItem(null);
+            }
+          }}
+          modal={true}
+        >
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto z-[9999]">
+            <DialogHeader>
+              <DialogTitle>Edit Item</DialogTitle>
+              <DialogDescription>
+                Update item details and attributes
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              {/* Item Name - Always shown */}
+              <div className="space-y-2">
+                <Label>Item Name</Label>
+                <Input
+                  value={editingItem.text}
+                  onChange={(e) =>
+                    setEditingItem({
+                      ...editingItem,
+                      text: e.target.value,
+                    })
+                  }
+                />
+              </div>
+
+              {/* Notes field - Always shown */}
+              <div className="space-y-2">
+                <Label>Notes</Label>
+                <Textarea
+                  value={editingItem.notes || ""}
+                  onChange={(e) =>
+                    setEditingItem({
+                      ...editingItem,
+                      notes: e.target.value,
+                    })
+                  }
+                  placeholder="Add notes..."
+                  className="min-h-[80px]"
+                />
+              </div>
+
+              {/* Due Date */}
+              <div className="space-y-2">
+                <Label>Due Date</Label>
+                <Input
+                  type="date"
+                  value={editingItem.dueDate ? (typeof editingItem.dueDate === 'string' ? editingItem.dueDate : new Date(editingItem.dueDate).toISOString().split('T')[0]) : ""}
+                  onChange={(e) =>
+                    setEditingItem({
+                      ...editingItem,
+                      dueDate: e.target.value || undefined,
+                    })
+                  }
+                />
+              </div>
+
+              {/* Priority */}
+              <div className="space-y-2">
+                <Label>Priority</Label>
+                <Select
+                  value={editingItem.priority || ""}
+                  onValueChange={(value) =>
+                    setEditingItem({
+                      ...editingItem,
+                      priority: value as "low" | "medium" | "high",
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Save/Cancel Buttons */}
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsEditModalOpen(false);
+                    setEditingItem(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={async () => {
+                    if (editingItem) {
+                      await updateListItem(list.id, editingItem.id, {
+                        text: editingItem.text,
+                        notes: editingItem.notes,
+                        dueDate: editingItem.dueDate,
+                        priority: editingItem.priority,
+                        quantity: editingItem.quantity,
+                        attributes: editingItem.attributes,
+                      });
+                      setIsEditModalOpen(false);
+                      setEditingItem(null);
+                    }
+                  }}
+                >
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+      
       {/* Sidebar - Hidden on mobile, visible on desktop, hidden on print */}
       <div className="hidden md:block print:hidden">
         <ListSidebar />
@@ -3209,675 +3357,13 @@ export default function ListDetail() {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 e.preventDefault();
+                                if (import.meta.env.DEV) console.log('[DEV] VIEW 1 Edit button clicked for item:', item.id, item.text);
                                 setEditingItem(item);
+                                setIsEditModalOpen(true);
                               }}
                             >
                               Edit
                             </button>
-                            <Dialog
-                              open={editingItem?.id === item.id}
-                              onOpenChange={(open) => !open && setEditingItem(null)}
-                            >
-                              <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                                <DialogHeader>
-                                  <DialogTitle>Edit Item</DialogTitle>
-                                  <DialogDescription>
-                                    Update item details and attributes
-                                  </DialogDescription>
-                                </DialogHeader>
-                                {editingItem && (
-                                  <div className="space-y-4 mt-4">
-                                    {/* Item Name - Always shown */}
-                                    <div className="space-y-2">
-                                      <Label>Item Name</Label>
-                                      <Input
-                                        value={editingItem.text}
-                                        onChange={(e) =>
-                                          setEditingItem({
-                                            ...editingItem,
-                                            text: e.target.value,
-                                          })
-                                        }
-                                      />
-                                    </div>
-
-                                    {/* GROCERY LIST FIELDS */}
-                                    {list.listType === "grocery-list" && (
-                                      <>
-                                        <div className="grid grid-cols-2 gap-4">
-                                          <div className="space-y-2">
-                                            <Label>Category</Label>
-                                            <Select
-                                              value={editingItem.attributes?.category || ""}
-                                              onValueChange={(value) =>
-                                                setEditingItem({
-                                                  ...editingItem,
-                                                  attributes: {
-                                                    ...editingItem.attributes,
-                                                    category: value,
-                                                  },
-                                                })
-                                              }
-                                            >
-                                              <SelectTrigger>
-                                                <SelectValue placeholder="Select category" />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                <SelectItem value="produce">Produce</SelectItem>
-                                                <SelectItem value="dairy">Dairy</SelectItem>
-                                                <SelectItem value="meat">Meat</SelectItem>
-                                                <SelectItem value="pantry">Pantry</SelectItem>
-                                                <SelectItem value="frozen">Frozen</SelectItem>
-                                                <SelectItem value="bakery">Bakery</SelectItem>
-                                                <SelectItem value="other">Other</SelectItem>
-                                              </SelectContent>
-                                            </Select>
-                                          </div>
-                                          <div className="space-y-2">
-                                            <Label>Quantity</Label>
-                                            <Input
-                                              type="number"
-                                              value={editingItem.quantity || ""}
-                                              onChange={(e) =>
-                                                setEditingItem({
-                                                  ...editingItem,
-                                                  quantity: e.target.value
-                                                    ? parseInt(e.target.value)
-                                                    : undefined,
-                                                })
-                                              }
-                                            />
-                                          </div>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                          <div className="space-y-2">
-                                            <Label>Unit</Label>
-                                            <Select
-                                              value={editingItem.attributes?.unit || ""}
-                                              onValueChange={(value) =>
-                                                setEditingItem({
-                                                  ...editingItem,
-                                                  attributes: {
-                                                    ...editingItem.attributes,
-                                                    unit: value,
-                                                  },
-                                                })
-                                              }
-                                            >
-                                              <SelectTrigger>
-                                                <SelectValue placeholder="Select unit" />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                <SelectItem value="lbs">lbs</SelectItem>
-                                                <SelectItem value="oz">oz</SelectItem>
-                                                <SelectItem value="count">count</SelectItem>
-                                                <SelectItem value="liters">liters</SelectItem>
-                                                <SelectItem value="ml">ml</SelectItem>
-                                                <SelectItem value="cups">cups</SelectItem>
-                                                <SelectItem value="tbsp">tbsp</SelectItem>
-                                                <SelectItem value="tsp">tsp</SelectItem>
-                                              </SelectContent>
-                                            </Select>
-                                          </div>
-                                          <div className="space-y-2">
-                                            <Label>Est. Price</Label>
-                                            <Input
-                                              type="number"
-                                              step="0.01"
-                                              value={editingItem.attributes?.price || ""}
-                                              onChange={(e) =>
-                                                setEditingItem({
-                                                  ...editingItem,
-                                                  attributes: {
-                                                    ...editingItem.attributes,
-                                                    price: e.target.value
-                                                      ? parseFloat(e.target.value)
-                                                      : undefined,
-                                                  },
-                                                })
-                                              }
-                                            />
-                                          </div>
-                                        </div>
-                                      </>
-                                    )}
-
-                                    {/* TO-DO LIST FIELDS */}
-                                    {isTodo && (
-                                      <>
-                                        <div className="space-y-2">
-                                          <Label>Due Date</Label>
-                                          <Popover>
-                                            <PopoverTrigger asChild>
-                                              <Button
-                                                variant="outline"
-                                                className="w-full justify-start"
-                                              >
-                                                <Calendar className="w-4 h-4 mr-2" />
-                                                {editingItem.dueDate
-                                                  ? format(
-                                                      new Date(editingItem.dueDate),
-                                                      "PPP",
-                                                    )
-                                                  : "Pick a date"}
-                                              </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0">
-                                              <CalendarComponent
-                                                mode="single"
-                                                selected={
-                                                  editingItem.dueDate
-                                                    ? new Date(editingItem.dueDate)
-                                                    : undefined
-                                                }
-                                                onSelect={(date) =>
-                                                  setEditingItem({
-                                                    ...editingItem,
-                                                    dueDate: date,
-                                                  })
-                                                }
-                                              />
-                                            </PopoverContent>
-                                          </Popover>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                          <div className="space-y-2">
-                                            <Label>Priority</Label>
-                                            <Select
-                                              value={editingItem.priority || "none"}
-                                              onValueChange={(value) =>
-                                                setEditingItem({
-                                                  ...editingItem,
-                                                  priority:
-                                                    value === "none"
-                                                      ? undefined
-                                                      : (value as
-                                                          | "low"
-                                                          | "medium"
-                                                          | "high"),
-                                                })
-                                              }
-                                            >
-                                              <SelectTrigger>
-                                                <SelectValue />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                <SelectItem value="none">
-                                                  None
-                                                </SelectItem>
-                                                <SelectItem value="low">Low</SelectItem>
-                                                <SelectItem value="medium">
-                                                  Medium
-                                                </SelectItem>
-                                                <SelectItem value="high">
-                                                  High
-                                                </SelectItem>
-                                              </SelectContent>
-                                            </Select>
-                                          </div>
-                                          <div className="space-y-2">
-                                            <Label>Status</Label>
-                                            <Select
-                                              value={editingItem.attributes?.status || ""}
-                                              onValueChange={(value) =>
-                                                setEditingItem({
-                                                  ...editingItem,
-                                                  attributes: {
-                                                    ...editingItem.attributes,
-                                                    status: value,
-                                                  },
-                                                })
-                                              }
-                                            >
-                                              <SelectTrigger>
-                                                <SelectValue placeholder="Select status" />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                <SelectItem value="not-started">Not started</SelectItem>
-                                                <SelectItem value="in-progress">In progress</SelectItem>
-                                                <SelectItem value="completed">Completed</SelectItem>
-                                              </SelectContent>
-                                            </Select>
-                                          </div>
-                                        </div>
-                                      </>
-                                    )}
-
-                                    {/* WISHLIST FIELDS */}
-                                    {list.listType === "shopping-list" && (
-                                      <>
-                                        <div className="space-y-2">
-                                          <Label>Product Link (optional)</Label>
-                                          <Input
-                                            type="url"
-                                            placeholder="https://example.com/product"
-                                            value={editingItem.attributes?.productLink || ""}
-                                            onChange={(e) =>
-                                              setEditingItem({
-                                                ...editingItem,
-                                                attributes: {
-                                                  ...editingItem.attributes,
-                                                  productLink: e.target.value,
-                                                },
-                                              })
-                                            }
-                                          />
-                                        </div>
-                                        <div className="space-y-2">
-                                          <Label>Link Title (optional)</Label>
-                                          <Input
-                                            type="text"
-                                            placeholder="e.g., Wireless Headphones"
-                                            value={editingItem.attributes?.customLinkTitle || ""}
-                                            onChange={(e) =>
-                                              setEditingItem({
-                                                ...editingItem,
-                                                attributes: {
-                                                  ...editingItem.attributes,
-                                                  customLinkTitle: e.target.value,
-                                                },
-                                              })
-                                            }
-                                          />
-                                        </div>
-                                        <div className="space-y-2">
-                                          <Label>Link Description (optional)</Label>
-                                          <Textarea
-                                            placeholder="e.g., Noise-canceling over-ear headphones"
-                                            value={editingItem.attributes?.customLinkDescription || ""}
-                                            onChange={(e) =>
-                                              setEditingItem({
-                                                ...editingItem,
-                                                attributes: {
-                                                  ...editingItem.attributes,
-                                                  customLinkDescription: e.target.value,
-                                                },
-                                              })
-                                            }
-                                          />
-                                        </div>
-                                        <div className="space-y-2">
-                                          <Label>Link Image URL (optional)</Label>
-                                          <Input
-                                            type="url"
-                                            placeholder="e.g., https://example.com/image.jpg"
-                                            value={editingItem.attributes?.customLinkImage || ""}
-                                            onChange={(e) =>
-                                              setEditingItem({
-                                                ...editingItem,
-                                                attributes: {
-                                                  ...editingItem.attributes,
-                                                  customLinkImage: e.target.value,
-                                                },
-                                              })
-                                            }
-                                          />
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                          <div className="space-y-2">
-                                            <Label>Price</Label>
-                                            <Input
-                                              type="number"
-                                              step="0.01"
-                                              value={editingItem.attributes?.price || ""}
-                                              onChange={(e) =>
-                                                setEditingItem({
-                                                  ...editingItem,
-                                                  attributes: {
-                                                    ...editingItem.attributes,
-                                                    price: e.target.value
-                                                      ? parseFloat(e.target.value)
-                                                      : undefined,
-                                                  },
-                                                })
-                                              }
-                                            />
-                                          </div>
-                                          <div className="space-y-2">
-                                            <Label>Priority</Label>
-                                            <Select
-                                              value={editingItem.priority || "none"}
-                                              onValueChange={(value) =>
-                                                setEditingItem({
-                                                  ...editingItem,
-                                                  priority:
-                                                    value === "none"
-                                                      ? undefined
-                                                      : (value as
-                                                          | "low"
-                                                          | "medium"
-                                                          | "high"),
-                                                })
-                                              }
-                                            >
-                                              <SelectTrigger>
-                                                <SelectValue />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                <SelectItem value="none">None</SelectItem>
-                                                <SelectItem value="high">Must have</SelectItem>
-                                                <SelectItem value="medium">Want</SelectItem>
-                                                <SelectItem value="low">Nice to have</SelectItem>
-                                              </SelectContent>
-                                            </Select>
-                                          </div>
-                                        </div>
-                                        <div className="space-y-2">
-                                          <Label>Purchase Status</Label>
-                                          <Select
-                                            value={editingItem.attributes?.purchaseStatus || ""}
-                                            onValueChange={(value) =>
-                                              setEditingItem({
-                                                ...editingItem,
-                                                attributes: {
-                                                  ...editingItem.attributes,
-                                                  purchaseStatus: value,
-                                                },
-                                              })
-                                            }
-                                          >
-                                            <SelectTrigger>
-                                              <SelectValue placeholder="Select status" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="not-purchased">Not purchased</SelectItem>
-                                              <SelectItem value="purchased">Purchased</SelectItem>
-                                              <SelectItem value="received">Received</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                        </div>
-                                      </>
-                                    )}
-
-                                    {/* REGISTRY FIELDS */}
-                                    {list.listType === "registry-list" && (
-                                      <>
-                                        <div className="space-y-2">
-                                          <Label>Product Link (optional)</Label>
-                                          <Input
-                                            type="url"
-                                            placeholder="https://example.com/product"
-                                            value={editingItem.attributes?.productLink || ""}
-                                            onChange={(e) =>
-                                              setEditingItem({
-                                                ...editingItem,
-                                                attributes: {
-                                                  ...editingItem.attributes,
-                                                  productLink: e.target.value,
-                                                },
-                                              })
-                                            }
-                                          />
-                                        </div>
-                                        <div className="space-y-2">
-                                          <Label>Link Title (optional)</Label>
-                                          <Input
-                                            type="text"
-                                            placeholder="e.g., Sterling Silver Ring"
-                                            value={editingItem.attributes?.customLinkTitle || ""}
-                                            onChange={(e) =>
-                                              setEditingItem({
-                                                ...editingItem,
-                                                attributes: {
-                                                  ...editingItem.attributes,
-                                                  customLinkTitle: e.target.value,
-                                                },
-                                              })
-                                            }
-                                          />
-                                        </div>
-                                        <div className="space-y-2">
-                                          <Label>Link Description (optional)</Label>
-                                          <Textarea
-                                            placeholder="e.g., Beautiful handcrafted ring"
-                                            value={editingItem.attributes?.customLinkDescription || ""}
-                                            onChange={(e) =>
-                                              setEditingItem({
-                                                ...editingItem,
-                                                attributes: {
-                                                  ...editingItem.attributes,
-                                                  customLinkDescription: e.target.value,
-                                                },
-                                              })
-                                            }
-                                          />
-                                        </div>
-                                        <div className="space-y-2">
-                                          <Label>Link Image URL (optional)</Label>
-                                          <Input
-                                            type="url"
-                                            placeholder="e.g., https://example.com/image.jpg"
-                                            value={editingItem.attributes?.customLinkImage || ""}
-                                            onChange={(e) =>
-                                              setEditingItem({
-                                                ...editingItem,
-                                                attributes: {
-                                                  ...editingItem.attributes,
-                                                  customLinkImage: e.target.value,
-                                                },
-                                              })
-                                            }
-                                          />
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                          <div className="space-y-2">
-                                            <Label>Price</Label>
-                                            <Input
-                                              type="number"
-                                              step="0.01"
-                                              value={editingItem.attributes?.price || ""}
-                                              onChange={(e) =>
-                                                setEditingItem({
-                                                  ...editingItem,
-                                                  attributes: {
-                                                    ...editingItem.attributes,
-                                                    price: e.target.value
-                                                      ? parseFloat(e.target.value)
-                                                      : undefined,
-                                                  },
-                                                })
-                                              }
-                                            />
-                                          </div>
-                                          <div className="space-y-2">
-                                            <Label>Qty Needed</Label>
-                                            <Input
-                                              type="number"
-                                              value={editingItem.attributes?.quantityNeeded || ""}
-                                              onChange={(e) =>
-                                                setEditingItem({
-                                                  ...editingItem,
-                                                  attributes: {
-                                                    ...editingItem.attributes,
-                                                    quantityNeeded: e.target.value
-                                                      ? parseInt(e.target.value)
-                                                      : undefined,
-                                                  },
-                                                })
-                                              }
-                                            />
-                                          </div>
-                                        </div>
-                                        <div className="space-y-2">
-                                          <Label>Purchase Status</Label>
-                                          <Select
-                                            value={editingItem.attributes?.purchaseStatus || ""}
-                                            onValueChange={(value) =>
-                                              setEditingItem({
-                                                ...editingItem,
-                                                attributes: {
-                                                  ...editingItem.attributes,
-                                                  purchaseStatus: value,
-                                                },
-                                              })
-                                            }
-                                          >
-                                            <SelectTrigger>
-                                              <SelectValue placeholder="Select status" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="not-purchased">Not purchased</SelectItem>
-                                              <SelectItem value="purchased">Purchased</SelectItem>
-                                              <SelectItem value="received">Received</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                        </div>
-                                      </>
-                                    )}
-
-                                    {/* IDEA LIST FIELDS */}
-                                    {isIdea && (
-                                      <>
-                                        <div className="space-y-2">
-                                          <Label>Inspiration Link (optional)</Label>
-                                          <Input
-                                            type="url"
-                                            placeholder="https://example.com/inspiration"
-                                            value={editingItem.attributes?.inspirationLink || ""}
-                                            onChange={(e) =>
-                                              setEditingItem({
-                                                ...editingItem,
-                                                attributes: {
-                                                  ...editingItem.attributes,
-                                                  inspirationLink: e.target.value,
-                                                },
-                                              })
-                                            }
-                                          />
-                                        </div>
-                                        <div className="space-y-2">
-                                          <Label>Link Title (optional)</Label>
-                                          <Input
-                                            type="text"
-                                            placeholder="e.g., Modern Kitchen Design"
-                                            value={editingItem.attributes?.customLinkTitle || ""}
-                                            onChange={(e) =>
-                                              setEditingItem({
-                                                ...editingItem,
-                                                attributes: {
-                                                  ...editingItem.attributes,
-                                                  customLinkTitle: e.target.value,
-                                                },
-                                              })
-                                            }
-                                          />
-                                        </div>
-                                        <div className="space-y-2">
-                                          <Label>Link Description (optional)</Label>
-                                          <Textarea
-                                            placeholder="e.g., Minimalist kitchen with marble countertops"
-                                            value={editingItem.attributes?.customLinkDescription || ""}
-                                            onChange={(e) =>
-                                              setEditingItem({
-                                                ...editingItem,
-                                                attributes: {
-                                                  ...editingItem.attributes,
-                                                  customLinkDescription: e.target.value,
-                                                },
-                                              })
-                                            }
-                                          />
-                                        </div>
-                                        <div className="space-y-2">
-                                          <Label>Link Image URL (optional)</Label>
-                                          <Input
-                                            type="url"
-                                            placeholder="e.g., https://example.com/image.jpg"
-                                            value={editingItem.attributes?.customLinkImage || ""}
-                                            onChange={(e) =>
-                                              setEditingItem({
-                                                ...editingItem,
-                                                attributes: {
-                                                  ...editingItem.attributes,
-                                                  customLinkImage: e.target.value,
-                                                },
-                                              })
-                                            }
-                                          />
-                                        </div>
-                                        <div className="space-y-2">
-                                          <Label>Status</Label>
-                                          <Select
-                                            value={editingItem.attributes?.status || ""}
-                                            onValueChange={(value) =>
-                                              setEditingItem({
-                                                ...editingItem,
-                                                attributes: {
-                                                  ...editingItem.attributes,
-                                                  status: value,
-                                                },
-                                              })
-                                            }
-                                          >
-                                            <SelectTrigger>
-                                              <SelectValue placeholder="Select status" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="brainstorm">Brainstorm</SelectItem>
-                                              <SelectItem value="in-progress">In progress</SelectItem>
-                                              <SelectItem value="completed">Completed</SelectItem>
-                                              <SelectItem value="on-hold">On hold</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                        </div>
-                                      </>
-                                    )}
-
-                                    {/* Notes - Always shown */}
-                                    <div className="space-y-2">
-                                      <Label>Notes</Label>
-                                      <Textarea
-                                        value={editingItem.notes || ""}
-                                        onChange={(e) =>
-                                          setEditingItem({
-                                            ...editingItem,
-                                            notes: e.target.value,
-                                          })
-                                        }
-                                        placeholder="Add notes..."
-                                        rows={3}
-                                      />
-                                    </div>
-
-                                    <Button
-                                      onClick={() => {
-                                        // Fetch and save link preview data if link was updated
-                                        const linkField = list.listType === "registry-list" || list.listType === "shopping-list" 
-                                          ? "productLink" 
-                                          : "inspirationLink";
-                                        const link = editingItem.attributes?.[linkField];
-                                        
-                                        if (link && previewData[link]) {
-                                          editingItem.attributes = {
-                                            ...editingItem.attributes,
-                                            linkTitle: previewData[link].title,
-                                            linkImage: previewData[link].image,
-                                            linkDescription: previewData[link].description,
-                                          };
-                                        }
-                                        
-                                        updateListItem(list.id, editingItem.id, {
-                                          text: editingItem.text,
-                                          quantity: editingItem.quantity,
-                                          priority: editingItem.priority,
-                                          dueDate: editingItem.dueDate,
-                                          notes: editingItem.notes,
-                                          assignedTo: editingItem.assignedTo,
-                                          links: editingItem.links,
-                                          attributes: editingItem.attributes,
-                                          completed: editingItem.completed,
-                                        });
-                                        setEditingItem(null);
-                                        setNewLink("");
-                                      }}
-                                      className="w-full"
-                                    >
-                                      Save Changes
-                                    </Button>
-                                  </div>
-                                )}
-                              </DialogContent>
-                            </Dialog>
                             <AlertDialog
                               open={itemToDelete === item.id}
                               onOpenChange={(open) =>
@@ -4070,16 +3556,13 @@ export default function ListDetail() {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 e.preventDefault();
+                                if (import.meta.env.DEV) console.log('[DEV] VIEW 2 Edit button clicked for item:', item.id, item.text);
                                 setEditingItem(item);
+                                setIsEditModalOpen(true);
                               }}
                             >
                               Edit
                             </button>
-                            <Dialog
-                              open={editingItem?.id === item.id}
-                              onOpenChange={(open) => !open && setEditingItem(null)}
-                            >
-                            </Dialog>
                             <AlertDialog
                               open={itemToDelete === item.id}
                               onOpenChange={(open) =>
@@ -4410,669 +3893,13 @@ export default function ListDetail() {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 e.preventDefault();
+                                if (import.meta.env.DEV) console.log('[DEV] VIEW 3 Edit button clicked for item:', item.id, item.text);
                                 setEditingItem(item);
+                                setIsEditModalOpen(true);
                               }}
                             >
                               Edit
                             </button>
-                            <Dialog
-                              open={editingItem?.id === item.id}
-                              onOpenChange={(open) => !open && setEditingItem(null)}
-                            >
-                              <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                                <DialogHeader>
-                                  <DialogTitle>Edit Item</DialogTitle>
-                                  <DialogDescription>
-                                    Update item details and attributes
-                                  </DialogDescription>
-                                </DialogHeader>
-                                {editingItem && (
-                                  <div className="space-y-4 mt-4">
-                                    {/* Item Name - Always shown */}
-                                    <div className="space-y-2">
-                                      <Label>Item Name</Label>
-                                      <Input
-                                        value={editingItem.text}
-                                        onChange={(e) =>
-                                          setEditingItem({
-                                            ...editingItem,
-                                            text: e.target.value,
-                                          })
-                                        }
-                                      />
-                                    </div>
-
-                                    {/* GROCERY LIST FIELDS */}
-                                    {list.listType === "grocery-list" && (
-                                      <>
-                                        <div className="grid grid-cols-2 gap-4">
-                                          <div className="space-y-2">
-                                            <Label>Category</Label>
-                                            <Select
-                                              value={editingItem.attributes?.category || ""}
-                                              onValueChange={(value) =>
-                                                setEditingItem({
-                                                  ...editingItem,
-                                                  attributes: {
-                                                    ...editingItem.attributes,
-                                                    category: value,
-                                                  },
-                                                })
-                                              }
-                                            >
-                                              <SelectTrigger>
-                                                <SelectValue placeholder="Select category" />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                <SelectItem value="produce">Produce</SelectItem>
-                                                <SelectItem value="dairy">Dairy</SelectItem>
-                                                <SelectItem value="meat">Meat</SelectItem>
-                                                <SelectItem value="pantry">Pantry</SelectItem>
-                                                <SelectItem value="frozen">Frozen</SelectItem>
-                                                <SelectItem value="bakery">Bakery</SelectItem>
-                                                <SelectItem value="other">Other</SelectItem>
-                                              </SelectContent>
-                                            </Select>
-                                          </div>
-                                          <div className="space-y-2">
-                                            <Label>Quantity</Label>
-                                            <Input
-                                              type="number"
-                                              value={editingItem.quantity || ""}
-                                              onChange={(e) =>
-                                                setEditingItem({
-                                                  ...editingItem,
-                                                  quantity: e.target.value
-                                                    ? parseInt(e.target.value)
-                                                    : undefined,
-                                                })
-                                              }
-                                            />
-                                          </div>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                          <div className="space-y-2">
-                                            <Label>Unit</Label>
-                                            <Select
-                                              value={editingItem.attributes?.unit || ""}
-                                              onValueChange={(value) =>
-                                                setEditingItem({
-                                                  ...editingItem,
-                                                  attributes: {
-                                                    ...editingItem.attributes,
-                                                    unit: value,
-                                                  },
-                                                })
-                                              }
-                                            >
-                                              <SelectTrigger>
-                                                <SelectValue placeholder="Select unit" />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                <SelectItem value="lbs">lbs</SelectItem>
-                                                <SelectItem value="oz">oz</SelectItem>
-                                                <SelectItem value="count">count</SelectItem>
-                                                <SelectItem value="liters">liters</SelectItem>
-                                                <SelectItem value="ml">ml</SelectItem>
-                                                <SelectItem value="cups">cups</SelectItem>
-                                                <SelectItem value="tbsp">tbsp</SelectItem>
-                                                <SelectItem value="tsp">tsp</SelectItem>
-                                              </SelectContent>
-                                            </Select>
-                                          </div>
-                                          <div className="space-y-2">
-                                            <Label>Est. Price</Label>
-                                            <Input
-                                              type="number"
-                                              step="0.01"
-                                              value={editingItem.attributes?.price || ""}
-                                              onChange={(e) =>
-                                                setEditingItem({
-                                                  ...editingItem,
-                                                  attributes: {
-                                                    ...editingItem.attributes,
-                                                    price: e.target.value
-                                                      ? parseFloat(e.target.value)
-                                                      : undefined,
-                                                  },
-                                                })
-                                              }
-                                            />
-                                          </div>
-                                        </div>
-                                      </>
-                                    )}
-
-                                    {/* TO-DO LIST FIELDS */}
-                                    {isTodo && (
-                                      <>
-                                        <div className="space-y-2">
-                                          <Label>Due Date</Label>
-                                          <Popover>
-                                            <PopoverTrigger asChild>
-                                              <Button
-                                                variant="outline"
-                                                className="w-full justify-start"
-                                              >
-                                                <Calendar className="w-4 h-4 mr-2" />
-                                                {editingItem.dueDate
-                                                  ? format(
-                                                      new Date(editingItem.dueDate),
-                                                      "PPP",
-                                                    )
-                                                  : "Pick a date"}
-                                              </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0">
-                                              <CalendarComponent
-                                                mode="single"
-                                                selected={
-                                                  editingItem.dueDate
-                                                    ? new Date(editingItem.dueDate)
-                                                    : undefined
-                                                }
-                                                onSelect={(date) =>
-                                                  setEditingItem({
-                                                    ...editingItem,
-                                                    dueDate: date,
-                                                  })
-                                                }
-                                              />
-                                            </PopoverContent>
-                                          </Popover>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                          <div className="space-y-2">
-                                            <Label>Priority</Label>
-                                            <Select
-                                              value={editingItem.priority || "none"}
-                                              onValueChange={(value) =>
-                                                setEditingItem({
-                                                  ...editingItem,
-                                                  priority:
-                                                    value === "none"
-                                                      ? undefined
-                                                      : (value as
-                                                          | "low"
-                                                          | "medium"
-                                                          | "high"),
-                                                })
-                                              }
-                                            >
-                                              <SelectTrigger>
-                                                <SelectValue />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                <SelectItem value="none">
-                                                  None
-                                                </SelectItem>
-                                                <SelectItem value="low">Low</SelectItem>
-                                                <SelectItem value="medium">
-                                                  Medium
-                                                </SelectItem>
-                                                <SelectItem value="high">
-                                                  High
-                                                </SelectItem>
-                                              </SelectContent>
-                                            </Select>
-                                          </div>
-                                          <div className="space-y-2">
-                                            <Label>Status</Label>
-                                            <Select
-                                              value={editingItem.attributes?.status || ""}
-                                              onValueChange={(value) =>
-                                                setEditingItem({
-                                                  ...editingItem,
-                                                  attributes: {
-                                                    ...editingItem.attributes,
-                                                    status: value,
-                                                  },
-                                                })
-                                              }
-                                            >
-                                              <SelectTrigger>
-                                                <SelectValue placeholder="Select status" />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                <SelectItem value="not-started">Not started</SelectItem>
-                                                <SelectItem value="in-progress">In progress</SelectItem>
-                                                <SelectItem value="completed">Completed</SelectItem>
-                                              </SelectContent>
-                                            </Select>
-                                          </div>
-                                        </div>
-                                      </>
-                                    )}
-
-                                    {/* WISHLIST FIELDS */}
-                                    {list.listType === "shopping-list" && (
-                                      <>
-                                        <div className="grid grid-cols-2 gap-4">
-                                          <div className="space-y-2">
-                                            <Label>Product Link (optional)</Label>
-                                            <Input
-                                              type="url"
-                                              placeholder="https://example.com/product"
-                                              value={editingItem.attributes?.productLink || ""}
-                                              onChange={(e) =>
-                                                setEditingItem({
-                                                  ...editingItem,
-                                                  attributes: {
-                                                    ...editingItem.attributes,
-                                                    productLink: e.target.value,
-                                                  },
-                                                })
-                                              }
-                                              onBlur={() => {
-                                                const link = editingItem.attributes?.productLink;
-                                                if (link) {
-                                                  fetchPreview(link);
-                                                }
-                                              }}
-                                            />
-                                          </div>
-                                          <div className="space-y-2">
-                                            <Label>Link Title (optional)</Label>
-                                            <Input
-                                              type="text"
-                                              placeholder="e.g., Wireless Headphones"
-                                              value={editingItem.attributes?.customLinkTitle || ""}
-                                              onChange={(e) =>
-                                                setEditingItem({
-                                                  ...editingItem,
-                                                  attributes: {
-                                                    ...editingItem.attributes,
-                                                    customLinkTitle: e.target.value,
-                                                  },
-                                                })
-                                              }
-                                            />
-                                          </div>
-                                          <div className="space-y-2">
-                                            <Label>Link Description (optional)</Label>
-                                            <Textarea
-                                              placeholder="e.g., Noise-canceling over-ear headphones"
-                                              value={editingItem.attributes?.customLinkDescription || ""}
-                                              onChange={(e) =>
-                                                setEditingItem({
-                                                  ...editingItem,
-                                                  attributes: {
-                                                    ...editingItem.attributes,
-                                                    customLinkDescription: e.target.value,
-                                                  },
-                                                })
-                                              }
-                                              rows={2}
-                                            />
-                                          </div>
-                                          <div className="space-y-2">
-                                            <Label>Link Image URL (optional)</Label>
-                                            <Input
-                                              type="url"
-                                              placeholder="e.g., https://example.com/image.jpg"
-                                              value={editingItem.attributes?.customLinkImage || ""}
-                                              onChange={(e) =>
-                                                setEditingItem({
-                                                  ...editingItem,
-                                                  attributes: {
-                                                    ...editingItem.attributes,
-                                                    customLinkImage: e.target.value,
-                                                  },
-                                                })
-                                              }
-                                            />
-                                          </div>
-                                          <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                              <Label>Price</Label>
-                                              <Input
-                                                type="number"
-                                                step="0.01"
-                                                value={editingItem.attributes?.price || ""}
-                                                onChange={(e) =>
-                                                  setEditingItem({
-                                                    ...editingItem,
-                                                    attributes: {
-                                                      ...editingItem.attributes,
-                                                      price: e.target.value
-                                                        ? parseFloat(e.target.value)
-                                                        : undefined,
-                                                    },
-                                                  })
-                                                }
-                                              />
-                                            </div>
-                                            <div className="space-y-2">
-                                              <Label>Priority</Label>
-                                              <Select
-                                                value={editingItem.priority || "none"}
-                                                onValueChange={(value) =>
-                                                  setEditingItem({
-                                                    ...editingItem,
-                                                    priority:
-                                                      value === "none"
-                                                        ? undefined
-                                                        : (value as
-                                                            | "low"
-                                                            | "medium"
-                                                            | "high"),
-                                                  })
-                                                }
-                                              >
-                                                <SelectTrigger>
-                                                  <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                  <SelectItem value="none">None</SelectItem>
-                                                  <SelectItem value="high">Must have</SelectItem>
-                                                  <SelectItem value="medium">Want</SelectItem>
-                                                  <SelectItem value="low">Nice to have</SelectItem>
-                                                </SelectContent>
-                                              </Select>
-                                            </div>
-                                          </div>
-                                          <div className="space-y-2">
-                                            <Label>Purchase Status</Label>
-                                            <Select
-                                              value={editingItem.attributes?.purchaseStatus || ""}
-                                              onValueChange={(value) =>
-                                                setEditingItem({
-                                                  ...editingItem,
-                                                  attributes: {
-                                                    ...editingItem.attributes,
-                                                    purchaseStatus: value,
-                                                  },
-                                                })
-                                              }
-                                            >
-                                              <SelectTrigger>
-                                                <SelectValue placeholder="Select status" />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                <SelectItem value="not-purchased">Not purchased</SelectItem>
-                                                <SelectItem value="purchased">Purchased</SelectItem>
-                                                <SelectItem value="received">Received</SelectItem>
-                                              </SelectContent>
-                                            </Select>
-                                          </div>
-                                        </div>
-                                      </>
-                                    )}
-
-                                    {/* REGISTRY FIELDS */}
-                                    {list.listType === "registry-list" && (
-                                      <>
-                                        <div className="space-y-2">
-                                          <Label>Product Link (optional)</Label>
-                                          <Input
-                                            type="url"
-                                            placeholder="https://example.com/product"
-                                            value={editingItem.attributes?.productLink || ""}
-                                            onChange={(e) =>
-                                              setEditingItem({
-                                                ...editingItem,
-                                                attributes: {
-                                                  ...editingItem.attributes,
-                                                  productLink: e.target.value,
-                                                },
-                                              })
-                                            }
-                                          />
-                                        </div>
-                                        <div className="space-y-2">
-                                          <Label>Link Title (optional)</Label>
-                                          <Input
-                                            type="text"
-                                            placeholder="e.g., Sterling Silver Ring"
-                                            value={editingItem.attributes?.customLinkTitle || ""}
-                                            onChange={(e) =>
-                                              setEditingItem({
-                                                ...editingItem,
-                                                attributes: {
-                                                  ...editingItem.attributes,
-                                                  customLinkTitle: e.target.value,
-                                                },
-                                              })
-                                            }
-                                          />
-                                        </div>
-                                        <div className="space-y-2">
-                                          <Label>Link Description (optional)</Label>
-                                          <Textarea
-                                            placeholder="e.g., Beautiful handcrafted ring"
-                                            value={editingItem.attributes?.customLinkDescription || ""}
-                                            onChange={(e) =>
-                                              setEditingItem({
-                                                ...editingItem,
-                                                attributes: {
-                                                  ...editingItem.attributes,
-                                                  customLinkDescription: e.target.value,
-                                                },
-                                              })
-                                            }
-                                          />
-                                        </div>
-                                        <div className="space-y-2">
-                                          <Label>Link Image URL (optional)</Label>
-                                          <Input
-                                            type="url"
-                                            placeholder="e.g., https://example.com/image.jpg"
-                                            value={editingItem.attributes?.customLinkImage || ""}
-                                            onChange={(e) =>
-                                              setEditingItem({
-                                                ...editingItem,
-                                                attributes: {
-                                                  ...editingItem.attributes,
-                                                  customLinkImage: e.target.value,
-                                                },
-                                              })
-                                            }
-                                          />
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                          <div className="space-y-2">
-                                            <Label>Price</Label>
-                                            <Input
-                                              type="number"
-                                              step="0.01"
-                                              value={editingItem.attributes?.price || ""}
-                                              onChange={(e) =>
-                                                setEditingItem({
-                                                  ...editingItem,
-                                                  attributes: {
-                                                    ...editingItem.attributes,
-                                                    price: e.target.value
-                                                      ? parseFloat(e.target.value)
-                                                      : undefined,
-                                                  },
-                                                })
-                                              }
-                                            />
-                                          </div>
-                                          <div className="space-y-2">
-                                            <Label>Qty Needed</Label>
-                                            <Input
-                                              type="number"
-                                              value={editingItem.attributes?.quantityNeeded || ""}
-                                              onChange={(e) =>
-                                                setEditingItem({
-                                                  ...editingItem,
-                                                  attributes: {
-                                                    ...editingItem.attributes,
-                                                    quantityNeeded: e.target.value
-                                                      ? parseInt(e.target.value)
-                                                      : undefined,
-                                                  },
-                                                })
-                                              }
-                                            />
-                                          </div>
-                                        </div>
-                                        <div className="space-y-2">
-                                          <Label>Purchase Status</Label>
-                                          <Select
-                                            value={editingItem.attributes?.purchaseStatus || ""}
-                                            onValueChange={(value) =>
-                                              setEditingItem({
-                                                ...editingItem,
-                                                attributes: {
-                                                  ...editingItem.attributes,
-                                                  purchaseStatus: value,
-                                                },
-                                              })
-                                            }
-                                          >
-                                            <SelectTrigger>
-                                              <SelectValue placeholder="Select status" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="not-purchased">Not purchased</SelectItem>
-                                              <SelectItem value="purchased">Purchased</SelectItem>
-                                              <SelectItem value="received">Received</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                        </div>
-                                      </>
-                                    )}
-
-                                    {/* IDEA LIST FIELDS */}
-                                    {isIdea && (
-                                      <>
-                                        <div className="space-y-2">
-                                          <Label>Inspiration Link (optional)</Label>
-                                          <Input
-                                            type="url"
-                                            placeholder="https://example.com/inspiration"
-                                            value={editingItem.attributes?.inspirationLink || ""}
-                                            onChange={(e) =>
-                                              setEditingItem({
-                                                ...editingItem,
-                                                attributes: {
-                                                  ...editingItem.attributes,
-                                                  inspirationLink: e.target.value,
-                                                },
-                                              })
-                                            }
-                                          />
-                                        </div>
-                                        <div className="space-y-2">
-                                          <Label>Link Title (optional)</Label>
-                                          <Input
-                                            type="text"
-                                            placeholder="e.g., Modern Kitchen Design"
-                                            value={editingItem.attributes?.customLinkTitle || ""}
-                                            onChange={(e) =>
-                                              setEditingItem({
-                                                ...editingItem,
-                                                attributes: {
-                                                  ...editingItem.attributes,
-                                                  customLinkTitle: e.target.value,
-                                                },
-                                              })
-                                            }
-                                          />
-                                        </div>
-                                        <div className="space-y-2">
-                                          <Label>Link Description (optional)</Label>
-                                          <Textarea
-                                            placeholder="e.g., Minimalist kitchen with marble countertops"
-                                            value={editingItem.attributes?.customLinkDescription || ""}
-                                            onChange={(e) =>
-                                              setEditingItem({
-                                                ...editingItem,
-                                                attributes: {
-                                                  ...editingItem.attributes,
-                                                  customLinkDescription: e.target.value,
-                                                },
-                                              })
-                                            }
-                                          />
-                                        </div>
-                                        <div className="space-y-2">
-                                          <Label>Link Image URL (optional)</Label>
-                                          <Input
-                                            type="url"
-                                            placeholder="e.g., https://example.com/image.jpg"
-                                            value={editingItem.attributes?.customLinkImage || ""}
-                                            onChange={(e) =>
-                                              setEditingItem({
-                                                ...editingItem,
-                                                attributes: {
-                                                  ...editingItem.attributes,
-                                                  customLinkImage: e.target.value,
-                                                },
-                                              })
-                                            }
-                                          />
-                                        </div>
-                                        <div className="space-y-2">
-                                          <Label>Status</Label>
-                                          <Select
-                                            value={editingItem.attributes?.status || ""}
-                                            onValueChange={(value) =>
-                                              setEditingItem({
-                                                ...editingItem,
-                                                attributes: {
-                                                  ...editingItem.attributes,
-                                                  status: value,
-                                                },
-                                              })
-                                            }
-                                          >
-                                            <SelectTrigger>
-                                              <SelectValue placeholder="Select status" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="brainstorm">Brainstorm</SelectItem>
-                                              <SelectItem value="in-progress">In progress</SelectItem>
-                                              <SelectItem value="completed">Completed</SelectItem>
-                                              <SelectItem value="on-hold">On hold</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                        </div>
-                                      </>
-                                    )}
-
-                                    {/* Notes - Always shown */}
-                                    <div className="space-y-2">
-                                      <Label>Notes</Label>
-                                      <Textarea
-                                        value={editingItem.notes || ""}
-                                        onChange={(e) =>
-                                          setEditingItem({
-                                            ...editingItem,
-                                            notes: e.target.value,
-                                          })
-                                        }
-                                        placeholder="Add notes..."
-                                        rows={3}
-                                      />
-                                    </div>
-
-                                    <Button
-                                      onClick={() => {
-                                        updateListItem(list.id, editingItem.id, {
-                                          text: editingItem.text,
-                                          quantity: editingItem.quantity,
-                                          priority: editingItem.priority,
-                                          dueDate: editingItem.dueDate,
-                                          notes: editingItem.notes,
-                                          assignedTo: editingItem.assignedTo,
-                                          links: editingItem.links,
-                                          attributes: editingItem.attributes,
-                                          completed: editingItem.completed,
-                                        });
-                                        setEditingItem(null);
-                                        setNewLink("");
-                                      }}
-                                      className="w-full"
-                                    >
-                                      Save Changes
-                                    </Button>
-                                  </div>
-                                )}
-                              </DialogContent>
-                            </Dialog>
                             <AlertDialog
                               open={itemToDelete === item.id}
                               onOpenChange={(open) =>
