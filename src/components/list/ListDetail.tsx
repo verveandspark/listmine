@@ -4688,6 +4688,7 @@ export default function ListDetail() {
           isShared: list.isShared,
           shareLink: list.shareLink,
           shareMode: list.shareMode,
+          listType: list.listType,
         }}
         onGenerateLink={(shareMode) => generateShareLink(list.id, shareMode)}
         onUpdateShareMode={(shareMode) => updateShareMode(list.id, shareMode)}

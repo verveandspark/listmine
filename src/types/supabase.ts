@@ -1282,6 +1282,7 @@ export type Database = {
         Args: { p_share_link: string }
         Returns: {
           category: string
+          collaborators: string[]
           created_at: string
           id: string
           is_archived: boolean

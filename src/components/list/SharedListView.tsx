@@ -329,10 +329,17 @@ export default function SharedListView() {
   };
 
   const isRegistryOrWishlist = (listType: string) => {
-    return listType === "registry-list" || listType === "shopping-list";
+    const normalizations: Record<string, string> = {
+      "todo-list": "todo",
+      "idea-list": "idea",
+      "registry-list": "registry",
+    };
+    const normalized = normalizations[listType] || listType;
+    return normalized === "registry" || normalized === "wishlist" || listType === "shopping-list";
   };
 
   const canImport = shareMode === 'importable';
+  const canPurchase = shareMode === 'registry_buyer';
 
   const handleImportClick = () => {
     setShowImportDialog(true);
@@ -519,6 +526,12 @@ export default function SharedListView() {
                     Importable
                   </Badge>
                 )}
+                {canPurchase && (
+                  <Badge variant="outline" className="bg-[#fce4ec] text-[#e879a0] border-[#f8bbd9] flex items-center gap-1">
+                    <ShoppingCart className="w-3 h-3" />
+                    Registry Mode
+                  </Badge>
+                )}
               </div>
               <p className="text-xs sm:text-sm text-gray-600 mt-1">
                 {list.category} · {list.items.length} items · 
@@ -568,7 +581,11 @@ export default function SharedListView() {
           <Info className="w-5 h-5 text-[#1f628e] flex-shrink-0 mt-0.5 sm:mt-0" />
           <div className="flex-1 text-sm text-[#174a6b]">
             <span className="font-medium">You're viewing a shared list.</span>{" "}
-            {canImport ? (
+            {canPurchase ? (
+              <span>
+                This is a gift registry. Click "I'm buying this" on items you plan to purchase so the owner knows!
+              </span>
+            ) : canImport ? (
               <span>
                 You can browse items here or <button onClick={handleImportClick} className="underline font-medium hover:text-[#1f628e]">import a copy</button> to your account.
               </span>
@@ -798,8 +815,8 @@ export default function SharedListView() {
                       </div>
                     )}
 
-                    {/* Purchase button for registry/wishlist items */}
-                    {list.listType && isRegistryOrWishlist(list.listType) && (
+                    {/* Purchase button for registry/wishlist items - ONLY in registry_buyer mode */}
+                    {list.listType && isRegistryOrWishlist(list.listType) && canPurchase && (
                       <div className="mt-3">
                         {purchases[item.id] ? (
                           <div className="flex items-center gap-2">
@@ -832,8 +849,8 @@ export default function SharedListView() {
           )}
         </div>
 
-        {/* Only show sign-up promo for view-only lists */}
-        {shareMode === 'view_only' && (
+        {/* Only show sign-up promo for view-only and importable lists (not registry_buyer) */}
+        {(shareMode === 'view_only' || shareMode === 'importable') && (
         <Card className="mt-8 p-6 sm:p-8 bg-gradient-to-r from-primary/10 to-secondary/10 border-primary/20">
           <div className="max-w-lg mx-auto">
             <h3 className="text-lg font-semibold text-gray-900 mb-2 text-center">

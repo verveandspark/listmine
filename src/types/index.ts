@@ -73,7 +73,7 @@ export interface ListItem {
   assignedTo?: string;
 }
 
-export type ShareMode = 'view_only' | 'importable';
+export type ShareMode = 'view_only' | 'importable' | 'registry_buyer';
 
 export interface List {
   id: string;

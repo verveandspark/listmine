@@ -26,7 +26,25 @@ import {
 } from "lucide-react";
 import { ShareMode } from "@/types";
 import { useAuth } from "@/contexts/useAuthHook";
-import { canShareLists, getTierDisplayName, type UserTier } from "@/lib/tierUtils";
+import { canShareLists, getTierDisplayName, canUsePurchaseTracking, type UserTier } from "@/lib/tierUtils";
+import { ShoppingCart, Gift, Crown } from "lucide-react";
+
+// Helper to normalize listType variations for consistent handling
+const normalizeListType = (listType: string | undefined): string => {
+  if (!listType) return "custom";
+  const normalizations: Record<string, string> = {
+    "todo-list": "todo",
+    "idea-list": "idea",
+    "registry-list": "registry",
+  };
+  return normalizations[listType] || listType;
+};
+
+// Check if listType is a registry or wishlist (for purchaser UI)
+const isRegistryOrWishlist = (listType: string | undefined): boolean => {
+  const normalized = normalizeListType(listType);
+  return normalized === "registry" || normalized === "wishlist";
+};
 
 interface ShareSettingsModalProps {
   open: boolean;
@@ -37,6 +55,7 @@ interface ShareSettingsModalProps {
     isShared: boolean;
     shareLink?: string;
     shareMode?: ShareMode;
+    listType?: string;
   };
   onGenerateLink: (shareMode: ShareMode) => Promise<string>;
   onUpdateShareMode: (shareMode: ShareMode) => Promise<void>;
@@ -59,6 +78,8 @@ export default function ShareSettingsModal({
   const [shareLink, setShareLink] = useState<string | null>(null);
   
   const userCanShare = canShareLists(user?.tier);
+  const canUseRegistryBuyerMode = canUsePurchaseTracking(user?.tier);
+  const showRegistryBuyerOption = isRegistryOrWishlist(list.listType);
 
   useEffect(() => {
     if (list.isShared && list.shareLink) {
@@ -192,7 +213,7 @@ export default function ShareSettingsModal({
             title: "Settings saved!",
             description: (
               <div className="flex items-center justify-between gap-2 mt-1">
-                <span className="text-sm text-muted-foreground">Link copied ({shareMode === 'view_only' ? 'view-only' : 'importable'})</span>
+                <span className="text-sm text-muted-foreground">Link copied ({shareMode === 'view_only' ? 'view-only' : shareMode === 'registry_buyer' ? 'registry/buyer mode' : 'importable'})</span>
                 <Button
                   variant="outline"
                   size="sm"
@@ -216,7 +237,7 @@ export default function ShareSettingsModal({
             title: "Share settings updated!",
             description: (
               <div className="flex items-center justify-between gap-2 mt-1">
-                <span className="text-sm text-muted-foreground">{shareMode === 'view_only' ? 'View-only' : 'Importable'}</span>
+                <span className="text-sm text-muted-foreground">{shareMode === 'view_only' ? 'View-only' : shareMode === 'registry_buyer' ? 'Registry/Buyer Mode' : 'Importable'}</span>
                 <Button
                   variant="outline"
                   size="sm"
@@ -407,6 +428,58 @@ export default function ShareSettingsModal({
                     </p>
                   </div>
                 </label>
+
+                {/* Registry/Buyer Mode - Only for registry/wishlist list types */}
+                {showRegistryBuyerOption && (
+                  <label 
+                    className={`flex items-start gap-3 p-2.5 border rounded-lg transition-colors ${
+                      canUseRegistryBuyerMode 
+                        ? 'cursor-pointer hover:bg-primary/5' 
+                        : 'opacity-60 cursor-not-allowed bg-gray-50'
+                    }`}
+                    onClick={(e) => {
+                      if (!canUseRegistryBuyerMode) {
+                        e.preventDefault();
+                      }
+                    }}
+                  >
+                    <RadioGroupItem 
+                      value="registry_buyer" 
+                      id="registry_buyer" 
+                      className="mt-0.5" 
+                      disabled={!canUseRegistryBuyerMode}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <Gift className="w-4 h-4 text-[#e879a0] flex-shrink-0" />
+                        <span className="font-medium text-sm">Registry / Buyer Mode</span>
+                        {!canUseRegistryBuyerMode && (
+                          <span className="flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
+                            <Crown className="w-3 h-3" />
+                            Even Better+
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Viewers can mark items as "I'm buying this" and leave their name. Great for gift registries and wishlists.
+                      </p>
+                      {!canUseRegistryBuyerMode && (
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="h-auto p-0 mt-1 text-xs text-primary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate("/upgrade");
+                            onOpenChange(false);
+                          }}
+                        >
+                          Upgrade to Even Better or Lots More →
+                        </Button>
+                      )}
+                    </div>
+                  </label>
+                )}
               </div>
             </RadioGroup>
           </div>
