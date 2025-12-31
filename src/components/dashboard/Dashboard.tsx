@@ -2820,6 +2820,7 @@ export default function Dashboard() {
               isShared: shareList.isShared,
               shareLink: shareList.shareLink,
               shareMode: shareList.shareMode,
+              listType: shareList.listType,
             }}
             onGenerateLink={(shareMode) => generateShareLink(shareList.id, shareMode)}
             onUpdateShareMode={(shareMode) => updateShareMode(shareList.id, shareMode)}

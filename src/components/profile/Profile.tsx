@@ -1356,6 +1356,7 @@ export default function Profile() {
               isShared: shareList.isShared || false,
               shareLink: shareList.shareLink,
               shareMode: shareList.shareMode,
+              listType: shareList.listType,
             }}
             onGenerateLink={async (shareMode) => {
               return await generateShareLink(shareList.id, shareMode);
