@@ -2910,7 +2910,7 @@ export default function ListDetail() {
                           <SelectContent>
                             {availableSections.map((section) => (
                               <SelectItem key={section} value={section}>
-                                {section}
+                                {(section ?? 'OTHER').trim().toUpperCase()}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -2969,7 +2969,7 @@ export default function ListDetail() {
                           <SelectContent>
                             {availableSections.map((section) => (
                               <SelectItem key={section} value={section}>
-                                {section}
+                                {(section ?? 'OTHER').trim().toUpperCase()}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -3219,7 +3219,7 @@ export default function ListDetail() {
                           <SelectContent>
                             {availableSections.map((section) => (
                               <SelectItem key={section} value={section}>
-                                {section}
+                                {(section ?? 'OTHER').trim().toUpperCase()}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -3471,7 +3471,7 @@ export default function ListDetail() {
                           <SelectContent>
                             {availableSections.map((section) => (
                               <SelectItem key={section} value={section}>
-                                {section}
+                                {(section ?? 'OTHER').trim().toUpperCase()}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -3980,7 +3980,7 @@ export default function ListDetail() {
                 <div key={section} className="space-y-2">
                   <div className="flex items-center gap-2 mt-4 mb-2">
                     <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-                      {section}
+                      {(section ?? 'OTHER').trim().toUpperCase()}
                     </h3>
                     <div className="flex-1 h-px bg-border"></div>
                     <Badge variant="outline" className="text-xs">
