@@ -290,6 +290,7 @@ export default function CreateListModal({
     } catch (err: any) {
       console.error("[CreateListModal] Error creating list:", err);
       setError(err.message || "Failed to create list");
+    } finally {
       setIsCreating(false);
     }
   };
@@ -300,6 +301,7 @@ export default function CreateListModal({
     setListType("custom");
     setOwnership("personal");
     setError(null);
+    setIsCreating(false);
   };
 
   const handleCancel = () => {
