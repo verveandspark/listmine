@@ -234,15 +234,17 @@ export default function ListDetail() {
   
   // Get available sections for sectioned lists
   const availableSections = useMemo(() => {
-    if (!list?.items) return ['Extras'];
+    if (!list?.items) return ['OTHER'];
     const sectionsSet = new Set<string>();
     list.items.forEach(item => {
       if (item.attributes?.section && item.attributes.section.trim() !== '') {
         sectionsSet.add(item.attributes.section.trim());
       }
     });
-    // Always ensure 'Extras' is available
-    sectionsSet.add('Extras');
+    // Keep 'Extras' only if it already exists (backward compatibility), otherwise use 'OTHER'
+    if (!sectionsSet.has('Extras')) {
+      sectionsSet.add('OTHER');
+    }
     return Array.from(sectionsSet).sort();
   }, [list?.items]);
   
@@ -369,7 +371,7 @@ export default function ListDetail() {
       if (savedSection && availableSections.includes(savedSection)) {
         setNewItemSection(savedSection);
       } else {
-        setNewItemSection(availableSections[0] || 'Extras');
+        setNewItemSection(availableSections[0] || 'OTHER');
       }
     }
   }, [list?.id, isSectioned, availableSections]);
@@ -2899,7 +2901,7 @@ export default function ListDetail() {
                       <div className="mb-2">
                         <Label className="text-xs mb-2">Section</Label>
                         <Select
-                          value={newItemSection || availableSections[0] || "Extras"}
+                          value={newItemSection || availableSections[0] || "OTHER"}
                           onValueChange={handleSectionChange}
                         >
                           <SelectTrigger className="min-h-[44px]">
@@ -2958,7 +2960,7 @@ export default function ListDetail() {
                       <div className="mb-2">
                         <Label className="text-xs mb-2">Section</Label>
                         <Select
-                          value={newItemSection || "Extras"}
+                          value={newItemSection || "OTHER"}
                           onValueChange={handleSectionChange}
                         >
                           <SelectTrigger className="min-h-[44px]">
@@ -3203,7 +3205,7 @@ export default function ListDetail() {
                       <div className="mb-2">
                         <Label className="text-xs mb-2">Section</Label>
                         <Select
-                          value={newItemSection || "Extras"}
+                          value={newItemSection || "OTHER"}
                           onValueChange={(value) => {
                             setNewItemSection(value);
                             if (list?.id) {
@@ -3460,7 +3462,7 @@ export default function ListDetail() {
                       <div className="mb-2">
                         <Label className="text-xs mb-2">Section</Label>
                         <Select
-                          value={newItemSection || "Extras"}
+                          value={newItemSection || "OTHER"}
                           onValueChange={handleSectionChange}
                         >
                           <SelectTrigger className="min-h-[44px]">
