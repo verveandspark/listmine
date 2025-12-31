@@ -328,14 +328,19 @@ export default function SharedListView() {
     }
   };
 
-  const isRegistryOrWishlist = (listType: string) => {
+  const normalizeListType = (listType: string | undefined): string => {
+    if (!listType) return "custom";
     const normalizations: Record<string, string> = {
       "todo-list": "todo",
       "idea-list": "idea",
       "registry-list": "registry",
     };
-    const normalized = normalizations[listType] || listType;
-    return normalized === "registry" || normalized === "wishlist" || listType === "shopping-list";
+    return normalizations[listType] || listType;
+  };
+
+  const isRegistryOrWishlist = (listType: string | undefined): boolean => {
+    const normalized = normalizeListType(listType);
+    return normalized === "registry" || normalized === "wishlist";
   };
 
   const canImport = shareMode === 'importable';
@@ -535,8 +540,8 @@ export default function SharedListView() {
               </div>
               <p className="text-xs sm:text-sm text-gray-600 mt-1">
                 {list.category} · {list.items.length} items · 
-                {list.listType === "registry-list" ? " Shared Registry" : 
-                 list.listType === "shopping-list" ? " Shared Wishlist" : 
+                {normalizeListType(list.listType) === "registry" ? " Shared Registry" : 
+                 normalizeListType(list.listType) === "wishlist" ? " Shared Wishlist" : 
                  " Shared List"}
               </p>
             </div>
@@ -732,7 +737,7 @@ export default function SharedListView() {
                           {item.priority}
                         </Badge>
                       )}
-                      {item.notes && (
+                      {item.notes && !item.text.match(/^(Main idea|Supporting details|Action items|Follow-up needed|Resources\/links)$/) && (
                         <Badge variant="outline" className="text-xs">
                           <StickyNote className="w-3 h-3 mr-1" />
                           Note
@@ -777,7 +782,7 @@ export default function SharedListView() {
                     )}
 
                     {/* Link Preview for registry/wishlist items */}
-                    {list.listType && isRegistryOrWishlist(list.listType) && item.attributes?.productLink && (
+                    {isRegistryOrWishlist(list.listType) && item.attributes?.productLink && (
                       <div className="mt-3">
                         <a
                           href={item.attributes.productLink}
@@ -816,7 +821,7 @@ export default function SharedListView() {
                     )}
 
                     {/* Purchase button for registry/wishlist items - ONLY in registry_buyer mode */}
-                    {list.listType && isRegistryOrWishlist(list.listType) && canPurchase && (
+                    {isRegistryOrWishlist(list.listType) && canPurchase && (
                       <div className="mt-3">
                         {purchases[item.id] ? (
                           <div className="flex items-center gap-2">
