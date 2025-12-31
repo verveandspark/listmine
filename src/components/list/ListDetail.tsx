@@ -4363,7 +4363,7 @@ export default function ListDetail() {
                                 {item.priority}
                               </Badge>
                             )}
-                            {item.notes && (
+                            {item.notes && !item.text.match(/^(Main idea|Supporting details|Action items|Follow-up needed|Resources\/links)$/) && (
                               <Badge variant="outline" className="text-xs">
                                 <FileText className="w-3 h-3 mr-1" />
                                 Note
