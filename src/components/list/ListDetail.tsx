@@ -136,6 +136,7 @@ import ShareSettingsModal from "./ShareSettingsModal";
 
 // Helper to normalize listType variations for consistent handling
 // Maps: todo-list → todo, idea-list → idea, registry-list → registry
+// NOTE: shopping-list is NOT normalized - it's its own distinct type
 const normalizeListType = (listType: string | undefined): string => {
   if (!listType) return "custom";
   const normalizations: Record<string, string> = {
@@ -269,7 +270,9 @@ export default function ListDetail() {
   const lt = list?.listType;
   const isTodo = lt === 'todo' || lt === 'todo-list';
   const isIdea = lt === 'idea' || lt === 'idea-list';
-  const isGrocery = lt === 'grocery' || lt === 'grocery-list';
+  // grocery-list is the grocery template; 'grocery' (Weekly Meal Planning) should use custom Add Item
+  const isGroceryTemplate = lt === 'grocery-list';
+  const isGrocery = isGroceryTemplate; // Only grocery-list uses grocery fields, 'grocery' uses custom
   
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [newItemText, setNewItemText] = useState("");
@@ -558,11 +561,15 @@ export default function ListDetail() {
         }
         if (newItemUnit) attributes.unit = newItemUnit;
         if (newItemPrice) attributes.price = newItemPrice;
-      } else if (list.listType === "registry-list") {
+      } else if (normalizeListType(list.listType) === "registry") {
         if (newItemPrice) attributes.price = newItemPrice;
         if (newItemQuantityNeeded) attributes.quantityNeeded = newItemQuantityNeeded;
         if (newItemQuantityPurchased) attributes.quantityPurchased = newItemQuantityPurchased;
         if (newItemStatus) attributes.purchaseStatus = newItemStatus;
+        // Add section for sectioned registry lists (Baby Registry, Wedding Registry)
+        if (isSectioned && newItemSection) {
+          attributes.section = newItemSection;
+        }
         if (newItemProductLink) {
           attributes.productLink = newItemProductLink;
           // Save manual link preview data
@@ -1247,7 +1254,7 @@ export default function ListDetail() {
     let items = [...list.items];
 
     // For registry/wishlist, group by purchase status first
-    if (list.listType === "registry-list" || list.listType === "shopping-list") {
+    if (normalizeListType(list.listType) === "registry" || normalizeListType(list.listType) === "wishlist") {
       const unpurchased = items.filter(item => item.attributes?.purchaseStatus !== "purchased");
       const purchased = items.filter(item => item.attributes?.purchaseStatus === "purchased");
       
@@ -1759,7 +1766,7 @@ export default function ListDetail() {
                 </>
               )}
 
-              {/* SHOPPING LIST FIELDS: shopping-list */}
+              {/* SHOPPING LIST FIELDS: shopping-list - NO purchaser UI */}
               {list.listType === "shopping-list" && (
                 <>
                   <div className="space-y-2">
@@ -2306,7 +2313,7 @@ export default function ListDetail() {
 
                 {/* Utility Actions Group */}
                 <div className="flex items-center gap-1 px-2 border-r border-gray-200">
-                  {(list.listType === "registry-list" || list.listType === "shopping-list") && (
+                  {(normalizeListType(list.listType) === "registry" || normalizeListType(list.listType) === "wishlist") && (
                     <>
                       <TooltipProvider>
                         <Tooltip>
@@ -2624,7 +2631,7 @@ export default function ListDetail() {
                     <div className="border-t border-gray-200 my-2" />
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1">More</p>
                     
-                    {(list.listType === "registry-list" || list.listType === "shopping-list") && (
+                    {(normalizeListType(list.listType) === "registry" || normalizeListType(list.listType) === "wishlist") && (
                       <>
                         <Button
                           variant="outline"
@@ -3036,8 +3043,8 @@ export default function ListDetail() {
                 {/* GROCERY LIST - Grocery fields */}
                 {isGrocery && (
                   <>
-                    {/* Category dropdown for categorized grocery lists */}
-                    {isCategorized && (
+                    {/* Category dropdown - ONLY shown in Detailed mode (Quick mode hides it since grocery auto-sorts) */}
+                    {isCategorized && detailedMode && (
                       <div className="mb-2">
                         <Label className="text-xs mb-2">Category</Label>
                         <Select
@@ -3163,37 +3170,6 @@ export default function ListDetail() {
                             />
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <Label className="text-xs mb-2">Link Title (optional)</Label>
-                            <Input
-                              type="text"
-                              placeholder="e.g., Wireless Headphones"
-                              value={newItemLinkTitle}
-                              onChange={(e) => setNewItemLinkTitle(e.target.value)}
-                              className="min-h-[44px]"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-xs mb-2">Link Description (optional)</Label>
-                            <Textarea
-                              placeholder="e.g., Noise-canceling over-ear headphones"
-                              value={newItemLinkDescription}
-                              onChange={(e) => setNewItemLinkDescription(e.target.value)}
-                              className="min-h-[60px]"
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <Label className="text-xs mb-2">Link Image URL (optional)</Label>
-                          <Input
-                            type="url"
-                            placeholder="e.g., https://example.com/image.jpg"
-                            value={newItemLinkImage}
-                            onChange={(e) => setNewItemLinkImage(e.target.value)}
-                            className="min-h-[44px]"
-                          />
-                        </div>
                         <Textarea
                           placeholder="Notes (optional)"
                           value={newItemNotes}
@@ -3205,9 +3181,35 @@ export default function ListDetail() {
                   </>
                 )}
 
-                {/* REGISTRY LIST - Registry fields */}
-                {list.listType === "registry-list" && (
+                {/* REGISTRY LIST - Registry fields (Baby Registry, Wedding Registry, etc.) */}
+                {normalizeListType(list.listType) === "registry" && (
                   <>
+                    {/* Section dropdown for sectioned registry lists */}
+                    {isSectioned && (
+                      <div className="mb-2">
+                        <Label className="text-xs mb-2">Section</Label>
+                        <Select
+                          value={newItemSection || "Extras"}
+                          onValueChange={(value) => {
+                            setNewItemSection(value);
+                            if (list?.id) {
+                              localStorage.setItem(`listmine:lastSection:${list.id}`, value);
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="min-h-[44px]">
+                            <SelectValue placeholder="Select section" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableSections.map((section) => (
+                              <SelectItem key={section} value={section}>
+                                {section}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                     {!detailedMode && (
                       <div className="space-y-2">
                         <Input
@@ -3327,7 +3329,7 @@ export default function ListDetail() {
                   </>
                 )}
 
-                {/* WISHLIST - Wishlist fields */}
+                {/* SHOPPING LIST - Shopping fields (NO purchaser UI, simpler than registry) */}
                 {list.listType === "shopping-list" && (
                   <>
                     {!detailedMode && (
@@ -3663,8 +3665,8 @@ export default function ListDetail() {
             </div>
           </div>
 
-          {/* Purchase History Note for Registry/Wishlist */}
-          {(list.listType === "registry-list" || list.listType === "shopping-list") && (
+          {/* Purchase History Note - ONLY for Registry/Wishlist (purchaser tracking) */}
+          {isRegistryOrWishlist(list.listType) && (
             <Alert className="mb-4 bg-primary/10 border-primary/20">
               <ShoppingCart className="h-4 w-4 text-primary" />
               <AlertDescription className="text-sm text-primary">
@@ -4166,25 +4168,26 @@ export default function ListDetail() {
               // Regular display for non-grocery lists (no sections)
               (() => {
                 const sortedItems = getSortedItems();
-                const isRegistryOrWishlist = list.listType === "registry-list" || list.listType === "shopping-list";
-                const hasPurchasedItems = isRegistryOrWishlist && sortedItems.some(item => item.attributes?.purchaseStatus === "purchased");
-                const hasUnpurchasedItems = isRegistryOrWishlist && sortedItems.some(item => item.attributes?.purchaseStatus !== "purchased");
+                // Purchaser UI only for registry/wishlist, NOT shopping-list
+                const isRegistryOrWishlistType = normalizeListType(list.listType) === "registry" || normalizeListType(list.listType) === "wishlist";
+                const hasPurchasedItems = isRegistryOrWishlistType && sortedItems.some(item => item.attributes?.purchaseStatus === "purchased");
+                const hasUnpurchasedItems = isRegistryOrWishlistType && sortedItems.some(item => item.attributes?.purchaseStatus !== "purchased");
                 
                 return sortedItems.map((item, index) => {
                   const isPurchased = item.attributes?.purchaseStatus === "purchased";
                   const prevItem = index > 0 ? sortedItems[index - 1] : null;
                   const prevIsPurchased = prevItem?.attributes?.purchaseStatus === "purchased";
-                  const isFirstPurchased = isPurchased && !prevIsPurchased && isRegistryOrWishlist;
+                  const isFirstPurchased = isPurchased && !prevIsPurchased && isRegistryOrWishlistType;
                   
                   // Calculate continuous numbering for registry/wishlist
-                  const showNumbering = isRegistryOrWishlist;
+                  const showNumbering = isRegistryOrWishlistType;
                   const itemNumber = index + 1;
                   const isDropTarget = dropTargetId === item.id;
                   
                   return (
                     <div key={item.id} className="relative">
                       {/* Unpurchased Items header - show at the very beginning if there are both purchased and unpurchased items */}
-                      {index === 0 && isRegistryOrWishlist && hasPurchasedItems && hasUnpurchasedItems && !isPurchased && (
+                      {index === 0 && isRegistryOrWishlistType && hasPurchasedItems && hasUnpurchasedItems && !isPurchased && (
                         <div className="flex items-center gap-3 mb-4">
                           <div className="flex-1 h-px bg-gray-300"></div>
                           <Badge className="bg-success/10 text-success border-success/30 px-3 py-1">
@@ -4565,7 +4568,7 @@ export default function ListDetail() {
                   <SelectItem value="todo-list">To-Do List</SelectItem>
                   <SelectItem value="grocery-list">Grocery List</SelectItem>
                   <SelectItem value="registry-list">Registry</SelectItem>
-                  <SelectItem value="shopping-list">Wishlist</SelectItem>
+                  <SelectItem value="shopping-list">Shopping List</SelectItem>
                   <SelectItem value="idea-list">Idea List</SelectItem>
                 </SelectContent>
               </Select>
@@ -4587,7 +4590,7 @@ export default function ListDetail() {
       </Dialog>
 
       {/* Purchase History Modal */}
-      {(list.listType === "registry-list" || list.listType === "shopping-list") && (
+      {(normalizeListType(list.listType) === "registry" || normalizeListType(list.listType) === "wishlist") && (
         <PurchaseHistoryModal
           open={isPurchaseHistoryOpen}
           onOpenChange={(open) => {
@@ -4605,7 +4608,7 @@ export default function ListDetail() {
       )}
 
       {/* Update from Retailer Modal */}
-      {(list.listType === "registry-list" || list.listType === "shopping-list") && (
+      {(normalizeListType(list.listType) === "registry" || normalizeListType(list.listType) === "wishlist") && (
         <UpdateFromRetailerModal
           open={isUpdateFromRetailerOpen}
           onOpenChange={setIsUpdateFromRetailerOpen}
