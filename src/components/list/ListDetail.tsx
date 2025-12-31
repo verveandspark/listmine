@@ -134,6 +134,24 @@ import { supabase } from "@/lib/supabase";
 import { canInviteGuests, canHaveTeamMembers, canShareLists, canExportLists, getAvailableExportFormats } from "@/lib/tierUtils";
 import ShareSettingsModal from "./ShareSettingsModal";
 
+// Helper to normalize listType variations for consistent handling
+// Maps: todo-list → todo, idea-list → idea, registry-list → registry
+const normalizeListType = (listType: string | undefined): string => {
+  if (!listType) return "custom";
+  const normalizations: Record<string, string> = {
+    "todo-list": "todo",
+    "idea-list": "idea",
+    "registry-list": "registry",
+  };
+  return normalizations[listType] || listType;
+};
+
+// Check if listType is a registry or wishlist (for purchaser UI)
+const isRegistryOrWishlist = (listType: string | undefined): boolean => {
+  const normalized = normalizeListType(listType);
+  return normalized === "registry" || normalized === "wishlist";
+};
+
 export default function ListDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -1404,7 +1422,7 @@ export default function ListDetail() {
         </div>
       )}
 
-      {/* GLOBAL Edit Modal - Rendered at top level for all views */}
+      {/* GLOBAL Edit Modal - Schema-driven by listType */}
       {isEditModalOpen && editingItem && (
         <Dialog
           open={true}
@@ -1439,7 +1457,537 @@ export default function ListDetail() {
                 />
               </div>
 
-              {/* Notes field - Always shown */}
+              {/* TO-DO LIST FIELDS: todo, todo-list */}
+              {normalizeListType(list.listType) === "todo" && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Due Date</Label>
+                    <Input
+                      type="date"
+                      value={editingItem.dueDate ? (typeof editingItem.dueDate === 'string' ? editingItem.dueDate : new Date(editingItem.dueDate).toISOString().split('T')[0]) : ""}
+                      onChange={(e) =>
+                        setEditingItem({
+                          ...editingItem,
+                          dueDate: e.target.value || undefined,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Priority</Label>
+                      <Select
+                        value={editingItem.priority || "none"}
+                        onValueChange={(value) =>
+                          setEditingItem({
+                            ...editingItem,
+                            priority: value === "none" ? undefined : (value as "low" | "medium" | "high"),
+                          })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Status</Label>
+                      <Select
+                        value={editingItem.attributes?.status || ""}
+                        onValueChange={(value) =>
+                          setEditingItem({
+                            ...editingItem,
+                            attributes: {
+                              ...editingItem.attributes,
+                              status: value,
+                            },
+                          })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="not-started">Not started</SelectItem>
+                          <SelectItem value="in-progress">In progress</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* IDEA LIST FIELDS: idea, idea-list */}
+              {normalizeListType(list.listType) === "idea" && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Inspiration Link (optional)</Label>
+                    <Input
+                      type="url"
+                      placeholder="https://example.com/inspiration"
+                      value={editingItem.attributes?.inspirationLink || ""}
+                      onChange={(e) =>
+                        setEditingItem({
+                          ...editingItem,
+                          attributes: {
+                            ...editingItem.attributes,
+                            inspirationLink: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Link Title (optional)</Label>
+                    <Input
+                      type="text"
+                      placeholder="e.g., Modern Kitchen Design"
+                      value={editingItem.attributes?.customLinkTitle || ""}
+                      onChange={(e) =>
+                        setEditingItem({
+                          ...editingItem,
+                          attributes: {
+                            ...editingItem.attributes,
+                            customLinkTitle: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Link Description (optional)</Label>
+                    <Textarea
+                      placeholder="e.g., Minimalist kitchen with marble countertops"
+                      value={editingItem.attributes?.customLinkDescription || ""}
+                      onChange={(e) =>
+                        setEditingItem({
+                          ...editingItem,
+                          attributes: {
+                            ...editingItem.attributes,
+                            customLinkDescription: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Link Image URL (optional)</Label>
+                    <Input
+                      type="url"
+                      placeholder="e.g., https://example.com/image.jpg"
+                      value={editingItem.attributes?.customLinkImage || ""}
+                      onChange={(e) =>
+                        setEditingItem({
+                          ...editingItem,
+                          attributes: {
+                            ...editingItem.attributes,
+                            customLinkImage: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Status</Label>
+                    <Select
+                      value={editingItem.attributes?.status || ""}
+                      onValueChange={(value) =>
+                        setEditingItem({
+                          ...editingItem,
+                          attributes: {
+                            ...editingItem.attributes,
+                            status: value,
+                          },
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="brainstorm">Brainstorm</SelectItem>
+                        <SelectItem value="in-progress">In progress</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="on-hold">On hold</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
+
+              {/* REGISTRY/WISHLIST FIELDS: registry, registry-list, wishlist */}
+              {isRegistryOrWishlist(list.listType) && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Product Link (optional)</Label>
+                    <Input
+                      type="url"
+                      placeholder="https://example.com/product"
+                      value={editingItem.attributes?.productLink || ""}
+                      onChange={(e) =>
+                        setEditingItem({
+                          ...editingItem,
+                          attributes: {
+                            ...editingItem.attributes,
+                            productLink: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Link Title (optional)</Label>
+                    <Input
+                      type="text"
+                      placeholder="e.g., Sterling Silver Ring"
+                      value={editingItem.attributes?.customLinkTitle || ""}
+                      onChange={(e) =>
+                        setEditingItem({
+                          ...editingItem,
+                          attributes: {
+                            ...editingItem.attributes,
+                            customLinkTitle: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Link Description (optional)</Label>
+                    <Textarea
+                      placeholder="e.g., Beautiful handcrafted ring"
+                      value={editingItem.attributes?.customLinkDescription || ""}
+                      onChange={(e) =>
+                        setEditingItem({
+                          ...editingItem,
+                          attributes: {
+                            ...editingItem.attributes,
+                            customLinkDescription: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Link Image URL (optional)</Label>
+                    <Input
+                      type="url"
+                      placeholder="e.g., https://example.com/image.jpg"
+                      value={editingItem.attributes?.customLinkImage || ""}
+                      onChange={(e) =>
+                        setEditingItem({
+                          ...editingItem,
+                          attributes: {
+                            ...editingItem.attributes,
+                            customLinkImage: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Price</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={editingItem.attributes?.price || ""}
+                        onChange={(e) =>
+                          setEditingItem({
+                            ...editingItem,
+                            attributes: {
+                              ...editingItem.attributes,
+                              price: e.target.value ? parseFloat(e.target.value) : undefined,
+                            },
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Qty Needed</Label>
+                      <Input
+                        type="number"
+                        value={editingItem.attributes?.quantityNeeded || ""}
+                        onChange={(e) =>
+                          setEditingItem({
+                            ...editingItem,
+                            attributes: {
+                              ...editingItem.attributes,
+                              quantityNeeded: e.target.value ? parseInt(e.target.value) : undefined,
+                            },
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Purchase Status</Label>
+                    <Select
+                      value={editingItem.attributes?.purchaseStatus || ""}
+                      onValueChange={(value) =>
+                        setEditingItem({
+                          ...editingItem,
+                          attributes: {
+                            ...editingItem.attributes,
+                            purchaseStatus: value,
+                          },
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="not-purchased">Not purchased</SelectItem>
+                        <SelectItem value="purchased">Purchased</SelectItem>
+                        <SelectItem value="received">Received</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {/* Purchaser info tip - ONLY for registry/wishlist */}
+                  <div className="bg-blue-50 p-3 rounded-md text-sm text-blue-700">
+                    <p className="flex items-center gap-2">
+                      <span className="text-blue-500">💡</span>
+                      When shared, visitors can mark items as purchased and their info will be recorded.
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {/* SHOPPING LIST FIELDS: shopping-list */}
+              {list.listType === "shopping-list" && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Product Link (optional)</Label>
+                    <Input
+                      type="url"
+                      placeholder="https://example.com/product"
+                      value={editingItem.attributes?.productLink || ""}
+                      onChange={(e) =>
+                        setEditingItem({
+                          ...editingItem,
+                          attributes: {
+                            ...editingItem.attributes,
+                            productLink: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Link Title (optional)</Label>
+                    <Input
+                      type="text"
+                      placeholder="e.g., Wireless Headphones"
+                      value={editingItem.attributes?.customLinkTitle || ""}
+                      onChange={(e) =>
+                        setEditingItem({
+                          ...editingItem,
+                          attributes: {
+                            ...editingItem.attributes,
+                            customLinkTitle: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Link Description (optional)</Label>
+                    <Textarea
+                      placeholder="e.g., Noise-canceling over-ear headphones"
+                      value={editingItem.attributes?.customLinkDescription || ""}
+                      onChange={(e) =>
+                        setEditingItem({
+                          ...editingItem,
+                          attributes: {
+                            ...editingItem.attributes,
+                            customLinkDescription: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Link Image URL (optional)</Label>
+                    <Input
+                      type="url"
+                      placeholder="e.g., https://example.com/image.jpg"
+                      value={editingItem.attributes?.customLinkImage || ""}
+                      onChange={(e) =>
+                        setEditingItem({
+                          ...editingItem,
+                          attributes: {
+                            ...editingItem.attributes,
+                            customLinkImage: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Price</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={editingItem.attributes?.price || ""}
+                        onChange={(e) =>
+                          setEditingItem({
+                            ...editingItem,
+                            attributes: {
+                              ...editingItem.attributes,
+                              price: e.target.value ? parseFloat(e.target.value) : undefined,
+                            },
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Quantity</Label>
+                      <Input
+                        type="number"
+                        value={editingItem.quantity || ""}
+                        onChange={(e) =>
+                          setEditingItem({
+                            ...editingItem,
+                            quantity: e.target.value ? parseInt(e.target.value) : undefined,
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Purchase Status</Label>
+                    <Select
+                      value={editingItem.attributes?.purchaseStatus || ""}
+                      onValueChange={(value) =>
+                        setEditingItem({
+                          ...editingItem,
+                          attributes: {
+                            ...editingItem.attributes,
+                            purchaseStatus: value,
+                          },
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="not-purchased">Not purchased</SelectItem>
+                        <SelectItem value="purchased">Purchased</SelectItem>
+                        <SelectItem value="received">Received</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
+
+              {/* GROCERY LIST FIELDS: grocery-list */}
+              {list.listType === "grocery-list" && (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Category</Label>
+                      <Select
+                        value={editingItem.attributes?.category || ""}
+                        onValueChange={(value) =>
+                          setEditingItem({
+                            ...editingItem,
+                            attributes: {
+                              ...editingItem.attributes,
+                              category: value,
+                            },
+                          })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="produce">Produce</SelectItem>
+                          <SelectItem value="dairy">Dairy</SelectItem>
+                          <SelectItem value="meat">Meat</SelectItem>
+                          <SelectItem value="pantry">Pantry</SelectItem>
+                          <SelectItem value="frozen">Frozen</SelectItem>
+                          <SelectItem value="bakery">Bakery</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Quantity</Label>
+                      <Input
+                        type="number"
+                        value={editingItem.quantity || ""}
+                        onChange={(e) =>
+                          setEditingItem({
+                            ...editingItem,
+                            quantity: e.target.value ? parseInt(e.target.value) : undefined,
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Unit</Label>
+                      <Select
+                        value={editingItem.attributes?.unit || ""}
+                        onValueChange={(value) =>
+                          setEditingItem({
+                            ...editingItem,
+                            attributes: {
+                              ...editingItem.attributes,
+                              unit: value,
+                            },
+                          })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select unit" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="lbs">lbs</SelectItem>
+                          <SelectItem value="oz">oz</SelectItem>
+                          <SelectItem value="count">count</SelectItem>
+                          <SelectItem value="liters">liters</SelectItem>
+                          <SelectItem value="ml">ml</SelectItem>
+                          <SelectItem value="cups">cups</SelectItem>
+                          <SelectItem value="tbsp">tbsp</SelectItem>
+                          <SelectItem value="tsp">tsp</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Est. Price</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={editingItem.attributes?.price || ""}
+                        onChange={(e) =>
+                          setEditingItem({
+                            ...editingItem,
+                            attributes: {
+                              ...editingItem.attributes,
+                              price: e.target.value ? parseFloat(e.target.value) : undefined,
+                            },
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Notes field - Always shown for all list types */}
               <div className="space-y-2">
                 <Label>Notes</Label>
                 <Textarea
@@ -1453,44 +2001,6 @@ export default function ListDetail() {
                   placeholder="Add notes..."
                   className="min-h-[80px]"
                 />
-              </div>
-
-              {/* Due Date */}
-              <div className="space-y-2">
-                <Label>Due Date</Label>
-                <Input
-                  type="date"
-                  value={editingItem.dueDate ? (typeof editingItem.dueDate === 'string' ? editingItem.dueDate : new Date(editingItem.dueDate).toISOString().split('T')[0]) : ""}
-                  onChange={(e) =>
-                    setEditingItem({
-                      ...editingItem,
-                      dueDate: e.target.value || undefined,
-                    })
-                  }
-                />
-              </div>
-
-              {/* Priority */}
-              <div className="space-y-2">
-                <Label>Priority</Label>
-                <Select
-                  value={editingItem.priority || ""}
-                  onValueChange={(value) =>
-                    setEditingItem({
-                      ...editingItem,
-                      priority: value as "low" | "medium" | "high",
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select priority" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
 
               {/* Save/Cancel Buttons */}
@@ -1514,6 +2024,7 @@ export default function ListDetail() {
                         priority: editingItem.priority,
                         quantity: editingItem.quantity,
                         attributes: editingItem.attributes,
+                        completed: editingItem.completed,
                       });
                       setIsEditModalOpen(false);
                       setEditingItem(null);
