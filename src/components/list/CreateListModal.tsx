@@ -45,6 +45,19 @@ interface AccountOption {
   tierLoadError?: boolean; // True if we failed to load the owner's tier
 }
 
+// Normalize listType variations for consistent helper text lookup
+const normalizeListType = (listType: string | undefined): string => {
+  if (!listType) return "custom";
+  const normalizations: Record<string, string> = {
+    "todo-list": "todo",
+    "task-list": "todo",
+    "idea-list": "idea",
+    "registry-list": "registry",
+    "checklist": "todo",
+  };
+  return normalizations[listType] || listType;
+};
+
 export default function CreateListModal({
   open,
   onOpenChange,
@@ -311,7 +324,7 @@ export default function CreateListModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] bg-white animate-pop-in">
+      <DialogContent className="sm:max-w-2xl md:max-w-3xl bg-white animate-pop-in px-4 sm:px-6">
         <DialogHeader>
           <DialogTitle>Create New List</DialogTitle>
         </DialogHeader>
@@ -363,7 +376,7 @@ export default function CreateListModal({
                 </span>
               )}
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <TooltipProvider>
                 {listTypesWithAvailability.map((typeInfo) => {
                   const helperTexts: Record<string, string> = {
@@ -374,13 +387,14 @@ export default function CreateListModal({
                     registry: "Shareable gift registry with purchase tracking.",
                     wishlist: "Shareable wish list with purchase tracking.",
                   };
+                  const helperKey = normalizeListType(typeInfo.value);
                   return (
                     <Tooltip key={typeInfo.value}>
                       <TooltipTrigger asChild>
                         <Button
                           type="button"
                           variant={listType === typeInfo.value ? "default" : "outline"}
-                          className={`relative flex-col items-start h-auto min-h-[4.5rem] py-2 px-3 ${
+                          className={`relative flex-col items-start h-auto min-h-[110px] py-3 px-3 overflow-visible ${
                             !typeInfo.available
                               ? "opacity-60 cursor-not-allowed border-dashed"
                               : ""
@@ -391,16 +405,16 @@ export default function CreateListModal({
                           }`}
                           onClick={() => handleListTypeClick(typeInfo)}
                         >
-                          <span className="flex items-center w-full justify-between">
+                          <span className="flex items-center w-full justify-between font-medium">
                             {typeInfo.label}
                             {!typeInfo.available && (
                               <Lock className="w-3 h-3 ml-auto text-muted-foreground" />
                             )}
                           </span>
-                          <span className={`text-[10px] sm:text-xs font-normal mt-0.5 text-left leading-tight line-clamp-2 ${
-                            listType === typeInfo.value ? "text-white/80" : "text-muted-foreground"
+                          <span className={`text-xs font-normal mt-1.5 text-left leading-snug whitespace-normal line-clamp-2 ${
+                            listType === typeInfo.value ? "!text-white/90 !opacity-100" : "!text-slate-700 dark:!text-slate-200 !opacity-100"
                           }`}>
-                            {helperTexts[typeInfo.value] || ""}
+                            {helperTexts[helperKey] || ""}
                           </span>
                         </Button>
                       </TooltipTrigger>
