@@ -305,6 +305,8 @@ export default function ListDetail() {
   const [editingItem, setEditingItem] = useState<ListItemType | null>(null);
   // Separate boolean to persist modal open state across item refreshes
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  // Separate state for due date input string (to avoid type mismatch with Date)
+  const [dueDateInput, setDueDateInput] = useState<string>('');
 
   // Link preview for new items
   const { previewData, loading: previewLoading, error: previewError, fetchPreview } = useOpenGraphPreview();
@@ -1431,6 +1433,7 @@ export default function ListDetail() {
             if (!open) {
               setIsEditModalOpen(false);
               setEditingItem(null);
+              setDueDateInput('');
             }
           }}
           modal={true}
@@ -1464,13 +1467,8 @@ export default function ListDetail() {
                     <Label>Due Date</Label>
                     <Input
                       type="date"
-                      value={editingItem.dueDate ? (typeof editingItem.dueDate === 'string' ? editingItem.dueDate : new Date(editingItem.dueDate).toISOString().split('T')[0]) : ""}
-                      onChange={(e) =>
-                        setEditingItem({
-                          ...editingItem,
-                          dueDate: e.target.value || undefined,
-                        })
-                      }
+                      value={dueDateInput}
+                      onChange={(e) => setDueDateInput(e.target.value)}
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
@@ -2010,6 +2008,7 @@ export default function ListDetail() {
                   onClick={() => {
                     setIsEditModalOpen(false);
                     setEditingItem(null);
+                    setDueDateInput('');
                   }}
                 >
                   Cancel
@@ -2017,10 +2016,15 @@ export default function ListDetail() {
                 <Button
                   onClick={async () => {
                     if (editingItem) {
+                      // Convert dueDateInput string to Date or undefined for todo items
+                      const dueDate = dueDateInput 
+                        ? new Date(dueDateInput + 'T00:00:00') 
+                        : undefined;
+                      
                       await updateListItem(list.id, editingItem.id, {
                         text: editingItem.text,
                         notes: editingItem.notes,
-                        dueDate: editingItem.dueDate,
+                        dueDate: normalizeListType(list.listType) === "todo" ? dueDate : editingItem.dueDate,
                         priority: editingItem.priority,
                         quantity: editingItem.quantity,
                         attributes: editingItem.attributes,
@@ -2028,6 +2032,7 @@ export default function ListDetail() {
                       });
                       setIsEditModalOpen(false);
                       setEditingItem(null);
+                      setDueDateInput('');
                     }
                   }}
                 >
@@ -3870,6 +3875,13 @@ export default function ListDetail() {
                                 e.preventDefault();
                                 if (import.meta.env.DEV) console.log('[DEV] VIEW 1 Edit button clicked for item:', item.id, item.text);
                                 setEditingItem(item);
+                                // Initialize dueDateInput from item.dueDate
+                                if (item.dueDate) {
+                                  const d = typeof item.dueDate === 'string' ? item.dueDate : new Date(item.dueDate).toISOString().split('T')[0];
+                                  setDueDateInput(d);
+                                } else {
+                                  setDueDateInput('');
+                                }
                                 setIsEditModalOpen(true);
                               }}
                             >
@@ -4069,6 +4081,13 @@ export default function ListDetail() {
                                 e.preventDefault();
                                 if (import.meta.env.DEV) console.log('[DEV] VIEW 2 Edit button clicked for item:', item.id, item.text);
                                 setEditingItem(item);
+                                // Initialize dueDateInput from item.dueDate
+                                if (item.dueDate) {
+                                  const d = typeof item.dueDate === 'string' ? item.dueDate : new Date(item.dueDate).toISOString().split('T')[0];
+                                  setDueDateInput(d);
+                                } else {
+                                  setDueDateInput('');
+                                }
                                 setIsEditModalOpen(true);
                               }}
                             >
@@ -4406,6 +4425,13 @@ export default function ListDetail() {
                                 e.preventDefault();
                                 if (import.meta.env.DEV) console.log('[DEV] VIEW 3 Edit button clicked for item:', item.id, item.text);
                                 setEditingItem(item);
+                                // Initialize dueDateInput from item.dueDate
+                                if (item.dueDate) {
+                                  const d = typeof item.dueDate === 'string' ? item.dueDate : new Date(item.dueDate).toISOString().split('T')[0];
+                                  setDueDateInput(d);
+                                } else {
+                                  setDueDateInput('');
+                                }
                                 setIsEditModalOpen(true);
                               }}
                             >
