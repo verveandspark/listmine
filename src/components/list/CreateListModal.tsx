@@ -380,7 +380,7 @@ export default function CreateListModal({
                         <Button
                           type="button"
                           variant={listType === typeInfo.value ? "default" : "outline"}
-                          className={`relative flex-col items-start h-auto py-2 px-3 ${
+                          className={`relative flex-col items-start h-auto min-h-[4.5rem] py-2 px-3 ${
                             !typeInfo.available
                               ? "opacity-60 cursor-not-allowed border-dashed"
                               : ""
@@ -397,7 +397,9 @@ export default function CreateListModal({
                               <Lock className="w-3 h-3 ml-auto text-muted-foreground" />
                             )}
                           </span>
-                          <span className="text-[10px] sm:text-xs font-normal text-muted-foreground mt-0.5 text-left leading-tight">
+                          <span className={`text-[10px] sm:text-xs font-normal mt-0.5 text-left leading-tight line-clamp-2 ${
+                            listType === typeInfo.value ? "text-white/80" : "text-muted-foreground"
+                          }`}>
                             {helperTexts[typeInfo.value] || ""}
                           </span>
                         </Button>
