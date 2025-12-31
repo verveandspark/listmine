@@ -48,6 +48,7 @@ interface Template {
   is_premium: boolean;
   item_count: number;
   icon_emoji: string;
+  tier_required: string | null;
 }
 
 // Hardcoded included template slugs for Even Better tier
@@ -122,10 +123,31 @@ export default function Templates() {
     }
   };
 
+  // Tier hierarchy for comparison
+  const tierHierarchy: Record<string, number> = {
+    free: 0,
+    good: 1,
+    even_better: 2,
+    lots_more: 3,
+  };
+
+  // Check if user's tier meets or exceeds required tier
+  const meetsMinimumTier = (requiredTier: string | null): boolean => {
+    if (!requiredTier) return true;
+    const userLevel = tierHierarchy[userTier] ?? 0;
+    const requiredLevel = tierHierarchy[requiredTier] ?? 0;
+    return userLevel >= requiredLevel;
+  };
+
   // Helper to check if a template is available (included or unlocked) for current user
   const isTemplateAvailable = (template: Template): boolean => {
     // User has an entitlement for this template
     if (entitledTemplateIds.includes(template.id)) return true;
+    
+    // If template has tier_required, check if user meets that tier
+    if (template.tier_required) {
+      return meetsMinimumTier(template.tier_required);
+    }
     
     switch (userTier) {
       case "lots_more":
@@ -146,6 +168,11 @@ export default function Templates() {
   const getTemplateStatus = (template: Template): "included" | "unlocked" | "locked" => {
     // Check if user has entitlement first
     if (entitledTemplateIds.includes(template.id)) return "unlocked";
+    
+    // If template has tier_required, check tier access
+    if (template.tier_required) {
+      return meetsMinimumTier(template.tier_required) ? "included" : "locked";
+    }
     
     switch (userTier) {
       case "lots_more":

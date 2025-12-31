@@ -931,6 +931,7 @@ export type Database = {
           list_type: string
           name: string
           slug: string
+          tier_required: string | null
           updated_at: string | null
         }
         Insert: {
@@ -945,6 +946,7 @@ export type Database = {
           list_type?: string
           name: string
           slug: string
+          tier_required?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -959,6 +961,7 @@ export type Database = {
           list_type?: string
           name?: string
           slug?: string
+          tier_required?: string | null
           updated_at?: string | null
         }
         Relationships: []
