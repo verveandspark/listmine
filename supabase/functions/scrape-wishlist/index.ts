@@ -66,142 +66,229 @@ const normalizeTargetRegistryUrl = (url: string): string => {
   }
 };
 
+// Check if Amazon returned a blocked/captcha page
+const isAmazonBlockedPage = (html: string): boolean => {
+  const blockedMarkers = [
+    "Type the characters you see in this image",
+    "Enter the characters you see below",
+    "captcha",
+    "Robot Check",
+    "To discuss automated access",
+    "api-services-support@amazon.com",
+    "Sorry, we just need to make sure you're not a robot",
+    "automated access to Amazon data",
+  ];
+  const lowerHtml = html.toLowerCase();
+  return blockedMarkers.some(marker => lowerHtml.includes(marker.toLowerCase()));
+};
+
+// Debug helper to log HTML snippet
+const logHtmlDebugInfo = (html: string, retailer: string, url: string): void => {
+  const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+  const pageTitle = titleMatch ? titleMatch[1].trim() : "No title found";
+  const snippet = html.substring(0, 1000).replace(/\s+/g, ' ');
+  console.log(`[DEBUG_HTML] Retailer: ${retailer} | URL: ${url}`);
+  console.log(`[DEBUG_HTML] Page title: ${pageTitle}`);
+  console.log(`[DEBUG_HTML] First 1000 chars: ${snippet}`);
+};
+
 const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
   const items: ScrapedItem[] = [];
   
-  // Try to parse embedded JSON first (__NEXT_DATA__ or similar)
+  console.log("[TARGET_PARSE] Starting Target registry parsing...");
+  
+  // Try to parse embedded JSON first (__NEXT_DATA__)
   try {
     const nextDataScript = $('script#__NEXT_DATA__').html();
     if (nextDataScript) {
+      console.log("[TARGET_PARSE] Found __NEXT_DATA__ script, parsing...");
       const nextData = JSON.parse(nextDataScript);
-      const registryData = nextData?.props?.pageProps?.registryData || 
-                           nextData?.props?.pageProps?.registry ||
-                           nextData?.props?.pageProps?.giftRegistry;
       
-      if (registryData?.items || registryData?.registryItems) {
-        const registryItems = registryData.items || registryData.registryItems || [];
-        registryItems.forEach((item: any) => {
-          const product = item.product || item;
-          items.push({
-            title: product.title || product.name || product.description || "Unknown Item",
-            productUrl: product.url ? `https://www.target.com${product.url}` : 
-                       (product.pdpUrl ? `https://www.target.com${product.pdpUrl}` : undefined),
-            imageUrl: product.images?.[0]?.baseUrl || product.image?.baseUrl || product.primaryImageUrl || undefined,
-            price: product.price?.currentRetail?.toString() || 
-                   product.price?.formattedCurrentPrice || 
-                   product.formattedPrice || undefined,
-            quantity: item.requestedQuantity || item.quantity || 1,
-            source: "target_registry",
+      // Navigate through multiple possible paths in __NEXT_DATA__
+      const possibleRegistryPaths = [
+        nextData?.props?.pageProps?.registryData,
+        nextData?.props?.pageProps?.registry,
+        nextData?.props?.pageProps?.giftRegistry,
+        nextData?.props?.pageProps?.pageData?.registry,
+        nextData?.props?.pageProps?.initialData?.registry,
+        nextData?.props?.pageProps,
+      ];
+      
+      for (const registryData of possibleRegistryPaths) {
+        if (!registryData) continue;
+        
+        const registryItems = registryData.items || 
+                             registryData.registryItems || 
+                             registryData.giftRegistryItems ||
+                             registryData.registryItemList ||
+                             [];
+        
+        if (registryItems.length > 0) {
+          console.log("[TARGET_PARSE] Found registryItems array with", registryItems.length, "items");
+          registryItems.forEach((item: any) => {
+            const product = item.product || item.productDetails || item;
+            const name = product.title || product.name || product.productTitle || 
+                        product.description || item.title || item.name || "Unknown Item";
+            
+            if (!name || name === "Unknown Item") return;
+            
+            const url = product.url || product.pdpUrl || product.productUrl || item.url;
+            const productUrl = url ? (url.startsWith('http') ? url : `https://www.target.com${url}`) : undefined;
+            
+            const imageUrl = product.images?.[0]?.baseUrl || 
+                            product.image?.baseUrl || 
+                            product.primaryImageUrl ||
+                            product.imageUrl ||
+                            item.imageUrl || undefined;
+            
+            const price = product.price?.currentRetail?.toString() || 
+                         product.price?.formattedCurrentPrice || 
+                         product.formattedPrice ||
+                         item.price || undefined;
+            
+            items.push({
+              name,
+              link: productUrl,
+              image: imageUrl,
+              price,
+            });
           });
-        });
-        console.log("Target: Parsed from __NEXT_DATA__:", items.length, "items");
-        return items;
+          
+          if (items.length > 0) {
+            console.log("[TARGET_PARSE] Parsed from __NEXT_DATA__:", items.length, "items");
+            return items;
+          }
+        }
       }
+      console.log("[TARGET_PARSE] __NEXT_DATA__ found but no registry items extracted");
+    } else {
+      console.log("[TARGET_PARSE] No __NEXT_DATA__ script found");
     }
-  } catch (e) {
-    console.log("Target: __NEXT_DATA__ parsing failed, trying alternative JSON");
+  } catch (e: any) {
+    console.log("[TARGET_PARSE] __NEXT_DATA__ parsing failed:", e.message);
   }
   
-  // Try to find alternative embedded JSON structures
+  // Try to find alternative embedded JSON structures (inline scripts)
   try {
+    console.log("[TARGET_PARSE] Searching for alternative embedded JSON...");
     const scripts = $('script').toArray();
     for (const script of scripts) {
       const content = $(script).html() || "";
-      if (content.includes("registryItems") || content.includes("giftRegistry")) {
-        const jsonMatch = content.match(/\{[\s\S]*"registryItems"[\s\S]*\}/);
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
-          const registryItems = parsed.registryItems || parsed.items || [];
-          registryItems.forEach((item: any) => {
-            items.push({
-              title: item.title || item.name || item.productTitle || "Unknown Item",
-              productUrl: item.url ? `https://www.target.com${item.url}` : undefined,
-              imageUrl: item.image || item.imageUrl || item.primaryImage || undefined,
-              price: item.price || item.formattedPrice || undefined,
-              quantity: item.requestedQuantity || item.quantity || 1,
-              source: "target_registry",
-            });
-          });
-          if (items.length > 0) {
-            console.log("Target: Parsed from embedded JSON:", items.length, "items");
-            return items;
+      if (content.includes("registryItems") || content.includes("giftRegistry") || content.includes("registryItemList")) {
+        // Try multiple JSON patterns
+        const patterns = [
+          /\{"registryItems"\s*:\s*\[[\s\S]*?\]\s*[,}]/,
+          /\{"items"\s*:\s*\[[\s\S]*?\]\s*[,}]/,
+          /"registryItemList"\s*:\s*(\[[\s\S]*?\])/,
+        ];
+        
+        for (const pattern of patterns) {
+          const jsonMatch = content.match(pattern);
+          if (jsonMatch) {
+            try {
+              let itemsArray: any[];
+              if (jsonMatch[1]) {
+                itemsArray = JSON.parse(jsonMatch[1]);
+              } else {
+                const parsed = JSON.parse(jsonMatch[0].endsWith(',') ? jsonMatch[0].slice(0, -1) + '}' : jsonMatch[0]);
+                itemsArray = parsed.registryItems || parsed.items || [];
+              }
+              
+              itemsArray.forEach((item: any) => {
+                const name = item.title || item.name || item.productTitle || "Unknown Item";
+                if (name === "Unknown Item") return;
+                
+                items.push({
+                  name,
+                  link: item.url ? `https://www.target.com${item.url}` : undefined,
+                  image: item.image || item.imageUrl || item.primaryImage || undefined,
+                  price: item.price || item.formattedPrice || undefined,
+                });
+              });
+              
+              if (items.length > 0) {
+                console.log("[TARGET_PARSE] Parsed from embedded JSON:", items.length, "items");
+                return items;
+              }
+            } catch (parseErr) {
+              // Continue to next pattern
+            }
           }
         }
       }
     }
   } catch (e) {
-    console.log("Target: Alternative JSON parsing failed, falling back to DOM");
+    console.log("[TARGET_PARSE] Alternative JSON parsing failed, falling back to DOM");
   }
   
   // Fallback: DOM parsing
-  // Target registry items are typically in cards or list items
+  console.log("[TARGET_PARSE] Attempting DOM parsing...");
   const selectors = [
     '[data-test="registry-item"]',
     '[data-test="gift-registry-item"]',
+    '[data-test="productCard"]',
     '.GiftRegistryItem',
     '[class*="RegistryItem"]',
     '[class*="registry-item"]',
+    '[class*="ProductCard"]',
     '.styles_productCard',
     '[data-component="ProductCard"]',
+    'article[data-test]',
   ];
   
   for (const selector of selectors) {
     $(selector).each((_index: number, element: any) => {
       const $item = $(element);
       
-      const title = $item.find('[data-test="product-title"], [class*="ProductTitle"], h3, h4').first().text().trim() ||
+      const name = $item.find('[data-test="product-title"], [class*="ProductTitle"], h3, h4, a[data-test="product-title"]').first().text().trim() ||
                    $item.find('a[href*="/p/"]').first().text().trim() ||
                    $item.find('img').first().attr('alt') || "";
       
-      if (!title || title.length < 2) return;
+      if (!name || name.length < 2) return;
       
       const productLink = $item.find('a[href*="/p/"]').first().attr('href');
-      const productUrl = productLink ? `https://www.target.com${productLink}` : undefined;
+      const link = productLink ? `https://www.target.com${productLink}` : undefined;
       
-      const imageUrl = $item.find('img').first().attr('src') || 
-                       $item.find('img').first().attr('data-src') || undefined;
+      const image = $item.find('img').first().attr('src') || 
+                    $item.find('img').first().attr('data-src') || undefined;
       
       const priceText = $item.find('[data-test="current-price"], [class*="Price"], .styles_price').first().text().trim();
       const price = priceText.match(/\$[\d,.]+/)?.[0] || undefined;
       
-      const quantityText = $item.find('[class*="quantity"], [data-test*="quantity"]').first().text();
-      const quantityMatch = quantityText.match(/(\d+)/);
-      const quantity = quantityMatch ? parseInt(quantityMatch[1]) : 1;
-      
-      items.push({
-        title,
-        productUrl,
-        imageUrl,
-        price,
-        quantity,
-        source: "target_registry",
-      });
+      if (!items.some(i => i.name === name)) {
+        items.push({
+          name,
+          link,
+          image,
+          price,
+        });
+      }
     });
     
     if (items.length > 0) {
-      console.log("Target: Parsed from DOM with selector:", selector, items.length, "items");
+      console.log("[TARGET_PARSE] Parsed from DOM with selector:", selector, items.length, "items");
       break;
     }
   }
   
-  // Last resort: find any product-like elements
+  // Last resort: find any product links
   if (items.length === 0) {
     $('a[href*="/p/"]').each((_index: number, element: any) => {
       const $link = $(element);
       const href = $link.attr('href');
-      const title = $link.text().trim() || $link.find('img').attr('alt') || "";
+      const name = $link.text().trim() || $link.find('img').attr('alt') || "";
       
-      if (title && title.length > 3 && !items.some(i => i.title === title)) {
+      if (name && name.length > 3 && !items.some(i => i.name === name)) {
         items.push({
-          title,
-          productUrl: href ? `https://www.target.com${href}` : undefined,
-          imageUrl: $link.find('img').attr('src') || undefined,
-          quantity: 1,
-          source: "target_registry",
+          name,
+          link: href ? `https://www.target.com${href}` : undefined,
+          image: $link.find('img').attr('src') || undefined,
         });
       }
     });
-    console.log("Target: Parsed from product links:", items.length, "items");
+    if (items.length > 0) {
+      console.log("[TARGET_PARSE] Parsed from product links:", items.length, "items");
+    }
   }
   
   return items;
@@ -261,8 +348,10 @@ const scrapeAmazon = ($: any): ScrapedItem[] => {
   return items;
 };
 
-const scrapeAmazonRegistry = ($: any, html: string): ScrapedItem[] => {
+const scrapeAmazonRegistry = ($: any, html: string, url: string): ScrapedItem[] => {
   const items: ScrapedItem[] = [];
+  
+  console.log("[AMAZON_REGISTRY_PARSE] Starting Amazon registry parsing...");
   
   // Helper to validate item has proper product URL
   const isValidRegistryItem = (link?: string): boolean => {
@@ -270,89 +359,91 @@ const scrapeAmazonRegistry = ($: any, html: string): ScrapedItem[] => {
     return link.includes('/dp/') || link.includes('/gp/product/');
   };
   
+  // Extract registry ID from URL for potential API call
+  const registryIdMatch = url.match(/\/guest-view\/([A-Z0-9]+)/i) || 
+                          url.match(/registryId[=\/]([A-Z0-9]+)/i) ||
+                          url.match(/\/registry\/([A-Z0-9]+)/i);
+  const registryId = registryIdMatch ? registryIdMatch[1] : null;
+  console.log("[AMAZON_REGISTRY_PARSE] Extracted registry ID:", registryId || "Not found");
+  
   // Try to parse embedded JSON first - look for registry-specific data structures
   try {
+    console.log("[AMAZON_REGISTRY_PARSE] Searching for embedded JSON data...");
     const scripts = $('script').toArray();
+    let foundScriptContent = false;
+    
     for (const script of scripts) {
       const content = $(script).html() || "";
       
       // Look for Amazon registry data structures
-      // Pattern 1: window.P.when with registry items
-      if (content.includes('registryItemList') || content.includes('itemList') || content.includes('"items":')) {
-        // Try to extract JSON objects containing registry items
-        const itemListMatch = content.match(/"items"\s*:\s*(\[[\s\S]*?\])\s*[,}]/);
-        if (itemListMatch) {
-          try {
-            const itemsArray = JSON.parse(itemListMatch[1]);
-            for (const item of itemsArray) {
-              const asin = item.asin || item.ASIN || item.itemId;
-              const title = item.title || item.name || item.productTitle || item.itemName;
-              const link = asin ? `https://www.amazon.com/dp/${asin}` : 
-                          (item.itemUrl || item.productUrl || item.link);
-              
-              if (title && isValidRegistryItem(link)) {
-                items.push({
-                  name: title,
-                  link,
-                  image: item.image || item.imageUrl || item.mainImage || item.smallImage || undefined,
-                  price: item.price?.displayPrice || item.displayPrice || item.formattedPrice || undefined,
-                });
-              }
-            }
-            if (items.length > 0) {
-              console.log("Amazon Registry: Parsed from embedded items JSON:", items.length, "items");
-              return items;
-            }
-          } catch (e) {
-            console.log("Amazon Registry: Failed to parse items JSON array");
-          }
-        }
+      // Pattern 1: window.P.when with registry items or similar data injection
+      if (content.includes('registryItemList') || content.includes('itemList') || 
+          content.includes('"items":') || content.includes('"registryItems"')) {
+        foundScriptContent = true;
+        console.log("[AMAZON_REGISTRY_PARSE] Found potential registry data in script tag");
         
-        // Pattern 2: Look for registryItemList
-        const registryListMatch = content.match(/"registryItemList"\s*:\s*(\[[\s\S]*?\])\s*[,}]/);
-        if (registryListMatch) {
-          try {
-            const registryItems = JSON.parse(registryListMatch[1]);
-            for (const item of registryItems) {
-              const asin = item.asin || item.ASIN || item.itemId;
-              const title = item.title || item.itemName || item.productTitle;
-              const link = asin ? `https://www.amazon.com/dp/${asin}` : item.itemUrl;
+        // Try multiple extraction patterns
+        const extractPatterns = [
+          { pattern: /"items"\s*:\s*(\[[\s\S]*?\])(?=\s*[,}])/, name: 'items array' },
+          { pattern: /"registryItemList"\s*:\s*(\[[\s\S]*?\])(?=\s*[,}])/, name: 'registryItemList' },
+          { pattern: /"registryItems"\s*:\s*(\[[\s\S]*?\])(?=\s*[,}])/, name: 'registryItems' },
+          { pattern: /"listItems"\s*:\s*(\[[\s\S]*?\])(?=\s*[,}])/, name: 'listItems' },
+        ];
+        
+        for (const { pattern, name } of extractPatterns) {
+          const match = content.match(pattern);
+          if (match) {
+            try {
+              const itemsArray = JSON.parse(match[1]);
+              console.log(`[AMAZON_REGISTRY_PARSE] Found ${name} with ${itemsArray.length} potential items`);
               
-              if (title && isValidRegistryItem(link)) {
-                items.push({
-                  name: title,
-                  link,
-                  image: item.smallImage || item.image || item.imageUrl || undefined,
-                  price: item.price || item.displayPrice || undefined,
-                });
+              for (const item of itemsArray) {
+                const asin = item.asin || item.ASIN || item.itemId || item.productId;
+                const title = item.title || item.name || item.productTitle || item.itemName || item.productName;
+                const link = asin ? `https://www.amazon.com/dp/${asin}` : 
+                            (item.itemUrl || item.productUrl || item.link || item.url);
+                
+                if (title && isValidRegistryItem(link)) {
+                  items.push({
+                    name: title,
+                    link,
+                    image: item.image || item.imageUrl || item.mainImage || item.smallImage || 
+                           item.mediumImage || item.thumbnailImage || undefined,
+                    price: item.price?.displayPrice || item.displayPrice || item.formattedPrice || 
+                           item.price?.amount || item.priceString || undefined,
+                  });
+                }
               }
+              
+              if (items.length > 0) {
+                console.log(`[AMAZON_REGISTRY_PARSE] Parsed ${items.length} items from ${name}`);
+                return items;
+              }
+            } catch (e: any) {
+              console.log(`[AMAZON_REGISTRY_PARSE] Failed to parse ${name}:`, e.message);
             }
-            if (items.length > 0) {
-              console.log("Amazon Registry: Parsed from registryItemList:", items.length, "items");
-              return items;
-            }
-          } catch (e) {
-            console.log("Amazon Registry: Failed to parse registryItemList");
           }
         }
       }
       
-      // Pattern 3: __PRELOADED_STATE__ with registry data
+      // Pattern 2: __PRELOADED_STATE__ with registry data
       if (content.includes("__PRELOADED_STATE__")) {
+        console.log("[AMAZON_REGISTRY_PARSE] Found __PRELOADED_STATE__");
         const stateMatch = content.match(/window\.__PRELOADED_STATE__\s*=\s*(\{[\s\S]*?\});/);
         if (stateMatch) {
           try {
             const state = JSON.parse(stateMatch[1]);
-            // Navigate through possible registry item locations
             const possibleItemArrays = [
               state?.registryItems,
               state?.registry?.items,
               state?.data?.items,
               state?.pageData?.items,
+              state?.listData?.items,
             ].filter(Boolean);
             
             for (const itemArray of possibleItemArrays) {
               if (Array.isArray(itemArray)) {
+                console.log(`[AMAZON_REGISTRY_PARSE] Found item array with ${itemArray.length} items in __PRELOADED_STATE__`);
                 for (const item of itemArray) {
                   const asin = item.asin || item.ASIN;
                   const title = item.title || item.name || item.productTitle;
@@ -370,28 +461,68 @@ const scrapeAmazonRegistry = ($: any, html: string): ScrapedItem[] => {
               }
             }
             if (items.length > 0) {
-              console.log("Amazon Registry: Parsed from __PRELOADED_STATE__:", items.length, "items");
+              console.log("[AMAZON_REGISTRY_PARSE] Parsed from __PRELOADED_STATE__:", items.length, "items");
               return items;
             }
-          } catch (e) {
-            console.log("Amazon Registry: Failed to parse __PRELOADED_STATE__");
+          } catch (e: any) {
+            console.log("[AMAZON_REGISTRY_PARSE] Failed to parse __PRELOADED_STATE__:", e.message);
           }
         }
       }
+      
+      // Pattern 3: Look for P.when data loading (Amazon's lazy load pattern)
+      if (content.includes('P.when') && (content.includes('registry') || content.includes('Registry'))) {
+        console.log("[AMAZON_REGISTRY_PARSE] Found P.when with registry data");
+        // Try to find JSON data blocks
+        const dataBlockMatches = content.matchAll(/\{[^{}]*"asin"\s*:\s*"[A-Z0-9]{10}"[^{}]*\}/g);
+        for (const match of dataBlockMatches) {
+          try {
+            const itemData = JSON.parse(match[0]);
+            const asin = itemData.asin || itemData.ASIN;
+            const title = itemData.title || itemData.name;
+            if (asin && title) {
+              const link = `https://www.amazon.com/dp/${asin}`;
+              if (!items.some(i => i.link === link)) {
+                items.push({
+                  name: title,
+                  link,
+                  image: itemData.image || itemData.imageUrl || undefined,
+                  price: itemData.price || undefined,
+                });
+              }
+            }
+          } catch (e) {
+            // Continue trying other matches
+          }
+        }
+        if (items.length > 0) {
+          console.log("[AMAZON_REGISTRY_PARSE] Parsed from P.when data blocks:", items.length, "items");
+          return items;
+        }
+      }
     }
-  } catch (e) {
-    console.log("Amazon Registry: JSON parsing failed, falling back to DOM");
+    
+    if (!foundScriptContent) {
+      console.log("[AMAZON_REGISTRY_PARSE] No registry-related script content found");
+    }
+  } catch (e: any) {
+    console.log("[AMAZON_REGISTRY_PARSE] JSON parsing failed:", e.message);
   }
   
   // DOM parsing fallback - scope to registry list region
+  console.log("[AMAZON_REGISTRY_PARSE] Falling back to DOM parsing...");
+  
   // Look for the main registry items container first
   const registryContainerSelectors = [
     '#item-page-wrapper',
+    '#registry-items',
     '[id*="registry-item"]',
     '[class*="registry-items"]',
     '.g-item-page',
     '#gift-list',
     '[data-a-container="registryItem"]',
+    '#registryItemList',
+    '.still-needs-section',
   ];
   
   let $registryContainer = $('body');
@@ -399,7 +530,7 @@ const scrapeAmazonRegistry = ($: any, html: string): ScrapedItem[] => {
     const $container = $(containerSelector);
     if ($container.length > 0) {
       $registryContainer = $container;
-      console.log("Amazon Registry: Found registry container:", containerSelector);
+      console.log("[AMAZON_REGISTRY_PARSE] Found registry container:", containerSelector);
       break;
     }
   }
@@ -410,19 +541,18 @@ const scrapeAmazonRegistry = ($: any, html: string): ScrapedItem[] => {
     '[data-itemid]',
     'li[data-id]',
     '.a-section[data-asin]',
+    '[data-component-type="s-search-result"]',
   ];
   
   for (const selector of registryItemSelectors) {
     $registryContainer.find(selector).each((_index: number, element: any) => {
       const $item = $(element);
       
-      // Get ASIN first - this is the most reliable identifier
       const asin = $item.attr('data-asin') || 
                    $item.attr('data-itemid') ||
                    $item.attr('data-id') ||
                    $item.find('[data-asin]').first().attr('data-asin');
       
-      // Build product URL from ASIN
       const href = $item.find('a[href*="/dp/"], a[href*="/gp/product/"]').first().attr('href');
       let link: string | undefined;
       
@@ -432,7 +562,6 @@ const scrapeAmazonRegistry = ($: any, html: string): ScrapedItem[] => {
         link = href.startsWith('http') ? href : `https://www.amazon.com${href}`;
       }
       
-      // Only process if we have a valid product link
       if (!isValidRegistryItem(link)) return;
       
       const name = $item.find('h3, h2, [id*="itemName"], .a-size-base-plus, .a-text-normal').first().text().trim() ||
@@ -452,7 +581,6 @@ const scrapeAmazonRegistry = ($: any, html: string): ScrapedItem[] => {
                     $item.find('.a-price .a-offscreen').first().text().trim() || 
                     $item.find('.a-color-price').first().text().trim() || undefined;
       
-      // Avoid duplicates by checking ASIN/link
       if (!items.some(i => i.link === link)) {
         items.push({
           name,
@@ -464,14 +592,13 @@ const scrapeAmazonRegistry = ($: any, html: string): ScrapedItem[] => {
     });
     
     if (items.length > 0) {
-      console.log("Amazon Registry: Parsed from DOM with selector:", selector, items.length, "items");
+      console.log("[AMAZON_REGISTRY_PARSE] Parsed from DOM with selector:", selector, items.length, "items");
       break;
     }
   }
   
-  // If still no items, try a more aggressive approach on the registry page only
+  // If still no items, try a more aggressive approach
   if (items.length === 0) {
-    // Look for items with both a title and a valid ASIN link
     $('[data-asin], [data-itemid]').each((_index: number, element: any) => {
       const $item = $(element);
       const asin = $item.attr('data-asin') || $item.attr('data-itemid');
@@ -495,10 +622,11 @@ const scrapeAmazonRegistry = ($: any, html: string): ScrapedItem[] => {
     });
     
     if (items.length > 0) {
-      console.log("Amazon Registry: Parsed from ASIN elements:", items.length, "items");
+      console.log("[AMAZON_REGISTRY_PARSE] Parsed from ASIN elements:", items.length, "items");
     }
   }
   
+  console.log("[AMAZON_REGISTRY_PARSE] Final item count:", items.length);
   return items;
 };
 
@@ -621,6 +749,23 @@ Deno.serve(async (req) => {
       );
     }
     
+    // Check for Amazon blocked/captcha pages
+    if ((retailer === "Amazon" || retailer === "AmazonRegistry") && isAmazonBlockedPage(html)) {
+      console.log(`[SCRAPE_BLOCKED] Amazon returned captcha/blocked page for URL: ${url}`);
+      logHtmlDebugInfo(html, retailer, url);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          items: [],
+          message: "Amazon blocked the import (captcha/robot check). Please use File Import or Paste Items for Amazon registries.",
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        }
+      );
+    }
+    
     console.log("[SCRAPE_PARSE] Starting HTML parsing for retailer:", retailer);
     const $ = load(html);
     
@@ -631,23 +776,35 @@ Deno.serve(async (req) => {
     // Wrap each retailer scraping in try/catch to prevent non-2xx responses
     if (retailer === "Target") {
       try {
-        console.log("[SCRAPE_PARSE] Starting Target registry parsing...");
         items = scrapeTargetRegistry($, html);
         console.log("[SCRAPE_PARSE] Target parsing complete, items extracted:", items.length);
+        
+        // Debug log if no items found
+        if (items.length === 0) {
+          console.log("[SCRAPE_DEBUG] Target returned 0 items, logging HTML info...");
+          logHtmlDebugInfo(html, retailer, url);
+        }
       } catch (e: any) {
         console.error(`[SCRAPE_PARSE_ERROR] Retailer: Target | URL: ${url} | Error: ${e.message}`);
         console.error(`[SCRAPE_PARSE_ERROR] Stack:`, e.stack || "No stack trace");
+        logHtmlDebugInfo(html, retailer, url);
         scrapeError = "We couldn't find items at that link. Please double-check the Target registry share URL.";
       }
     } else if (retailer === "AmazonRegistry") {
       try {
-        console.log("[SCRAPE_PARSE] Starting Amazon Registry parsing...");
-        items = scrapeAmazonRegistry($, html);
+        items = scrapeAmazonRegistry($, html, url);
         displayRetailer = "Amazon Registry";
         console.log("[SCRAPE_PARSE] Amazon Registry parsing complete, items extracted:", items.length);
+        
+        // Debug log if no items found
+        if (items.length === 0) {
+          console.log("[SCRAPE_DEBUG] AmazonRegistry returned 0 items, logging HTML info...");
+          logHtmlDebugInfo(html, retailer, url);
+        }
       } catch (e: any) {
         console.error(`[SCRAPE_PARSE_ERROR] Retailer: AmazonRegistry | URL: ${url} | Error: ${e.message}`);
         console.error(`[SCRAPE_PARSE_ERROR] Stack:`, e.stack || "No stack trace");
+        logHtmlDebugInfo(html, retailer, url);
         scrapeError = "We couldn't find items at that link. Please double-check the Amazon registry share URL.";
       }
     } else {
@@ -655,9 +812,16 @@ Deno.serve(async (req) => {
         console.log("[SCRAPE_PARSE] Starting Amazon wishlist parsing...");
         items = scrapeAmazon($);
         console.log("[SCRAPE_PARSE] Amazon wishlist parsing complete, items extracted:", items.length);
+        
+        // Debug log if no items found
+        if (items.length === 0) {
+          console.log("[SCRAPE_DEBUG] Amazon wishlist returned 0 items, logging HTML info...");
+          logHtmlDebugInfo(html, retailer, url);
+        }
       } catch (e: any) {
         console.error(`[SCRAPE_PARSE_ERROR] Retailer: Amazon | URL: ${url} | Error: ${e.message}`);
         console.error(`[SCRAPE_PARSE_ERROR] Stack:`, e.stack || "No stack trace");
+        logHtmlDebugInfo(html, retailer, url);
         scrapeError = "No items found. The list might be empty, private, or the page structure has changed.";
       }
     }
