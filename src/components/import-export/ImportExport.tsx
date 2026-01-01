@@ -626,7 +626,10 @@ export default function ImportExport() {
               
               <div className="space-y-3 mb-4">
                 <p className="text-sm text-gray-600">
-                  Paste a public list URL from any retailer site to import items. Currently supports: Amazon wishlists. More retailers coming soon!
+                  Paste a public list URL from any retailer site to import items. Currently supports: Amazon & Target wishlists and registries.
+                </p>
+                <p className="text-xs text-gray-600 bg-gray-50 p-2 rounded border">
+                  <strong>Note:</strong> For favorites and lists that require you to be signed in to see them and do not have a public share link, you will need to manually upload.
                 </p>
                 <p className="text-xs text-gray-500">
                   Disclaimer: Imports public wishlists, registries, and shopping lists from third-party sites. Not affiliated with any retailer. You're responsible for data you import.{" "}

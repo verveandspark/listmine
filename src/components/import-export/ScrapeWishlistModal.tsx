@@ -70,6 +70,12 @@ export default function ScrapeWishlistModal({
       }
 
       if (!data.success) {
+        // Handle unsupported retailer with friendly message
+        if (data.errorCode === "UNSUPPORTED_RETAILER" || data.requiresManualUpload) {
+          setError("This retailer requires sign-in or doesn't provide a public share link. Please use File Import or Paste Items.");
+          setLoading(false);
+          return;
+        }
         throw new Error(data.error || "Failed to scrape wishlist");
       }
 

@@ -407,14 +407,17 @@ Deno.serve(async (req) => {
     const retailer = detectRetailer(url);
 
     if (!retailer) {
+      // Return structured response (not 400 error) for unsupported retailers
       return new Response(
         JSON.stringify({
           success: false,
-          error: "Unsupported URL. Please use Amazon wishlist or Target registry URLs.",
+          errorCode: "UNSUPPORTED_RETAILER",
+          error: "This retailer requires sign-in or doesn't provide a public share link. Please use File Import or Paste Items.",
+          requiresManualUpload: true,
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 400,
+          status: 200,
         }
       );
     }

@@ -2766,15 +2766,12 @@ export function ListProvider({ children }: { children: ReactNode }) {
       
       console.log("[ListContext] Create from scraped items - using user_id (from getUser):", authUserId);
       
-      // Determine the appropriate list type based on user's tier
-      // shopping-list is only available for even_better and lots_more tiers
-      const userTier = (user?.tier || 'free') as UserTier;
-      const canUseShoppingList = canAccessListType(userTier, 'shopping-list');
-      const listType = canUseShoppingList ? 'shopping-list' : 'custom';
+      // For registry/wishlist imports, always use 'registry' list type
+      const listType = 'registry';
       
       console.log("authUserId before insert:", authUserId);
       console.log("Supabase auth user ID:", authUser?.id);
-      console.log("[ListContext] User tier:", userTier, "Using list type:", listType);
+      console.log("[ListContext] Using list type:", listType, "for registry/wishlist import");
       
       // Use RPC function to ensure user exists and create list (supports both personal and team)
       const { data: rpcData, error: rpcError } = await supabase.rpc('create_list_for_user', {
@@ -2809,7 +2806,16 @@ export function ListProvider({ children }: { children: ReactNode }) {
         links: item.link ? [item.link] : null,
         completed: false,
         item_order: index,
-        attributes: item.image ? { custom: { image: item.image } } : null,
+        attributes: {
+          custom: {
+            ...(item.image && { image: item.image }),
+            ...(item.price && { price: item.price }),
+          },
+          registry: {
+            quantity_requested: 1,
+            quantity_purchased: 0,
+          },
+        },
       }));
 
       const itemsResult = (await withTimeout(
