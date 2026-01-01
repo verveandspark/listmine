@@ -1578,13 +1578,19 @@ interface DirectFetchResult {
 
 // Direct fetch with browser-like headers (no proxy)
 async function fetchDirect(url: string): Promise<DirectFetchResult> {
-  const headers = {
+  const headers: Record<string, string> = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.9",
     "Cache-Control": "no-cache",
     "Pragma": "no-cache",
+    "Upgrade-Insecure-Requests": "1",
   };
+  
+  // Add Referer for Walmart URLs
+  if (url.includes("walmart.com")) {
+    headers["Referer"] = "https://www.walmart.com/";
+  }
   
   try {
     console.log("[FETCH_DIRECT] Attempting direct fetch:", url);
@@ -1596,6 +1602,16 @@ async function fetchDirect(url: string): Promise<DirectFetchResult> {
     
     const html = await response.text();
     console.log(`[FETCH_DIRECT] Response status: ${response.status} | HTML length: ${html.length}`);
+    
+    // Enhanced logging for blocked/short responses
+    if (response.ok && (html.length < 20000 || isBlockedResponse(html))) {
+      const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+      const pageTitle = titleMatch ? titleMatch[1].trim() : "No title found";
+      const snippet = html.substring(0, 300).replace(/\s+/g, ' ');
+      console.log(`[FETCH_DIRECT_DEBUG] Blocked/short response detected`);
+      console.log(`[FETCH_DIRECT_DEBUG] Status: ${response.status} | Length: ${html.length} | Title: ${pageTitle}`);
+      console.log(`[FETCH_DIRECT_DEBUG] First 300 chars: ${snippet}`);
+    }
     
     return {
       ok: response.ok,
@@ -1633,6 +1649,7 @@ interface WalmartFetchResult {
   method: "DIRECT" | "SCRAPERAPI";
   status: number;
   error?: string;
+  requiresManualUpload?: boolean;
 }
 
 async function fetchWalmartWithFallback(
@@ -1655,11 +1672,12 @@ async function fetchWalmartWithFallback(
   
   console.log(`[WALMART_FETCH] Direct fetch insufficient (ok=${directResult.ok}, length=${directResult.html.length}, blocked=${isBlockedResponse(directResult.html)})`);
   
-  // Strategy 2: Fall back to ScraperAPI
-  console.log("[WALMART_FETCH] Falling back to ScraperAPI...");
+  // Strategy 2: Fall back to ScraperAPI with enhanced options for Walmart
+  console.log("[WALMART_FETCH] Falling back to ScraperAPI with premium options...");
   
   try {
-    const scraperApiUrl = `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(url)}&render=true`;
+    // Use enhanced ScraperAPI options for Walmart: keep_headers, country_code=us, premium, render
+    const scraperApiUrl = `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(url)}&render=true&keep_headers=true&country_code=us&premium=true`;
     
     const response = await fetch(scraperApiUrl, {
       method: "GET",
@@ -1667,6 +1685,8 @@ async function fetchWalmartWithFallback(
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Language": "en-US,en;q=0.9",
+        "Referer": "https://www.walmart.com/",
+        "Upgrade-Insecure-Requests": "1",
       },
     });
     
@@ -1678,19 +1698,35 @@ async function fetchWalmartWithFallback(
           html: "",
           method: "SCRAPERAPI",
           status: response.status,
-          error: "Walmart import is temporarily unavailable (fetch provider error). Please try again in a few minutes or use File Import.",
+          error: "Walmart import is temporarily unavailable. Please try again later or use File Import.",
+          requiresManualUpload: true,
         };
       }
       return {
         html: "",
         method: "SCRAPERAPI",
         status: response.status,
-        error: `ScraperAPI error: ${response.status}`,
+        error: `Walmart import failed (error ${response.status}). Please try again later or use File Import.`,
+        requiresManualUpload: true,
       };
     }
     
     const html = await response.text();
     console.log(`[WALMART_FETCH] ScraperAPI succeeded: ${html.length} chars`);
+    
+    // Check if ScraperAPI returned blocked content
+    if (isBlockedResponse(html)) {
+      const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+      const pageTitle = titleMatch ? titleMatch[1].trim() : "No title found";
+      console.log(`[WALMART_FETCH] ScraperAPI returned blocked content | Title: ${pageTitle}`);
+      return {
+        html: "",
+        method: "SCRAPERAPI",
+        status: response.status,
+        error: "Walmart import is temporarily unavailable. Please try again later or use File Import.",
+        requiresManualUpload: true,
+      };
+    }
     
     return {
       html,
@@ -1703,7 +1739,8 @@ async function fetchWalmartWithFallback(
       html: "",
       method: "SCRAPERAPI",
       status: 0,
-      error: `Walmart import failed: ${e.message}. Please try again or use File Import.`,
+      error: "Walmart import is temporarily unavailable. Please try again later or use File Import.",
+      requiresManualUpload: true,
     };
   }
 }
@@ -1948,12 +1985,13 @@ Deno.serve(async (req) => {
         console.log(`[SCRAPE_FETCH] Walmart HTML fetched with method: ${fetchMethod} | Status: ${walmartResult.status} | Length: ${walmartResult.html?.length || 0}`);
         
         if (walmartResult.error) {
-          console.log(`[SCRAPE_FETCH] Walmart fetch error: ${walmartResult.error}`);
+          console.log(`[SCRAPE_FETCH] Walmart fetch error: ${walmartResult.error} | requiresManualUpload: ${walmartResult.requiresManualUpload}`);
           return new Response(
             JSON.stringify({
               success: false,
               items: [],
               message: walmartResult.error,
+              requiresManualUpload: walmartResult.requiresManualUpload || false,
             }),
             {
               headers: { ...corsHeaders, "Content-Type": "application/json" },

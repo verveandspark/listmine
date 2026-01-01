@@ -397,7 +397,7 @@ export default function ImportExport() {
       }
 
       if (!data.success) {
-        throw new Error(data.error || "Failed to scrape wishlist");
+        throw new Error(data.message || data.error || "Failed to scrape wishlist");
       }
 
       const itemsWithSelection = data.items.map((item: ScrapedItem) => ({
@@ -625,14 +625,19 @@ export default function ImportExport() {
               </div>
               
               <div className="space-y-3 mb-4">
-                <p className="text-sm text-gray-600">
-                  Paste a public list URL from any retailer site to import items. Currently supports: Amazon & Target wishlists and registries.
-                </p>
+                <div className="text-sm text-gray-600 space-y-1">
+                  <p>Paste a public list URL from any retailer site to import items. Currently supports:</p>
+                  <ul className="list-disc list-inside ml-2 space-y-0.5">
+                    <li><strong>Wishlists:</strong> Amazon, Target, Walmart*</li>
+                    <li><strong>Registries:</strong> Target, Walmart*</li>
+                  </ul>
+                </div>
                 <p className="text-xs text-gray-600 bg-gray-50 p-2 rounded border">
-                  <strong>Note:</strong> For favorites and lists that require you to be signed in to see them and do not have a public share link, you will need to manually upload.
+                  <strong>Note:</strong> For favorites, private lists, lists without a public share link, or lists that require you to be signed in to see them, you will need to upload manually.
                 </p>
+                <p className="text-xs text-gray-500 italic">*Walmart may not work consistently.</p>
                 <p className="text-xs text-gray-500">
-                  Disclaimer: Imports public wishlists, registries, and shopping lists from third-party sites. Not affiliated with any retailer. You're responsible for data you import.{" "}
+                  Disclaimer: Imports public wishlists, registries, and shopping lists from third-party sites. Not affiliated with any retailer. You are responsible for data you import.{" "}
                   <a 
                     href="https://listmine.com/terms-of-use" 
                     target="_blank" 
@@ -679,7 +684,7 @@ export default function ImportExport() {
                 {wishlistError && (
                   <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{wishlistError}</AlertDescription>
+                    <AlertDescription className="whitespace-pre-line">{wishlistError}</AlertDescription>
                   </Alert>
                 )}
 
