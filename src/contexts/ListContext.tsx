@@ -1934,8 +1934,11 @@ export function ListProvider({ children }: { children: ReactNode }) {
     // Free: print only (no export)
     // Good: csv, txt
     // Even Better+: csv, txt, pdf
-    const userTier = (user?.tier || 'free') as UserTier;
-    const availableFormats = getAvailableExportFormats(userTier);
+    // For team lists (has accountId), use 'lots_more' tier; for personal lists use user's tier
+    const effectiveTierForExport: UserTier = list.accountId ? 'lots_more' : (user?.tier || 'free') as UserTier;
+    const availableFormats = getAvailableExportFormats(effectiveTierForExport);
+    
+    console.log('[ListContext] exportList: list.accountId =', list.accountId, ', effectiveTier =', effectiveTierForExport);
     
     if (!availableFormats.includes(format)) {
       toast({
