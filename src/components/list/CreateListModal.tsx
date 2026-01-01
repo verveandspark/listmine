@@ -65,6 +65,7 @@ export default function CreateListModal({
   const [listName, setListName] = useState("");
   const [category, setCategory] = useState<ListCategory>("Tasks");
   const [listType, setListType] = useState<ListType>("custom");
+  const [categoryManuallySet, setCategoryManuallySet] = useState(false);
   const [upsellOpen, setUpsellOpen] = useState(false);
   const [upsellListType, setUpsellListType] = useState<{ label: string; tier: UserTier } | null>(null);
   const [ownership, setOwnership] = useState<'personal' | string>('personal'); // 'personal' or account ID
@@ -257,8 +258,10 @@ export default function CreateListModal({
   const handleListTypeClick = (typeInfo: typeof listTypesWithAvailability[0]) => {
     if (typeInfo.available) {
       setListType(typeInfo.value);
-      // Auto-set category based on list type (user can still override)
-      setCategory(getDefaultCategoryForListType(typeInfo.value));
+      // Auto-set category based on list type only if not manually set by user
+      if (!categoryManuallySet) {
+        setCategory(getDefaultCategoryForListType(typeInfo.value));
+      }
     } else {
       setUpsellListType({ label: typeInfo.label, tier: typeInfo.requiredTier });
       setUpsellOpen(true);
@@ -315,6 +318,7 @@ export default function CreateListModal({
     setOwnership("personal");
     setError(null);
     setIsCreating(false);
+    setCategoryManuallySet(false);
   };
 
   const handleCancel = () => {
@@ -351,7 +355,10 @@ export default function CreateListModal({
             <Label htmlFor="category">Category *</Label>
             <Select
               value={category}
-              onValueChange={(value) => setCategory(value as ListCategory)}
+              onValueChange={(value) => {
+                setCategory(value as ListCategory);
+                setCategoryManuallySet(true);
+              }}
             >
               <SelectTrigger id="category">
                 <SelectValue placeholder="Select a category" />
