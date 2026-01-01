@@ -1229,13 +1229,36 @@ export type Database = {
           p_user_id: string
         }
         Returns: {
-          account_id: string
+          account_id: string | null
           category: string
+          created_at: string | null
+          description: string | null
+          favorited: boolean | null
           id: string
+          is_archived: boolean | null
+          is_deleted: boolean | null
+          is_favorite: boolean | null
+          is_pinned: boolean | null
+          is_public: boolean | null
+          is_shared: boolean | null
           list_type: string
+          public_link: string | null
+          share_link: string | null
+          share_mode: string | null
+          show_purchaser_info: boolean | null
+          source: string
+          tags: string[] | null
+          template_id: string | null
           title: string
+          updated_at: string | null
           user_id: string
-        }[]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "lists"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       create_list_from_template: {
         Args: {
