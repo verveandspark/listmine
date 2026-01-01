@@ -81,18 +81,13 @@ export default function CreateListModal({
   const [tierLoadError, setTierLoadError] = useState<string | null>(null);
   
   // Get the effective tier based on ownership selection
-  // For team lists, use the team owner's tier
+  // For team lists, always use 'lots_more' (teams only exist on Lots More tier)
   const getEffectiveTier = (): UserTier => {
     if (ownership === 'personal') {
       return userTier;
     }
-    const selectedAccount = availableAccounts.find(a => a.id === ownership);
-    if (selectedAccount?.ownerTier) {
-      return selectedAccount.ownerTier;
-    }
-    // If we couldn't load the team owner's tier, don't silently fallback
-    // The tierLoadError state will show a warning
-    return userTier;
+    // Team context: always use 'lots_more' tier
+    return 'lots_more';
   };
   
   // Check if the selected team account has a tier load error
@@ -127,13 +122,13 @@ export default function CreateListModal({
 
       if (!ownedError && ownedAccounts) {
         for (const account of ownedAccounts) {
-          // For owned accounts, use the current user's tier
+          // For owned accounts, teams always use Lots More tier
           accounts.push({
             id: account.id,
             name: account.name || 'My Team',
             type: 'team',
             ownerId: account.owner_id,
-            ownerTier: user.tier as UserTier,
+            ownerTier: 'lots_more' as UserTier, // Teams only exist on Lots More tier
           });
         }
       }
@@ -198,14 +193,12 @@ export default function CreateListModal({
           if (account) {
             // Avoid duplicates (in case user is both owner and member)
             if (!accounts.find(a => a.id === account.id)) {
-              const hasTierError = failedOwnerIds.has(account.owner_id);
               accounts.push({
                 id: account.id,
                 name: account.name || 'Team Account',
                 type: 'team',
                 ownerId: account.owner_id,
-                ownerTier: ownerTiers[account.owner_id] || 'free',
-                tierLoadError: hasTierError,
+                ownerTier: 'lots_more' as UserTier, // Teams only exist on Lots More tier
               });
             }
           }

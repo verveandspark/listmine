@@ -384,6 +384,10 @@ export default function Dashboard() {
   }, [user?.id]);
 
   const currentAccount = availableAccounts.find(a => a.id === currentAccountId);
+  
+  // Determine effective tier for gating: teams always use 'lots_more'
+  const isTeamContext = currentAccount?.type === 'team';
+  const effectiveTier: UserTier = isTeamContext ? 'lots_more' : ((user?.tier || 'free') as UserTier);
 
   // Check if user can manage team (owner + Lots More tier)
   const canManageTeam = currentAccount?.type === 'team' && 
@@ -714,8 +718,8 @@ export default function Dashboard() {
   const handleQuickShare = async (e: React.MouseEvent, listId: string, isAlreadyShared: boolean) => {
     e.stopPropagation();
     
-    // Check if user can share
-    if (!canShareLists(user?.tier)) {
+    // Check if user can share (use effectiveTier for team context)
+    if (!canShareLists(effectiveTier)) {
       toast({
         title: "⭐ Upgrade Required",
         description: "Sharing is available on paid plans. Upgrade to share your lists!",
@@ -733,8 +737,8 @@ export default function Dashboard() {
   const handleQuickExport = (e: React.MouseEvent, listId: string, format: string) => {
     e.stopPropagation();
     
-    // Check if user can export
-    if (!canExportLists(user?.tier)) {
+    // Check if user can export (use effectiveTier for team context)
+    if (!canExportLists(effectiveTier)) {
       toast({
         title: "⭐ Upgrade Required",
         description: "Export is available on paid plans. Upgrade to export your lists!",
@@ -1000,7 +1004,7 @@ export default function Dashboard() {
             <AlertDialogTitle>List Limit Reached</AlertDialogTitle>
             <AlertDialogDescription>
               You've reached your list limit of {user?.listLimit === -1 ? "unlimited" : user?.listLimit} lists on the{" "}
-              {getTierName(user?.tier || "free")} tier. Upgrade to create more
+              {getTierName(effectiveTier)} tier. Upgrade to create more
               lists.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -1117,7 +1121,7 @@ export default function Dashboard() {
               >
                 <HelpCircle className="w-4 h-4" />
               </Button>
-              {user?.tier === "free" && (
+              {effectiveTier === "free" && (
                 <Button
                   onClick={() => navigate("/upgrade", { state: { from: location.pathname } })}
                   variant="outline"
@@ -1261,7 +1265,7 @@ export default function Dashboard() {
                       List
                     </Button>
                   </div>
-                  {user?.tier === "free" && (
+                  {effectiveTier === "free" && (
                     <Button
                       onClick={() => {
                         navigate("/upgrade");
@@ -1379,7 +1383,7 @@ export default function Dashboard() {
                 className="h-5 w-5"
               />
               <span className="text-sm font-semibold text-foreground">
-                {getTierName(user?.tier || "free")} Tier
+                {getTierName(effectiveTier)} Tier{isTeamContext && " (Team)"}
               </span>
             </div>
 
@@ -1411,7 +1415,7 @@ export default function Dashboard() {
                       <p className="max-w-xs">
                         You're using {ownedActiveListsCount} of your{" "}
                         {user?.listLimit} lists on the{" "}
-                        {getTierName(user?.tier || "free")} tier. Shared lists
+                        {getTierName(effectiveTier)} tier{isTeamContext && " (Team)"}. Shared lists
                         and archived lists don't count toward your limit.
                       </p>
                     </TooltipContent>
@@ -1458,7 +1462,7 @@ export default function Dashboard() {
               </TooltipProvider>
             )}
           </div>
-          {user?.tier === "free" && (
+          {effectiveTier === "free" && (
             <div className="mt-3 pt-3 border-t border-border">
               <p className="text-sm text-muted-foreground">
                 Need more lists?{' '}
@@ -1684,7 +1688,7 @@ export default function Dashboard() {
         {/* Action Bar */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-end justify-end gap-3 mb-6">
           <div className="flex items-center gap-2 flex-wrap sm:justify-end">
-{canImportLists(user?.tier) && (
+{canImportLists(effectiveTier) && (
               <Button 
                 variant="outline"
                 className="min-h-[44px]"
@@ -1694,7 +1698,7 @@ export default function Dashboard() {
                 Import/Export
               </Button>
             )}
-            {user?.tier && user.tier !== "free" && (
+            {effectiveTier !== "free" && (
               <Button 
                 variant="outline"
                 className="min-h-[44px] border-primary/30 text-primary hover:bg-primary/10"
@@ -1888,7 +1892,7 @@ export default function Dashboard() {
                               <span>Updated {getTimeAgo(list.updatedAt)}</span>
                             </div>
                             <div className="flex gap-1">
-                              {list.isShared && canShareLists(user?.tier) && (
+                              {list.isShared && canShareLists(effectiveTier) && (
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
@@ -1986,7 +1990,7 @@ export default function Dashboard() {
                         </Tooltip>
                       </TooltipProvider>
                       {/* Share dropdown menu - only show for paid tiers */}
-                      {canShareLists(user?.tier) && (
+                      {canShareLists(effectiveTier) && (
                         <DropdownMenu>
                           <TooltipProvider>
                             <Tooltip>
@@ -2010,19 +2014,19 @@ export default function Dashboard() {
                               <Share2 className="w-4 h-4 mr-2" />
                               {list.isShared ? "Share Settings" : "Share options"}
                             </DropdownMenuItem>
-                            {canInviteGuests(user?.tier) && (
+                            {canInviteGuests(effectiveTier) && (
                               <DropdownMenuItem onClick={() => { setSelectedListForGuests(list.id); setIsGuestManagementOpen(true); }}>
                                 <Users className="w-4 h-4 mr-2" />
                                 Manage Guests
                               </DropdownMenuItem>
                             )}
-                            {canHaveTeamMembers(user?.tier) && (
+                            {canHaveTeamMembers(effectiveTier) && (
                               <DropdownMenuItem onClick={() => setIsTeamManagementOpen(true)}>
                                 <Users className="w-4 h-4 mr-2" />
                                 Manage Team
                               </DropdownMenuItem>
                             )}
-                            {list.isShared && canShareLists(user?.tier) && (
+                            {list.isShared && canShareLists(effectiveTier) && (
                               <DropdownMenuItem onClick={(e) => handleQuickUnshare(e as any, list.id)} className="text-red-600">
                                 <Link2Off className="w-4 h-4 mr-2" />
                                 Unshare List
@@ -2050,9 +2054,9 @@ export default function Dashboard() {
                           </Tooltip>
                         </TooltipProvider>
                         <DropdownMenuContent onClick={(e) => e.stopPropagation()}>
-                          {canExportLists(user?.tier) ? (
+                          {canExportLists(effectiveTier) ? (
                             <>
-                              {getAvailableExportFormats(user?.tier).map((format) => (
+                              {getAvailableExportFormats(effectiveTier).map((format) => (
                                 <DropdownMenuItem
                                   key={format}
                                   onClick={(e) => handleQuickExport(e as any, list.id, format)}
@@ -2256,7 +2260,7 @@ export default function Dashboard() {
                             <span>Updated {getTimeAgo(list.updatedAt)}</span>
                           </div>
                           <div className="flex gap-1">
-                            {list.isShared && canShareLists(user?.tier) && (
+                            {list.isShared && canShareLists(effectiveTier) && (
                               <div className="flex items-center gap-1">
                                 <TooltipProvider>
                                   <Tooltip>
@@ -2554,7 +2558,7 @@ export default function Dashboard() {
                           {list.isGuestAccess && (
                             <Badge variant="outline" className="text-xs bg-teal-100 text-teal-700 border-teal-300">Guest (can edit)</Badge>
                           )}
-                          {list.isShared && canShareLists(user?.tier) && (
+                          {list.isShared && canShareLists(effectiveTier) && (
                             <Share2 className="w-4 h-4 text-primary" />
                           )}
                           <ChevronRight className="w-5 h-5 text-muted-foreground" />

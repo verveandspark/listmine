@@ -114,10 +114,8 @@ export default function ImportExport() {
   const isTeamContext = currentAccount?.type === 'team';
   const userTier = (user?.tier || 'free') as UserTier;
   
-  // For team context, use team owner's tier; for personal, use user's tier
-  const effectiveTier: UserTier = isTeamContext && currentAccount?.ownerTier 
-    ? (currentAccount.ownerTier as UserTier)
-    : userTier;
+  // For team context, always use 'lots_more' (teams only exist on Lots More tier)
+  const effectiveTier: UserTier = isTeamContext ? 'lots_more' : userTier;
   
   const canImport = canImportLists(effectiveTier);
   const canExport = canExportLists(effectiveTier);
@@ -171,7 +169,7 @@ export default function ImportExport() {
           name: account.name || 'Team Account',
           type: 'team',
           ownerId: account.owner_id,
-          ownerTier: (user.tier || 'free') as string, // User is owner, use their tier
+          ownerTier: 'lots_more', // Teams only exist on Lots More tier
         });
       }
       
@@ -205,7 +203,7 @@ export default function ImportExport() {
               name: account.name || 'Team Account',
               type: 'team',
               ownerId: account.owner_id,
-              ownerTier: ownerTiers[account.owner_id] || 'free',
+              ownerTier: 'lots_more', // Teams only exist on Lots More tier
             });
           }
         }

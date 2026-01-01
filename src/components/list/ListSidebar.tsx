@@ -181,6 +181,10 @@ export function ListSidebar() {
   }, [user?.id]);
 
   const currentAccount = availableAccounts.find(a => a.id === currentAccountId);
+  
+  // Determine effective tier for gating: teams always use 'lots_more'
+  const isTeamContext = currentAccount?.type === 'team';
+  const effectiveTier = isTeamContext ? 'lots_more' : (user?.tier || 'free');
 
   const handleLogout = async () => {
     await signOut();
@@ -395,7 +399,7 @@ export function ListSidebar() {
           </Button>
 
           {/* Import button - only show for paid tiers */}
-          {canImportLists(user?.tier) && (
+          {canImportLists(effectiveTier) && (
             <Button
               onClick={() => navigate("/import-export", { state: { from: location.pathname } })}
               variant="outline"
@@ -407,7 +411,7 @@ export function ListSidebar() {
           )}
 
           {/* Templates button - only show for paid tiers */}
-          {user?.tier && user.tier !== "free" && (
+          {effectiveTier !== "free" && (
             <Button
               onClick={() => navigate("/templates", { state: { from: location.pathname } })}
               variant="outline"
