@@ -101,6 +101,10 @@ export default function ScrapeWishlistModal({
         defaultListName = "Target Registry";
       } else if (data.retailer === "Amazon Registry") {
         defaultListName = "Amazon Registry";
+      } else if (data.retailer === "Walmart Registry") {
+        defaultListName = "Walmart Registry";
+      } else if (data.retailer === "Walmart Wishlist") {
+        defaultListName = "Walmart Wishlist";
       } else {
         defaultListName = `${data.retailer} Wishlist`;
       }
@@ -219,7 +223,7 @@ export default function ScrapeWishlistModal({
           </DialogTitle>
           <DialogDescription className="space-y-3">
             <p className="text-sm">
-              Paste a public list URL from any retailer site to import items. Currently supports: Amazon & Target wishlists and registries.
+              Paste a public list URL from any retailer site to import items. Currently supports: Amazon, Target & Walmart wishlists and registries.
             </p>
             <p className="text-xs text-gray-600 bg-gray-50 p-2 rounded border">
               <strong>Note:</strong> For favorites and lists that require you to be signed in to see them and do not have a public share link, you will need to manually upload.
@@ -245,7 +249,7 @@ export default function ScrapeWishlistModal({
             <div className="flex gap-2">
               <Input
                 id="wishlist-url"
-                placeholder="Paste Amazon or Target wishlist/registry URL"
+                placeholder="Paste Amazon, Target, or Walmart wishlist/registry URL"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 onKeyDown={(e) => {
@@ -270,7 +274,7 @@ export default function ScrapeWishlistModal({
               )}
             </div>
             <p className="text-xs text-gray-500">
-              Currently supports: Amazon wishlists, Target gift registries. More retailers coming soon!
+              Currently supports: Amazon wishlists, Target registries, Walmart wishlists & registries. More retailers coming soon!
             </p>
           </div>
 
@@ -278,7 +282,7 @@ export default function ScrapeWishlistModal({
           {error && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription className="whitespace-pre-line">{error}</AlertDescription>
             </Alert>
           )}
 

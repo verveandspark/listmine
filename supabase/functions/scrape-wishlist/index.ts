@@ -34,6 +34,13 @@ const detectRetailer = (url: string): string | null => {
       }
     }
   }
+  // Detect Walmart URLs
+  if (lowerUrl.includes("walmart.com")) {
+    // Walmart Registry URLs: /registry/WR/<uuid>
+    if (lowerUrl.includes("/registry/wr/") || lowerUrl.includes("/registry/WR/")) return "WalmartRegistry";
+    // Walmart Wishlist URLs: /lists/wishlist/<uuid>
+    if (lowerUrl.includes("/lists/wishlist/") || lowerUrl.includes("/lists/")) return "WalmartWishlist";
+  }
   return null;
 };
 
@@ -716,6 +723,407 @@ const scrapeAmazon = ($: any): ScrapedItem[] => {
     }
   );
 
+  return items;
+};
+
+// Walmart Wishlist/List Scraper
+const scrapeWalmartWishlist = ($: any, html: string, url: string): ScrapedItem[] => {
+  const items: ScrapedItem[] = [];
+  
+  console.log("[WALMART_WISHLIST_PARSE] Starting Walmart wishlist parsing...");
+  console.log("[WALMART_WISHLIST_PARSE] HTML length:", html.length, "chars");
+  
+  // Try to parse embedded JSON first (__NEXT_DATA__ or similar)
+  try {
+    const nextDataScript = $('script#__NEXT_DATA__').html();
+    if (nextDataScript) {
+      console.log("[WALMART_WISHLIST_PARSE] Found __NEXT_DATA__ script");
+      const nextData = JSON.parse(nextDataScript);
+      
+      // Navigate through possible paths for list items
+      const possiblePaths = [
+        nextData?.props?.pageProps?.initialData?.list?.items,
+        nextData?.props?.pageProps?.list?.items,
+        nextData?.props?.pageProps?.data?.list?.items,
+        nextData?.props?.pageProps?.pageData?.list?.items,
+        nextData?.props?.pageProps?.listItems,
+        nextData?.props?.pageProps?.items,
+      ];
+      
+      for (const listItems of possiblePaths) {
+        if (Array.isArray(listItems) && listItems.length > 0) {
+          console.log("[WALMART_WISHLIST_PARSE] Found items array with", listItems.length, "items");
+          
+          for (const item of listItems) {
+            const product = item.product || item.productDetails || item;
+            const name = product.name || product.title || product.productName || 
+                        item.name || item.title || "";
+            
+            if (!name) continue;
+            
+            const productUrl = product.canonicalUrl || product.url || product.productUrl || 
+                              item.url || item.productUrl;
+            const link = productUrl ? 
+              (productUrl.startsWith('http') ? productUrl : `https://www.walmart.com${productUrl}`) : 
+              undefined;
+            
+            const image = product.imageInfo?.thumbnailUrl || product.imageInfo?.url ||
+                         product.image || product.imageUrl || product.thumbnailUrl ||
+                         item.image || item.imageUrl || undefined;
+            
+            const price = product.priceInfo?.currentPrice?.price?.toString() ||
+                         product.priceInfo?.itemPrice?.price?.toString() ||
+                         product.price || product.formattedPrice ||
+                         item.price || undefined;
+            
+            items.push({
+              name,
+              link,
+              image,
+              price: price ? `$${price}` : undefined,
+            });
+          }
+          
+          if (items.length > 0) {
+            console.log("[WALMART_WISHLIST_PARSE] Extracted", items.length, "items from __NEXT_DATA__");
+            return items;
+          }
+        }
+      }
+    }
+  } catch (e: any) {
+    console.log("[WALMART_WISHLIST_PARSE] __NEXT_DATA__ parsing failed:", e.message);
+  }
+  
+  // Try to find embedded JSON in other script tags
+  try {
+    const scripts = $('script').toArray();
+    for (const script of scripts) {
+      const content = $(script).html() || "";
+      if (content.includes('"listItems"') || content.includes('"items"') || content.includes('"products"')) {
+        const itemsMatch = content.match(/"(?:listItems|items|products)"\s*:\s*(\[[^\]]*\])/);
+        if (itemsMatch) {
+          try {
+            const itemsArray = JSON.parse(itemsMatch[1]);
+            console.log("[WALMART_WISHLIST_PARSE] Found embedded items array with", itemsArray.length, "items");
+            
+            for (const item of itemsArray) {
+              const name = item.name || item.title || item.productName || "";
+              if (!name) continue;
+              
+              const productUrl = item.canonicalUrl || item.url || item.productUrl;
+              const link = productUrl ? 
+                (productUrl.startsWith('http') ? productUrl : `https://www.walmart.com${productUrl}`) : 
+                undefined;
+              
+              items.push({
+                name,
+                link,
+                image: item.image || item.imageUrl || item.thumbnailUrl || undefined,
+                price: item.price ? `$${item.price}` : undefined,
+              });
+            }
+            
+            if (items.length > 0) {
+              console.log("[WALMART_WISHLIST_PARSE] Extracted", items.length, "items from embedded JSON");
+              return items;
+            }
+          } catch (parseErr) {
+            // Continue searching
+          }
+        }
+      }
+    }
+  } catch (e: any) {
+    console.log("[WALMART_WISHLIST_PARSE] Embedded JSON search failed:", e.message);
+  }
+  
+  // DOM parsing fallback
+  console.log("[WALMART_WISHLIST_PARSE] Falling back to DOM parsing...");
+  
+  const itemSelectors = [
+    '[data-testid="list-item"]',
+    '[data-automation-id="list-item"]',
+    '.list-item',
+    '.product-card',
+    '[class*="ListItem"]',
+    '[class*="product-tile"]',
+    'article[data-item-id]',
+  ];
+  
+  for (const selector of itemSelectors) {
+    $(selector).each((_index: number, element: any) => {
+      const $item = $(element);
+      
+      const name = $item.find('[data-automation-id="product-title"], [data-testid="product-title"], h2, h3, .product-title').first().text().trim() ||
+                   $item.find('a[href*="/ip/"]').first().text().trim() ||
+                   $item.find('img').first().attr('alt') || "";
+      
+      if (!name || name.length < 2) return;
+      
+      const href = $item.find('a[href*="/ip/"]').first().attr('href');
+      const link = href ? (href.startsWith('http') ? href : `https://www.walmart.com${href}`) : undefined;
+      
+      const image = $item.find('img').first().attr('src') || 
+                    $item.find('img').first().attr('data-src') || undefined;
+      
+      const priceText = $item.find('[data-automation-id="product-price"], .price, [class*="price"]').first().text().trim();
+      const price = priceText.match(/\$[\d,.]+/)?.[0] || undefined;
+      
+      if (!items.some(i => i.name === name)) {
+        items.push({
+          name,
+          link,
+          image,
+          price,
+        });
+      }
+    });
+    
+    if (items.length > 0) {
+      console.log("[WALMART_WISHLIST_PARSE] Parsed", items.length, "items from DOM with selector:", selector);
+      break;
+    }
+  }
+  
+  // Last resort: find product links
+  if (items.length === 0) {
+    $('a[href*="/ip/"]').each((_index: number, element: any) => {
+      const $link = $(element);
+      const href = $link.attr('href');
+      const name = $link.text().trim() || $link.find('img').attr('alt') || "";
+      
+      if (name && name.length > 3 && !items.some(i => i.name === name)) {
+        items.push({
+          name,
+          link: href ? (href.startsWith('http') ? href : `https://www.walmart.com${href}`) : undefined,
+          image: $link.find('img').attr('src') || undefined,
+        });
+      }
+    });
+    
+    if (items.length > 0) {
+      console.log("[WALMART_WISHLIST_PARSE] Extracted", items.length, "items from product links");
+    }
+  }
+  
+  console.log("[WALMART_WISHLIST_PARSE] Final item count:", items.length);
+  return items;
+};
+
+// Walmart Registry Scraper
+const scrapeWalmartRegistry = ($: any, html: string, url: string): ScrapedItem[] => {
+  const items: ScrapedItem[] = [];
+  
+  console.log("[WALMART_REGISTRY_PARSE] Starting Walmart registry parsing...");
+  console.log("[WALMART_REGISTRY_PARSE] HTML length:", html.length, "chars");
+  
+  // Extract registry ID from URL
+  const registryIdMatch = url.match(/\/registry\/WR\/([a-f0-9-]+)/i) ||
+                          url.match(/registryId=([a-f0-9-]+)/i);
+  const registryId = registryIdMatch ? registryIdMatch[1] : null;
+  console.log("[WALMART_REGISTRY_PARSE] Extracted registry ID:", registryId || "Not found");
+  
+  // Try to parse embedded JSON first (__NEXT_DATA__)
+  try {
+    const nextDataScript = $('script#__NEXT_DATA__').html();
+    if (nextDataScript) {
+      console.log("[WALMART_REGISTRY_PARSE] Found __NEXT_DATA__ script");
+      const nextData = JSON.parse(nextDataScript);
+      
+      // Log available keys for debugging
+      const pagePropsKeys = Object.keys(nextData?.props?.pageProps || {});
+      console.log("[WALMART_REGISTRY_PARSE] pageProps keys:", pagePropsKeys.join(", "));
+      
+      // Navigate through possible paths for registry items
+      const possiblePaths = [
+        nextData?.props?.pageProps?.initialData?.registry?.items,
+        nextData?.props?.pageProps?.registry?.items,
+        nextData?.props?.pageProps?.registryData?.items,
+        nextData?.props?.pageProps?.data?.registry?.items,
+        nextData?.props?.pageProps?.registryItems,
+        nextData?.props?.pageProps?.pageData?.registry?.items,
+        nextData?.props?.pageProps?.giftRegistry?.items,
+        nextData?.props?.pageProps?.weddingRegistry?.items,
+      ];
+      
+      for (const registryItems of possiblePaths) {
+        if (Array.isArray(registryItems) && registryItems.length > 0) {
+          console.log("[WALMART_REGISTRY_PARSE] Found registry items array with", registryItems.length, "items");
+          
+          for (const item of registryItems) {
+            const product = item.product || item.productDetails || item.item || item;
+            const name = product.name || product.title || product.productName || 
+                        product.displayName || item.name || item.title || "";
+            
+            if (!name) continue;
+            
+            const productUrl = product.canonicalUrl || product.url || product.productUrl || 
+                              product.pdpUrl || item.url || item.productUrl;
+            const link = productUrl ? 
+              (productUrl.startsWith('http') ? productUrl : `https://www.walmart.com${productUrl}`) : 
+              undefined;
+            
+            const image = product.imageInfo?.thumbnailUrl || product.imageInfo?.url ||
+                         product.image || product.imageUrl || product.thumbnailUrl ||
+                         product.primaryImage || item.image || item.imageUrl || undefined;
+            
+            let price: string | undefined;
+            const priceValue = product.priceInfo?.currentPrice?.price ||
+                              product.priceInfo?.itemPrice?.price ||
+                              product.price || product.currentPrice ||
+                              item.price;
+            if (priceValue) {
+              price = typeof priceValue === 'string' && priceValue.startsWith('$') 
+                ? priceValue 
+                : `$${priceValue}`;
+            }
+            
+            // Extract quantity if available (registry-specific)
+            const quantityRequested = item.quantityRequested || item.requestedQuantity || 
+                                     item.wantQuantity || 1;
+            const quantityPurchased = item.quantityPurchased || item.purchasedQuantity || 
+                                     item.fulfilledQuantity || 0;
+            
+            console.log(`[WALMART_REGISTRY_PARSE] Item: "${name}" | Price: ${price || 'N/A'} | Qty: ${quantityRequested}/${quantityPurchased}`);
+            
+            items.push({
+              name,
+              link,
+              image,
+              price,
+            });
+          }
+          
+          if (items.length > 0) {
+            console.log("[WALMART_REGISTRY_PARSE] Extracted", items.length, "items from __NEXT_DATA__");
+            return items;
+          }
+        }
+      }
+      
+      console.log("[WALMART_REGISTRY_PARSE] __NEXT_DATA__ found but no registry items extracted");
+    } else {
+      console.log("[WALMART_REGISTRY_PARSE] No __NEXT_DATA__ script found");
+    }
+  } catch (e: any) {
+    console.log("[WALMART_REGISTRY_PARSE] __NEXT_DATA__ parsing failed:", e.message);
+  }
+  
+  // Try to find embedded registry data in other scripts
+  try {
+    const scripts = $('script').toArray();
+    for (const script of scripts) {
+      const content = $(script).html() || "";
+      if (content.includes('"registryItems"') || content.includes('"registry"') || content.includes('"items"')) {
+        const registryMatch = content.match(/"(?:registryItems|items)"\s*:\s*(\[[^\]]*\])/);
+        if (registryMatch) {
+          try {
+            const itemsArray = JSON.parse(registryMatch[1]);
+            console.log("[WALMART_REGISTRY_PARSE] Found embedded registry items with", itemsArray.length, "items");
+            
+            for (const item of itemsArray) {
+              const name = item.name || item.title || item.productName || "";
+              if (!name) continue;
+              
+              const productUrl = item.canonicalUrl || item.url || item.productUrl;
+              const link = productUrl ? 
+                (productUrl.startsWith('http') ? productUrl : `https://www.walmart.com${productUrl}`) : 
+                undefined;
+              
+              items.push({
+                name,
+                link,
+                image: item.image || item.imageUrl || item.thumbnailUrl || undefined,
+                price: item.price ? `$${item.price}` : undefined,
+              });
+            }
+            
+            if (items.length > 0) {
+              console.log("[WALMART_REGISTRY_PARSE] Extracted", items.length, "items from embedded JSON");
+              return items;
+            }
+          } catch (parseErr) {
+            // Continue searching
+          }
+        }
+      }
+    }
+  } catch (e: any) {
+    console.log("[WALMART_REGISTRY_PARSE] Embedded JSON search failed:", e.message);
+  }
+  
+  // DOM parsing fallback
+  console.log("[WALMART_REGISTRY_PARSE] Falling back to DOM parsing...");
+  
+  const registryItemSelectors = [
+    '[data-testid="registry-item"]',
+    '[data-automation-id="registry-item"]',
+    '.registry-item',
+    '[class*="RegistryItem"]',
+    '[class*="registry-product"]',
+    '.product-card',
+    'article[data-item-id]',
+    '[data-testid="product-card"]',
+  ];
+  
+  for (const selector of registryItemSelectors) {
+    $(selector).each((_index: number, element: any) => {
+      const $item = $(element);
+      
+      const name = $item.find('[data-automation-id="product-title"], [data-testid="product-title"], h2, h3, .product-title').first().text().trim() ||
+                   $item.find('a[href*="/ip/"]').first().text().trim() ||
+                   $item.find('img').first().attr('alt') || "";
+      
+      if (!name || name.length < 2) return;
+      
+      const href = $item.find('a[href*="/ip/"]').first().attr('href');
+      const link = href ? (href.startsWith('http') ? href : `https://www.walmart.com${href}`) : undefined;
+      
+      const image = $item.find('img').first().attr('src') || 
+                    $item.find('img').first().attr('data-src') || undefined;
+      
+      const priceText = $item.find('[data-automation-id="product-price"], .price, [class*="price"]').first().text().trim();
+      const price = priceText.match(/\$[\d,.]+/)?.[0] || undefined;
+      
+      if (!items.some(i => i.name === name)) {
+        items.push({
+          name,
+          link,
+          image,
+          price,
+        });
+      }
+    });
+    
+    if (items.length > 0) {
+      console.log("[WALMART_REGISTRY_PARSE] Parsed", items.length, "items from DOM with selector:", selector);
+      break;
+    }
+  }
+  
+  // Last resort: find product links
+  if (items.length === 0) {
+    $('a[href*="/ip/"]').each((_index: number, element: any) => {
+      const $link = $(element);
+      const href = $link.attr('href');
+      const name = $link.text().trim() || $link.find('img').attr('alt') || "";
+      
+      if (name && name.length > 3 && !items.some(i => i.name === name)) {
+        items.push({
+          name,
+          link: href ? (href.startsWith('http') ? href : `https://www.walmart.com${href}`) : undefined,
+          image: $link.find('img').attr('src') || undefined,
+        });
+      }
+    });
+    
+    if (items.length > 0) {
+      console.log("[WALMART_REGISTRY_PARSE] Extracted", items.length, "items from product links");
+    }
+  }
+  
+  console.log("[WALMART_REGISTRY_PARSE] Final item count:", items.length);
   return items;
 };
 
@@ -1505,6 +1913,42 @@ Deno.serve(async (req) => {
         logHtmlDebugInfo(html, retailer, url);
         scrapeError = "Amazon registries can't be imported automatically right now due to Amazon restrictions. Please use File Import or Paste Items.";
       }
+    } else if (retailer === "WalmartWishlist") {
+      try {
+        console.log("[SCRAPE_PARSE] Starting Walmart wishlist parsing...");
+        items = scrapeWalmartWishlist($, html, url);
+        displayRetailer = "Walmart Wishlist";
+        console.log("[SCRAPE_PARSE] Walmart wishlist parsing complete, items extracted:", items.length);
+        
+        // Debug log if no items found
+        if (items.length === 0) {
+          console.log("[SCRAPE_DEBUG] Walmart wishlist returned 0 items, logging HTML info...");
+          logHtmlDebugInfo(html, retailer, url);
+        }
+      } catch (e: any) {
+        console.error(`[SCRAPE_PARSE_ERROR] Retailer: WalmartWishlist | URL: ${url} | Error: ${e.message}`);
+        console.error(`[SCRAPE_PARSE_ERROR] Stack:`, e.stack || "No stack trace");
+        logHtmlDebugInfo(html, retailer, url);
+        scrapeError = "We couldn't find items at that link. Please double-check the Walmart wishlist URL.";
+      }
+    } else if (retailer === "WalmartRegistry") {
+      try {
+        console.log("[SCRAPE_PARSE] Starting Walmart registry parsing...");
+        items = scrapeWalmartRegistry($, html, url);
+        displayRetailer = "Walmart Registry";
+        console.log("[SCRAPE_PARSE] Walmart registry parsing complete, items extracted:", items.length);
+        
+        // Debug log if no items found
+        if (items.length === 0) {
+          console.log("[SCRAPE_DEBUG] Walmart registry returned 0 items, logging HTML info...");
+          logHtmlDebugInfo(html, retailer, url);
+        }
+      } catch (e: any) {
+        console.error(`[SCRAPE_PARSE_ERROR] Retailer: WalmartRegistry | URL: ${url} | Error: ${e.message}`);
+        console.error(`[SCRAPE_PARSE_ERROR] Stack:`, e.stack || "No stack trace");
+        logHtmlDebugInfo(html, retailer, url);
+        scrapeError = "We couldn't find items at that link. Please double-check the Walmart registry share URL.";
+      }
     } else {
       try {
         console.log("[SCRAPE_PARSE] Starting Amazon wishlist parsing...");
@@ -1542,6 +1986,12 @@ Deno.serve(async (req) => {
         console.log(`[SCRAPE_EMPTY] Retailer: AmazonRegistry | URL: ${url} | Reason: 0 items found`);
         errorMessage = "Amazon registries can't be imported automatically right now due to Amazon restrictions. Please use File Import or Paste Items.";
         requiresManualUpload = true;
+      } else if (retailer === "WalmartWishlist") {
+        console.log(`[SCRAPE_EMPTY] Retailer: WalmartWishlist | URL: ${url} | Reason: 0 items found`);
+        errorMessage = "We couldn't find items at that link. The Walmart wishlist might be private or empty. Please double-check the URL.";
+      } else if (retailer === "WalmartRegistry") {
+        console.log(`[SCRAPE_EMPTY] Retailer: WalmartRegistry | URL: ${url} | Reason: 0 items found`);
+        errorMessage = "We couldn't find items at that link. The Walmart registry might be private or empty. Please double-check the share URL.";
       } else {
         console.log(`[SCRAPE_EMPTY] Retailer: Amazon | URL: ${url} | Reason: 0 items found`);
         errorMessage = "No items found. The list might be empty, private, or the page structure has changed.";
