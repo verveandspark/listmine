@@ -62,26 +62,26 @@ const MARKETPLACE_URL = "https://listmine.com/templates";
 
 // Category order for grouping templates
 const CATEGORY_ORDER = [
-  "planning",
-  "work",
-  "shopping",
-  "household",
-  "meals",
-  "tasks",
-  "other",
-  "school",
+  "Planning",
+  "School",
+  "Work",
+  "Shopping",
+  "Household",
+  "Meals",
+  "Tasks",
+  "Other",
 ];
 
 // Category labels for headers
 const CATEGORY_LABELS: Record<string, string> = {
-  planning: "Planning",
-  work: "Work",
-  shopping: "Shopping",
-  household: "Household",
-  meals: "Meals",
-  tasks: "Tasks",
-  other: "Other",
-  school: "School",
+  Planning: "Planning",
+  School: "School",
+  Work: "Work",
+  Shopping: "Shopping",
+  Household: "Household",
+  Meals: "Meals",
+  Tasks: "Tasks",
+  Other: "Other",
 };
 
 export default function Templates() {
@@ -213,8 +213,8 @@ export default function Templates() {
 
   // Sort templates by category order then by name
   const sortedTemplates = [...templates].sort((a, b) => {
-    const categoryA = (a.category || "other").toLowerCase();
-    const categoryB = (b.category || "other").toLowerCase();
+    const categoryA = a.category || "Other";
+    const categoryB = b.category || "Other";
     const orderA = CATEGORY_ORDER.indexOf(categoryA);
     const orderB = CATEGORY_ORDER.indexOf(categoryB);
     const effectiveOrderA = orderA === -1 ? CATEGORY_ORDER.length : orderA;
@@ -478,7 +478,7 @@ export default function Templates() {
               // Group templates by category
               const groupedByCategory: Record<string, Template[]> = {};
               sortedTemplates.forEach((template) => {
-                const category = (template.category || "other").toLowerCase();
+                const category = template.category || "Other";
                 if (!groupedByCategory[category]) {
                   groupedByCategory[category] = [];
                 }

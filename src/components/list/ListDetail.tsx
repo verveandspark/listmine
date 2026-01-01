@@ -4560,7 +4560,7 @@ export default function ListDetail() {
                 <SelectTrigger className="mt-2">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[200]">
                   <SelectItem value="Tasks">Tasks</SelectItem>
                   <SelectItem value="Shopping">Shopping</SelectItem>
                   <SelectItem value="Meals">Meals</SelectItem>
@@ -4581,7 +4581,7 @@ export default function ListDetail() {
                 <SelectTrigger className="mt-2">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[200]">
                   <SelectItem value="custom">Custom</SelectItem>
                   <SelectItem value="todo-list">To-Do List</SelectItem>
                   <SelectItem value="grocery-list">Grocery List</SelectItem>
