@@ -82,6 +82,250 @@ const isAmazonBlockedPage = (html: string): boolean => {
   return blockedMarkers.some(marker => lowerHtml.includes(marker.toLowerCase()));
 };
 
+// Analyze Amazon registry HTML for shell page markers and potential API endpoints
+interface AmazonRegistryAnalysis {
+  isShellPage: boolean;
+  markers: {
+    hasRegistryItem: boolean;
+    hasGlGuestView: boolean;
+    hasP13n: boolean;
+    hasCsrf: boolean;
+    hasDataAState: boolean;
+  };
+  extractedConfig: {
+    registryId?: string;
+    listId?: string;
+    marketplaceId?: string;
+    csrfToken?: string;
+    apiEndpoint?: string;
+  };
+}
+
+const analyzeAmazonRegistryHtml = (html: string, url: string): AmazonRegistryAnalysis => {
+  const lowerHtml = html.toLowerCase();
+  
+  // Check for shell page markers
+  const markers = {
+    hasRegistryItem: lowerHtml.includes("registry-item") || lowerHtml.includes("registryitem"),
+    hasGlGuestView: lowerHtml.includes("gl-guest-view") || lowerHtml.includes("guest-view"),
+    hasP13n: lowerHtml.includes("p13n") || lowerHtml.includes("personalization"),
+    hasCsrf: lowerHtml.includes("csrf") || lowerHtml.includes("anti-csrftoken") || lowerHtml.includes("csrftoken"),
+    hasDataAState: lowerHtml.includes("data-a-state") || lowerHtml.includes('data-a-state="'),
+  };
+  
+  console.log("[AMAZON_REGISTRY_ANALYZE] Shell page markers:");
+  console.log(`  - registry-item: ${markers.hasRegistryItem}`);
+  console.log(`  - gl-guest-view: ${markers.hasGlGuestView}`);
+  console.log(`  - p13n: ${markers.hasP13n}`);
+  console.log(`  - csrf: ${markers.hasCsrf}`);
+  console.log(`  - data-a-state: ${markers.hasDataAState}`);
+  
+  // Extract configuration for potential API calls
+  const extractedConfig: AmazonRegistryAnalysis["extractedConfig"] = {};
+  
+  // Extract registry ID from URL or HTML
+  const registryIdMatch = url.match(/\/guest-view\/([A-Z0-9]+)/i) || 
+                          url.match(/registryId[=\/]([A-Z0-9]+)/i) ||
+                          html.match(/registryId["']\s*:\s*["']([A-Z0-9]+)["']/i) ||
+                          html.match(/listId["']\s*:\s*["']([A-Z0-9]+)["']/i);
+  if (registryIdMatch) {
+    extractedConfig.registryId = registryIdMatch[1];
+    console.log(`[AMAZON_REGISTRY_ANALYZE] Found registryId: ${extractedConfig.registryId}`);
+  }
+  
+  // Extract list ID
+  const listIdMatch = html.match(/["']listId["']\s*:\s*["']([A-Z0-9]+)["']/i) ||
+                      html.match(/data-list-id=["']([A-Z0-9]+)["']/i);
+  if (listIdMatch) {
+    extractedConfig.listId = listIdMatch[1];
+    console.log(`[AMAZON_REGISTRY_ANALYZE] Found listId: ${extractedConfig.listId}`);
+  }
+  
+  // Extract marketplace ID
+  const marketplaceIdMatch = html.match(/marketplaceId["']\s*:\s*["']([A-Z0-9]+)["']/i) ||
+                             html.match(/obfuscatedMarketplaceId["']\s*:\s*["']([A-Z0-9]+)["']/i);
+  if (marketplaceIdMatch) {
+    extractedConfig.marketplaceId = marketplaceIdMatch[1];
+    console.log(`[AMAZON_REGISTRY_ANALYZE] Found marketplaceId: ${extractedConfig.marketplaceId}`);
+  }
+  
+  // Extract CSRF token
+  const csrfMatch = html.match(/anti-csrftoken-a2z["']\s*:\s*["']([^"']+)["']/i) ||
+                    html.match(/csrf["']\s*:\s*["']([^"']+)["']/i) ||
+                    html.match(/csrfToken["']\s*:\s*["']([^"']+)["']/i) ||
+                    html.match(/name=["']csrf[^"']*["']\s+value=["']([^"']+)["']/i);
+  if (csrfMatch) {
+    extractedConfig.csrfToken = csrfMatch[1];
+    console.log(`[AMAZON_REGISTRY_ANALYZE] Found CSRF token (length: ${extractedConfig.csrfToken?.length})`);
+  }
+  
+  // Look for API endpoints
+  const apiEndpointPatterns = [
+    /["'](\/hz\/wishlist\/[^"']*api[^"']*)["']/i,
+    /["'](\/gp\/registry\/[^"']*api[^"']*)["']/i,
+    /["'](\/api\/[^"']*registry[^"']*)["']/i,
+    /["'](https:\/\/[^"']*amazon[^"']*\/api\/[^"']*)["']/i,
+    /["']([^"']*\/ajax\/[^"']*registry[^"']*)["']/i,
+    /["']([^"']*\/fetch\/[^"']*registry[^"']*)["']/i,
+    /fetchEndpoint["']\s*:\s*["']([^"']+)["']/i,
+    /dataEndpoint["']\s*:\s*["']([^"']+)["']/i,
+  ];
+  
+  for (const pattern of apiEndpointPatterns) {
+    const match = html.match(pattern);
+    if (match) {
+      extractedConfig.apiEndpoint = match[1];
+      console.log(`[AMAZON_REGISTRY_ANALYZE] Found potential API endpoint: ${extractedConfig.apiEndpoint}`);
+      break;
+    }
+  }
+  
+  // Determine if this is a shell page (minimal content, markers present but no actual items rendered)
+  const hasMinimalContent = html.length < 50000;
+  const hasShellMarkers = markers.hasDataAState || markers.hasP13n;
+  const lacksItemData = !lowerHtml.includes('"asin"') && !lowerHtml.includes('data-asin=');
+  
+  const isShellPage = hasMinimalContent && hasShellMarkers && lacksItemData;
+  console.log(`[AMAZON_REGISTRY_ANALYZE] Shell page detection: isShell=${isShellPage} (minContent=${hasMinimalContent}, shellMarkers=${hasShellMarkers}, lacksItems=${lacksItemData})`);
+  
+  return {
+    isShellPage,
+    markers,
+    extractedConfig,
+  };
+};
+
+// Attempt to call Amazon registry API endpoint directly
+interface AmazonApiResult {
+  success: boolean;
+  items: ScrapedItem[];
+  requiresAuth: boolean;
+  error?: string;
+}
+
+const tryAmazonRegistryApi = async (
+  analysis: AmazonRegistryAnalysis,
+  scraperApiKey: string
+): Promise<AmazonApiResult> => {
+  console.log("[AMAZON_REGISTRY_API] Attempting API-based extraction...");
+  
+  const { extractedConfig } = analysis;
+  
+  // If we don't have enough info to call an API, return early
+  if (!extractedConfig.registryId && !extractedConfig.listId) {
+    console.log("[AMAZON_REGISTRY_API] No registry/list ID found, cannot attempt API call");
+    return { success: false, items: [], requiresAuth: false, error: "No registry ID found" };
+  }
+  
+  const registryId = extractedConfig.registryId || extractedConfig.listId;
+  
+  // Try known Amazon registry API patterns
+  const apiUrls = [
+    `https://www.amazon.com/hz/wishlist/ls/${registryId}?reveal=&filter=DEFAULT&sort=default&viewType=list&type=registry`,
+    `https://www.amazon.com/baby-reg/baby-reg-items?registryId=${registryId}`,
+    `https://www.amazon.com/gp/registry/api/v1/registry/${registryId}/items`,
+    `https://www.amazon.com/wedding/registry/guest-view/${registryId}`,
+  ];
+  
+  if (extractedConfig.apiEndpoint) {
+    apiUrls.unshift(extractedConfig.apiEndpoint);
+  }
+  
+  for (const apiUrl of apiUrls) {
+    console.log(`[AMAZON_REGISTRY_API] Trying endpoint: ${apiUrl}`);
+    
+    try {
+      const scraperUrl = `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(apiUrl)}&render=true`;
+      
+      const response = await fetch(scraperUrl, {
+        method: "GET",
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Accept": "application/json, text/html, */*",
+          "Accept-Language": "en-US,en;q=0.9",
+        },
+      });
+      
+      if (!response.ok) {
+        console.log(`[AMAZON_REGISTRY_API] Endpoint returned status ${response.status}`);
+        continue;
+      }
+      
+      const responseText = await response.text();
+      console.log(`[AMAZON_REGISTRY_API] Response length: ${responseText.length} chars`);
+      
+      // Check if we got blocked
+      if (responseText.toLowerCase().includes("captcha") || 
+          responseText.toLowerCase().includes("robot check")) {
+        console.log("[AMAZON_REGISTRY_API] API endpoint returned captcha/blocked");
+        return { success: false, items: [], requiresAuth: true, error: "Blocked by Amazon" };
+      }
+      
+      // Try to parse as JSON
+      let items: ScrapedItem[] = [];
+      
+      try {
+        const jsonData = JSON.parse(responseText);
+        console.log("[AMAZON_REGISTRY_API] Successfully parsed JSON response");
+        
+        // Look for items in various JSON structures
+        const itemArrays = [
+          jsonData.items,
+          jsonData.registryItems,
+          jsonData.data?.items,
+          jsonData.data?.registryItems,
+          jsonData.itemList,
+          jsonData.products,
+        ].filter(Boolean);
+        
+        for (const itemArray of itemArrays) {
+          if (Array.isArray(itemArray) && itemArray.length > 0) {
+            console.log(`[AMAZON_REGISTRY_API] Found ${itemArray.length} items in JSON`);
+            
+            for (const item of itemArray) {
+              const asin = item.asin || item.ASIN || item.itemId;
+              const title = item.title || item.name || item.productTitle;
+              
+              if (asin && title) {
+                items.push({
+                  name: title,
+                  link: `https://www.amazon.com/dp/${asin}`,
+                  image: item.image || item.imageUrl || item.mainImage,
+                  price: item.price?.displayPrice || item.formattedPrice || item.price,
+                });
+              }
+            }
+            
+            if (items.length > 0) {
+              console.log(`[AMAZON_REGISTRY_API] Extracted ${items.length} items from API`);
+              return { success: true, items, requiresAuth: false };
+            }
+          }
+        }
+      } catch (jsonErr) {
+        // Not JSON, try HTML parsing
+        console.log("[AMAZON_REGISTRY_API] Response is not JSON, checking for HTML items...");
+        
+        // Check if response contains ASIN data
+        const asinMatches = responseText.matchAll(/data-asin=["']([A-Z0-9]{10})["']/gi);
+        const asins = [...asinMatches].map(m => m[1]);
+        
+        if (asins.length > 0) {
+          console.log(`[AMAZON_REGISTRY_API] Found ${asins.length} ASINs in HTML response`);
+          // If we found ASINs, the page has some data but needs DOM parsing
+          // Return empty to let DOM parser handle it
+        }
+      }
+      
+    } catch (e: any) {
+      console.log(`[AMAZON_REGISTRY_API] Error with endpoint: ${e.message}`);
+    }
+  }
+  
+  console.log("[AMAZON_REGISTRY_API] All API endpoints failed or require auth");
+  return { success: false, items: [], requiresAuth: true, error: "No accessible API found" };
+};
+
 // Check if Target returned a restricted/private/blocked page
 const isTargetRestrictedPage = (html: string): { restricted: boolean; reason: string } => {
   const lowerHtml = html.toLowerCase();
@@ -1217,20 +1461,49 @@ Deno.serve(async (req) => {
       }
     } else if (retailer === "AmazonRegistry") {
       try {
-        items = scrapeAmazonRegistry($, html, url);
         displayRetailer = "Amazon Registry";
-        console.log("[SCRAPE_PARSE] Amazon Registry parsing complete, items extracted:", items.length);
         
-        // Debug log if no items found
+        // First, analyze the HTML to understand what we're dealing with
+        const analysis = analyzeAmazonRegistryHtml(html, url);
+        
+        // Try standard HTML parsing first
+        items = scrapeAmazonRegistry($, html, url);
+        console.log("[SCRAPE_PARSE] Amazon Registry initial parsing, items extracted:", items.length);
+        
+        // If no items found, check if it's a shell page and try API extraction
         if (items.length === 0) {
-          console.log("[SCRAPE_DEBUG] AmazonRegistry returned 0 items, logging HTML info...");
+          console.log("[SCRAPE_DEBUG] AmazonRegistry returned 0 items, analyzing page...");
           logHtmlDebugInfo(html, retailer, url);
+          
+          if (analysis.isShellPage || !analysis.markers.hasRegistryItem) {
+            console.log("[AMAZON_REGISTRY] Detected shell page or no registry items in HTML, attempting API extraction...");
+            
+            // Try API-based extraction
+            const apiResult = await tryAmazonRegistryApi(analysis, scraperApiKey);
+            
+            if (apiResult.success && apiResult.items.length > 0) {
+              items = apiResult.items;
+              console.log(`[AMAZON_REGISTRY] API extraction successful: ${items.length} items`);
+            } else if (apiResult.requiresAuth) {
+              console.log("[AMAZON_REGISTRY] API requires auth/cookies, falling back to manual import message");
+              scrapeError = "Amazon registries can't be imported automatically right now due to Amazon restrictions. Please use File Import or Paste Items.";
+            } else {
+              console.log("[AMAZON_REGISTRY] API extraction failed:", apiResult.error);
+              scrapeError = "Amazon registries can't be imported automatically right now due to Amazon restrictions. Please use File Import or Paste Items.";
+            }
+          } else {
+            // Page has registry markers but no items - might be empty or parsing failed
+            console.log("[AMAZON_REGISTRY] Page appears to have registry content but no items extracted");
+            scrapeError = "Amazon registries can't be imported automatically right now due to Amazon restrictions. Please use File Import or Paste Items.";
+          }
         }
+        
+        console.log("[SCRAPE_PARSE] Amazon Registry parsing complete, final items:", items.length);
       } catch (e: any) {
         console.error(`[SCRAPE_PARSE_ERROR] Retailer: AmazonRegistry | URL: ${url} | Error: ${e.message}`);
         console.error(`[SCRAPE_PARSE_ERROR] Stack:`, e.stack || "No stack trace");
         logHtmlDebugInfo(html, retailer, url);
-        scrapeError = "We couldn't find items at that link. Please double-check the Amazon registry share URL.";
+        scrapeError = "Amazon registries can't be imported automatically right now due to Amazon restrictions. Please use File Import or Paste Items.";
       }
     } else {
       try {
@@ -1254,24 +1527,32 @@ Deno.serve(async (req) => {
     // Return structured error response (HTTP 200) if scraping failed or found 0 items
     if (scrapeError || items.length === 0) {
       let errorMessage: string;
+      let requiresManualUpload = false;
+      
       if (scrapeError) {
         errorMessage = scrapeError;
+        // Check if this is an Amazon registry manual upload case
+        if (retailer === "AmazonRegistry" && scrapeError.includes("Amazon restrictions")) {
+          requiresManualUpload = true;
+        }
       } else if (retailer === "Target") {
         console.log(`[SCRAPE_EMPTY] Retailer: Target | URL: ${url} | Reason: 0 items found`);
         errorMessage = "We couldn't find items at that link. Please double-check the Target registry share URL.";
       } else if (retailer === "AmazonRegistry") {
         console.log(`[SCRAPE_EMPTY] Retailer: AmazonRegistry | URL: ${url} | Reason: 0 items found`);
-        errorMessage = "We couldn't find items at that link. Please double-check the Amazon registry share URL.";
+        errorMessage = "Amazon registries can't be imported automatically right now due to Amazon restrictions. Please use File Import or Paste Items.";
+        requiresManualUpload = true;
       } else {
         console.log(`[SCRAPE_EMPTY] Retailer: Amazon | URL: ${url} | Reason: 0 items found`);
         errorMessage = "No items found. The list might be empty, private, or the page structure has changed.";
       }
-      console.log("[SCRAPE_RESULT] success: false | items: 0 | message:", errorMessage);
+      console.log("[SCRAPE_RESULT] success: false | items: 0 | message:", errorMessage, "| requiresManualUpload:", requiresManualUpload);
       return new Response(
         JSON.stringify({
           success: false,
           items: [],
           message: errorMessage,
+          requiresManualUpload,
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
