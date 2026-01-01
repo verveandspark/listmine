@@ -1570,6 +1570,144 @@ interface FetchOptions {
   premium?: boolean;
 }
 
+interface DirectFetchResult {
+  ok: boolean;
+  status: number;
+  html: string;
+}
+
+// Direct fetch with browser-like headers (no proxy)
+async function fetchDirect(url: string): Promise<DirectFetchResult> {
+  const headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Cache-Control": "no-cache",
+    "Pragma": "no-cache",
+  };
+  
+  try {
+    console.log("[FETCH_DIRECT] Attempting direct fetch:", url);
+    const response = await fetch(url, {
+      method: "GET",
+      headers,
+      redirect: "follow",
+    });
+    
+    const html = await response.text();
+    console.log(`[FETCH_DIRECT] Response status: ${response.status} | HTML length: ${html.length}`);
+    
+    return {
+      ok: response.ok,
+      status: response.status,
+      html,
+    };
+  } catch (e: any) {
+    console.log(`[FETCH_DIRECT] Error: ${e.message}`);
+    return {
+      ok: false,
+      status: 0,
+      html: "",
+    };
+  }
+}
+
+// Check if HTML looks blocked/captcha
+const isBlockedResponse = (html: string): boolean => {
+  const lowerHtml = html.toLowerCase();
+  const blockedMarkers = [
+    "captcha",
+    "robot check",
+    "access denied",
+    "403 forbidden",
+    "please verify you are a human",
+    "enable javascript",
+    "browser check",
+  ];
+  return blockedMarkers.some(marker => lowerHtml.includes(marker));
+};
+
+// Walmart-specific fetch with direct-first fallback
+interface WalmartFetchResult {
+  html: string;
+  method: "DIRECT" | "SCRAPERAPI";
+  status: number;
+  error?: string;
+}
+
+async function fetchWalmartWithFallback(
+  url: string,
+  scraperApiKey: string
+): Promise<WalmartFetchResult> {
+  console.log("[WALMART_FETCH] Starting Walmart fetch with direct-first strategy...");
+  
+  // Strategy 1: Try direct fetch first
+  const directResult = await fetchDirect(url);
+  
+  if (directResult.ok && directResult.html.length > 20000 && !isBlockedResponse(directResult.html)) {
+    console.log("[WALMART_FETCH] Direct fetch succeeded:", directResult.html.length, "chars");
+    return {
+      html: directResult.html,
+      method: "DIRECT",
+      status: directResult.status,
+    };
+  }
+  
+  console.log(`[WALMART_FETCH] Direct fetch insufficient (ok=${directResult.ok}, length=${directResult.html.length}, blocked=${isBlockedResponse(directResult.html)})`);
+  
+  // Strategy 2: Fall back to ScraperAPI
+  console.log("[WALMART_FETCH] Falling back to ScraperAPI...");
+  
+  try {
+    const scraperApiUrl = `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(url)}&render=true`;
+    
+    const response = await fetch(scraperApiUrl, {
+      method: "GET",
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+    });
+    
+    console.log(`[WALMART_FETCH] ScraperAPI response status: ${response.status}`);
+    
+    if (!response.ok) {
+      if (response.status === 500) {
+        return {
+          html: "",
+          method: "SCRAPERAPI",
+          status: response.status,
+          error: "Walmart import is temporarily unavailable (fetch provider error). Please try again in a few minutes or use File Import.",
+        };
+      }
+      return {
+        html: "",
+        method: "SCRAPERAPI",
+        status: response.status,
+        error: `ScraperAPI error: ${response.status}`,
+      };
+    }
+    
+    const html = await response.text();
+    console.log(`[WALMART_FETCH] ScraperAPI succeeded: ${html.length} chars`);
+    
+    return {
+      html,
+      method: "SCRAPERAPI",
+      status: response.status,
+    };
+  } catch (e: any) {
+    console.log(`[WALMART_FETCH] ScraperAPI error: ${e.message}`);
+    return {
+      html: "",
+      method: "SCRAPERAPI",
+      status: 0,
+      error: `Walmart import failed: ${e.message}. Please try again or use File Import.`,
+    };
+  }
+}
+
 async function fetchWithScraperAPI(
   url: string,
   apiKey?: string,
@@ -1768,10 +1906,11 @@ Deno.serve(async (req) => {
       console.log("[SCRAPE_NORMALIZE] Target URL normalized:", url, "->", fetchUrl);
     }
     
-    console.log("[SCRAPE_FETCH] Fetching URL via ScraperAPI:", fetchUrl, "| Retailer:", retailer);
+    console.log("[SCRAPE_FETCH] Fetching URL:", fetchUrl, "| Retailer:", retailer);
     
     let html: string;
     let fetchStrategy = "standard";
+    let fetchMethod = "SCRAPERAPI";
     
     try {
       // Use enhanced retry logic for Target
@@ -1794,6 +1933,44 @@ Deno.serve(async (req) => {
               success: false,
               items: [],
               message: "We couldn't retrieve items from this Target registry share link. The registry may be private or the link may have changed. If this persists, please contact support or use manual import.",
+            }),
+            {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+              status: 200,
+            }
+          );
+        }
+      } else if (retailer === "WalmartWishlist" || retailer === "WalmartRegistry") {
+        // Use direct-fetch-first strategy for Walmart
+        const walmartResult = await fetchWalmartWithFallback(fetchUrl, scraperApiKey);
+        fetchMethod = walmartResult.method;
+        
+        console.log(`[SCRAPE_FETCH] Walmart HTML fetched with method: ${fetchMethod} | Status: ${walmartResult.status} | Length: ${walmartResult.html?.length || 0}`);
+        
+        if (walmartResult.error) {
+          console.log(`[SCRAPE_FETCH] Walmart fetch error: ${walmartResult.error}`);
+          return new Response(
+            JSON.stringify({
+              success: false,
+              items: [],
+              message: walmartResult.error,
+            }),
+            {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+              status: 200,
+            }
+          );
+        }
+        
+        html = walmartResult.html;
+        
+        if (!html || html.length < 1000) {
+          console.log("[SCRAPE_FETCH] Walmart returned minimal/empty HTML");
+          return new Response(
+            JSON.stringify({
+              success: false,
+              items: [],
+              message: "We couldn't fetch the Walmart page. Please verify the URL is correct and try again.",
             }),
             {
               headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -1915,32 +2092,32 @@ Deno.serve(async (req) => {
       }
     } else if (retailer === "WalmartWishlist") {
       try {
-        console.log("[SCRAPE_PARSE] Starting Walmart wishlist parsing...");
+        console.log(`[SCRAPE_PARSE] Starting Walmart wishlist parsing... (fetch method: ${fetchMethod})`);
         items = scrapeWalmartWishlist($, html, url);
         displayRetailer = "Walmart Wishlist";
-        console.log("[SCRAPE_PARSE] Walmart wishlist parsing complete, items extracted:", items.length);
+        console.log(`[SCRAPE_PARSE] Walmart wishlist parsing complete | Items: ${items.length} | Fetch method: ${fetchMethod}`);
         
         // Debug log if no items found
         if (items.length === 0) {
-          console.log("[SCRAPE_DEBUG] Walmart wishlist returned 0 items, logging HTML info...");
+          console.log(`[SCRAPE_DEBUG] Walmart wishlist returned 0 items | Fetch method used: ${fetchMethod}`);
           logHtmlDebugInfo(html, retailer, url);
         }
       } catch (e: any) {
-        console.error(`[SCRAPE_PARSE_ERROR] Retailer: WalmartWishlist | URL: ${url} | Error: ${e.message}`);
+        console.error(`[SCRAPE_PARSE_ERROR] Retailer: WalmartWishlist | URL: ${url} | Fetch method: ${fetchMethod} | Error: ${e.message}`);
         console.error(`[SCRAPE_PARSE_ERROR] Stack:`, e.stack || "No stack trace");
         logHtmlDebugInfo(html, retailer, url);
         scrapeError = "We couldn't find items at that link. Please double-check the Walmart wishlist URL.";
       }
     } else if (retailer === "WalmartRegistry") {
       try {
-        console.log("[SCRAPE_PARSE] Starting Walmart registry parsing...");
+        console.log(`[SCRAPE_PARSE] Starting Walmart registry parsing... (fetch method: ${fetchMethod})`);
         items = scrapeWalmartRegistry($, html, url);
         displayRetailer = "Walmart Registry";
-        console.log("[SCRAPE_PARSE] Walmart registry parsing complete, items extracted:", items.length);
+        console.log(`[SCRAPE_PARSE] Walmart registry parsing complete | Items: ${items.length} | Fetch method: ${fetchMethod}`);
         
         // Debug log if no items found
         if (items.length === 0) {
-          console.log("[SCRAPE_DEBUG] Walmart registry returned 0 items, logging HTML info...");
+          console.log(`[SCRAPE_DEBUG] Walmart registry returned 0 items | Fetch method used: ${fetchMethod}`);
           logHtmlDebugInfo(html, retailer, url);
         }
       } catch (e: any) {
