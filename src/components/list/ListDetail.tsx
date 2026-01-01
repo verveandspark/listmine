@@ -1057,7 +1057,7 @@ export default function ListDetail() {
   };
 
   const handleAddCollaborator = () => {
-    if (effectiveTier !== "lots_more" && effectiveTier !== "premium") {
+    if (effectiveTier !== "lots_more") {
       toast({
         title: "⚠️ Premium feature",
         description: "Upgrade to premium to add collaborators",
