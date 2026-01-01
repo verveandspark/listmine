@@ -532,37 +532,40 @@ Deno.serve(async (req) => {
 
   if (req.method !== "POST") {
     return new Response(
-      JSON.stringify({ error: "Method not allowed" }),
+      JSON.stringify({ success: false, items: [], message: "Method not allowed" }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 405,
+        status: 200,
       }
     );
   }
 
   try {
     const { url } = await req.json();
+    
+    console.log("[SCRAPE_START] Incoming request URL:", url);
 
     if (!url || typeof url !== "string") {
+      console.log("[SCRAPE_ERROR] Invalid URL provided:", url);
       return new Response(
-        JSON.stringify({ success: false, error: "URL is required" }),
+        JSON.stringify({ success: false, items: [], message: "URL is required" }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 400,
+          status: 200,
         }
       );
     }
 
     const retailer = detectRetailer(url);
+    console.log("[SCRAPE_DETECT] Detected retailer:", retailer || "UNSUPPORTED", "for URL:", url);
 
     if (!retailer) {
-      // Return structured response (not 400 error) for unsupported retailers
+      console.log("[SCRAPE_UNSUPPORTED] Retailer not supported for URL:", url);
       return new Response(
         JSON.stringify({
           success: false,
-          errorCode: "UNSUPPORTED_RETAILER",
-          error: "This retailer requires sign-in or doesn't provide a public share link. Please use File Import or Paste Items.",
-          requiresManualUpload: true,
+          items: [],
+          message: "This retailer requires sign-in or doesn't provide a public share link. Please use File Import or Paste Items.",
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -572,19 +575,19 @@ Deno.serve(async (req) => {
     }
 
     const scraperApiKey = Deno.env.get("SCRAPER_API_KEY");
-    console.log("SCRAPER_API_KEY available:", !!scraperApiKey);
+    console.log("[SCRAPE_CONFIG] SCRAPER_API_KEY available:", !!scraperApiKey);
 
     if (!scraperApiKey) {
-      console.error("SCRAPER_API_KEY is not set in environment variables");
+      console.error("[SCRAPE_ERROR] SCRAPER_API_KEY is not set in environment variables");
       return new Response(
         JSON.stringify({
           success: false,
-          error:
-            "Amazon scraping is temporarily unavailable. The service is not properly configured. Please contact support or try again later.",
+          items: [],
+          message: "Scraping service is temporarily unavailable. Please contact support or try again later.",
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 400,
+          status: 200,
         }
       );
     }
@@ -593,23 +596,23 @@ Deno.serve(async (req) => {
     let fetchUrl = url;
     if (retailer === "Target") {
       fetchUrl = normalizeTargetRegistryUrl(url);
-      console.log("Target URL normalized:", url, "->", fetchUrl);
+      console.log("[SCRAPE_NORMALIZE] Target URL normalized:", url, "->", fetchUrl);
     }
     
-    console.log("Fetching URL via ScraperAPI:", fetchUrl, "Retailer:", retailer);
+    console.log("[SCRAPE_FETCH] Fetching URL via ScraperAPI:", fetchUrl, "| Retailer:", retailer);
     
     let html: string;
     try {
       html = await fetchWithScraperAPI(fetchUrl, scraperApiKey);
-      console.log("HTML fetched, length:", html?.length || 0);
+      console.log("[SCRAPE_FETCH] HTML fetched successfully, length:", html?.length || 0, "characters");
     } catch (fetchError: any) {
-      console.error(`[SCRAPE_FAILED] Retailer: ${retailer}, URL: ${url}, Reason: Fetch failed - ${fetchError.message}`);
+      console.error(`[SCRAPE_FETCH_ERROR] Retailer: ${retailer} | URL: ${url} | Error: ${fetchError.message}`);
+      console.error(`[SCRAPE_FETCH_ERROR] Stack:`, fetchError.stack || "No stack trace");
       return new Response(
         JSON.stringify({
           success: false,
-          errorCode: "SCRAPE_FAILED",
-          requiresManualUpload: false,
-          message: `Failed to fetch the page. Please verify the URL is correct and try again.`,
+          items: [],
+          message: "Failed to fetch the page. Please verify the URL is correct and try again.",
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -618,6 +621,7 @@ Deno.serve(async (req) => {
       );
     }
     
+    console.log("[SCRAPE_PARSE] Starting HTML parsing for retailer:", retailer);
     const $ = load(html);
     
     let items: ScrapedItem[] = [];
@@ -627,29 +631,36 @@ Deno.serve(async (req) => {
     // Wrap each retailer scraping in try/catch to prevent non-2xx responses
     if (retailer === "Target") {
       try {
+        console.log("[SCRAPE_PARSE] Starting Target registry parsing...");
         items = scrapeTargetRegistry($, html);
+        console.log("[SCRAPE_PARSE] Target parsing complete, items extracted:", items.length);
       } catch (e: any) {
-        console.error(`[SCRAPE_FAILED] Retailer: Target, URL: ${url}, Reason: Parsing error - ${e.message}`);
+        console.error(`[SCRAPE_PARSE_ERROR] Retailer: Target | URL: ${url} | Error: ${e.message}`);
+        console.error(`[SCRAPE_PARSE_ERROR] Stack:`, e.stack || "No stack trace");
         scrapeError = "We couldn't find items at that link. Please double-check the Target registry share URL.";
       }
     } else if (retailer === "AmazonRegistry") {
       try {
+        console.log("[SCRAPE_PARSE] Starting Amazon Registry parsing...");
         items = scrapeAmazonRegistry($, html);
         displayRetailer = "Amazon Registry";
+        console.log("[SCRAPE_PARSE] Amazon Registry parsing complete, items extracted:", items.length);
       } catch (e: any) {
-        console.error(`[SCRAPE_FAILED] Retailer: AmazonRegistry, URL: ${url}, Reason: Parsing error - ${e.message}`);
+        console.error(`[SCRAPE_PARSE_ERROR] Retailer: AmazonRegistry | URL: ${url} | Error: ${e.message}`);
+        console.error(`[SCRAPE_PARSE_ERROR] Stack:`, e.stack || "No stack trace");
         scrapeError = "We couldn't find items at that link. Please double-check the Amazon registry share URL.";
       }
     } else {
       try {
+        console.log("[SCRAPE_PARSE] Starting Amazon wishlist parsing...");
         items = scrapeAmazon($);
+        console.log("[SCRAPE_PARSE] Amazon wishlist parsing complete, items extracted:", items.length);
       } catch (e: any) {
-        console.error(`[SCRAPE_FAILED] Retailer: Amazon, URL: ${url}, Reason: Parsing error - ${e.message}`);
+        console.error(`[SCRAPE_PARSE_ERROR] Retailer: Amazon | URL: ${url} | Error: ${e.message}`);
+        console.error(`[SCRAPE_PARSE_ERROR] Stack:`, e.stack || "No stack trace");
         scrapeError = "No items found. The list might be empty, private, or the page structure has changed.";
       }
     }
-    
-    console.log("Items scraped:", items.length);
     
     // Return structured error response (HTTP 200) if scraping failed or found 0 items
     if (scrapeError || items.length === 0) {
@@ -657,20 +668,20 @@ Deno.serve(async (req) => {
       if (scrapeError) {
         errorMessage = scrapeError;
       } else if (retailer === "Target") {
-        console.error(`[SCRAPE_FAILED] Retailer: Target, URL: ${url}, Reason: 0 items found`);
+        console.log(`[SCRAPE_EMPTY] Retailer: Target | URL: ${url} | Reason: 0 items found`);
         errorMessage = "We couldn't find items at that link. Please double-check the Target registry share URL.";
       } else if (retailer === "AmazonRegistry") {
-        console.error(`[SCRAPE_FAILED] Retailer: AmazonRegistry, URL: ${url}, Reason: 0 items found`);
+        console.log(`[SCRAPE_EMPTY] Retailer: AmazonRegistry | URL: ${url} | Reason: 0 items found`);
         errorMessage = "We couldn't find items at that link. Please double-check the Amazon registry share URL.";
       } else {
-        console.error(`[SCRAPE_FAILED] Retailer: Amazon, URL: ${url}, Reason: 0 items found`);
+        console.log(`[SCRAPE_EMPTY] Retailer: Amazon | URL: ${url} | Reason: 0 items found`);
         errorMessage = "No items found. The list might be empty, private, or the page structure has changed.";
       }
+      console.log("[SCRAPE_RESULT] success: false | items: 0 | message:", errorMessage);
       return new Response(
         JSON.stringify({
           success: false,
-          errorCode: "SCRAPE_FAILED",
-          requiresManualUpload: false,
+          items: [],
           message: errorMessage,
         }),
         {
@@ -680,11 +691,13 @@ Deno.serve(async (req) => {
       );
     }
 
+    console.log(`[SCRAPE_SUCCESS] Retailer: ${displayRetailer} | Items: ${items.length} | URL: ${url}`);
     return new Response(
       JSON.stringify({
         success: true,
         retailer: displayRetailer,
         items,
+        message: null,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -692,17 +705,21 @@ Deno.serve(async (req) => {
       }
     );
   } catch (error: any) {
-    console.error("[SCRAPE_ERROR] Unexpected error:", error.message || error);
+    console.error("[SCRAPE_UNEXPECTED_ERROR] Error:", error.message || error);
+    console.error("[SCRAPE_UNEXPECTED_ERROR] Stack:", error.stack || "No stack trace");
 
+    const errorMessage = error.message?.includes("ScraperAPI")
+      ? "Scraping service error. Please try again in a few minutes or contact support."
+      : "Failed to import wishlist. Please verify the URL is correct and the wishlist is public, then try again.";
+    
+    console.log("[SCRAPE_RESULT] success: false | items: 0 | message:", errorMessage);
+    
     // Always return HTTP 200 with structured error for better frontend handling
     return new Response(
       JSON.stringify({
         success: false,
-        errorCode: "UNEXPECTED_ERROR",
-        requiresManualUpload: false,
-        message: error.message?.includes("ScraperAPI")
-          ? "Scraping service error. Please try again in a few minutes or contact support."
-          : "Failed to import wishlist. Please verify the URL is correct and the wishlist is public, then try again.",
+        items: [],
+        message: errorMessage,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
