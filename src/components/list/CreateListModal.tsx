@@ -328,7 +328,11 @@ export default function CreateListModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl md:max-w-3xl bg-white animate-pop-in px-4 sm:px-6">
+      <DialogContent 
+        className="sm:max-w-2xl md:max-w-3xl bg-white animate-pop-in px-4 sm:px-6"
+        onInteractOutside={(e) => e.preventDefault()}
+        onPointerDownOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>Create New List</DialogTitle>
         </DialogHeader>

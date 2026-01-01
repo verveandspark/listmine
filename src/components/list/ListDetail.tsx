@@ -4534,7 +4534,11 @@ export default function ListDetail() {
 
       {/* Edit List Modal */}
       <Dialog open={isEditListDialogOpen} onOpenChange={setIsEditListDialogOpen}>
-        <DialogContent className="z-[1000]">
+        <DialogContent 
+          className="z-[1000]"
+          onInteractOutside={(e) => e.preventDefault()}
+          onPointerDownOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>Edit List</DialogTitle>
             <DialogDescription>
