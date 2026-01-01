@@ -80,7 +80,16 @@ export default function ScrapeWishlistModal({
 
       setScrapedItems(itemsWithSelection);
       setRetailer(data.retailer);
-      setListName(`${data.retailer} Wishlist`);
+      // Set default list name based on retailer
+      let defaultListName: string;
+      if (data.retailer === "Target") {
+        defaultListName = "Target Registry";
+      } else if (data.retailer === "Amazon Registry") {
+        defaultListName = "Amazon Registry";
+      } else {
+        defaultListName = `${data.retailer} Wishlist`;
+      }
+      setListName(defaultListName);
 
       toast({
         title: "Wishlist scraped successfully",
@@ -193,10 +202,12 @@ export default function ScrapeWishlistModal({
             <ShoppingCart className="w-5 h-5" />
             Import from Public List
           </DialogTitle>
-          <DialogDescription className="space-y-2">
-            <p>Paste a public list URL from any retailer site*.</p>
-            <p className="text-xs text-gray-600">
-              *Currently supports: Amazon wishlists. More retailers coming soon!
+          <DialogDescription className="space-y-3">
+            <p className="text-sm">
+              Paste a public list URL from any retailer site to import items. Currently supports: Amazon & Target wishlists and registries.
+            </p>
+            <p className="text-xs text-gray-600 bg-gray-50 p-2 rounded border">
+              <strong>Note:</strong> For favorites and lists that require you to be signed in to see them and do not have a public share link, you will need to manually upload.
             </p>
             <p className="text-xs text-gray-500">
               Disclaimer: Imports public wishlists, registries, and shopping lists from third-party sites. Not affiliated with any retailer. You're responsible for data you import.{" "}
@@ -215,11 +226,11 @@ export default function ScrapeWishlistModal({
         <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
           {/* URL Input */}
           <div className="space-y-2">
-            <Label htmlFor="wishlist-url">Wishlist URL</Label>
+            <Label htmlFor="wishlist-url">Wishlist / Registry URL</Label>
             <div className="flex gap-2">
               <Input
                 id="wishlist-url"
-                placeholder="Paste public list URL"
+                placeholder="Paste Amazon or Target wishlist/registry URL"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 onKeyDown={(e) => {
@@ -244,7 +255,7 @@ export default function ScrapeWishlistModal({
               )}
             </div>
             <p className="text-xs text-gray-500">
-              Currently supports: Amazon wishlists. More retailers coming soon!
+              Currently supports: Amazon wishlists, Target gift registries. More retailers coming soon!
             </p>
           </div>
 
