@@ -99,7 +99,10 @@ export default function ImportExport() {
   };
   
   // Use global account context
-  const { isTeamContext, effectiveTier } = useAccount();
+  const { isTeamContext, effectiveTier, currentAccount } = useAccount();
+  
+  // Get the account ID to use for imports (null for personal, team account ID for team)
+  const importAccountId = currentAccount?.type === 'team' ? currentAccount.id : null;
   
   const canImport = canImportLists(effectiveTier);
   const canExport = canExportLists(effectiveTier);
@@ -194,6 +197,7 @@ export default function ImportExport() {
         importFormat,
         importCategory,
         importListType,
+        importAccountId, // Pass account ID for team imports
       );
       toast({
         title: "List imported successfully!",
@@ -252,7 +256,7 @@ export default function ImportExport() {
     setIsImporting(true);
 
     try {
-      const result = await importFromShareLink(shareId);
+      const result = await importFromShareLink(shareId, importAccountId);
       
       if (!result) {
         throw new Error("Failed to import list");
@@ -449,7 +453,7 @@ export default function ImportExport() {
     }
 
     try {
-      const newListId = await importFromWishlist(selectedItems, wishlistName, "Shopping");
+      const newListId = await importFromWishlist(selectedItems, wishlistName, "Shopping", importAccountId);
       
       toast({
         title: "Wishlist imported successfully!",

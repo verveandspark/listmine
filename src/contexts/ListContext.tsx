@@ -1862,39 +1862,24 @@ export function ListProvider({ children }: { children: ReactNode }) {
       
       const authUserId = authUser.id;
       
-      console.log("[ListContext] Import list - using user_id (from getUser):", authUserId);
+      console.log("[ListContext] Import list - using user_id (from getUser):", authUserId, "accountId:", accountId);
       
-      const result = (await withTimeout(
-        supabase
-          .from("lists")
-          .insert({
-            user_id: authUserId,
-            title: `Imported ${category} List`,
-            category,
-            list_type: listType,
-          })
-          .select()
-          .single(),
-      )) as any;
-      let { data: newList, error: listError } = result;
-
-      if (listError && (listError.code === "42501" || listError.message.includes("row-level security"))) {
-        console.error("[ListContext] RLS violation - attempting SECURITY DEFINER function fallback");
-        const { data: rpcData, error: rpcError } = await supabase.rpc('create_list_for_user', {
-          p_user_id: authUserId,
-          p_list_name: `Imported ${category} List`,
-          p_category: category,
-          p_list_type: listType,
-        });
-        if (rpcError) {
-          console.error("[ListContext] RPC fallback failed:", rpcError);
-          throw rpcError;
-        }
-        const created = Array.isArray(rpcData) ? rpcData[0] : rpcData;
-        newList = created;
-      } else if (listError) {
-        throw listError;
+      // Always use SECURITY DEFINER RPC for list creation (handles both personal and team lists)
+      const { data: rpcData, error: rpcError } = await supabase.rpc('create_list_for_user', {
+        p_user_id: authUserId,
+        p_list_name: `Imported ${category} List`,
+        p_category: category,
+        p_list_type: listType,
+        p_account_id: accountId || null,
+      });
+      
+      if (rpcError) {
+        console.error("[ListContext] create_list_for_user RPC failed:", rpcError);
+        throw rpcError;
       }
+      
+      const created = Array.isArray(rpcData) ? rpcData[0] : rpcData;
+      const newList = created;
 
       const itemsToInsert = items.map((item, index) => ({
         list_id: newList.id,
@@ -2107,9 +2092,27 @@ export function ListProvider({ children }: { children: ReactNode }) {
   };
 
   const generateShareLink = async (listId: string, shareMode: 'view_only' | 'importable' | 'registry_buyer' = 'view_only'): Promise<string> => {
+    // Find the list to check if it's a team list
+    const list = lists.find(l => l.id === listId);
+    if (!list) {
+      throw new Error("List not found");
+    }
+    
+    // For team lists (has accountId), check team owner's tier
+    // Team lists are always associated with 'lots_more' tier accounts
+    let effectiveTierForShare: UserTier;
+    
+    if (list.accountId) {
+      // Team list - teams only exist on 'lots_more' tier
+      effectiveTierForShare = 'lots_more';
+      console.log('[ListContext] generateShareLink: Team list detected, using lots_more tier');
+    } else {
+      // Personal list - use user's tier
+      effectiveTierForShare = (user?.tier || 'free') as UserTier;
+    }
+    
     // Check tier permission for sharing
-    const userTier = (user?.tier || 'free') as UserTier;
-    if (!canShareLists(userTier)) {
+    if (!canShareLists(effectiveTierForShare)) {
       toast({
         title: "Plan Changed",
         description: "Your plan changed. Sharing is no longer available.",
@@ -2611,7 +2614,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
       
       console.log("[ListContext] Copy shared list - using user_id (from getUser):", authUserId);
       
-      // Use RPC function to bypass RLS issues
+      // Use RPC function to bypass RLS issues (supports both personal and team imports)
       const newListIdResult = (await withTimeout(
         supabase
           .rpc("create_list_for_user", {
@@ -2619,6 +2622,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
             p_list_name: newListTitle,
             p_category: sharedList.category,
             p_list_type: sharedList.list_type,
+            p_account_id: accountId || null,
           }),
       )) as any;
       const { data: rpcData, error: newListError } = newListIdResult;
@@ -2769,12 +2773,13 @@ export function ListProvider({ children }: { children: ReactNode }) {
       console.log("Supabase auth user ID:", authUser?.id);
       console.log("[ListContext] User tier:", userTier, "Using list type:", listType);
       
-      // Use RPC function to ensure user exists and create list
+      // Use RPC function to ensure user exists and create list (supports both personal and team)
       const { data: rpcData, error: rpcError } = await supabase.rpc('create_list_for_user', {
         p_user_id: authUserId,
         p_list_name: nameValidation.value,
         p_category: categoryValidation.value,
         p_list_type: listType,
+        p_account_id: accountId || null,
       });
 
       if (rpcError) {

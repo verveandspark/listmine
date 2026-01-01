@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLists } from "@/contexts/useListsHook";
+import { useAccount } from "@/contexts/AccountContext";
 import {
   Dialog,
   DialogContent,
@@ -28,8 +29,12 @@ export default function ImportListModal({
   const [isImporting, setIsImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { importFromShareLink } = useLists();
+  const { currentAccount } = useAccount();
   const navigate = useNavigate();
   const { toast } = useToast();
+  
+  // Get the account ID for team imports
+  const importAccountId = currentAccount?.type === 'team' ? currentAccount.id : null;
 
   const extractShareId = (url: string): string | null => {
     try {
@@ -71,7 +76,7 @@ export default function ImportListModal({
     setError(null);
 
     try {
-      const result = await importFromShareLink(shareId);
+      const result = await importFromShareLink(shareId, importAccountId);
       
       if (!result) {
         throw new Error("Failed to import list");
