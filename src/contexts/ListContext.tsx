@@ -1102,9 +1102,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
           console.error("[ListContext] RLS violation - attempting SECURITY DEFINER function fallback");
           
           // Use the SECURITY DEFINER function as fallback
-          const { data: newListId, error: rpcError } = await supabase.rpc('create_list_for_user', {
+          const { data: rpcData, error: rpcError } = await supabase.rpc('create_list_for_user', {
             p_user_id: insertUserId,
-            p_title: nameValidation.value,
+            p_list_name: nameValidation.value,
             p_category: categoryValidation.value,
             p_list_type: listType,
             p_account_id: accountId || null,
@@ -1131,9 +1131,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
             const retryUserId = (accountId && teamOwnerId) ? teamOwnerId : refreshedUser.id;
             
             // Retry with RPC after refresh
-            const { data: retryListId, error: retryRpcError } = await supabase.rpc('create_list_for_user', {
+            const { data: retryRpcData, error: retryRpcError } = await supabase.rpc('create_list_for_user', {
               p_user_id: retryUserId,
-              p_title: nameValidation.value,
+              p_list_name: nameValidation.value,
               p_category: categoryValidation.value,
               p_list_type: listType,
               p_account_id: accountId || null,
@@ -1144,10 +1144,15 @@ export function ListProvider({ children }: { children: ReactNode }) {
               throw new Error("Unable to create list. Please log out and log back in.");
             }
             
+            const retryCreated = Array.isArray(retryRpcData) ? retryRpcData[0] : retryRpcData;
+            const retryListId = retryCreated?.id;
+            
             await loadLists();
             return retryListId;
           }
           
+          const created = Array.isArray(rpcData) ? rpcData[0] : rpcData;
+          const newListId = created?.id;
           console.log("[ListContext] List created via RPC fallback:", newListId);
           await loadLists();
           return newListId;
@@ -1880,9 +1885,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
 
       if (listError && (listError.code === "42501" || listError.message.includes("row-level security"))) {
         console.error("[ListContext] RLS violation - attempting SECURITY DEFINER function fallback");
-        const { data: newListId, error: rpcError } = await supabase.rpc('create_list_for_user', {
+        const { data: rpcData, error: rpcError } = await supabase.rpc('create_list_for_user', {
           p_user_id: authUserId,
-          p_title: `Imported ${category} List`,
+          p_list_name: `Imported ${category} List`,
           p_category: category,
           p_list_type: listType,
         });
@@ -1890,7 +1895,8 @@ export function ListProvider({ children }: { children: ReactNode }) {
           console.error("[ListContext] RPC fallback failed:", rpcError);
           throw rpcError;
         }
-        newList = newListId;
+        const created = Array.isArray(rpcData) ? rpcData[0] : rpcData;
+        newList = created;
       } else if (listError) {
         throw listError;
       }
@@ -2615,14 +2621,17 @@ export function ListProvider({ children }: { children: ReactNode }) {
         supabase
           .rpc("create_list_for_user", {
             p_user_id: authUserId,
-            p_title: newListTitle,
+            p_list_name: newListTitle,
             p_category: sharedList.category,
             p_list_type: sharedList.list_type,
           }),
       )) as any;
-      const { data: newListId, error: newListError } = newListIdResult;
+      const { data: rpcData, error: newListError } = newListIdResult;
 
       if (newListError) throw newListError;
+      
+      const created = Array.isArray(rpcData) ? rpcData[0] : rpcData;
+      const newListId = created?.id;
       
       // Fetch the newly created list
       const fetchListResult = (await withTimeout(
@@ -2766,9 +2775,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
       console.log("[ListContext] User tier:", userTier, "Using list type:", listType);
       
       // Use RPC function to ensure user exists and create list
-      const { data: newListId, error: rpcError } = await supabase.rpc('create_list_for_user', {
+      const { data: rpcData, error: rpcError } = await supabase.rpc('create_list_for_user', {
         p_user_id: authUserId,
-        p_title: nameValidation.value,
+        p_list_name: nameValidation.value,
         p_category: categoryValidation.value,
         p_list_type: listType,
       });
@@ -2777,6 +2786,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
         console.error("[ListContext] RPC create_list_for_user error:", rpcError);
         throw rpcError;
       }
+
+      const created = Array.isArray(rpcData) ? rpcData[0] : rpcData;
+      const newListId = created?.id;
 
       // Fetch the created list
       const { data: newList, error: fetchError } = await supabase
