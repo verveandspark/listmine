@@ -2,16 +2,9 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useLists } from "@/contexts/useListsHook";
 import { useAuth } from "@/contexts/useAuthHook";
+import { useAccount } from "@/contexts/AccountContext";
 import { supabase } from "@/lib/supabase";
 import { canExportLists, canImportLists, canPrintLists, getAvailableExportFormats, type UserTier } from "@/lib/tierUtils";
-
-interface AccountOption {
-  id: string;
-  name: string;
-  type: 'personal' | 'team';
-  ownerId?: string;
-  ownerTier?: string;
-}
 import { ListCategory, ListType } from "@/types";
 import {
   Card,
@@ -105,17 +98,8 @@ export default function ImportExport() {
     }
   };
   
-  // Account context state
-  const [availableAccounts, setAvailableAccounts] = useState<AccountOption[]>([]);
-  const [currentAccountId, setCurrentAccountId] = useState<string | null>(null);
-  
-  // Determine effective tier for export gating
-  const currentAccount = availableAccounts.find(a => a.id === currentAccountId);
-  const isTeamContext = currentAccount?.type === 'team';
-  const userTier = (user?.tier || 'free') as UserTier;
-  
-  // For team context, always use 'lots_more' (teams only exist on Lots More tier)
-  const effectiveTier: UserTier = isTeamContext ? 'lots_more' : userTier;
+  // Use global account context
+  const { isTeamContext, effectiveTier } = useAccount();
   
   const canImport = canImportLists(effectiveTier);
   const canExport = canExportLists(effectiveTier);
@@ -126,98 +110,6 @@ export default function ImportExport() {
   const showImportGatingMessage = !canImport && !isTeamContext;
   // Show export gating message only for free personal users (not in team context)
   const showExportGatingMessage = !canExport && !isTeamContext;
-  
-  // Fetch available accounts (personal + team)
-  useEffect(() => {
-    const fetchAccounts = async () => {
-      if (!user?.id) return;
-      
-      const accounts: AccountOption[] = [];
-      
-      // Add personal account
-      accounts.push({
-        id: `personal-${user.id}`,
-        name: 'Personal',
-        type: 'personal',
-      });
-      
-      // Fetch team accounts where user is owner
-      // TS2589 workaround: avoid deep supabase-js builder inference by casting to any
-      const accountsQuery: any = supabase.from('accounts');
-      const ownedAccountsRes = (await accountsQuery
-        .select('id, name, owner_id')
-        .eq('owner_id', user.id)
-        .eq('type', 'team')
-      ) as { data: unknown[] | null; error: unknown };
-      const ownedAccounts = (ownedAccountsRes.data ?? []) as Array<{ id: string; name: string | null; owner_id: string }>;
-      
-      // Fetch team accounts where user is a member
-      // TS2589 workaround: avoid deep supabase-js builder inference by casting to any
-      const membershipsQuery: any = supabase.from('account_team_members');
-      const teamMembershipsRes = (await membershipsQuery
-        .select('accounts:account_id(id, name, owner_id)')
-        .eq('user_id', user.id)
-      ) as { data: unknown[] | null; error: unknown };
-      const teamMemberships = (teamMembershipsRes.data ?? []) as Array<{ accounts: { id: string; name: string | null; owner_id: string } }>;
-      
-      // Collect owner IDs to fetch their tiers
-      const ownerIdsToFetch: string[] = [];
-      
-      for (const account of ownedAccounts) {
-        accounts.push({
-          id: account.id,
-          name: account.name || 'Team Account',
-          type: 'team',
-          ownerId: account.owner_id,
-          ownerTier: 'lots_more', // Teams only exist on Lots More tier
-        });
-      }
-      
-      for (const membership of teamMemberships) {
-        const account = membership.accounts;
-        if (account && !accounts.find(a => a.id === account.id)) {
-          ownerIdsToFetch.push(account.owner_id);
-        }
-      }
-      
-      // Fetch owner tiers for team accounts where user is a member
-      if (ownerIdsToFetch.length > 0) {
-        // TS2589 workaround: avoid deep supabase-js builder inference by casting to any
-        const ownersQuery: any = supabase.from('users');
-        const ownersRes = (await ownersQuery
-          .select('id, tier')
-          .in('id', ownerIdsToFetch)
-        ) as { data: unknown[] | null; error: unknown };
-        const ownersData = (ownersRes.data ?? []) as Array<{ id: string; tier: string | null }>;
-        
-        const ownerTiers: Record<string, string> = {};
-        ownersData.forEach((owner) => {
-          ownerTiers[owner.id] = owner.tier || 'free';
-        });
-        
-        for (const membership of teamMemberships) {
-          const account = membership.accounts;
-          if (account && !accounts.find(a => a.id === account.id)) {
-            accounts.push({
-              id: account.id,
-              name: account.name || 'Team Account',
-              type: 'team',
-              ownerId: account.owner_id,
-              ownerTier: 'lots_more', // Teams only exist on Lots More tier
-            });
-          }
-        }
-      }
-      
-      setAvailableAccounts(accounts);
-      // Default to personal account
-      if (accounts.length > 0 && !currentAccountId) {
-        setCurrentAccountId(accounts[0].id);
-      }
-    };
-    
-    fetchAccounts();
-  }, [user?.id]);
   
   const [importData, setImportData] = useState("");
   const [importCategory, setImportCategory] = useState<ListCategory>("Tasks");

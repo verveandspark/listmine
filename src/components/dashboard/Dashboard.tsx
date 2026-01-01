@@ -2,7 +2,6 @@ import { DashboardSkeleton } from "@/components/ui/DashboardSkeleton";
 import { OnboardingTooltips } from "@/components/onboarding/OnboardingTooltips";
 import { NotificationBell } from "@/components/ui/NotificationBell";
 import { useUndoAction } from "@/hooks/useUndoAction";
-import { supabase } from "@/lib/supabase";
 import TeamManagement from "@/components/team/TeamManagement";
 import GuestManagement from "@/components/list/GuestManagement";
 import {
@@ -51,6 +50,7 @@ import {
 import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/useAuthHook";
 import { useLists } from "@/contexts/useListsHook";
+import { useAccount } from "@/contexts/AccountContext";
 import { ListCategory, ListType } from "@/types";
 import {
   Card,
@@ -283,116 +283,21 @@ export default function Dashboard() {
   const [isGuestManagementOpen, setIsGuestManagementOpen] = useState(false);
   const [selectedListForGuests, setSelectedListForGuests] = useState<string | null>(null);
 
-  // Account switcher state
-  interface AccountOption {
-    id: string;
-    name: string;
-    type: 'personal' | 'team';
-    ownerId?: string;
-  }
-  const [availableAccounts, setAvailableAccounts] = useState<AccountOption[]>([]);
-  const [currentAccountId, setCurrentAccountId] = useState<string | null>(null);
-  const [loadingAccounts, setLoadingAccounts] = useState(false);
-
-  // Fetch available accounts (personal + team accounts user is member of)
-  useEffect(() => {
-    const fetchAccounts = async () => {
-      if (!user?.id) return;
-      
-      setLoadingAccounts(true);
-      try {
-        const accounts: AccountOption[] = [];
-        
-        // Add personal account
-        accounts.push({
-          id: `personal-${user.id}`,
-          name: 'My Personal Lists',
-          type: 'personal',
-        });
-        
-        // Fetch team memberships first (just account IDs)
-        const { data: teamMemberships, error: memberError } = await supabase
-          .from('account_team_members')
-          .select('account_id')
-          .eq('user_id', user.id);
-        
-        // Then fetch full account records separately by those IDs
-        if (!memberError && teamMemberships && teamMemberships.length > 0) {
-          const teamAccountIds = teamMemberships.map(m => m.account_id);
-          
-          const { data: teamAccountsData, error: teamAccountsError } = await supabase
-            .from('accounts')
-            .select('id, name, owner_id')
-            .in('id', teamAccountIds);
-          
-          if (teamAccountsData) {
-            for (const account of teamAccountsData) {
-              accounts.push({
-                id: account.id,
-                name: account.name || 'Team Account',
-                type: 'team',
-                ownerId: account.owner_id,
-              });
-            }
-          } else if (teamMemberships.length > 0) {
-            // Fallback: add team account options even if account data is missing
-            for (const membership of teamMemberships) {
-              accounts.push({
-                id: membership.account_id,
-                name: 'Team',
-                type: 'team',
-                ownerId: undefined,
-              });
-            }
-          }
-        }
-        
-        // Also check if user owns any accounts
-        const { data: ownedAccounts, error: ownedError } = await supabase
-          .from('accounts')
-          .select('id, name, owner_id')
-          .eq('owner_id', user.id);
-        
-        if (!ownedError && ownedAccounts) {
-          for (const account of ownedAccounts) {
-            // Only add if not already in list
-            if (!accounts.find(a => a.id === account.id)) {
-              accounts.push({
-                id: account.id,
-                name: account.name || 'My Team',
-                type: 'team',
-                ownerId: account.owner_id,
-              });
-            }
-          }
-        }
-        
-        setAvailableAccounts(accounts);
-        
-        // Set default to personal if not set
-        if (!currentAccountId && accounts.length > 0) {
-          setCurrentAccountId(accounts[0].id);
-        }
-      } catch (error) {
-        console.error('[Dashboard] Error fetching accounts:', error);
-      } finally {
-        setLoadingAccounts(false);
-      }
-    };
-    
-    fetchAccounts();
-  }, [user?.id]);
-
-  const currentAccount = availableAccounts.find(a => a.id === currentAccountId);
-  
-  // Determine effective tier for gating: teams always use 'lots_more'
-  const isTeamContext = currentAccount?.type === 'team';
-  const effectiveTier: UserTier = isTeamContext ? 'lots_more' : ((user?.tier || 'free') as UserTier);
+  // Use global account context
+  const { 
+    availableAccounts, 
+    currentAccountId, 
+    setCurrentAccountId, 
+    currentAccount, 
+    isTeamContext, 
+    effectiveTier,
+    loadingAccounts 
+  } = useAccount();
 
   // Check if user can manage team (owner + Lots More tier)
   const canManageTeam = currentAccount?.type === 'team' && 
                         currentAccount?.ownerId === user?.id && 
-                        user?.tier === 'lots_more';
+                        effectiveTier === 'lots_more';
 
   // Use the actual loading state from the lists context
   // Only show loading skeleton if we haven't loaded once yet AND there are no lists

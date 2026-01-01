@@ -5,6 +5,7 @@ import { Suspense, useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContextProvider";
 import { ListProvider } from "./contexts/ListContext";
+import { AccountProvider } from "./contexts/AccountContext";
 import { useAuth } from "./contexts/useAuthHook";
 import { Toaster } from "./components/ui/toaster";
 import { GlobalBannerProvider } from "./components/ui/GlobalErrorBanner";
@@ -155,14 +156,16 @@ function AuthenticatedApp() {
 
   return (
     <GlobalBannerProvider>
-      <ListProvider>
-        <ErrorBoundary>
-          <Suspense fallback={<DashboardSkeleton />}>
-            <AppRoutes />
-            <Toaster />
-          </Suspense>
-        </ErrorBoundary>
-      </ListProvider>
+      <AccountProvider>
+        <ListProvider>
+          <ErrorBoundary>
+            <Suspense fallback={<DashboardSkeleton />}>
+              <AppRoutes />
+              <Toaster />
+            </Suspense>
+          </ErrorBoundary>
+        </ListProvider>
+      </AccountProvider>
     </GlobalBannerProvider>
   );
 }

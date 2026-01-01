@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/useAuthHook";
 import { useLists } from "@/contexts/useListsHook";
+import { useAccount } from "@/contexts/AccountContext";
 import {
   Card,
   CardContent,
@@ -106,10 +107,14 @@ export default function Templates() {
   const [listName, setListName] = useState("");
   const [creating, setCreating] = useState(false);
 
-  // Determine effective tier for gating: teams always use 'lots_more'
-  const isTeamContext = !!location.state?.isTeamContext || new URLSearchParams(location.search).get("ctx") === "team";
-  const teamAccountId = location.state?.teamAccountId as string | null;
-  const userTier = (isTeamContext ? "lots_more" : (user?.tier || "free")) as UserTier;
+  // Use global account context for tier and team state
+  const { isTeamContext: globalIsTeamContext, effectiveTier, currentAccount } = useAccount();
+  
+  // Allow location state to override (for backwards compatibility)
+  const locationIsTeamContext = !!location.state?.isTeamContext || new URLSearchParams(location.search).get("ctx") === "team";
+  const isTeamContext = globalIsTeamContext || locationIsTeamContext;
+  const teamAccountId = (location.state?.teamAccountId as string | null) || (currentAccount?.type === 'team' ? currentAccount.id : null);
+  const userTier = effectiveTier;
 
   useEffect(() => {
     loadTemplatesAndEntitlements();

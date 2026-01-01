@@ -11,6 +11,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useLists } from "@/contexts/useListsHook";
 import { useAuth } from "@/contexts/useAuthHook";
+import { useAccount } from "@/contexts/AccountContext";
 import { useUndoAction } from "@/hooks/useUndoAction";
 import { ListItem as ListItemType, ListCategory, ListType, canEditListMeta, canEditItems, canManageSharing } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -187,10 +188,13 @@ export default function ListDetail() {
 
   const list = lists.find((l) => l.id === id);
   
+  // Use global account context
+  const { effectiveTier: accountEffectiveTier, isTeamContext: globalIsTeamContext } = useAccount();
+  
   // Determine effective tier for gating: team lists always use 'lots_more'
   // Check multiple indicators that this is a team list
-  const isTeamContext = !!list?.accountId || !!list?.isTeamMember || !!list?.isTeamOwner;
-  const effectiveTier = (isTeamContext ? 'lots_more' : (user?.tier || 'free')) as UserTier;
+  const isTeamContext = globalIsTeamContext || !!list?.accountId || !!list?.isTeamMember || !!list?.isTeamOwner;
+  const effectiveTier = (isTeamContext ? 'lots_more' : accountEffectiveTier) as UserTier;
   
   // Retry state for newly created lists
   const [retryCount, setRetryCount] = useState(0);
@@ -4702,6 +4706,7 @@ export default function ListDetail() {
         onGenerateLink={(shareMode) => generateShareLink(list.id, shareMode)}
         onUpdateShareMode={(shareMode) => updateShareMode(list.id, shareMode)}
         onUnshare={() => unshareList(list.id)}
+        effectiveTier={effectiveTier}
       />
 
       {/* Merge Lists Modal */}

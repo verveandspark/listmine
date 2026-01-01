@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLists } from "@/contexts/useListsHook";
 import { useAuth } from "@/contexts/useAuthHook";
+import { useAccount } from "@/contexts/AccountContext";
 import { supabase } from "@/lib/supabase";
 import {
   Dialog,
@@ -74,6 +75,7 @@ export default function CreateListModal({
   const [error, setError] = useState<string | null>(null);
   const { addList } = useLists();
   const { user } = useAuth();
+  const { currentAccount, isTeamContext: globalIsTeamContext } = useAccount();
   const navigate = useNavigate();
 
   const userTier = (user?.tier || "free") as UserTier;
@@ -90,6 +92,18 @@ export default function CreateListModal({
   
   const effectiveTier = getEffectiveTier();
   const listTypesWithAvailability = getListTypesWithAvailability(effectiveTier);
+  
+  // Default ownership to current account context when modal opens
+  useEffect(() => {
+    if (open && currentAccount) {
+      if (currentAccount.type === 'personal') {
+        setOwnership('personal');
+      } else {
+        // Team context - default to team account ID
+        setOwnership(currentAccount.id);
+      }
+    }
+  }, [open, currentAccount]);
 
   // Fetch available accounts (teams) for the user
   // Always show ownership selector if user owns any team accounts

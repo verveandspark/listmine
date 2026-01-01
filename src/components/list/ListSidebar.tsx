@@ -38,7 +38,7 @@ import { ListCategory } from "@/types";
 import React, { useState, useEffect } from "react";
 import CreateListModal from "./CreateListModal";
 import { useAuth } from "@/contexts/useAuthHook";
-import { supabase } from "@/lib/supabase";
+import { useAccount } from "@/contexts/AccountContext";
 import { canImportLists, canShareLists } from "@/lib/tierUtils";
 
 const categoryIcons: Record<string, any> = {
@@ -89,102 +89,15 @@ export function ListSidebar() {
     }));
   };
 
-  // Account switcher state
-  interface AccountOption {
-    id: string;
-    name: string;
-    type: 'personal' | 'team';
-    ownerId?: string;
-  }
-  const [availableAccounts, setAvailableAccounts] = useState<AccountOption[]>([]);
-  const [currentAccountId, setCurrentAccountId] = useState<string | null>(null);
-
-  // Fetch available accounts
-  useEffect(() => {
-    const fetchAccounts = async () => {
-      if (!user?.id) return;
-      
-      const accounts: AccountOption[] = [];
-      
-      // Add personal account
-      accounts.push({
-        id: `personal-${user.id}`,
-        name: 'Personal',
-        type: 'personal',
-      });
-      
-      // Fetch team memberships first (just account IDs)
-      const { data: teamMemberships } = await supabase
-        .from('account_team_members')
-        .select('account_id')
-        .eq('user_id', user.id);
-      
-      // Then fetch full account records separately by those IDs
-      if (teamMemberships && teamMemberships.length > 0) {
-        const teamAccountIds = teamMemberships.map(m => m.account_id);
-        
-        const { data: teamAccountsData } = await supabase
-          .from('accounts')
-          .select('id, name, owner_id')
-          .in('id', teamAccountIds);
-        
-        if (teamAccountsData) {
-          for (const account of teamAccountsData) {
-            accounts.push({
-              id: account.id,
-              name: account.name || 'Team',
-              type: 'team',
-              ownerId: account.owner_id,
-            });
-          }
-        } else if (teamMemberships.length > 0) {
-          // Fallback: add team account options even if account data is missing
-          for (const membership of teamMemberships) {
-            accounts.push({
-              id: membership.account_id,
-              name: 'Team',
-              type: 'team',
-              ownerId: undefined,
-            });
-          }
-        }
-      }
-      
-      // Also check if user owns any accounts
-      const { data: ownedAccounts } = await supabase
-        .from('accounts')
-        .select('id, name, owner_id')
-        .eq('owner_id', user.id);
-      
-      if (ownedAccounts) {
-        for (const account of ownedAccounts) {
-          if (!accounts.find(a => a.id === account.id)) {
-            accounts.push({
-              id: account.id,
-              name: account.name || 'My Team',
-              type: 'team',
-              ownerId: account.owner_id,
-            });
-          }
-        }
-      }
-      
-      setAvailableAccounts(accounts);
-      
-      // Set default to personal if not set
-      if (!currentAccountId && accounts.length > 0) {
-        setCurrentAccountId(accounts[0].id);
-      }
-    };
-    
-    fetchAccounts();
-  }, [user?.id]);
-
-  const currentAccount = availableAccounts.find(a => a.id === currentAccountId);
-  
-  // Determine effective tier for gating: teams always use 'lots_more'
-  const isTeamContext = currentAccount?.type === 'team';
-  const effectiveTier = isTeamContext ? 'lots_more' : (user?.tier || 'free');
+  // Use global account context
+  const { 
+    availableAccounts, 
+    currentAccountId, 
+    setCurrentAccountId, 
+    currentAccount, 
+    isTeamContext, 
+    effectiveTier 
+  } = useAccount();
 
   const handleLogout = async () => {
     await signOut();

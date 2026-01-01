@@ -60,6 +60,7 @@ interface ShareSettingsModalProps {
   onGenerateLink: (shareMode: ShareMode) => Promise<string>;
   onUpdateShareMode: (shareMode: ShareMode) => Promise<void>;
   onUnshare: () => Promise<void>;
+  effectiveTier?: UserTier; // Optional - if not provided, falls back to user.tier
 }
 
 export default function ShareSettingsModal({
@@ -69,6 +70,7 @@ export default function ShareSettingsModal({
   onGenerateLink,
   onUpdateShareMode,
   onUnshare,
+  effectiveTier: propEffectiveTier,
 }: ShareSettingsModalProps) {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -77,8 +79,10 @@ export default function ShareSettingsModal({
   const [isLoading, setIsLoading] = useState(false);
   const [shareLink, setShareLink] = useState<string | null>(null);
   
-  const userCanShare = canShareLists(user?.tier);
-  const canUseRegistryBuyerMode = canUsePurchaseTracking(user?.tier);
+  // Use propEffectiveTier if provided, otherwise fall back to user.tier
+  const tierToUse = propEffectiveTier ?? (user?.tier as UserTier | undefined);
+  const userCanShare = canShareLists(tierToUse);
+  const canUseRegistryBuyerMode = canUsePurchaseTracking(tierToUse);
   const showRegistryBuyerOption = isRegistryOrWishlist(list.listType);
 
   useEffect(() => {

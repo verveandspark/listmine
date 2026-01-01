@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/useAuthHook";
+import { useAccount } from "@/contexts/AccountContext";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,6 +50,7 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
   listOwnerId,
 }) => {
   const { user } = useAuth();
+  const { effectiveTier } = useAccount();
   const { toast } = useToast();
   const [guests, setGuests] = useState<ListGuest[]>([]);
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
@@ -59,8 +61,8 @@ export const GuestManagement: React.FC<GuestManagementProps> = ({
   const [removingId, setRemovingId] = useState<string | null>(null);
 
   const isOwner = user?.id === listOwnerId;
-  const guestLimit = getGuestLimit(user?.tier || "free");
-  const canInvite = canInviteGuests(user?.tier || "free");
+  const guestLimit = getGuestLimit(effectiveTier);
+  const canInvite = canInviteGuests(effectiveTier);
   const totalGuests = guests.length + pendingInvites.length;
   const isAtLimit = guestLimit !== -1 && totalGuests >= guestLimit;
 
