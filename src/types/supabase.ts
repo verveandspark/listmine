@@ -1224,11 +1224,18 @@ export type Database = {
         Args: {
           p_account_id?: string
           p_category: string
-          p_list_type?: string
-          p_title: string
+          p_list_name: string
+          p_list_type: string
           p_user_id: string
         }
-        Returns: string
+        Returns: {
+          account_id: string
+          category: string
+          id: string
+          list_type: string
+          title: string
+          user_id: string
+        }[]
       }
       create_list_from_template: {
         Args: {
