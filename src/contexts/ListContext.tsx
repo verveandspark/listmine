@@ -87,6 +87,7 @@ interface ListContextType {
     format: "csv" | "txt",
     category: ListCategory,
     listType: ListType,
+    accountId?: string | null,
   ) => Promise<void>;
   exportList: (listId: string, format: "csv" | "txt" | "pdf") => void;
   generateShareLink: (listId: string, shareMode?: 'view_only' | 'importable' | 'registry_buyer') => Promise<string>;
@@ -107,11 +108,12 @@ interface ListContextType {
   }) => List[];
   addTagToList: (listId: string, tag: string) => Promise<void>;
   removeTagFromList: (listId: string, tag: string) => Promise<void>;
-  importFromShareLink: (shareId: string) => Promise<string>;
+  importFromShareLink: (shareId: string, accountId?: string | null) => Promise<string>;
   importFromWishlist: (
     items: Array<{ name: string; price?: string; link?: string; image?: string }>,
     listName: string,
     category: ListCategory,
+    accountId?: string | null,
   ) => Promise<string>;
   loading: boolean;
   error: string | null;
@@ -923,13 +925,14 @@ export function ListProvider({ children }: { children: ReactNode }) {
       throw new Error(categoryValidation.error);
     }
 
-    // For team lists, get the team account owner's tier for limit checks
-    let effectiveTier = (user.tier || 'free') as UserTier;
-    let effectiveListLimit = user.listLimit;
+    // For team lists, always use 'lots_more' tier - no restrictions for team members
+    // For personal lists, use the user's own tier
+    let effectiveTier: UserTier = accountId ? 'lots_more' : (user.tier || 'free') as UserTier;
+    let effectiveListLimit = accountId ? -1 : user.listLimit; // -1 = unlimited for team lists
     let teamOwnerId: string | null = null;
     
     if (accountId) {
-      // Fetch the team account to get the owner's tier
+      // Fetch the team account to get the owner for reference (not for tier gating)
       const { data: teamAccount, error: teamAccountError } = await supabase
         .from("accounts")
         .select("owner_id")
@@ -940,31 +943,18 @@ export function ListProvider({ children }: { children: ReactNode }) {
         console.error("[ListContext] Error fetching team account:", teamAccountError);
       } else if (teamAccount) {
         teamOwnerId = teamAccount.owner_id;
-        
-        // Fetch the team owner's tier
-        const { data: teamOwner, error: teamOwnerError } = await supabase
-          .from("users")
-          .select("tier, list_limit")
-          .eq("id", teamAccount.owner_id)
-          .single();
-        
-        if (!teamOwnerError && teamOwner) {
-          effectiveTier = (teamOwner.tier || 'free') as UserTier;
-          effectiveListLimit = (teamOwner as any).list_limit;
-          console.log("[ListContext] Using team owner's tier for list creation:", {
-            teamOwnerId: teamAccount.owner_id,
-            teamOwnerTier: effectiveTier,
-            teamOwnerListLimit: effectiveListLimit,
-          });
-        }
+        console.log("[ListContext] Team list creation - using lots_more tier:", {
+          teamOwnerId: teamAccount.owner_id,
+          effectiveTier,
+          effectiveListLimit,
+        });
       }
     }
     
-    // Validate list type access based on effective tier (team owner's tier for team lists)
+    // Validate list type access based on effective tier (lots_more for team lists)
     if (!canAccessListType(effectiveTier, listType)) {
-      const tierSource = accountId ? "team owner's" : "your";
       throw new Error(
-        `${listType} lists are not available on the ${tierSource} current tier. ${accountId ? "The team owner needs to upgrade" : "Please upgrade"} to access this list type.`
+        `${listType} lists are not available on your current tier. Please upgrade to access this list type.`
       );
     }
 
@@ -1381,8 +1371,11 @@ export function ListProvider({ children }: { children: ReactNode }) {
 
     // Note: Duplicate items are allowed - users may want multiple of the same item
 
+    // Item limit check - only applies to personal lists (no accountId)
+    // Team lists bypass personal item limits
     if (
       user &&
+      !list.accountId &&
       user.itemsPerListLimit !== -1 &&
       list.items.length >= user.itemsPerListLimit
     ) {
@@ -1679,11 +1672,15 @@ export function ListProvider({ children }: { children: ReactNode }) {
     format: "csv" | "txt",
     category: ListCategory,
     listType: ListType = "custom",
+    accountId?: string | null,
   ) => {
     if (!user) return;
     
-    // Check tier permission for import
-    if (!canImportLists(user.tier as UserTier)) {
+    // For team imports (accountId != null), always use lots_more tier
+    const effectiveTier: UserTier = accountId ? 'lots_more' : (user.tier || 'free') as UserTier;
+    
+    // Check tier permission for import (only applies to personal imports)
+    if (!canImportLists(effectiveTier)) {
       toast({
         title: "Plan Changed",
         description: "Your plan changed. Import is no longer available.",
@@ -2540,7 +2537,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const importFromShareLink = async (shareId: string): Promise<string> => {
+  const importFromShareLink = async (shareId: string, accountId?: string | null): Promise<string> => {
     if (!user) throw new Error("User not authenticated");
 
     try {
@@ -2580,14 +2577,15 @@ export function ListProvider({ children }: { children: ReactNode }) {
 
       console.log(`[ListContext] Shared list has ${sharedItems?.length || 0} items (before filtering)`);
 
-      // Check list limit
-      if (user.listLimit !== -1 && lists.length >= user.listLimit) {
+      // Check list limit - only for personal lists (no accountId)
+      // Team lists bypass personal list limits
+      if (!accountId && user.listLimit !== -1 && lists.length >= user.listLimit) {
         const tierName =
           user.tier === "free"
             ? "Free"
             : user.tier === "good"
               ? "Good"
-              : user.tier === "even-better"
+              : user.tier === "even_better"
                 ? "Even Better"
                 : "Lots More";
         throw new Error(
@@ -2708,6 +2706,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
     items: Array<{ name: string; price?: string; link?: string; image?: string }>,
     listName: string,
     category: ListCategory = "Shopping",
+    accountId?: string | null,
   ): Promise<string> => {
     if (!user) throw new Error("User not authenticated");
 
@@ -2725,7 +2724,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
       throw new Error(categoryValidation.error);
     }
 
-    if (user.listLimit !== -1 && lists.length >= user.listLimit) {
+    // Check list limit - only for personal lists (no accountId)
+    // Team lists bypass personal list limits
+    if (!accountId && user.listLimit !== -1 && lists.length >= user.listLimit) {
       const tierName =
         user.tier === "free"
           ? "Free"
