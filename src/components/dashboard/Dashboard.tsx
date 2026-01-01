@@ -1702,7 +1702,7 @@ export default function Dashboard() {
               <Button 
                 variant="outline"
                 className="min-h-[44px] border-primary/30 text-primary hover:bg-primary/10"
-                onClick={() => navigate("/templates", { state: { from: location.pathname } })}
+                onClick={() => navigate(currentAccount?.type === "team" ? "/templates?ctx=team" : "/templates", { state: { from: location.pathname, isTeamContext: currentAccount?.type === "team" } })}
               >
                 <FileText className="w-4 h-4 mr-2" />
                 Templates

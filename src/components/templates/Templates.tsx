@@ -1,6 +1,6 @@
 import { TemplatesSkeleton } from "@/components/ui/TemplatesSkeleton";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/useAuthHook";
 import { useLists } from "@/contexts/useListsHook";
@@ -86,6 +86,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 export default function Templates() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { lists } = useLists();
   const { toast } = useToast();
@@ -105,7 +106,9 @@ export default function Templates() {
   const [listName, setListName] = useState("");
   const [creating, setCreating] = useState(false);
 
-  const userTier = (user?.tier || "free") as UserTier;
+  // Determine effective tier for gating: teams always use 'lots_more'
+  const isTeamContext = !!location.state?.isTeamContext || new URLSearchParams(location.search).get("ctx") === "team";
+  const userTier = (isTeamContext ? "lots_more" : (user?.tier || "free")) as UserTier;
 
   useEffect(() => {
     loadTemplatesAndEntitlements();
@@ -391,7 +394,7 @@ export default function Templates() {
             </div>
             <Badge variant="outline" className="bg-primary/10 border-primary/20">
               <Sparkles className="w-3 h-3 mr-1 text-primary" />
-              <span className="text-primary">{getTierDisplayName(userTier)} Plan</span>
+              <span className="text-primary">{getTierDisplayName(userTier)} Plan{isTeamContext && " (Team)"}</span>
             </Badge>
           </div>
         </div>
@@ -424,8 +427,8 @@ export default function Templates() {
           </div>
         </Card>
 
-        {/* Free tier upgrade banner */}
-        {userTier === "free" && (
+        {/* Free tier upgrade banner - only show if not in team context */}
+        {userTier === "free" && !isTeamContext && (
           <Card className="mb-8 p-6 bg-primary/5 border-primary/20">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">

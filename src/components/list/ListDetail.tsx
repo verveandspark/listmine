@@ -131,7 +131,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/lib/supabase";
-import { canInviteGuests, canHaveTeamMembers, canShareLists, canExportLists, getAvailableExportFormats } from "@/lib/tierUtils";
+import { canInviteGuests, canHaveTeamMembers, canShareLists, canExportLists, getAvailableExportFormats, type UserTier } from "@/lib/tierUtils";
 import ShareSettingsModal from "./ShareSettingsModal";
 
 // Helper to normalize listType variations for consistent handling
@@ -186,6 +186,11 @@ export default function ListDetail() {
   const { executeWithUndo } = useUndoAction();
 
   const list = lists.find((l) => l.id === id);
+  
+  // Determine effective tier for gating: team lists always use 'lots_more'
+  // Check multiple indicators that this is a team list
+  const isTeamContext = !!list?.accountId || !!list?.isTeamMember || !!list?.isTeamOwner;
+  const effectiveTier = (isTeamContext ? 'lots_more' : (user?.tier || 'free')) as UserTier;
   
   // Retry state for newly created lists
   const [retryCount, setRetryCount] = useState(0);
@@ -538,11 +543,11 @@ export default function ListDetail() {
       if (!limitCheck.valid) {
         setShowItemLimitError(true);
         const tierName =
-          user.tier === "free"
+          effectiveTier === "free"
             ? "Free"
-            : user.tier === "good"
+            : effectiveTier === "good"
               ? "Good"
-              : user.tier === "even_better"
+              : effectiveTier === "even_better"
                 ? "Even Better"
                 : "Lots More";
         toast({
@@ -1052,7 +1057,7 @@ export default function ListDetail() {
   };
 
   const handleAddCollaborator = () => {
-    if (user?.tier !== "premium") {
+    if (effectiveTier !== "lots_more" && effectiveTier !== "premium") {
       toast({
         title: "⚠️ Premium feature",
         description: "Upgrade to premium to add collaborators",
@@ -2184,7 +2189,7 @@ export default function ListDetail() {
               <div className="hidden md:flex items-center gap-1 shrink-0">
                 {/* Primary Actions Group */}
                 <div className="flex items-center gap-1 pr-2 border-r border-gray-200">
-                  {user?.tier === "free" ? (
+                  {effectiveTier === "free" ? (
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -2217,7 +2222,7 @@ export default function ListDetail() {
                       </TooltipProvider>
                       <PopoverContent className="w-48">
                         <div className="space-y-2">
-                          {getAvailableExportFormats(user?.tier).map((format) => (
+                          {getAvailableExportFormats(effectiveTier).map((format) => (
                             <Button
                               key={format}
                               variant="ghost"
@@ -2259,7 +2264,7 @@ export default function ListDetail() {
                     </Tooltip>
                   </TooltipProvider>
                   {/* Share dropdown - only show for owners with paid tier */}
-                  {isOwner && canShareLists(user?.tier) && (
+                  {isOwner && canShareLists(effectiveTier) && (
                     <DropdownMenu>
                       <TooltipProvider>
                         <Tooltip>
@@ -2282,19 +2287,19 @@ export default function ListDetail() {
                           <Share2 className="w-4 h-4 mr-2" />
                           {list.isShared ? "Share Settings" : "Share options"}
                         </DropdownMenuItem>
-                        {canInviteGuests(user?.tier) && (
+                        {canInviteGuests(effectiveTier) && (
                           <DropdownMenuItem onClick={() => setIsGuestManagementOpen(true)}>
                             <Users className="w-4 h-4 mr-2" />
                             Manage Guests
                           </DropdownMenuItem>
                         )}
-                        {canHaveTeamMembers(user?.tier) && (
+                        {canHaveTeamMembers(effectiveTier) && (
                           <DropdownMenuItem onClick={() => setIsTeamManagementOpen(true)}>
                             <Users className="w-4 h-4 mr-2" />
                             Manage Team
                           </DropdownMenuItem>
                         )}
-                        {list.isShared && canShareLists(user?.tier) && (
+                        {list.isShared && canShareLists(effectiveTier) && (
                           <DropdownMenuItem onClick={handleUnshareList} className="text-red-600">
                             <Link2Off className="w-4 h-4 mr-2" />
                             Unshare List
@@ -2528,7 +2533,7 @@ export default function ListDetail() {
 
                     {/* Primary Actions */}
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1">Primary</p>
-                    {user?.tier === "free" ? (
+                    {effectiveTier === "free" ? (
                       <Button
                         variant="outline"
                         onClick={() => {
@@ -2554,7 +2559,7 @@ export default function ListDetail() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="start" className="w-56">
-                          {getAvailableExportFormats(user?.tier).map((format) => (
+                          {getAvailableExportFormats(effectiveTier).map((format) => (
                             <DropdownMenuItem key={format} onClick={() => { handleExport(format as "csv" | "txt" | "pdf"); setIsMobileMenuOpen(false); }}>
                               Export as {format.toUpperCase()}
                             </DropdownMenuItem>
@@ -2584,7 +2589,7 @@ export default function ListDetail() {
                       {list.isFavorite ? "Remove from Favorites" : "Add to Favorites"}
                     </Button>
                     {/* Mobile share buttons - only for owners with paid tier */}
-                    {isOwner && canShareLists(user?.tier) && (
+                    {isOwner && canShareLists(effectiveTier) && (
                       <>
                         <Button
                           variant="outline"
@@ -2597,7 +2602,7 @@ export default function ListDetail() {
                           <Share2 className={`w-4 h-4 mr-2 ${list.isShared ? "text-primary" : ""}`} />
                           {list.isShared ? "Share Settings" : "Share options"}
                         </Button>
-                        {canInviteGuests(user?.tier) && (
+                        {canInviteGuests(effectiveTier) && (
                           <Button
                             variant="outline"
                             onClick={() => {
@@ -2610,7 +2615,7 @@ export default function ListDetail() {
                             Manage Guests
                           </Button>
                         )}
-                        {canHaveTeamMembers(user?.tier) && (
+                        {canHaveTeamMembers(effectiveTier) && (
                           <Button
                             variant="outline"
                             onClick={() => {

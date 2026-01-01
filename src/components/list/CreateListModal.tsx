@@ -42,7 +42,6 @@ interface AccountOption {
   type: 'personal' | 'team';
   ownerId?: string;
   ownerTier?: UserTier;
-  tierLoadError?: boolean; // True if we failed to load the owner's tier
 }
 
 // Normalize listType variations for consistent helper text lookup
@@ -78,7 +77,6 @@ export default function CreateListModal({
   const navigate = useNavigate();
 
   const userTier = (user?.tier || "free") as UserTier;
-  const [tierLoadError, setTierLoadError] = useState<string | null>(null);
   
   // Get the effective tier based on ownership selection
   // For team lists, always use 'lots_more' (teams only exist on Lots More tier)
@@ -88,13 +86,6 @@ export default function CreateListModal({
     }
     // Team context: always use 'lots_more' tier
     return 'lots_more';
-  };
-  
-  // Check if the selected team account has a tier load error
-  const selectedAccountHasTierError = (): boolean => {
-    if (ownership === 'personal') return false;
-    const selectedAccount = availableAccounts.find(a => a.id === ownership);
-    return selectedAccount?.tierLoadError === true;
   };
   
   const effectiveTier = getEffectiveTier();
@@ -372,7 +363,7 @@ export default function CreateListModal({
               <Label htmlFor="list-type">List Type *</Label>
               {ownership !== 'personal' && (
                 <span className="text-xs text-muted-foreground">
-                  Based on team owner's plan
+                  Full access (Team)
                 </span>
               )}
             </div>
@@ -463,11 +454,6 @@ export default function CreateListModal({
                   ? "This list will be private to you."
                   : "This list will be visible to team members."}
               </p>
-              {selectedAccountHasTierError() && (
-                <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200 mt-2">
-                  <strong>Warning:</strong> Could not load team owner's tier. List types shown may not reflect the team's actual plan.
-                </div>
-              )}
             </div>
           ) : (
             <p className="text-xs text-muted-foreground">

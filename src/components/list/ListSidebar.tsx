@@ -413,7 +413,7 @@ export function ListSidebar() {
           {/* Templates button - only show for paid tiers */}
           {effectiveTier !== "free" && (
             <Button
-              onClick={() => navigate("/templates", { state: { from: location.pathname } })}
+              onClick={() => navigate(currentAccount?.type === "team" ? "/templates?ctx=team" : "/templates", { state: { from: location.pathname, isTeamContext: currentAccount?.type === "team" } })}
               variant="outline"
               className="w-full min-h-[44px]"
             >
