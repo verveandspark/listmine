@@ -1402,9 +1402,113 @@ export type Database = {
         Args: { new_name: string; user_id: string }
         Returns: undefined
       }
+      update_user_profile: {
+        Args: {
+          p_avatar_url?: string
+          p_email?: string
+          p_items_per_list_limit?: number
+          p_list_limit?: number
+          p_name?: string
+          p_tier?: string
+          p_user_id: string
+        }
+        Returns: {
+          avatar_url: string | null
+          created_at: string | null
+          default_landing_view: string | null
+          disabled_at: string | null
+          disabled_reason: string | null
+          email: string
+          id: string
+          is_admin: boolean | null
+          is_disabled: boolean | null
+          items_per_list_limit: number | null
+          last_list_id: string | null
+          list_limit: number | null
+          name: string | null
+          role: string | null
+          tier: string | null
+          updated_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "users"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       update_user_tier: {
         Args: { p_new_tier: string; p_user_id: string }
         Returns: undefined
+      }
+      upsert_user_profile: {
+        Args: {
+          p_email: string
+          p_id: string
+          p_items_per_list_limit: number
+          p_list_limit: number
+          p_name: string
+          p_tier: string
+        }
+        Returns: {
+          avatar_url: string | null
+          created_at: string | null
+          default_landing_view: string | null
+          disabled_at: string | null
+          disabled_reason: string | null
+          email: string
+          id: string
+          is_admin: boolean | null
+          is_disabled: boolean | null
+          items_per_list_limit: number | null
+          last_list_id: string | null
+          list_limit: number | null
+          name: string | null
+          role: string | null
+          tier: string | null
+          updated_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "users"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      upsert_user_profile_for_team_member: {
+        Args: {
+          p_account_id?: string
+          p_email: string
+          p_items_per_list_limit?: number
+          p_list_limit?: number
+          p_name?: string
+          p_tier?: string
+          p_user_id: string
+        }
+        Returns: {
+          avatar_url: string | null
+          created_at: string | null
+          default_landing_view: string | null
+          disabled_at: string | null
+          disabled_reason: string | null
+          email: string
+          id: string
+          is_admin: boolean | null
+          is_disabled: boolean | null
+          items_per_list_limit: number | null
+          last_list_id: string | null
+          list_limit: number | null
+          name: string | null
+          role: string | null
+          tier: string | null
+          updated_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "users"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
     }
     Enums: {

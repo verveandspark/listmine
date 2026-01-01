@@ -1060,22 +1060,17 @@ export function ListProvider({ children }: { children: ReactNode }) {
         insertPayload.account_id = accountId;
       }
       
-      // Ensure user profile exists in public.users table (non-fatal, idempotent upsert)
+      // Ensure user profile exists in public.users table via SECURITY DEFINER RPC (non-fatal)
       // This is best-effort - list creation proceeds even if profile upsert fails
       try {
-        const { error: upsertError } = await supabase
-          .from("users")
-          .upsert(
-            {
-              id: insertUserId,
-              email: authUser.email || "",
-              name: authUser.email?.split("@")[0] || "User",
-              tier: "free",
-              list_limit: 5,
-              items_per_list_limit: 20,
-            } as any,
-            { onConflict: "id", ignoreDuplicates: true }
-          );
+        const { error: upsertError } = await supabase.rpc('upsert_user_profile', {
+          p_id: insertUserId,
+          p_email: authUser.email || "",
+          p_name: authUser.email?.split("@")[0] || "User",
+          p_tier: "free",
+          p_list_limit: 5,
+          p_items_per_list_limit: 20,
+        });
         
         if (upsertError) {
           // Log but don't abort - profile may already exist or have different values

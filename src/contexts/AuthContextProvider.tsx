@@ -543,14 +543,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const tierLimits = getTierLimits("free");
 
-      const { error: profileError } = await supabase.from("users").insert({
-        id: data.user.id,
-        email,
-        name,
-        tier: "free",
-        list_limit: tierLimits.listLimit,
-        items_per_list_limit: tierLimits.itemsPerListLimit,
-      } as any);
+      // Use SECURITY DEFINER RPC to create user profile
+      const { error: profileError } = await supabase.rpc('upsert_user_profile', {
+        p_id: data.user.id,
+        p_email: email,
+        p_name: name,
+        p_tier: "free",
+        p_list_limit: tierLimits.listLimit,
+        p_items_per_list_limit: tierLimits.itemsPerListLimit,
+      });
 
       if (profileError) {
         logError("register:createProfile", profileError, data.user.id);
