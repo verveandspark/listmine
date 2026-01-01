@@ -70,13 +70,17 @@ export default function ScrapeWishlistModal({
       }
 
       if (!data.success) {
-        // Handle unsupported retailer with friendly message
-        if (data.errorCode === "UNSUPPORTED_RETAILER" || data.requiresManualUpload) {
+        // Handle all structured error responses with friendly messages
+        if (data.errorCode === "UNSUPPORTED_RETAILER") {
           setError("This retailer requires sign-in or doesn't provide a public share link. Please use File Import or Paste Items.");
           setLoading(false);
           return;
         }
-        throw new Error(data.error || "Failed to scrape wishlist");
+        // Handle scrape failures and other errors - use message field if available
+        const errorMsg = data.message || data.error || "Failed to scrape wishlist";
+        setError(errorMsg);
+        setLoading(false);
+        return;
       }
 
       const itemsWithSelection = data.items.map((item: ScrapedItem) => ({
