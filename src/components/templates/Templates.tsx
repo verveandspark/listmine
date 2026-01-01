@@ -108,6 +108,7 @@ export default function Templates() {
 
   // Determine effective tier for gating: teams always use 'lots_more'
   const isTeamContext = !!location.state?.isTeamContext || new URLSearchParams(location.search).get("ctx") === "team";
+  const teamAccountId = location.state?.teamAccountId as string | null;
   const userTier = (isTeamContext ? "lots_more" : (user?.tier || "free")) as UserTier;
 
   useEffect(() => {
@@ -286,26 +287,38 @@ export default function Templates() {
   const handleCreateList = async () => {
     if (!selectedTemplate || !listName.trim()) return;
 
-    // Check list limit
-    const ownedActiveListsCount = lists.filter(
-      (l) =>
-        l.userId === user?.id &&
-        !l.isGuestAccess &&
-        !l.isArchived &&
-        !l.title.startsWith("[Archived]")
-    ).length;
-
-    if (
-      user?.listLimit !== -1 &&
-      ownedActiveListsCount >= (user?.listLimit || 5)
-    ) {
+    // For team context, require teamAccountId
+    if (isTeamContext && !teamAccountId) {
       toast({
-        title: "List Limit Reached",
-        description: `You've reached your limit of ${user?.listLimit} lists. Upgrade to create more.`,
+        title: "Error",
+        description: "Team account not found. Please navigate to Templates from a team view.",
         variant: "destructive",
       });
-      setShowCreateModal(false);
       return;
+    }
+
+    // Check list limit - only for personal lists (not team context)
+    if (!isTeamContext) {
+      const ownedActiveListsCount = lists.filter(
+        (l) =>
+          l.userId === user?.id &&
+          !l.isGuestAccess &&
+          !l.isArchived &&
+          !l.title.startsWith("[Archived]")
+      ).length;
+
+      if (
+        user?.listLimit !== -1 &&
+        ownedActiveListsCount >= (user?.listLimit || 5)
+      ) {
+        toast({
+          title: "List Limit Reached",
+          description: `You've reached your limit of ${user?.listLimit} lists. Upgrade to create more.`,
+          variant: "destructive",
+        });
+        setShowCreateModal(false);
+        return;
+      }
     }
 
     setCreating(true);
@@ -315,6 +328,7 @@ export default function Templates() {
         {
           p_template_id: selectedTemplate.id,
           p_list_name: listName.trim(),
+          p_account_id: isTeamContext ? teamAccountId : null,
         }
       );
 

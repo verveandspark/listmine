@@ -1060,28 +1060,30 @@ export function ListProvider({ children }: { children: ReactNode }) {
         insertPayload.account_id = accountId;
       }
       
-      // Verify user exists in public.users table
-      const { data: userExists, error: userCheckError } = await supabase
-        .from("users")
-        .select("id")
-        .eq("id", insertUserId)
-        .single();
-      
-      if (userCheckError || !userExists) {
-        // Try to create the user profile if it doesn't exist
-        const { error: createUserError } = await supabase.from("users").insert({
-          id: authUser.id,
-          email: authUser.email || "",
-          name: authUser.email?.split("@")[0] || "User",
-          tier: "free",
-          list_limit: 5,
-          items_per_list_limit: 20,
-        } as any);
+      // Ensure user profile exists in public.users table (non-fatal, idempotent upsert)
+      // This is best-effort - list creation proceeds even if profile upsert fails
+      try {
+        const { error: upsertError } = await supabase
+          .from("users")
+          .upsert(
+            {
+              id: insertUserId,
+              email: authUser.email || "",
+              name: authUser.email?.split("@")[0] || "User",
+              tier: "free",
+              list_limit: 5,
+              items_per_list_limit: 20,
+            } as any,
+            { onConflict: "id", ignoreDuplicates: true }
+          );
         
-        if (createUserError) {
-          console.error("[ListContext] Failed to create user profile:", createUserError);
-          throw new Error("Failed to create user profile. Please try logging out and back in.");
+        if (upsertError) {
+          // Log but don't abort - profile may already exist or have different values
+          console.warn("[ListContext] User profile upsert warning (non-fatal):", upsertError);
         }
+      } catch (profileError) {
+        // Non-fatal - proceed with list creation anyway
+        console.warn("[ListContext] User profile ensure failed (non-fatal):", profileError);
       }
       
       const { data: newList, error } = await supabase

@@ -1230,15 +1230,14 @@ export type Database = {
         }
         Returns: string
       }
-      create_list_from_template:
-        | {
-            Args: { p_list_name: string; p_template_id: string }
-            Returns: string
-          }
-        | {
-            Args: { p_template_id: string; p_title: string; p_user_id: string }
-            Returns: string
-          }
+      create_list_from_template: {
+        Args: {
+          p_account_id?: string
+          p_list_name: string
+          p_template_id: string
+        }
+        Returns: string
+      }
       debug_all: {
         Args: never
         Returns: {
