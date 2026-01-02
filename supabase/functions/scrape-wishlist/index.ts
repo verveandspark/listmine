@@ -1643,10 +1643,92 @@ const isBlockedResponse = (html: string): boolean => {
   return blockedMarkers.some(marker => lowerHtml.includes(marker));
 };
 
+// BrightData Web Unlocker API fetch
+interface BrightDataUnlockerResponse {
+  success: boolean;
+  html: string;
+  status: number;
+  error?: string;
+}
+
+async function fetchWithBrightDataUnlocker(url: string): Promise<BrightDataUnlockerResponse> {
+  const brightDataToken = Deno.env.get("BRIGHTDATA_UNLOCKER_API_TOKEN");
+  const brightDataZone = Deno.env.get("BRIGHTDATA_UNLOCKER_ZONE");
+  
+  if (!brightDataToken || !brightDataZone) {
+    console.log("[BRIGHTDATA_UNLOCKER] Missing env vars: BRIGHTDATA_UNLOCKER_API_TOKEN or BRIGHTDATA_UNLOCKER_ZONE");
+    return {
+      success: false,
+      html: "",
+      status: 0,
+      error: "BrightData Unlocker not configured",
+    };
+  }
+  
+  console.log(`[BRIGHTDATA_UNLOCKER] Fetching URL via BrightData Web Unlocker: ${url}`);
+  console.log(`[BRIGHTDATA_UNLOCKER] Using zone: ${brightDataZone}`);
+  
+  try {
+    const response = await fetch("https://api.brightdata.com/request", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${brightDataToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        zone: brightDataZone,
+        url: url,
+        format: "raw",
+      }),
+    });
+    
+    console.log(`[BRIGHTDATA_UNLOCKER] Response status: ${response.status}`);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log(`[BRIGHTDATA_UNLOCKER] Error response: ${errorText.substring(0, 500)}`);
+      return {
+        success: false,
+        html: "",
+        status: response.status,
+        error: `BrightData Unlocker error: ${response.status}`,
+      };
+    }
+    
+    const html = await response.text();
+    console.log(`[BRIGHTDATA_UNLOCKER] Success: ${html.length} chars received`);
+    
+    // Check if response looks blocked
+    if (isBlockedResponse(html)) {
+      console.log("[BRIGHTDATA_UNLOCKER] Response appears blocked");
+      return {
+        success: false,
+        html: html,
+        status: response.status,
+        error: "BrightData returned blocked content",
+      };
+    }
+    
+    return {
+      success: true,
+      html: html,
+      status: response.status,
+    };
+  } catch (e: any) {
+    console.log(`[BRIGHTDATA_UNLOCKER] Fetch error: ${e.message}`);
+    return {
+      success: false,
+      html: "",
+      status: 0,
+      error: `BrightData Unlocker fetch failed: ${e.message}`,
+    };
+  }
+}
+
 // Walmart-specific fetch with direct-first fallback
 interface WalmartFetchResult {
   html: string;
-  method: "DIRECT" | "SCRAPERAPI";
+  method: "DIRECT" | "SCRAPERAPI" | "BRIGHTDATA";
   status: number;
   error?: string;
   requiresManualUpload?: boolean;
@@ -1656,9 +1738,25 @@ async function fetchWalmartWithFallback(
   url: string,
   scraperApiKey: string
 ): Promise<WalmartFetchResult> {
-  console.log("[WALMART_FETCH] Starting Walmart fetch with direct-first strategy...");
+  console.log("[WALMART_FETCH] Starting Walmart fetch with multi-provider strategy...");
   
-  // Strategy 1: Try direct fetch first
+  // Strategy 1: Try BrightData Web Unlocker first (best for anti-bot sites)
+  console.log("[WALMART_FETCH] Trying BrightData Web Unlocker...");
+  const brightDataResult = await fetchWithBrightDataUnlocker(url);
+  
+  if (brightDataResult.success && brightDataResult.html.length > 10000) {
+    console.log(`[WALMART_FETCH] BrightData Unlocker succeeded: ${brightDataResult.html.length} chars`);
+    return {
+      html: brightDataResult.html,
+      method: "BRIGHTDATA",
+      status: brightDataResult.status,
+    };
+  }
+  
+  console.log(`[WALMART_FETCH] BrightData insufficient (success=${brightDataResult.success}, length=${brightDataResult.html?.length || 0}, error=${brightDataResult.error || "none"})`);
+  
+  // Strategy 2: Try direct fetch
+  console.log("[WALMART_FETCH] Trying direct fetch...");
   const directResult = await fetchDirect(url);
   
   if (directResult.ok && directResult.html.length > 20000 && !isBlockedResponse(directResult.html)) {
@@ -1672,7 +1770,7 @@ async function fetchWalmartWithFallback(
   
   console.log(`[WALMART_FETCH] Direct fetch insufficient (ok=${directResult.ok}, length=${directResult.html.length}, blocked=${isBlockedResponse(directResult.html)})`);
   
-  // Strategy 2: Fall back to ScraperAPI with enhanced options for Walmart
+  // Strategy 3: Fall back to ScraperAPI with enhanced options for Walmart
   console.log("[WALMART_FETCH] Falling back to ScraperAPI with premium options...");
   
   try {
