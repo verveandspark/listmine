@@ -401,6 +401,82 @@ const logHtmlDebugInfo = (html: string, retailer: string, url: string): void => 
   console.log(`[DEBUG_HTML] First 1000 chars: ${snippet}`);
 };
 
+// Helper to safely get nested values by string path
+const getNestedValue = (obj: any, path: string): any => {
+  return path.split('.').reduce((o, key) => (o && o[key] !== undefined ? o[key] : null), obj);
+};
+
+// Helper to check if object looks like a Target product item
+const isPlausibleTargetItem = (item: any): boolean => {
+  if (typeof item !== 'object' || !item) return false;
+  const keys = Object.keys(item);
+  const productKeys = ['tcin', 'tcinList', 'product', 'productTitle', 'title', 'price', 'image', 'primaryImageUrl', 'name', 'dpci', 'pdpUrl'];
+  return productKeys.some(k => keys.includes(k));
+};
+
+// Helper to deep search for plausible items array in Target data
+const findTargetItemsDeep = (obj: any, depth = 0, maxDepth = 8, currentPath = ""): { items: any[]; path: string } | null => {
+  if (depth > maxDepth || !obj || typeof obj !== 'object') return null;
+  
+  if (Array.isArray(obj)) {
+    if (obj.length > 0 && isPlausibleTargetItem(obj[0])) {
+      return { items: obj, path: currentPath };
+    }
+    for (let i = 0; i < obj.length; i++) {
+      const found = findTargetItemsDeep(obj[i], depth + 1, maxDepth, `${currentPath}[${i}]`);
+      if (found) return found;
+    }
+  } else {
+    for (const key in obj) {
+      const newPath = currentPath ? `${currentPath}.${key}` : key;
+      const found = findTargetItemsDeep(obj[key], depth + 1, maxDepth, newPath);
+      if (found) return found;
+    }
+  }
+  return null;
+};
+
+// Normalize Target items to standard shape
+const normalizeTargetItem = (item: any): ScrapedItem | null => {
+  const product = item.product || item.productDetails || item.productInfo || item;
+  
+  const name = product.title || product.productTitle || product.name || 
+               product.description || product.displayName ||
+               item.title || item.productTitle || item.name || item.displayName;
+  
+  if (!name || name === "Unknown Item") return null;
+  
+  // Build URL from tcin if needed
+  let productUrl: string | undefined;
+  const url = product.url || product.pdpUrl || product.productUrl || 
+              product.canonicalUrl || item.url || item.pdpUrl;
+  if (url) {
+    productUrl = url.startsWith('http') ? url : `https://www.target.com${url}`;
+  } else if (product.tcin || item.tcin) {
+    productUrl = `https://www.target.com/p/-/A-${product.tcin || item.tcin}`;
+  }
+  
+  const imageUrl = product.images?.[0]?.baseUrl || 
+                   product.image?.baseUrl || 
+                   product.primaryImageUrl ||
+                   product.imageUrl ||
+                   product.thumbnailUrl ||
+                   item.imageUrl || 
+                   item.image || 
+                   item.primaryImageUrl || undefined;
+  
+  const price = product.price?.currentRetail?.toString() || 
+               product.price?.formattedCurrentPrice || 
+               product.price?.regularPrice?.toString() ||
+               product.formattedPrice ||
+               item.price || 
+               item.formattedPrice || undefined;
+  
+  const quantity = item.quantity || item.quantityNeeded || item.quantityWanted || 1;
+  
+  return { name, link: productUrl, image: imageUrl, price, quantity };
+};
+
 const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
   const items: ScrapedItem[] = [];
   
@@ -420,144 +496,122 @@ const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
       console.log("[TARGET_PARSE] Found __NEXT_DATA__ script, length:", nextDataScript.length);
       const nextData = JSON.parse(nextDataScript);
       
-      // Log the structure to help debug
-      const pagePropsKeys = Object.keys(nextData?.props?.pageProps || {});
-      console.log("[TARGET_PARSE] pageProps keys:", pagePropsKeys.join(", "));
+      // Enhanced debug logging for structure analysis
+      console.log("[TARGET_PARSE] nextData keys:", Object.keys(nextData).join(", "));
+      console.log("[TARGET_PARSE] nextData.props keys:", Object.keys(nextData?.props ?? {}).join(", "));
+      console.log("[TARGET_PARSE] nextData.props.pageProps keys:", Object.keys(nextData?.props?.pageProps ?? {}).join(", "));
       
-      // Navigate through multiple possible paths in __NEXT_DATA__
-      const possibleRegistryPaths = [
-        { path: "registryData", data: nextData?.props?.pageProps?.registryData },
-        { path: "registry", data: nextData?.props?.pageProps?.registry },
-        { path: "giftRegistry", data: nextData?.props?.pageProps?.giftRegistry },
-        { path: "pageData.registry", data: nextData?.props?.pageProps?.pageData?.registry },
-        { path: "initialData.registry", data: nextData?.props?.pageProps?.initialData?.registry },
-        { path: "giftRegistryData", data: nextData?.props?.pageProps?.giftRegistryData },
-        { path: "registryDetails", data: nextData?.props?.pageProps?.registryDetails },
-        { path: "giftGiverData", data: nextData?.props?.pageProps?.giftGiverData },
-        { path: "pageProps (direct)", data: nextData?.props?.pageProps },
+      const pageProps = nextData?.props?.pageProps ?? {};
+      if (pageProps.initialState) {
+        console.log("[TARGET_PARSE] pageProps.initialState keys:", Object.keys(pageProps.initialState).join(", "));
+      }
+      if (pageProps.APOLLO_STATE) {
+        console.log("[TARGET_PARSE] pageProps.APOLLO_STATE keys:", Object.keys(pageProps.APOLLO_STATE).slice(0, 10).join(", "), "... (first 10)");
+      }
+      if (pageProps.dehydratedState) {
+        console.log("[TARGET_PARSE] pageProps.dehydratedState keys:", Object.keys(pageProps.dehydratedState).join(", "));
+      }
+      
+      // Expanded candidate paths for registry items
+      const candidatePaths = [
+        // Direct item arrays
+        "props.pageProps.giftRegistryData.items",
+        "props.pageProps.giftGiverData.items",
+        "props.pageProps.registryDetails.items",
+        "props.pageProps.registryData.items",
+        "props.pageProps.registry.items",
+        "props.pageProps.giftRegistry.items",
+        "props.pageProps.data.items",
+        "props.pageProps.props.items",
+        "props.pageProps.state.items",
+        "props.pageProps.pageData.registry.items",
+        "props.pageProps.initialData.registry.items",
+        // Registry item variants
+        "props.pageProps.registryData.registryItems",
+        "props.pageProps.giftRegistryData.registryItems",
+        "props.pageProps.registryData.giftRegistryItems",
+        "props.pageProps.registryData.registryItemList",
+        "props.pageProps.registryData.productItems",
+        "props.pageProps.registryData.wantedItems",
+        "props.pageProps.registryData.stillNeeded",
+        // initialState paths
+        "props.pageProps.initialState.items",
+        "props.pageProps.initialState.registry.items",
+        "props.pageProps.initialState.registryItems",
+        "props.pageProps.initialState.giftRegistry.items",
+        // dehydratedState paths
+        "props.pageProps.dehydratedState.queries",
+        // data nested
+        "props.pageProps.data.registry.items",
+        "props.pageProps.data.giftRegistry.items",
+        "props.pageProps.data.registryItems",
       ];
       
-      for (const { path, data: registryData } of possibleRegistryPaths) {
-        if (!registryData) continue;
-        
-        console.log(`[TARGET_PARSE] Checking path: ${path}`);
-        
-        // Check for items in various locations
-        const registryItems = registryData.items || 
-                             registryData.registryItems || 
-                             registryData.giftRegistryItems ||
-                             registryData.registryItemList ||
-                             registryData.productItems ||
-                             registryData.wantedItems ||
-                             registryData.stillNeeded ||
-                             [];
-        
-        if (registryItems.length > 0) {
-          console.log(`[TARGET_PARSE] Found items array at ${path} with`, registryItems.length, "items");
-          registryItems.forEach((item: any, idx: number) => {
-            const product = item.product || item.productDetails || item.productInfo || item;
-            const name = product.title || product.name || product.productTitle || 
-                        product.description || product.displayName ||
-                        item.title || item.name || item.displayName || "Unknown Item";
-            
-            if (!name || name === "Unknown Item") {
-              console.log(`[TARGET_PARSE] Item ${idx} has no valid name, skipping`);
-              return;
+      // Try each candidate path
+      for (const path of candidatePaths) {
+        const itemsData = getNestedValue(nextData, path);
+        if (Array.isArray(itemsData) && itemsData.length > 0) {
+          console.log(`[TARGET_PARSE] Found items array at path: ${path} with ${itemsData.length} items`);
+          
+          for (const item of itemsData) {
+            const normalized = normalizeTargetItem(item);
+            if (normalized) {
+              items.push(normalized);
             }
-            
-            const url = product.url || product.pdpUrl || product.productUrl || 
-                       product.canonicalUrl || item.url || item.pdpUrl;
-            const productUrl = url ? (url.startsWith('http') ? url : `https://www.target.com${url}`) : undefined;
-            
-            const imageUrl = product.images?.[0]?.baseUrl || 
-                            product.image?.baseUrl || 
-                            product.primaryImageUrl ||
-                            product.imageUrl ||
-                            product.thumbnailUrl ||
-                            item.imageUrl || 
-                            item.image || undefined;
-            
-            const price = product.price?.currentRetail?.toString() || 
-                         product.price?.formattedCurrentPrice || 
-                         product.price?.regularPrice?.toString() ||
-                         product.formattedPrice ||
-                         item.price || 
-                         item.formattedPrice || undefined;
-            
-            items.push({
-              name,
-              link: productUrl,
-              image: imageUrl,
-              price,
-            });
-            console.log(`[TARGET_PARSE] Extracted item: "${name}" | Price: ${price || 'N/A'}`);
-          });
+          }
           
           if (items.length > 0) {
-            console.log("[TARGET_PARSE] Parsed from __NEXT_DATA__:", items.length, "items");
+            console.log(`[TARGET_PARSE] Items extracted via path: ${path} | Count: ${items.length}`);
             return items;
           }
         }
       }
       
-      // Deep search for any arrays that might contain products
-      console.log("[TARGET_PARSE] __NEXT_DATA__ standard paths exhausted, attempting deep search...");
-      const deepSearchForItems = (obj: any, depth = 0, currentPath = ""): any[] => {
-        if (depth > 10 || !obj || typeof obj !== 'object') return [];
-        
-        let foundItems: any[] = [];
-        
-        for (const key of Object.keys(obj)) {
-          const value = obj[key];
-          const newPath = currentPath ? `${currentPath}.${key}` : key;
-          
-          // Check if this is an array that might contain products
-          if (Array.isArray(value) && value.length > 0) {
-            const firstItem = value[0];
-            if (firstItem && typeof firstItem === 'object') {
-              // Check if items look like products
-              const hasProductKeys = firstItem.title || firstItem.name || firstItem.product || 
-                                    firstItem.productTitle || firstItem.tcin || firstItem.dpci;
-              if (hasProductKeys) {
-                console.log(`[TARGET_PARSE] Deep search found potential items at: ${newPath} (${value.length} items)`);
-                foundItems = [...foundItems, ...value];
+      // Check APOLLO_STATE for cache entries (common in newer Next.js apps)
+      if (pageProps.APOLLO_STATE) {
+        console.log("[TARGET_PARSE] Checking APOLLO_STATE for registry items...");
+        const apolloState = pageProps.APOLLO_STATE;
+        for (const key of Object.keys(apolloState)) {
+          const entry = apolloState[key];
+          if (entry && typeof entry === 'object') {
+            // Look for items arrays in Apollo cache entries
+            const possibleItemsKeys = ['items', 'registryItems', 'giftItems', 'productItems'];
+            for (const itemKey of possibleItemsKeys) {
+              if (Array.isArray(entry[itemKey]) && entry[itemKey].length > 0) {
+                console.log(`[TARGET_PARSE] Found ${entry[itemKey].length} items in APOLLO_STATE.${key}.${itemKey}`);
+                for (const item of entry[itemKey]) {
+                  const normalized = normalizeTargetItem(item);
+                  if (normalized) {
+                    items.push(normalized);
+                  }
+                }
               }
             }
-          }
-          
-          // Recurse into objects
-          if (value && typeof value === 'object' && !Array.isArray(value)) {
-            foundItems = [...foundItems, ...deepSearchForItems(value, depth + 1, newPath)];
-          }
-        }
-        
-        return foundItems;
-      };
-      
-      const deepFoundItems = deepSearchForItems(nextData?.props?.pageProps);
-      if (deepFoundItems.length > 0) {
-        console.log("[TARGET_PARSE] Deep search found", deepFoundItems.length, "potential items");
-        for (const item of deepFoundItems) {
-          const product = item.product || item.productDetails || item;
-          const name = product.title || product.name || product.productTitle || item.title || item.name;
-          
-          if (!name) continue;
-          
-          const url = product.url || product.pdpUrl || product.productUrl || item.url;
-          const productUrl = url ? (url.startsWith('http') ? url : `https://www.target.com${url}`) : undefined;
-          
-          if (!items.some(i => i.name === name)) {
-            items.push({
-              name,
-              link: productUrl,
-              image: product.images?.[0]?.baseUrl || product.imageUrl || item.imageUrl || undefined,
-              price: product.price?.currentRetail?.toString() || product.formattedPrice || item.price || undefined,
-            });
           }
         }
         
         if (items.length > 0) {
-          console.log("[TARGET_PARSE] Deep search extracted", items.length, "items");
+          console.log(`[TARGET_PARSE] Items extracted via APOLLO_STATE | Count: ${items.length}`);
+          return items;
+        }
+      }
+      
+      // Deep search for any arrays that might contain products
+      console.log("[TARGET_PARSE] Standard paths exhausted, attempting deep search fallback...");
+      const deepResult = findTargetItemsDeep(nextData?.props?.pageProps);
+      
+      if (deepResult && deepResult.items.length > 0) {
+        console.log(`[TARGET_PARSE] Deep search found ${deepResult.items.length} items at path: ${deepResult.path}`);
+        
+        for (const item of deepResult.items) {
+          const normalized = normalizeTargetItem(item);
+          if (normalized && !items.some(i => i.name === normalized.name)) {
+            items.push(normalized);
+          }
+        }
+        
+        if (items.length > 0) {
+          console.log(`[TARGET_PARSE] Items extracted via deep-search at: ${deepResult.path} | Count: ${items.length}`);
           return items;
         }
       }
@@ -1652,6 +1706,26 @@ async function fetchDirect(url: string): Promise<DirectFetchResult> {
   }
 }
 
+// Helper to extract <title> text from HTML
+const extractHtmlTitle = (html: string): string => {
+  const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+  return titleMatch ? titleMatch[1].trim() : "";
+};
+
+// Helper to detect Walmart block page specifically
+const isWalmartBlockPage = (html: string): boolean => {
+  const lowerHtml = html.toLowerCase();
+  const title = extractHtmlTitle(html).toLowerCase();
+  
+  // Check for specific Walmart block indicators
+  if (title === "robot or human?") return true;
+  if (lowerHtml.includes("/blocked?url=")) return true;
+  if (lowerHtml.includes("activate and hold the button to confirm that you're human")) return true;
+  if (lowerHtml.includes("captcha") && lowerHtml.includes("walmart")) return true;
+  
+  return false;
+};
+
 // Check if HTML looks blocked/captcha
 const isBlockedResponse = (html: string): boolean => {
   const lowerHtml = html.toLowerCase();
@@ -1768,13 +1842,21 @@ async function fetchWalmartWithFallback(
   console.log("[WALMART_FETCH] Trying BrightData Web Unlocker...");
   const brightDataResult = await fetchWithBrightDataUnlocker(url);
   
-  if (brightDataResult.success && brightDataResult.html.length > 10000) {
-    console.log(`[WALMART_FETCH] BrightData Unlocker succeeded: ${brightDataResult.html.length} chars`);
-    return {
-      html: brightDataResult.html,
-      method: "BRIGHTDATA",
-      status: brightDataResult.status,
-    };
+  if (brightDataResult.success && brightDataResult.html.length > 0) {
+    const title = extractHtmlTitle(brightDataResult.html);
+    const blocked = isWalmartBlockPage(brightDataResult.html);
+    console.log(`[WALMART_FETCH] BrightData title=${title} blocked=${blocked} length=${brightDataResult.html.length}`);
+    
+    if (!blocked) {
+      console.log(`[WALMART_FETCH] BrightData Unlocker succeeded: ${brightDataResult.html.length} chars`);
+      return {
+        html: brightDataResult.html,
+        method: "BRIGHTDATA",
+        status: brightDataResult.status,
+      };
+    }
+    
+    console.log("[WALMART_FETCH] BrightData returned blocked page");
   }
   
   console.log(`[WALMART_FETCH] BrightData insufficient (success=${brightDataResult.success}, length=${brightDataResult.html?.length || 0}, error=${brightDataResult.error || "none"})`);
