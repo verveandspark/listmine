@@ -16,8 +16,13 @@ interface ScrapedItem {
 const detectRetailer = (url: string): string | null => {
   const lowerUrl = url.toLowerCase();
   if (lowerUrl.includes("amazon.com")) {
-    // Detect Amazon Registry URLs (e.g., /registries/gl/guest-view/<id>)
+    // Detect Amazon Registry URLs - multiple patterns
+    if (lowerUrl.includes("/registries/gl/guest-view/")) return "AmazonRegistry";
     if (lowerUrl.includes("/registries/")) return "AmazonRegistry";
+    if (lowerUrl.includes("/wedding/registry/")) return "AmazonRegistry";
+    if (lowerUrl.includes("/baby-reg/")) return "AmazonRegistry";
+    if (lowerUrl.includes("/gp/registry/")) return "AmazonRegistry";
+    if (lowerUrl.includes("/registry/")) return "AmazonRegistry";
     return "Amazon";
   }
   // Detect Target registry URLs - multiple patterns
@@ -87,6 +92,25 @@ const isAmazonBlockedPage = (html: string): boolean => {
   ];
   const lowerHtml = html.toLowerCase();
   return blockedMarkers.some(marker => lowerHtml.includes(marker.toLowerCase()));
+};
+
+// Check if Amazon returned a blocked or login-required page (enhanced for registry)
+const isAmazonBlockedOrLogin = (html: string): boolean => {
+  const blockedOrLoginMarkers = [
+    "Robot Check",
+    "Enter the characters you see below",
+    "Type the characters",
+    "Sign in",
+    "Sign-In",
+    "To continue, please sign in",
+    "Sorry, we just need to make sure you're not a robot",
+    "captcha",
+    "ap_email",
+    "ap_password",
+    "createAccount",
+  ];
+  const lowerHtml = html.toLowerCase();
+  return blockedOrLoginMarkers.some(marker => lowerHtml.includes(marker.toLowerCase()));
 };
 
 // Analyze Amazon registry HTML for shell page markers and potential API endpoints
@@ -1843,6 +1867,104 @@ async function fetchWalmartWithFallback(
   }
 }
 
+// Amazon Registry-specific fetch with BrightData Unlocker (no ScraperAPI fallback - Amazon blocks it)
+interface AmazonRegistryFetchResult {
+  html: string;
+  method: "BRIGHTDATA" | "DIRECT";
+  status: number;
+  error?: string;
+  requiresManualUpload?: boolean;
+  blockedOrLogin?: boolean;
+}
+
+async function fetchAmazonRegistryWithUnlocker(url: string): Promise<AmazonRegistryFetchResult> {
+  console.log("[AMAZON_REGISTRY_FETCH] Starting Amazon Registry fetch with BrightData Unlocker...");
+  
+  // Strategy 1: Try BrightData Web Unlocker (only viable option for Amazon)
+  console.log("[AMAZON_REGISTRY_FETCH] Trying BrightData Web Unlocker...");
+  const brightDataResult = await fetchWithBrightDataUnlocker(url);
+  
+  console.log(`[AMAZON_REGISTRY_FETCH] BrightData result: success=${brightDataResult.success}, status=${brightDataResult.status}, length=${brightDataResult.html?.length || 0}`);
+  
+  if (brightDataResult.success && brightDataResult.html.length > 5000) {
+    // Check if blocked or login required
+    const blockedOrLogin = isAmazonBlockedOrLogin(brightDataResult.html);
+    console.log(`[AMAZON_REGISTRY_FETCH] BrightData response blocked/login check: ${blockedOrLogin}`);
+    
+    if (blockedOrLogin) {
+      // Log debug info
+      const titleMatch = brightDataResult.html.match(/<title[^>]*>([^<]+)<\/title>/i);
+      const pageTitle = titleMatch ? titleMatch[1].trim() : "No title found";
+      console.log(`[AMAZON_REGISTRY_FETCH] Blocked/login page detected | Title: ${pageTitle}`);
+      console.log(`[AMAZON_REGISTRY_FETCH] First 500 chars: ${brightDataResult.html.substring(0, 500).replace(/\s+/g, ' ')}`);
+      
+      return {
+        html: brightDataResult.html,
+        method: "BRIGHTDATA",
+        status: brightDataResult.status,
+        error: "Amazon registries can't be imported automatically right now due to Amazon restrictions. Please use File Import or Paste Items.",
+        requiresManualUpload: true,
+        blockedOrLogin: true,
+      };
+    }
+    
+    console.log(`[AMAZON_REGISTRY_FETCH] BrightData Unlocker succeeded: ${brightDataResult.html.length} chars, not blocked`);
+    return {
+      html: brightDataResult.html,
+      method: "BRIGHTDATA",
+      status: brightDataResult.status,
+      blockedOrLogin: false,
+    };
+  }
+  
+  console.log(`[AMAZON_REGISTRY_FETCH] BrightData insufficient (success=${brightDataResult.success}, length=${brightDataResult.html?.length || 0}, error=${brightDataResult.error || "none"})`);
+  
+  // Strategy 2: Try direct fetch as last resort (usually won't work for Amazon)
+  console.log("[AMAZON_REGISTRY_FETCH] Trying direct fetch...");
+  const directResult = await fetchDirect(url);
+  
+  console.log(`[AMAZON_REGISTRY_FETCH] Direct fetch result: ok=${directResult.ok}, status=${directResult.status}, length=${directResult.html?.length || 0}`);
+  
+  if (directResult.ok && directResult.html.length > 5000) {
+    const blockedOrLogin = isAmazonBlockedOrLogin(directResult.html);
+    console.log(`[AMAZON_REGISTRY_FETCH] Direct fetch blocked/login check: ${blockedOrLogin}`);
+    
+    if (blockedOrLogin) {
+      const titleMatch = directResult.html.match(/<title[^>]*>([^<]+)<\/title>/i);
+      const pageTitle = titleMatch ? titleMatch[1].trim() : "No title found";
+      console.log(`[AMAZON_REGISTRY_FETCH] Blocked/login page detected via direct | Title: ${pageTitle}`);
+      
+      return {
+        html: directResult.html,
+        method: "DIRECT",
+        status: directResult.status,
+        error: "Amazon registries can't be imported automatically right now due to Amazon restrictions. Please use File Import or Paste Items.",
+        requiresManualUpload: true,
+        blockedOrLogin: true,
+      };
+    }
+    
+    console.log(`[AMAZON_REGISTRY_FETCH] Direct fetch succeeded: ${directResult.html.length} chars, not blocked`);
+    return {
+      html: directResult.html,
+      method: "DIRECT",
+      status: directResult.status,
+      blockedOrLogin: false,
+    };
+  }
+  
+  // All strategies failed - return manual upload required
+  console.log("[AMAZON_REGISTRY_FETCH] All fetch strategies failed");
+  return {
+    html: "",
+    method: "BRIGHTDATA",
+    status: brightDataResult.status || 0,
+    error: "Amazon registries can't be imported automatically right now due to Amazon restrictions. Please use File Import or Paste Items.",
+    requiresManualUpload: true,
+    blockedOrLogin: true,
+  };
+}
+
 async function fetchWithScraperAPI(
   url: string,
   apiKey?: string,
@@ -2107,6 +2229,46 @@ Deno.serve(async (req) => {
               success: false,
               items: [],
               message: "We couldn't fetch the Walmart page. Please verify the URL is correct and try again.",
+            }),
+            {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+              status: 200,
+            }
+          );
+        }
+      } else if (retailer === "AmazonRegistry") {
+        // Use BrightData Unlocker for Amazon Registry (no ScraperAPI fallback - Amazon blocks it)
+        const amazonRegistryResult = await fetchAmazonRegistryWithUnlocker(fetchUrl);
+        fetchMethod = amazonRegistryResult.method;
+        
+        console.log(`[SCRAPE_FETCH] Amazon Registry HTML fetched with method: ${fetchMethod} | Status: ${amazonRegistryResult.status} | Length: ${amazonRegistryResult.html?.length || 0} | Blocked/Login: ${amazonRegistryResult.blockedOrLogin}`);
+        
+        if (amazonRegistryResult.error || amazonRegistryResult.blockedOrLogin) {
+          console.log(`[SCRAPE_FETCH] Amazon Registry fetch blocked/error: ${amazonRegistryResult.error} | requiresManualUpload: ${amazonRegistryResult.requiresManualUpload}`);
+          return new Response(
+            JSON.stringify({
+              success: false,
+              items: [],
+              message: amazonRegistryResult.error || "Amazon registries can't be imported automatically right now due to Amazon restrictions. Please use File Import or Paste Items.",
+              requiresManualUpload: true,
+            }),
+            {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+              status: 200,
+            }
+          );
+        }
+        
+        html = amazonRegistryResult.html;
+        
+        if (!html || html.length < 1000) {
+          console.log("[SCRAPE_FETCH] Amazon Registry returned minimal/empty HTML");
+          return new Response(
+            JSON.stringify({
+              success: false,
+              items: [],
+              message: "Amazon registries can't be imported automatically right now due to Amazon restrictions. Please use File Import or Paste Items.",
+              requiresManualUpload: true,
             }),
             {
               headers: { ...corsHeaders, "Content-Type": "application/json" },
