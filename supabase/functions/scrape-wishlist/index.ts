@@ -1,5 +1,9 @@
 import { load } from "https://esm.sh/cheerio@1.0.0-rc.12";
 
+function escapeRegex(string: string): string {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // escape regex special chars
+}
+
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
@@ -1931,7 +1935,7 @@ async function fetchWalmartWithFallback(
   if (brightDataResult.success && brightDataResult.html.length > 0) {
     const title = extractHtmlTitle(brightDataResult.html);
     const blocked = isWalmartBlockPage(brightDataResult.html);
-    console.log(`[WALMART_FETCH] BrightData title=${title} blocked=${blocked} length=${brightDataResult.html.length}`);
+    console.log(`[WALMART_BRIGHTDATA] title="${title}" blocked=${blocked} len=${brightDataResult.html.length}`);
     
     // Debug HTML capture
     if (DEBUG_SCRAPE_HTML) {
@@ -2024,13 +2028,13 @@ async function fetchWalmartWithFallback(
     }
     
     const html = await response.text();
-    console.log(`[WALMART_FETCH] ScraperAPI succeeded: ${html.length} chars`);
+    const title = extractHtmlTitle(html);
+    const blocked = isWalmartBlockPage(html);
+    console.log(`[WALMART_SCRAPERAPI] title="${title}" blocked=${blocked} len=${html.length}`);
     
-    // Check if ScraperAPI returned blocked content
-    if (isBlockedResponse(html)) {
-      const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-      const pageTitle = titleMatch ? titleMatch[1].trim() : "No title found";
-      console.log(`[WALMART_FETCH] ScraperAPI returned blocked content | Title: ${pageTitle}`);
+    // Check if ScraperAPI returned blocked content using precise detection
+    if (blocked) {
+      console.log(`[WALMART_FETCH] ScraperAPI returned blocked content | Title: ${title}`);
       return {
         html: "",
         method: "SCRAPERAPI",
@@ -2039,6 +2043,8 @@ async function fetchWalmartWithFallback(
         requiresManualUpload: true,
       };
     }
+    
+    console.log(`[WALMART_FETCH] ScraperAPI succeeded: ${html.length} chars`);
     
     return {
       html,
