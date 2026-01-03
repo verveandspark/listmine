@@ -6,8 +6,8 @@ function escapeRegex(string: string): string {
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
 const ALLOWED_ORIGINS = ['https://app.listmine.com'];
@@ -2419,7 +2419,14 @@ async function fetchTargetWithRetry(
 Deno.serve(async (req) => {
   // Handle preflight CORS
   if (req.method === 'OPTIONS') {
-    return new Response(undefined, { status: 204, headers: CORS_HEADERS });
+    return new Response(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
+    });
   }
 
   const origin = req.headers.get('Origin');
