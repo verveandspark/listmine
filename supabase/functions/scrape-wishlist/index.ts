@@ -515,7 +515,8 @@ const normalizeTargetItem = (item: any): ScrapedItem | null => {
 };
 
 const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
-  const items: ScrapedItem[] = [];
+  let normalizedItems: any[] = [];
+  console.log('[TARGET_PARSER] normalizedItems declared:', typeof normalizedItems !== 'undefined');
   
   console.log("[TARGET_PARSE] Starting Target registry parsing...");
   console.log("[TARGET_PARSE] HTML length:", html.length, "chars");
@@ -588,8 +589,6 @@ const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
       ];
       
       console.log(`[TARGET_PARSE] Checking ${candidatePaths.length} candidate paths...`);
-      
-      let normalizedItems: any[] = [];
       
       let items: any = null;
       for (const path of candidatePaths) {
