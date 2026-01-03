@@ -579,6 +579,11 @@ const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
         'props.sapphireInstance.qualifiedExperiments.pages[0].svc[0].payload',
         // New path from DEBUG_JSON
         "props.sapphireInstance.qualifiedExperiments.pages[0].svc",
+        // New dehydratedState slot paths
+        'props.dehydratedState.queries[0].state.data.slots.1000.metadata.components',
+        'props.dehydratedState.queries[0].state.data.slots.3100.metadata.components',
+        'props.dehydratedState.queries[0].state.data.slots.1600.content.taxonomy_nodes',
+        'props.dehydratedState.queries[0].state.data.slots.1450.metadata.components',
         // Direct item arrays
         "props.pageProps.giftRegistryData.items",
         "props.pageProps.giftGiverData.items",
