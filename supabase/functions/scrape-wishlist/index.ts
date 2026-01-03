@@ -585,6 +585,8 @@ const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
       
       console.log(`[TARGET_PARSE] Checking ${candidatePaths.length} candidate paths...`);
       
+      let normalizedItems: any[] = [];
+      
       let items: any = null;
       for (const path of candidatePaths) {
         items = getNestedValue(nextData, path);
@@ -594,7 +596,6 @@ const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
         }
       }
       
-      const normalizedItems: any[] = [];
       if (Array.isArray(items) && items.length > 0) {
         for (const item of items) {
           const normalized = normalizeTargetItem(item);
@@ -1955,16 +1956,15 @@ async function fetchWalmartWithFallback(
       }
     }
     
-    // TEMPORARILY DISABLED: Blocked detection bypassed for debugging
-    // if (!blocked) {
-    console.log(`[WALMART_FETCH] BrightData Unlocker succeeded (blocked check DISABLED): ${brightDataResult.html.length} chars`);
-    return {
-      html: brightDataResult.html,
-      method: "BRIGHTDATA",
-      status: brightDataResult.status,
-    };
-    // }
-    // console.log("[WALMART_FETCH] BrightData returned blocked page");
+    if (!blocked) {
+      console.log(`[WALMART_FETCH] BrightData Unlocker succeeded: ${brightDataResult.html.length} chars`);
+      return {
+        html: brightDataResult.html,
+        method: "BRIGHTDATA",
+        status: brightDataResult.status,
+      };
+    }
+    console.log("[WALMART_FETCH] BrightData returned blocked page");
   }
   
   console.log(`[WALMART_FETCH] BrightData insufficient (success=${brightDataResult.success}, length=${brightDataResult.html?.length || 0}, error=${brightDataResult.error || "none"})`);
