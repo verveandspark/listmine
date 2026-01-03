@@ -55,19 +55,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import AddToExistingListModal from "./AddToExistingListModal";
 
-const listTypes: { value: ListType; label: string }[] = [
-  { value: "task-list", label: "Task List" },
-  { value: "todo-list", label: "To-Do List" },
-  { value: "registry-list", label: "Registry List" },
-  { value: "checklist", label: "Checklist" },
-  { value: "grocery-list", label: "Grocery List" },
-  { value: "shopping-list", label: "Shopping List" },
-  { value: "idea-list", label: "Idea List" },
-  { value: "multi-topic", label: "Multi-Topic" },
-  { value: "compare-contrast", label: "Compare & Contrast" },
-  { value: "pro-con", label: "Pro/Con List" },
-  { value: "multi-option", label: "Multi-Option" },
-  { value: "custom", label: "Custom" },
+const listTypes = [
+  "Custom",
+  "To-Do",
+  "Shopping List",
+  "Idea",
+  "Registry",
+  "Wishlist"
 ];
 
 interface ScrapedItem {
@@ -962,8 +956,8 @@ export default function ImportExport() {
                     </SelectTrigger>
                     <SelectContent>
                       {listTypes.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
+                        <SelectItem key={type} value={type}>
+                          {type}
                         </SelectItem>
                       ))}
                     </SelectContent>
