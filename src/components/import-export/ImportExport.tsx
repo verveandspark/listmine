@@ -55,13 +55,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import AddToExistingListModal from "./AddToExistingListModal";
 
-const listTypes = [
-  "Custom",
-  "To-Do",
-  "Shopping List",
-  "Idea",
-  "Registry",
-  "Wishlist"
+const listTypes: ListType[] = [
+  "custom",
+  "todo",
+  "shopping-list",
+  "idea",
+  "registry",
+  "wishlist"
 ];
 
 interface ScrapedItem {
@@ -112,7 +112,7 @@ export default function ImportExport() {
   const [importData, setImportData] = useState("");
   const [importCategory, setImportCategory] = useState<ListCategory>("Tasks");
   const [importListType, setImportListType] = useState<ListType>("custom");
-  const [importFormat, setImportFormat] = useState<"csv" | "txt">("txt");
+
   const [selectedListId, setSelectedListId] = useState("");
   const [exportFormat, setExportFormat] = useState<"csv" | "txt" | "pdf">(
     "txt",
@@ -181,7 +181,7 @@ export default function ImportExport() {
       }));
       
       setItemsForExistingList(parsedItems);
-      setExistingListSourceType(importFormat === "csv" ? "csv" : "manual");
+      setExistingListSourceType("manual");
       setAddToExistingModalOpen(true);
       return;
     }
@@ -189,7 +189,7 @@ export default function ImportExport() {
     try {
       importList(
         dataValidation.value!,
-        importFormat,
+        "txt",
         importCategory,
         importListType,
         importAccountId, // Pass account ID for team imports
@@ -854,7 +854,12 @@ export default function ImportExport() {
 
               <div className={`space-y-4 ${showImportGatingMessage ? 'opacity-50 pointer-events-none' : ''}`}>
                 <div>
-                  <Label>Upload File</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>Upload File</Label>
+                    <p className="text-xs text-gray-500">
+                      Supported file types: .txt, .csv
+                    </p>
+                  </div>
                   <Input
                     type="file"
                     accept=".txt,.csv"
@@ -900,24 +905,6 @@ export default function ImportExport() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <Label>Format</Label>
-                    <Select
-                      value={importFormat}
-                      onValueChange={(value) =>
-                        setImportFormat(value as "csv" | "txt")
-                      }
-                    >
-                      <SelectTrigger className="min-h-[44px] mt-2">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="txt">Text (.txt)</SelectItem>
-                        <SelectItem value="csv">CSV (.csv)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
                     <Label>Category</Label>
                     <Select
                       value={importCategory}
@@ -937,27 +924,39 @@ export default function ImportExport() {
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
 
-                <div>
-                  <Label>List Type</Label>
-                  <Select
-                    value={importListType}
-                    onValueChange={(value) =>
-                      setImportListType(value as ListType)
-                    }
-                  >
-                    <SelectTrigger className="min-h-[44px] mt-2">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {listTypes.map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div>
+                    <Label>List Type</Label>
+                    <Select
+                      value={importListType}
+                      onValueChange={(value) =>
+                        setImportListType(value as ListType)
+                      }
+                    >
+                      <SelectTrigger className="min-h-[44px] mt-2">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {listTypes.map((type) => {
+                          // Display friendly names
+                          const displayName = {
+                            'custom': 'Custom',
+                            'todo': 'To-Do',
+                            'shopping-list': 'Shopping List',
+                            'idea': 'Idea',
+                            'registry': 'Registry',
+                            'wishlist': 'Wishlist'
+                          }[type] || type;
+                          
+                          return (
+                            <SelectItem key={type} value={type}>
+                              {displayName}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 {/* Import Destination Choice */}
