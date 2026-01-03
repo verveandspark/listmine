@@ -1953,6 +1953,24 @@ const extractHtmlTitle = (html: string): string => {
   return titleMatch ? titleMatch[1].trim() : "";
 };
 
+// Helper to get a random user agent
+function getRandomUserAgent(): string {
+  const userAgents = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:120.0) Gecko/20100101 Firefox/120.0',
+  ];
+  return userAgents[Math.floor(Math.random() * userAgents.length)];
+}
+
+// Helper for sleep delays
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 // Helper to detect Walmart block page specifically
 const isWalmartBlockPage = (html: string): boolean => {
   const lowerHtml = html.toLowerCase();
@@ -1990,7 +2008,7 @@ interface BrightDataUnlockerResponse {
   error?: string;
 }
 
-async function fetchWithBrightDataUnlocker(url: string): Promise<BrightDataUnlockerResponse> {
+async function fetchWithBrightDataUnlocker(url: string, isAmazonRegistry = false): Promise<BrightDataUnlockerResponse> {
   const brightDataToken = Deno.env.get("BRIGHTDATA_UNLOCKER_API_TOKEN");
   const brightDataZone = Deno.env.get("BRIGHTDATA_UNLOCKER_ZONE");
   
@@ -2007,13 +2025,21 @@ async function fetchWithBrightDataUnlocker(url: string): Promise<BrightDataUnloc
   console.log(`[BRIGHTDATA_UNLOCKER] Fetching URL via BrightData Web Unlocker: ${url}`);
   console.log(`[BRIGHTDATA_UNLOCKER] Using zone: ${brightDataZone}`);
   
+  // Set appropriate expect header based on retailer
+  let expectHeader: string;
+  if (isAmazonRegistry) {
+    expectHeader = JSON.stringify({ text: 'Add to Cart' });
+  } else {
+    expectHeader = JSON.stringify({ text: 'items in stock' });
+  }
+  
   try {
     const response = await fetch("https://api.brightdata.com/request", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${brightDataToken}`,
         "Content-Type": "application/json",
-        "x-unblock-expect": JSON.stringify({ text: 'items in stock' }),
+        "x-unblock-expect": expectHeader,
       },
       body: JSON.stringify({
         zone: brightDataZone,
@@ -2166,49 +2192,86 @@ interface AmazonRegistryFetchResult {
 
 async function fetchAmazonRegistryWithUnlocker(url: string): Promise<AmazonRegistryFetchResult> {
   console.log("[AMAZON_REGISTRY_FETCH] Starting Amazon Registry fetch with BrightData Unlocker...");
-  console.log("[AMAZON_REGISTRY_FETCH] Strategy: Skipping ScraperAPI (Amazon registry) - Using BrightData only to save credits");
+  console.log("[AMAZON_REGISTRY_FETCH] Strategy: Enhanced retry with UA rotation and expect headers");
   
-  // Strategy 1: Try BrightData Web Unlocker (only viable option for Amazon)
-  console.log("[AMAZON_REGISTRY_FETCH] Trying BrightData Web Unlocker...");
-  const brightDataResult = await fetchWithBrightDataUnlocker(url);
+  const maxRetries = 3;
+  const delays = [1500, 3000, 5000]; // Backoff delays in ms
+  const amazonExpect = JSON.stringify({ text: 'Add to Cart' });
   
-  console.log(`[AMAZON_REGISTRY_FETCH] BrightData result: success=${brightDataResult.success}, status=${brightDataResult.status}, length=${brightDataResult.html?.length || 0}`);
-  
-  if (brightDataResult.success && brightDataResult.html.length > 5000) {
-    // Check if blocked or login required
-    const blockedOrLogin = isAmazonBlockedOrLogin(brightDataResult.html);
-    console.log(`[AMAZON_REGISTRY_FETCH] BrightData response blocked/login check: ${blockedOrLogin}`);
+  // Try BrightData with retries and UA rotation
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const ua = getRandomUserAgent();
+    console.log(`[AMAZON_REGISTRY_FETCH] Attempt ${attempt}/${maxRetries} | UA: "${ua.substring(0, 50)}..."`);
     
-    if (blockedOrLogin) {
-      // Log debug info
-      const titleMatch = brightDataResult.html.match(/<title[^>]*>([^<]+)<\/title>/i);
-      const pageTitle = titleMatch ? titleMatch[1].trim() : "No title found";
-      console.log(`[AMAZON_REGISTRY_FETCH] Blocked/login page detected | Title: ${pageTitle}`);
-      console.log(`[AMAZON_REGISTRY_FETCH] First 500 chars: ${brightDataResult.html.substring(0, 500).replace(/\s+/g, ' ')}`);
-      
-      return {
-        html: brightDataResult.html,
-        method: "BRIGHTDATA",
-        status: brightDataResult.status,
-        error: "Amazon registries can't be imported automatically right now due to Amazon restrictions. Please use File Import or Paste Items.",
-        requiresManualUpload: true,
-        blockedOrLogin: true,
-      };
+    const brightDataToken = Deno.env.get("BRIGHTDATA_UNLOCKER_API_TOKEN");
+    const brightDataZone = Deno.env.get("BRIGHTDATA_UNLOCKER_ZONE");
+    
+    if (!brightDataToken || !brightDataZone) {
+      console.log("[AMAZON_REGISTRY_FETCH] Missing BrightData credentials");
+      break;
     }
     
-    console.log(`[AMAZON_REGISTRY_FETCH] BrightData Unlocker succeeded: ${brightDataResult.html.length} chars, not blocked`);
-    return {
-      html: brightDataResult.html,
-      method: "BRIGHTDATA",
-      status: brightDataResult.status,
-      blockedOrLogin: false,
-    };
+    try {
+      const response = await fetch("https://api.brightdata.com/request", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${brightDataToken}`,
+          "Content-Type": "application/json",
+          "User-Agent": ua,
+          "x-unblock-expect": amazonExpect,
+        },
+        body: JSON.stringify({
+          zone: brightDataZone,
+          url: url,
+          format: "raw",
+        }),
+      });
+      
+      const status = response.status;
+      console.log(`[AMAZON_REGISTRY_FETCH] Response status: ${status}`);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log(`[AMAZON_REGISTRY_FETCH] Failed attempt ${attempt} | status=${status} | error=${errorText.substring(0, 200)}`);
+      } else {
+        const html = await response.text();
+        const title = extractHtmlTitle(html);
+        const blocked = isAmazonBlockedOrLogin(html);
+        
+        console.log(`[AMAZON_REGISTRY_FETCH] Attempt ${attempt} | status=${status} | title="${title}" | blocked=${blocked} | length=${html.length}`);
+        
+        if (!blocked && html.length > 5000) {
+          console.log(`[AMAZON_REGISTRY_FETCH] Success on attempt ${attempt}`);
+          console.log(`[AMAZON_REGISTRY_FINAL] success=true requiresManualUpload=false`);
+          return {
+            html,
+            method: "BRIGHTDATA",
+            status,
+            blockedOrLogin: false,
+          };
+        }
+        
+        if (blocked) {
+          console.log(`[AMAZON_REGISTRY_FETCH] Blocked/login detected on attempt ${attempt} | title="${title}"`);
+          console.log(`[AMAZON_REGISTRY_FETCH] First 500 chars: ${html.substring(0, 500).replace(/\s+/g, ' ')}`);
+        }
+      }
+    } catch (e: any) {
+      console.log(`[AMAZON_REGISTRY_FETCH] Fetch error on attempt ${attempt}: ${e.message}`);
+    }
+    
+    // Sleep before retry (except after last attempt)
+    if (attempt < maxRetries) {
+      const delay = delays[attempt - 1];
+      console.log(`[AMAZON_REGISTRY_FETCH] Waiting ${delay}ms before retry...`);
+      await sleep(delay);
+    }
   }
   
-  console.log(`[AMAZON_REGISTRY_FETCH] BrightData insufficient (success=${brightDataResult.success}, length=${brightDataResult.html?.length || 0}, error=${brightDataResult.error || "none"})`);
+  console.log("[AMAZON_REGISTRY_FETCH] All BrightData retry attempts exhausted");
   
   // Strategy 2: Try direct fetch as last resort (usually won't work for Amazon)
-  console.log("[AMAZON_REGISTRY_FETCH] Trying direct fetch...");
+  console.log("[AMAZON_REGISTRY_FETCH] Trying direct fetch as fallback...");
   const directResult = await fetchDirect(url);
   
   console.log(`[AMAZON_REGISTRY_FETCH] Direct fetch result: ok=${directResult.ok}, status=${directResult.status}, length=${directResult.html?.length || 0}`);
@@ -2217,36 +2280,29 @@ async function fetchAmazonRegistryWithUnlocker(url: string): Promise<AmazonRegis
     const blockedOrLogin = isAmazonBlockedOrLogin(directResult.html);
     console.log(`[AMAZON_REGISTRY_FETCH] Direct fetch blocked/login check: ${blockedOrLogin}`);
     
-    if (blockedOrLogin) {
-      const titleMatch = directResult.html.match(/<title[^>]*>([^<]+)<\/title>/i);
-      const pageTitle = titleMatch ? titleMatch[1].trim() : "No title found";
-      console.log(`[AMAZON_REGISTRY_FETCH] Blocked/login page detected via direct | Title: ${pageTitle}`);
-      
+    if (!blockedOrLogin) {
+      console.log(`[AMAZON_REGISTRY_FETCH] Direct fetch succeeded: ${directResult.html.length} chars, not blocked`);
+      console.log(`[AMAZON_REGISTRY_FINAL] success=true requiresManualUpload=false`);
       return {
         html: directResult.html,
         method: "DIRECT",
         status: directResult.status,
-        error: "Amazon registries can't be imported automatically right now due to Amazon restrictions. Please use File Import or Paste Items.",
-        requiresManualUpload: true,
-        blockedOrLogin: true,
+        blockedOrLogin: false,
       };
     }
     
-    console.log(`[AMAZON_REGISTRY_FETCH] Direct fetch succeeded: ${directResult.html.length} chars, not blocked`);
-    return {
-      html: directResult.html,
-      method: "DIRECT",
-      status: directResult.status,
-      blockedOrLogin: false,
-    };
+    const titleMatch = directResult.html.match(/<title[^>]*>([^<]+)<\/title>/i);
+    const pageTitle = titleMatch ? titleMatch[1].trim() : "No title found";
+    console.log(`[AMAZON_REGISTRY_FETCH] Blocked/login page detected via direct | Title: ${pageTitle}`);
   }
   
   // All strategies failed - return manual upload required
   console.log("[AMAZON_REGISTRY_FETCH] All fetch strategies failed");
+  console.log(`[AMAZON_REGISTRY_FINAL] success=false requiresManualUpload=true`);
   return {
     html: "",
     method: "BRIGHTDATA",
-    status: brightDataResult.status || 0,
+    status: 0,
     error: "Amazon registries can't be imported automatically right now due to Amazon restrictions. Please use File Import or Paste Items.",
     requiresManualUpload: true,
     blockedOrLogin: true,
