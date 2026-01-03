@@ -547,11 +547,17 @@ const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
         "props.pageProps.data.registryItems",
       ];
       
-      // Try each candidate path
+      console.log(`[TARGET_PARSE] Checking ${candidatePaths.length} candidate paths...`);
+      
+      // Try each candidate path - log ALL paths checked
       for (const path of candidatePaths) {
         const itemsData = getNestedValue(nextData, path);
-        if (Array.isArray(itemsData) && itemsData.length > 0) {
-          console.log(`[TARGET_PARSE] Found items array at path: ${path} with ${itemsData.length} items`);
+        const isArray = Array.isArray(itemsData);
+        const len = isArray ? itemsData.length : 0;
+        console.log(`[TARGET_PARSE] Path checked: ${path} | isArray=${isArray} | length=${len}`);
+        
+        if (isArray && len > 0) {
+          console.log(`[TARGET_PARSE] Found items array at path: ${path} with ${len} items`);
           
           for (const item of itemsData) {
             const normalized = normalizeTargetItem(item);
@@ -560,10 +566,12 @@ const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
             }
           }
           
-          if (items.length > 0) {
-            console.log(`[TARGET_PARSE] Items extracted via path: ${path} | Count: ${items.length}`);
-            return items;
-          }
+          // TEMPORARILY DISABLED: No early return, continue checking all paths for debugging
+          // if (items.length > 0) {
+          //   console.log(`[TARGET_PARSE] Items extracted via path: ${path} | Count: ${items.length}`);
+          //   return items;
+          // }
+          console.log(`[TARGET_PARSE] After path ${path}, cumulative items: ${items.length}`);
         }
       }
       
@@ -590,10 +598,12 @@ const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
           }
         }
         
-        if (items.length > 0) {
-          console.log(`[TARGET_PARSE] Items extracted via APOLLO_STATE | Count: ${items.length}`);
-          return items;
-        }
+        // TEMPORARILY DISABLED: No early return for APOLLO_STATE
+        // if (items.length > 0) {
+        //   console.log(`[TARGET_PARSE] Items extracted via APOLLO_STATE | Count: ${items.length}`);
+        //   return items;
+        // }
+        console.log(`[TARGET_PARSE] After APOLLO_STATE check, cumulative items: ${items.length}`);
       }
       
       // Deep search for any arrays that might contain products
@@ -610,13 +620,15 @@ const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
           }
         }
         
-        if (items.length > 0) {
-          console.log(`[TARGET_PARSE] Items extracted via deep-search at: ${deepResult.path} | Count: ${items.length}`);
-          return items;
-        }
+        // TEMPORARILY DISABLED: No early return for deep search
+        // if (items.length > 0) {
+        //   console.log(`[TARGET_PARSE] Items extracted via deep-search at: ${deepResult.path} | Count: ${items.length}`);
+        //   return items;
+        // }
+        console.log(`[TARGET_PARSE] After deep search, cumulative items: ${items.length}`);
       }
       
-      console.log("[TARGET_PARSE] __NEXT_DATA__ found but no registry items extracted");
+      console.log(`[TARGET_PARSE] __NEXT_DATA__ parsing complete | Total items found: ${items.length}`);
     } else {
       console.log("[TARGET_PARSE] No __NEXT_DATA__ script found");
     }
@@ -747,6 +759,7 @@ const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
     }
   }
   
+  console.log(`[TARGET_PARSE] ========== END PARSING | Final items: ${items.length} ==========`);
   return items;
 };
 
@@ -808,29 +821,45 @@ const scrapeAmazon = ($: any): ScrapedItem[] => {
 const scrapeWalmartWishlist = ($: any, html: string, url: string): ScrapedItem[] => {
   const items: ScrapedItem[] = [];
   
-  console.log("[WALMART_WISHLIST_PARSE] Starting Walmart wishlist parsing...");
+  console.log("[WALMART_WISHLIST_PARSE] ========== START PARSING ==========");
   console.log("[WALMART_WISHLIST_PARSE] HTML length:", html.length, "chars");
+  console.log("[WALMART_WISHLIST_PARSE] URL:", url);
+  
+  // Log page title for debugging
+  const pageTitle = $('title').text();
+  console.log("[WALMART_WISHLIST_PARSE] Page title:", pageTitle);
   
   // Try to parse embedded JSON first (__NEXT_DATA__ or similar)
   try {
     const nextDataScript = $('script#__NEXT_DATA__').html();
     if (nextDataScript) {
-      console.log("[WALMART_WISHLIST_PARSE] Found __NEXT_DATA__ script");
+      console.log("[WALMART_WISHLIST_PARSE] Found __NEXT_DATA__ script, length:", nextDataScript.length);
       const nextData = JSON.parse(nextDataScript);
       
+      // Enhanced debug logging
+      console.log("[WALMART_WISHLIST_PARSE] nextData keys:", Object.keys(nextData).join(", "));
+      console.log("[WALMART_WISHLIST_PARSE] nextData.props keys:", Object.keys(nextData?.props ?? {}).join(", "));
+      console.log("[WALMART_WISHLIST_PARSE] nextData.props.pageProps keys:", Object.keys(nextData?.props?.pageProps ?? {}).join(", "));
+      
       // Navigate through possible paths for list items
-      const possiblePaths = [
-        nextData?.props?.pageProps?.initialData?.list?.items,
-        nextData?.props?.pageProps?.list?.items,
-        nextData?.props?.pageProps?.data?.list?.items,
-        nextData?.props?.pageProps?.pageData?.list?.items,
-        nextData?.props?.pageProps?.listItems,
-        nextData?.props?.pageProps?.items,
+      const pathDescriptions = [
+        { path: "props.pageProps.initialData.list.items", data: nextData?.props?.pageProps?.initialData?.list?.items },
+        { path: "props.pageProps.list.items", data: nextData?.props?.pageProps?.list?.items },
+        { path: "props.pageProps.data.list.items", data: nextData?.props?.pageProps?.data?.list?.items },
+        { path: "props.pageProps.pageData.list.items", data: nextData?.props?.pageProps?.pageData?.list?.items },
+        { path: "props.pageProps.listItems", data: nextData?.props?.pageProps?.listItems },
+        { path: "props.pageProps.items", data: nextData?.props?.pageProps?.items },
       ];
       
-      for (const listItems of possiblePaths) {
-        if (Array.isArray(listItems) && listItems.length > 0) {
-          console.log("[WALMART_WISHLIST_PARSE] Found items array with", listItems.length, "items");
+      console.log("[WALMART_WISHLIST_PARSE] Checking paths...");
+      
+      for (const { path, data: listItems } of pathDescriptions) {
+        const isArray = Array.isArray(listItems);
+        const len = isArray ? listItems.length : 0;
+        console.log(`[WALMART_WISHLIST_PARSE] Path: ${path} | isArray=${isArray} | length=${len}`);
+        
+        if (isArray && len > 0) {
+          console.log(`[WALMART_WISHLIST_PARSE] Found items array at ${path} with ${len} items`);
           
           for (const item of listItems) {
             const product = item.product || item.productDetails || item;
@@ -862,12 +891,16 @@ const scrapeWalmartWishlist = ($: any, html: string, url: string): ScrapedItem[]
             });
           }
           
-          if (items.length > 0) {
-            console.log("[WALMART_WISHLIST_PARSE] Extracted", items.length, "items from __NEXT_DATA__");
-            return items;
-          }
+          // TEMPORARILY DISABLED: No early return, continue for debugging
+          // if (items.length > 0) {
+          //   console.log("[WALMART_WISHLIST_PARSE] Extracted", items.length, "items from __NEXT_DATA__");
+          //   return items;
+          // }
+          console.log(`[WALMART_WISHLIST_PARSE] After path ${path}, cumulative items: ${items.length}`);
         }
       }
+    } else {
+      console.log("[WALMART_WISHLIST_PARSE] No __NEXT_DATA__ script found");
     }
   } catch (e: any) {
     console.log("[WALMART_WISHLIST_PARSE] __NEXT_DATA__ parsing failed:", e.message);
@@ -993,8 +1026,13 @@ const scrapeWalmartWishlist = ($: any, html: string, url: string): ScrapedItem[]
 const scrapeWalmartRegistry = ($: any, html: string, url: string): ScrapedItem[] => {
   const items: ScrapedItem[] = [];
   
-  console.log("[WALMART_REGISTRY_PARSE] Starting Walmart registry parsing...");
+  console.log("[WALMART_REGISTRY_PARSE] ========== START PARSING ==========");
   console.log("[WALMART_REGISTRY_PARSE] HTML length:", html.length, "chars");
+  console.log("[WALMART_REGISTRY_PARSE] URL:", url);
+  
+  // Log page title for debugging
+  const pageTitle = $('title').text();
+  console.log("[WALMART_REGISTRY_PARSE] Page title:", pageTitle);
   
   // Extract registry ID from URL
   const registryIdMatch = url.match(/\/registry\/WR\/([a-f0-9-]+)/i) ||
@@ -1006,28 +1044,35 @@ const scrapeWalmartRegistry = ($: any, html: string, url: string): ScrapedItem[]
   try {
     const nextDataScript = $('script#__NEXT_DATA__').html();
     if (nextDataScript) {
-      console.log("[WALMART_REGISTRY_PARSE] Found __NEXT_DATA__ script");
+      console.log("[WALMART_REGISTRY_PARSE] Found __NEXT_DATA__ script, length:", nextDataScript.length);
       const nextData = JSON.parse(nextDataScript);
       
-      // Log available keys for debugging
-      const pagePropsKeys = Object.keys(nextData?.props?.pageProps || {});
-      console.log("[WALMART_REGISTRY_PARSE] pageProps keys:", pagePropsKeys.join(", "));
+      // Enhanced debug logging
+      console.log("[WALMART_REGISTRY_PARSE] nextData keys:", Object.keys(nextData).join(", "));
+      console.log("[WALMART_REGISTRY_PARSE] nextData.props keys:", Object.keys(nextData?.props ?? {}).join(", "));
+      console.log("[WALMART_REGISTRY_PARSE] nextData.props.pageProps keys:", Object.keys(nextData?.props?.pageProps ?? {}).join(", "));
       
       // Navigate through possible paths for registry items
-      const possiblePaths = [
-        nextData?.props?.pageProps?.initialData?.registry?.items,
-        nextData?.props?.pageProps?.registry?.items,
-        nextData?.props?.pageProps?.registryData?.items,
-        nextData?.props?.pageProps?.data?.registry?.items,
-        nextData?.props?.pageProps?.registryItems,
-        nextData?.props?.pageProps?.pageData?.registry?.items,
-        nextData?.props?.pageProps?.giftRegistry?.items,
-        nextData?.props?.pageProps?.weddingRegistry?.items,
+      const pathDescriptions = [
+        { path: "props.pageProps.initialData.registry.items", data: nextData?.props?.pageProps?.initialData?.registry?.items },
+        { path: "props.pageProps.registry.items", data: nextData?.props?.pageProps?.registry?.items },
+        { path: "props.pageProps.registryData.items", data: nextData?.props?.pageProps?.registryData?.items },
+        { path: "props.pageProps.data.registry.items", data: nextData?.props?.pageProps?.data?.registry?.items },
+        { path: "props.pageProps.registryItems", data: nextData?.props?.pageProps?.registryItems },
+        { path: "props.pageProps.pageData.registry.items", data: nextData?.props?.pageProps?.pageData?.registry?.items },
+        { path: "props.pageProps.giftRegistry.items", data: nextData?.props?.pageProps?.giftRegistry?.items },
+        { path: "props.pageProps.weddingRegistry.items", data: nextData?.props?.pageProps?.weddingRegistry?.items },
       ];
       
-      for (const registryItems of possiblePaths) {
-        if (Array.isArray(registryItems) && registryItems.length > 0) {
-          console.log("[WALMART_REGISTRY_PARSE] Found registry items array with", registryItems.length, "items");
+      console.log("[WALMART_REGISTRY_PARSE] Checking paths...");
+      
+      for (const { path, data: registryItems } of pathDescriptions) {
+        const isArray = Array.isArray(registryItems);
+        const len = isArray ? registryItems.length : 0;
+        console.log(`[WALMART_REGISTRY_PARSE] Path: ${path} | isArray=${isArray} | length=${len}`);
+        
+        if (isArray && len > 0) {
+          console.log(`[WALMART_REGISTRY_PARSE] Found registry items array at ${path} with ${len} items`);
           
           for (const item of registryItems) {
             const product = item.product || item.productDetails || item.item || item;
@@ -1073,14 +1118,16 @@ const scrapeWalmartRegistry = ($: any, html: string, url: string): ScrapedItem[]
             });
           }
           
-          if (items.length > 0) {
-            console.log("[WALMART_REGISTRY_PARSE] Extracted", items.length, "items from __NEXT_DATA__");
-            return items;
-          }
+          // TEMPORARILY DISABLED: No early return, continue for debugging
+          // if (items.length > 0) {
+          //   console.log("[WALMART_REGISTRY_PARSE] Extracted", items.length, "items from __NEXT_DATA__");
+          //   return items;
+          // }
+          console.log(`[WALMART_REGISTRY_PARSE] After path ${path}, cumulative items: ${items.length}`);
         }
       }
       
-      console.log("[WALMART_REGISTRY_PARSE] __NEXT_DATA__ found but no registry items extracted");
+      console.log(`[WALMART_REGISTRY_PARSE] __NEXT_DATA__ parsing complete | Total items: ${items.length}`);
     } else {
       console.log("[WALMART_REGISTRY_PARSE] No __NEXT_DATA__ script found");
     }
@@ -1847,16 +1894,37 @@ async function fetchWalmartWithFallback(
     const blocked = isWalmartBlockPage(brightDataResult.html);
     console.log(`[WALMART_FETCH] BrightData title=${title} blocked=${blocked} length=${brightDataResult.html.length}`);
     
-    if (!blocked) {
-      console.log(`[WALMART_FETCH] BrightData Unlocker succeeded: ${brightDataResult.html.length} chars`);
-      return {
-        html: brightDataResult.html,
-        method: "BRIGHTDATA",
-        status: brightDataResult.status,
-      };
+    // Debug HTML capture
+    if (DEBUG_SCRAPE_HTML) {
+      const titleMatch = brightDataResult.html.match(/<title[^>]*>(.*?)<\/title>/i);
+      const titleDebug = titleMatch?.[1]?.trim() || '';
+      console.log(`[DEBUG_HTML][WALMART][BRIGHTDATA] title="${titleDebug}" len=${brightDataResult.html.length} snippet="${safeSnippet(brightDataResult.html)}"`);
+      await maybeWriteDebugHtml('debug_walmart_brightdata.html', brightDataResult.html);
+      
+      const next = tryExtractNextDataJson(brightDataResult.html);
+      if (!next) {
+        console.log('[DEBUG_JSON][WALMART] no __NEXT_DATA__ found');
+      } else {
+        const candidates = findCandidateArrays(next);
+        console.log('[DEBUG_JSON][WALMART] __NEXT_DATA__ candidate arrays:', JSON.stringify(candidates, null, 2));
+        const apollo = (next?.props?.pageProps as any)?.apolloState || (next?.props?.pageProps as any)?.__APOLLO_STATE__;
+        if (apollo) {
+          const apolloCandidates = findCandidateArrays(apollo);
+          console.log('[DEBUG_JSON][WALMART] APOLLO candidate arrays:', JSON.stringify(apolloCandidates, null, 2));
+        }
+      }
     }
     
-    console.log("[WALMART_FETCH] BrightData returned blocked page");
+    // TEMPORARILY DISABLED: Blocked detection bypassed for debugging
+    // if (!blocked) {
+    console.log(`[WALMART_FETCH] BrightData Unlocker succeeded (blocked check DISABLED): ${brightDataResult.html.length} chars`);
+    return {
+      html: brightDataResult.html,
+      method: "BRIGHTDATA",
+      status: brightDataResult.status,
+    };
+    // }
+    // console.log("[WALMART_FETCH] BrightData returned blocked page");
   }
   
   console.log(`[WALMART_FETCH] BrightData insufficient (success=${brightDataResult.success}, length=${brightDataResult.html?.length || 0}, error=${brightDataResult.error || "none"})`);
@@ -2222,6 +2290,84 @@ Deno.serve(async (req) => {
 
     const scraperApiKey = Deno.env.get("SCRAPER_API_KEY");
     console.log("[SCRAPE_CONFIG] SCRAPER_API_KEY available:", !!scraperApiKey);
+    
+    const DEBUG_SCRAPE_HTML = (Deno.env.get('DEBUG_SCRAPE_HTML') || '').toLowerCase() === 'true';
+    if (DEBUG_SCRAPE_HTML) console.log('[DEBUG_HTML] DEBUG_SCRAPE_HTML enabled');
+    
+    function safeSnippet(html: string, len = 800) {
+      if (!html) return '';
+      return html.slice(0, len).replace(/\s+/g, ' ').trim();
+    }
+    
+    async function maybeWriteDebugHtml(filename: string, html: string) {
+      if (!DEBUG_SCRAPE_HTML) return;
+      try {
+        await Deno.writeTextFile(filename, html);
+        console.log(`[DEBUG_HTML] wrote ${filename} (${html?.length || 0} chars)`);
+      } catch (e) {
+        console.log(`[DEBUG_HTML] failed to write ${filename}: ${String(e)}`);
+      }
+    }
+    
+    function tryExtractNextDataJson(html: string): any | null {
+      try {
+        const m = html.match(/<script[^>]+id="__NEXT_DATA__"[^>]*>([\s\S]+?)<\/script>/i);
+        if (!m) return null;
+        return JSON.parse(m[1]);
+      } catch {
+        return null;
+      }
+    }
+    
+    function looksLikeProductItem(obj: any): boolean {
+      if (!obj || typeof obj !== 'object') return false;
+      const keys = Object.keys(obj);
+      return (
+        keys.includes('tcin') ||
+        keys.includes('productTitle') ||
+        keys.includes('primaryOffer') ||
+        keys.includes('price') ||
+        keys.includes('image') ||
+        keys.includes('images') ||
+        keys.includes('name') ||
+        keys.includes('title') ||
+        keys.includes('usItemId') ||
+        keys.includes('itemId') ||
+        keys.includes('canonicalUrl') ||
+        keys.includes('productId')
+      );
+    }
+    
+    function findCandidateArrays(obj: any, maxDepth = 9) {
+      const results: Array<{ path: string; length: number; sampleKeys: string[] }> = [];
+      const seen = new Set<any>();
+
+      function walk(node: any, path: string, depth: number) {
+        if (!node || depth > maxDepth) return;
+        if (typeof node !== 'object') return;
+        if (seen.has(node)) return;
+        seen.add(node);
+
+        if (Array.isArray(node)) {
+          if (node.length > 0 && looksLikeProductItem(node[0])) {
+            const sampleKeys = node[0] && typeof node[0] === 'object' ? Object.keys(node[0]).slice(0, 20) : [];
+            results.push({ path, length: node.length, sampleKeys });
+          }
+          for (let i = 0; i < Math.min(node.length, 10); i++) {
+            walk(node[i], `${path}[${i}]`, depth + 1);
+          }
+          return;
+        }
+
+        for (const [k, v] of Object.entries(node)) {
+          walk(v, path ? `${path}.${k}` : k, depth + 1);
+        }
+      }
+
+      walk(obj, '', 0);
+      results.sort((a, b) => b.length - a.length);
+      return results.slice(0, 12);
+    }
 
     if (!scraperApiKey) {
       console.error("[SCRAPE_ERROR] SCRAPER_API_KEY is not set in environment variables");
@@ -2259,26 +2405,49 @@ Deno.serve(async (req) => {
         fetchStrategy = result.strategy;
         console.log("[SCRAPE_FETCH] Target HTML fetched with strategy:", fetchStrategy, "| Length:", html?.length || 0, "characters");
         
-        // Check for Target restricted/private pages
-        const restrictedCheck = isTargetRestrictedPage(html);
-        if (restrictedCheck.restricted) {
-          console.log(`[SCRAPE_RESTRICTED] Target page appears restricted: ${restrictedCheck.reason}`);
-          console.log("[SCRAPE_RESTRICTED] URL:", fetchUrl);
-          logHtmlDebugInfo(html, retailer, url);
+        // Debug HTML capture
+        if (DEBUG_SCRAPE_HTML) {
+          const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
+          const title = titleMatch?.[1]?.trim() || '';
+          const hasNextData = /id="__NEXT_DATA__"/.test(html);
+          console.log(`[DEBUG_HTML][TARGET][SCRAPERAPI] title="${title}" len=${html.length} hasNextData=${hasNextData} snippet="${safeSnippet(html)}"`);
+          await maybeWriteDebugHtml('debug_target_scraperapi.html', html);
           
-          // Return friendly message for restricted pages
-          return new Response(
-            JSON.stringify({
-              success: false,
-              items: [],
-              message: "We couldn't retrieve items from this Target registry share link. The registry may be private or the link may have changed. If this persists, please contact support or use manual import.",
-            }),
-            {
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-              status: 200,
+          const next = tryExtractNextDataJson(html);
+          if (!next) {
+            console.log('[DEBUG_JSON][TARGET] no __NEXT_DATA__ found');
+          } else {
+            const candidates = findCandidateArrays(next);
+            console.log('[DEBUG_JSON][TARGET] __NEXT_DATA__ candidate arrays:', JSON.stringify(candidates, null, 2));
+            const apollo = (next?.props?.pageProps as any)?.__APOLLO_STATE__ || (next?.props?.pageProps as any)?.apolloState;
+            if (apollo) {
+              const apolloCandidates = findCandidateArrays(apollo);
+              console.log('[DEBUG_JSON][TARGET] APOLLO candidate arrays:', JSON.stringify(apolloCandidates, null, 2));
             }
-          );
+          }
         }
+        
+        // TEMPORARILY DISABLED: Target restricted page check bypassed for debugging
+        const restrictedCheck = isTargetRestrictedPage(html);
+        console.log(`[SCRAPE_DEBUG] Target restricted check: restricted=${restrictedCheck.restricted} reason=${restrictedCheck.reason}`);
+        // if (restrictedCheck.restricted) {
+        //   console.log(`[SCRAPE_RESTRICTED] Target page appears restricted: ${restrictedCheck.reason}`);
+        //   console.log("[SCRAPE_RESTRICTED] URL:", fetchUrl);
+        //   logHtmlDebugInfo(html, retailer, url);
+        //   
+        //   // Return friendly message for restricted pages
+        //   return new Response(
+        //     JSON.stringify({
+        //       success: false,
+        //       items: [],
+        //       message: "We couldn't retrieve items from this Target registry share link. The registry may be private or the link may have changed. If this persists, please contact support or use manual import.",
+        //     }),
+        //     {
+        //       headers: { ...corsHeaders, "Content-Type": "application/json" },
+        //       status: 200,
+        //     }
+        //   );
+        // }
       } else if (retailer === "WalmartWishlist" || retailer === "WalmartRegistry") {
         // Use direct-fetch-first strategy for Walmart
         const walmartResult = await fetchWalmartWithFallback(fetchUrl, scraperApiKey);
