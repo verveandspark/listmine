@@ -57,14 +57,17 @@ const normalizeTargetRegistryUrl = (url: string): string => {
     // Pattern 1: /gift-registry/gift/<uuid> -> extract uuid from path
     const giftPathMatch = urlObj.pathname.match(/\/gift-registry\/gift\/([a-f0-9-]+)/i);
     if (giftPathMatch && giftPathMatch[1]) {
-      const registryId = giftPathMatch[1];
+      const registryId = escapeRegex(giftPathMatch[1]);
+      console.log('[SAFE_QUERY] Target registryId (escaped):', registryId);
       return `https://www.target.com/gift-registry/gift-giver?registryId=${registryId}`;
     }
     
     // Pattern 2: /gift-registry/gift-giver with registryId query param
     if (urlObj.pathname.includes("/gift-registry/gift-giver")) {
-      const registryId = urlObj.searchParams.get("registryId");
-      if (registryId) {
+      const rawRegistryId = urlObj.searchParams.get("registryId");
+      if (rawRegistryId) {
+        const registryId = escapeRegex(rawRegistryId);
+        console.log('[SAFE_QUERY] Target registryId from query (escaped):', registryId);
         // Normalize to just the registryId param for consistency
         return `https://www.target.com/gift-registry/gift-giver?registryId=${registryId}`;
       }
@@ -248,7 +251,9 @@ const tryAmazonRegistryApi = async (
     return { success: false, items: [], requiresAuth: false, error: "No registry ID found" };
   }
   
-  const registryId = extractedConfig.registryId || extractedConfig.listId;
+  const rawRegistryId = extractedConfig.registryId || extractedConfig.listId;
+  const registryId = escapeRegex(rawRegistryId!);
+  console.log('[SAFE_QUERY] Amazon registry ID (escaped):', registryId);
   
   // Try known Amazon registry API patterns
   const apiUrls = [
@@ -1037,8 +1042,10 @@ const scrapeWalmartRegistry = ($: any, html: string, url: string): ScrapedItem[]
   // Extract registry ID from URL
   const registryIdMatch = url.match(/\/registry\/WR\/([a-f0-9-]+)/i) ||
                           url.match(/registryId=([a-f0-9-]+)/i);
-  const registryId = registryIdMatch ? registryIdMatch[1] : null;
+  const rawRegistryId = registryIdMatch ? registryIdMatch[1] : null;
+  const registryId = rawRegistryId ? escapeRegex(rawRegistryId) : null;
   console.log("[WALMART_REGISTRY_PARSE] Extracted registry ID:", registryId || "Not found");
+  if (rawRegistryId) console.log('[SAFE_QUERY] Walmart registry ID (escaped):', registryId);
   
   // Try to parse embedded JSON first (__NEXT_DATA__)
   try {
@@ -1350,8 +1357,10 @@ const scrapeAmazonRegistry = ($: any, html: string, url: string): ScrapedItem[] 
                           url.match(/registryId[=\/]([A-Z0-9]+)/i) ||
                           url.match(/\/registry\/([A-Z0-9]+)/i) ||
                           url.match(/\/hz\/wishlist\/ls\/([A-Z0-9]+)/i);
-  const registryId = registryIdMatch ? registryIdMatch[1] : null;
+  const rawRegistryId = registryIdMatch ? registryIdMatch[1] : null;
+  const registryId = rawRegistryId ? escapeRegex(rawRegistryId) : null;
   console.log("[AMAZON_REGISTRY_PARSE] Extracted registry ID:", registryId || "Not found");
+  if (rawRegistryId) console.log('[SAFE_QUERY] Amazon parse registry ID (escaped):', registryId);
   
   // Try to parse embedded JSON first - look for registry-specific data structures
   try {
@@ -2293,6 +2302,10 @@ Deno.serve(async (req) => {
     
     const DEBUG_SCRAPE_HTML = (Deno.env.get('DEBUG_SCRAPE_HTML') || '').toLowerCase() === 'true';
     if (DEBUG_SCRAPE_HTML) console.log('[DEBUG_HTML] DEBUG_SCRAPE_HTML enabled');
+    
+    function escapeRegex(string: string): string {
+      return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // escape all regex special chars including brackets
+    }
     
     function safeSnippet(html: string, len = 800) {
       if (!html) return '';
