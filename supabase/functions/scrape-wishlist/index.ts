@@ -543,6 +543,7 @@ const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
       
       // Expanded candidate paths for registry items
       const candidatePaths = [
+        'props.sapphireInstance.qualifiedExperiments.pages[0].svc[0].payload',
         // New path from DEBUG_JSON
         "props.sapphireInstance.qualifiedExperiments.pages[0].svc",
         // Direct item arrays
@@ -580,30 +581,30 @@ const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
       
       console.log(`[TARGET_PARSE] Checking ${candidatePaths.length} candidate paths...`);
       
-      // Try each candidate path - log ALL paths checked
+      let items: any = null;
       for (const path of candidatePaths) {
-        const itemsData = getNestedValue(nextData, path);
-        const isArray = Array.isArray(itemsData);
-        const len = isArray ? itemsData.length : 0;
-        console.log(`[TARGET_PARSE] Path checked: ${path} | isArray=${isArray} | length=${len}`);
-        
-        if (isArray && len > 0) {
-          console.log(`[TARGET_PARSE] Found items array at path: ${path} with ${len} items`);
-          
-          for (const item of itemsData) {
-            const normalized = normalizeTargetItem(item);
-            if (normalized) {
-              items.push(normalized);
-            }
-          }
-          
-          // TEMPORARILY DISABLED: No early return, continue checking all paths for debugging
-          // if (items.length > 0) {
-          //   console.log(`[TARGET_PARSE] Items extracted via path: ${path} | Count: ${items.length}`);
-          //   return items;
-          // }
-          console.log(`[TARGET_PARSE] After path ${path}, cumulative items: ${items.length}`);
+        items = getNestedValue(nextData, path);
+        if (Array.isArray(items) && items.length > 0) {
+          console.log(`Target items extracted via path: ${path}`);
+          break;
         }
+      }
+      
+      const normalizedItems: any[] = [];
+      if (Array.isArray(items) && items.length > 0) {
+        for (const item of items) {
+          const normalized = normalizeTargetItem(item);
+          if (normalized) {
+            normalizedItems.push(normalized);
+          }
+        }
+        console.log(`[TARGET_PARSE] Normalized ${normalizedItems.length} items`);
+      }
+      
+      // If primary paths found items, return early
+      if (normalizedItems.length > 0) {
+        console.log(`[TARGET_PARSE] Returning ${normalizedItems.length} items from primary paths`);
+        return normalizedItems;
       }
       
       // Check APOLLO_STATE for cache entries (common in newer Next.js apps)
@@ -621,7 +622,7 @@ const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
                 for (const item of entry[itemKey]) {
                   const normalized = normalizeTargetItem(item);
                   if (normalized) {
-                    items.push(normalized);
+                    normalizedItems.push(normalized);
                   }
                 }
               }
@@ -629,12 +630,10 @@ const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
           }
         }
         
-        // TEMPORARILY DISABLED: No early return for APOLLO_STATE
-        // if (items.length > 0) {
-        //   console.log(`[TARGET_PARSE] Items extracted via APOLLO_STATE | Count: ${items.length}`);
-        //   return items;
-        // }
-        console.log(`[TARGET_PARSE] After APOLLO_STATE check, cumulative items: ${items.length}`);
+        if (normalizedItems.length > 0) {
+          console.log(`[TARGET_PARSE] Items extracted via APOLLO_STATE | Count: ${normalizedItems.length}`);
+          return normalizedItems;
+        }
       }
       
       // Deep search for any arrays that might contain products
@@ -646,20 +645,18 @@ const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
         
         for (const item of deepResult.items) {
           const normalized = normalizeTargetItem(item);
-          if (normalized && !items.some(i => i.name === normalized.name)) {
-            items.push(normalized);
+          if (normalized && !normalizedItems.some(i => i.name === normalized.name)) {
+            normalizedItems.push(normalized);
           }
         }
         
-        // TEMPORARILY DISABLED: No early return for deep search
-        // if (items.length > 0) {
-        //   console.log(`[TARGET_PARSE] Items extracted via deep-search at: ${deepResult.path} | Count: ${items.length}`);
-        //   return items;
-        // }
-        console.log(`[TARGET_PARSE] After deep search, cumulative items: ${items.length}`);
+        if (normalizedItems.length > 0) {
+          console.log(`[TARGET_PARSE] Items extracted via deep-search at: ${deepResult.path} | Count: ${normalizedItems.length}`);
+          return normalizedItems;
+        }
       }
       
-      console.log(`[TARGET_PARSE] __NEXT_DATA__ parsing complete | Total items found: ${items.length}`);
+      console.log(`[TARGET_PARSE] __NEXT_DATA__ parsing complete | Total items found: ${normalizedItems.length}`);
     } else {
       console.log("[TARGET_PARSE] No __NEXT_DATA__ script found");
     }
@@ -697,7 +694,7 @@ const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
                 const name = item.title || item.name || item.productTitle || "Unknown Item";
                 if (name === "Unknown Item") return;
                 
-                items.push({
+                normalizedItems.push({
                   name,
                   link: item.url ? `https://www.target.com${item.url}` : undefined,
                   image: item.image || item.imageUrl || item.primaryImage || undefined,
@@ -705,9 +702,9 @@ const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
                 });
               });
               
-              if (items.length > 0) {
-                console.log("[TARGET_PARSE] Parsed from embedded JSON:", items.length, "items");
-                return items;
+              if (normalizedItems.length > 0) {
+                console.log("[TARGET_PARSE] Parsed from embedded JSON:", normalizedItems.length, "items");
+                return normalizedItems;
               }
             } catch (parseErr) {
               // Continue to next pattern
@@ -754,8 +751,8 @@ const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
       const priceText = $item.find('[data-test="current-price"], [class*="Price"], .styles_price').first().text().trim();
       const price = priceText.match(/\$[\d,.]+/)?.[0] || undefined;
       
-      if (!items.some(i => i.name === name)) {
-        items.push({
+      if (!normalizedItems.some(i => i.name === name)) {
+        normalizedItems.push({
           name,
           link,
           image,
@@ -764,34 +761,34 @@ const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
       }
     });
     
-    if (items.length > 0) {
-      console.log("[TARGET_PARSE] Parsed from DOM with selector:", selector, items.length, "items");
+    if (normalizedItems.length > 0) {
+      console.log("[TARGET_PARSE] Parsed from DOM with selector:", selector, normalizedItems.length, "items");
       break;
     }
   }
   
   // Last resort: find any product links
-  if (items.length === 0) {
+  if (normalizedItems.length === 0) {
     $('a[href*="/p/"]').each((_index: number, element: any) => {
       const $link = $(element);
       const href = $link.attr('href');
       const name = $link.text().trim() || $link.find('img').attr('alt') || "";
       
-      if (name && name.length > 3 && !items.some(i => i.name === name)) {
-        items.push({
+      if (name && name.length > 3 && !normalizedItems.some(i => i.name === name)) {
+        normalizedItems.push({
           name,
           link: href ? `https://www.target.com${href}` : undefined,
           image: $link.find('img').attr('src') || undefined,
         });
       }
     });
-    if (items.length > 0) {
-      console.log("[TARGET_PARSE] Parsed from product links:", items.length, "items");
+    if (normalizedItems.length > 0) {
+      console.log("[TARGET_PARSE] Parsed from product links:", normalizedItems.length, "items");
     }
   }
   
-  console.log(`[TARGET_PARSE] ========== END PARSING | Final items: ${items.length} ==========`);
-  return items;
+  console.log(`[TARGET_PARSE] ========== END PARSING | Final items: ${normalizedItems.length} ==========`);
+  return normalizedItems;
 };
 
 const scrapeAmazon = ($: any): ScrapedItem[] => {
