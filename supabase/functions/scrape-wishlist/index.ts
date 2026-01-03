@@ -109,6 +109,100 @@ const normalizeTargetRegistryUrl = (url: string): string => {
   }
 };
 
+// Random User-Agent strings for rotation
+const USER_AGENTS = [
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:121.0) Gecko/20100101 Firefox/121.0",
+  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
+];
+
+// Helper to pick a random user-agent string
+function getRandomUserAgent(): string {
+  return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+}
+
+// Walmart-specific fetch with retries and random user-agent rotation
+interface WalmartRetryFetchResult {
+  success: boolean;
+  html: string;
+  status: number;
+  error?: string;
+  attemptsMade: number;
+}
+
+async function fetchWalmartWithRetries(
+  url: string,
+  maxRetries: number = 3
+): Promise<WalmartRetryFetchResult> {
+  let attempt = 0;
+  let lastError = "";
+  
+  while (attempt < maxRetries) {
+    try {
+      // Randomize User-Agent header for each attempt
+      const userAgent = getRandomUserAgent();
+      console.log(`[WALMART_RETRY_FETCH] Attempt ${attempt + 1}/${maxRetries} with UA: ${userAgent.substring(0, 50)}...`);
+      
+      const fetchOptions: RequestInit = {
+        method: "GET",
+        headers: {
+          "User-Agent": userAgent,
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+          "Accept-Language": "en-US,en;q=0.9",
+          "Cache-Control": "no-cache",
+          "Pragma": "no-cache",
+          "Upgrade-Insecure-Requests": "1",
+          "Referer": "https://www.walmart.com/",
+        },
+        redirect: "follow",
+      };
+      
+      const response = await fetch(url, fetchOptions);
+      const html = await response.text();
+      
+      console.log(`[WALMART_RETRY_FETCH] Response status: ${response.status}, length: ${html.length}`);
+      
+      // Check if blocked
+      if (!isBlockedResponse(html) && !isWalmartBlockPage(html) && html.length > 5000) {
+        console.log(`[WALMART_RETRY_FETCH] Success on attempt ${attempt + 1}`);
+        return {
+          success: true,
+          html,
+          status: response.status,
+          attemptsMade: attempt + 1,
+        };
+      } else {
+        const title = extractHtmlTitle(html);
+        console.log(`[WALMART_RETRY_FETCH] Block detected on attempt ${attempt + 1} | title="${title}" | length=${html.length}`);
+        lastError = `Block detected (title: ${title})`;
+      }
+    } catch (e: any) {
+      console.log(`[WALMART_RETRY_FETCH] Fetch error on attempt ${attempt + 1}: ${e.message}`);
+      lastError = e.message;
+    }
+    
+    // Random delay between retries (1-3 seconds)
+    const delay = 1000 + Math.random() * 2000;
+    console.log(`[WALMART_RETRY_FETCH] Waiting ${Math.round(delay)}ms before retry...`);
+    await new Promise((res) => setTimeout(res, delay));
+    attempt++;
+  }
+  
+  console.log(`[WALMART_RETRY_FETCH] Max retries (${maxRetries}) reached, all attempts blocked`);
+  return {
+    success: false,
+    html: "",
+    status: 0,
+    error: lastError || "Max retries reached, fetch blocked.",
+    attemptsMade: maxRetries,
+  };
+}
+
 // Check if Amazon returned a blocked/captcha page
 const isAmazonBlockedPage = (html: string): boolean => {
   const blockedMarkers = [
@@ -1973,7 +2067,7 @@ async function fetchWithBrightDataUnlocker(url: string): Promise<BrightDataUnloc
 // Walmart-specific fetch with direct-first fallback
 interface WalmartFetchResult {
   html: string;
-  method: "DIRECT" | "SCRAPERAPI" | "BRIGHTDATA";
+  method: "DIRECT" | "SCRAPERAPI" | "BRIGHTDATA" | "DIRECT_RETRY";
   status: number;
   error?: string;
   requiresManualUpload?: boolean;
@@ -1984,7 +2078,7 @@ async function fetchWalmartWithFallback(
   scraperApiKey: string
 ): Promise<WalmartFetchResult> {
   console.log("[WALMART_FETCH] Starting Walmart fetch with multi-provider strategy...");
-  console.log("[WALMART_FETCH] Strategy: Skipping ScraperAPI (Walmart registry) - Using BrightData only to save credits");
+  console.log("[WALMART_FETCH] Strategy: BrightData → Direct with retries");
   
   // Strategy 1: Try BrightData Web Unlocker first (best for anti-bot sites)
   console.log("[WALMART_FETCH] Trying BrightData Web Unlocker...");
@@ -2033,28 +2127,28 @@ async function fetchWalmartWithFallback(
   
   console.log(`[WALMART_FETCH] BrightData insufficient (success=${brightDataResult.success}, length=${brightDataResult.html?.length || 0}, error=${brightDataResult.error || "none"})`);
   
-  // Strategy 2: Try direct fetch
-  console.log("[WALMART_FETCH] Trying direct fetch...");
-  const directResult = await fetchDirect(url);
+  // Strategy 2: Try direct fetch with retries and user-agent rotation
+  console.log("[WALMART_FETCH] Trying direct fetch with retries and UA rotation...");
+  const retryResult = await fetchWalmartWithRetries(url, 3);
   
-  if (directResult.ok && directResult.html.length > 20000 && !isBlockedResponse(directResult.html)) {
-    console.log("[WALMART_FETCH] Direct fetch succeeded:", directResult.html.length, "chars");
+  if (retryResult.success && retryResult.html.length > 5000) {
+    console.log(`[WALMART_FETCH] Direct fetch with retries succeeded on attempt ${retryResult.attemptsMade}: ${retryResult.html.length} chars`);
     return {
-      html: directResult.html,
-      method: "DIRECT",
-      status: directResult.status,
+      html: retryResult.html,
+      method: "DIRECT_RETRY",
+      status: retryResult.status,
     };
   }
   
-  console.log(`[WALMART_FETCH] Direct fetch insufficient (ok=${directResult.ok}, length=${directResult.html.length}, blocked=${isBlockedResponse(directResult.html)})`);
-  console.log("[WALMART_FETCH] All strategies exhausted - ScraperAPI skipped to save credits");
+  console.log(`[WALMART_FETCH] Direct fetch with retries failed after ${retryResult.attemptsMade} attempts | Error: ${retryResult.error || "unknown"}`);
+  console.log("[WALMART_FETCH] All strategies exhausted - advising manual upload");
   
-  // Return error - no ScraperAPI fallback for Walmart registry
+  // Return error with manual upload fallback
   return {
     html: "",
-    method: "SCRAPERAPI",
+    method: "DIRECT_RETRY",
     status: 0,
-    error: "Walmart import is temporarily unavailable. Please try again later or use File Import.",
+    error: "Walmart import is temporarily unavailable due to site restrictions. Please try again later or use File Import.",
     requiresManualUpload: true,
   };
 }
@@ -2754,7 +2848,7 @@ Deno.serve(async (req) => {
         console.error(`[SCRAPE_PARSE_ERROR] Retailer: WalmartWishlist | URL: ${url} | Fetch method: ${fetchMethod} | Error: ${e.message}`);
         console.error(`[SCRAPE_PARSE_ERROR] Stack:`, e.stack || "No stack trace");
         logHtmlDebugInfo(html, retailer, url);
-        scrapeError = "We couldn't find items at that link. Please double-check the Walmart wishlist URL.";
+        scrapeError = "Walmart import is temporarily unavailable due to site restrictions. Please try again later or use File Import.";
       }
     } else if (retailer === "WalmartRegistry") {
       try {
@@ -2772,7 +2866,7 @@ Deno.serve(async (req) => {
         console.error(`[SCRAPE_PARSE_ERROR] Retailer: WalmartRegistry | URL: ${url} | Error: ${e.message}`);
         console.error(`[SCRAPE_PARSE_ERROR] Stack:`, e.stack || "No stack trace");
         logHtmlDebugInfo(html, retailer, url);
-        scrapeError = "We couldn't find items at that link. Please double-check the Walmart registry share URL.";
+        scrapeError = "Walmart import is temporarily unavailable due to site restrictions. Please try again later or use File Import.";
       }
     } else {
       try {
@@ -2813,10 +2907,12 @@ Deno.serve(async (req) => {
         requiresManualUpload = true;
       } else if (retailer === "WalmartWishlist") {
         console.log(`[SCRAPE_EMPTY] Retailer: WalmartWishlist | URL: ${url} | Reason: 0 items found`);
-        errorMessage = "We couldn't find items at that link. The Walmart wishlist might be private or empty. Please double-check the URL.";
+        errorMessage = "Walmart import is temporarily unavailable due to site restrictions. Please try again later or use File Import.";
+        requiresManualUpload = true;
       } else if (retailer === "WalmartRegistry") {
         console.log(`[SCRAPE_EMPTY] Retailer: WalmartRegistry | URL: ${url} | Reason: 0 items found`);
-        errorMessage = "We couldn't find items at that link. The Walmart registry might be private or empty. Please double-check the share URL.";
+        errorMessage = "Walmart import is temporarily unavailable due to site restrictions. Please try again later or use File Import.";
+        requiresManualUpload = true;
       } else {
         console.log(`[SCRAPE_EMPTY] Retailer: Amazon | URL: ${url} | Reason: 0 items found`);
         errorMessage = "No items found. The list might be empty, private, or the page structure has changed.";
