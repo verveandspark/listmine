@@ -2013,7 +2013,7 @@ async function fetchWithBrightDataUnlocker(url: string): Promise<BrightDataUnloc
       headers: {
         "Authorization": `Bearer ${brightDataToken}`,
         "Content-Type": "application/json",
-        "x-unblock-expect": JSON.stringify({ element: '.search-result-gridview-items, [data-automation-id="product-list"], .product-list, .registry-items' }),
+        "x-unblock-expect": JSON.stringify({ text: 'items in stock' }),
       },
       body: JSON.stringify({
         zone: brightDataZone,
