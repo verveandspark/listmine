@@ -1,5 +1,7 @@
 import { load } from "https://esm.sh/cheerio@1.0.0-rc.12";
 
+const DEBUG = (Deno.env.get('DEBUG_SCRAPE_HTML') || '').toLowerCase() === 'true';
+
 function escapeRegex(string: string): string {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // escape regex special chars
 }
@@ -88,7 +90,7 @@ const normalizeTargetRegistryUrl = (url: string): string => {
     const giftPathMatch = urlObj.pathname.match(/\/gift-registry\/gift\/([a-f0-9-]+)/i);
     if (giftPathMatch && giftPathMatch[1]) {
       const registryId = escapeRegex(giftPathMatch[1]);
-      console.log('[SAFE_QUERY] Target registryId (escaped):', registryId);
+      if (DEBUG) console.log('[SAFE_QUERY] Target registryId (escaped):', registryId);
       return `https://www.target.com/gift-registry/gift-giver?registryId=${registryId}`;
     }
     
@@ -97,7 +99,7 @@ const normalizeTargetRegistryUrl = (url: string): string => {
       const rawRegistryId = urlObj.searchParams.get("registryId");
       if (rawRegistryId) {
         const registryId = escapeRegex(rawRegistryId);
-        console.log('[SAFE_QUERY] Target registryId from query (escaped):', registryId);
+        if (DEBUG) console.log('[SAFE_QUERY] Target registryId from query (escaped):', registryId);
         // Normalize to just the registryId param for consistency
         return `https://www.target.com/gift-registry/gift-giver?registryId=${registryId}`;
       }
@@ -148,7 +150,7 @@ async function fetchWalmartWithRetries(
     try {
       // Randomize User-Agent header for each attempt
       const userAgent = getRandomUserAgent();
-      console.log(`[WALMART_RETRY_FETCH] Attempt ${attempt + 1}/${maxRetries} with UA: ${userAgent.substring(0, 50)}...`);
+      if (DEBUG) console.log(`[WALMART_RETRY_FETCH] Attempt ${attempt + 1}/${maxRetries} with UA: ${userAgent.substring(0, 50)}...`);
       
       const fetchOptions: RequestInit = {
         method: "GET",
@@ -167,11 +169,11 @@ async function fetchWalmartWithRetries(
       const response = await fetch(url, fetchOptions);
       const html = await response.text();
       
-      console.log(`[WALMART_RETRY_FETCH] Response status: ${response.status}, length: ${html.length}`);
+      if (DEBUG) console.log(`[WALMART_RETRY_FETCH] Response status: ${response.status}, length: ${html.length}`);
       
       // Check if blocked
       if (!isBlockedResponse(html) && !isWalmartBlockPage(html) && html.length > 5000) {
-        console.log(`[WALMART_RETRY_FETCH] Success on attempt ${attempt + 1}`);
+        if (DEBUG) console.log(`[WALMART_RETRY_FETCH] Success on attempt ${attempt + 1}`);
         return {
           success: true,
           html,
@@ -180,22 +182,22 @@ async function fetchWalmartWithRetries(
         };
       } else {
         const title = extractHtmlTitle(html);
-        console.log(`[WALMART_RETRY_FETCH] Block detected on attempt ${attempt + 1} | title="${title}" | length=${html.length}`);
+        if (DEBUG) console.log(`[WALMART_RETRY_FETCH] Block detected on attempt ${attempt + 1} | title="${title}" | length=${html.length}`);
         lastError = `Block detected (title: ${title})`;
       }
     } catch (e: any) {
-      console.log(`[WALMART_RETRY_FETCH] Fetch error on attempt ${attempt + 1}: ${e.message}`);
+      if (DEBUG) console.log(`[WALMART_RETRY_FETCH] Fetch error on attempt ${attempt + 1}: ${e.message}`);
       lastError = e.message;
     }
     
     // Random delay between retries (1-3 seconds)
     const delay = 1000 + Math.random() * 2000;
-    console.log(`[WALMART_RETRY_FETCH] Waiting ${Math.round(delay)}ms before retry...`);
+    if (DEBUG) console.log(`[WALMART_RETRY_FETCH] Waiting ${Math.round(delay)}ms before retry...`);
     await new Promise((res) => setTimeout(res, delay));
     attempt++;
   }
   
-  console.log(`[WALMART_RETRY_FETCH] Max retries (${maxRetries}) reached, all attempts blocked`);
+  if (DEBUG) console.log(`[WALMART_RETRY_FETCH] Max retries (${maxRetries}) reached, all attempts blocked`);
   return {
     success: false,
     html: "",
@@ -271,12 +273,14 @@ const analyzeAmazonRegistryHtml = (html: string, url: string): AmazonRegistryAna
     hasDataAState: lowerHtml.includes("data-a-state") || lowerHtml.includes('data-a-state="'),
   };
   
-  console.log("[AMAZON_REGISTRY_ANALYZE] Shell page markers:");
-  console.log(`  - registry-item: ${markers.hasRegistryItem}`);
-  console.log(`  - gl-guest-view: ${markers.hasGlGuestView}`);
-  console.log(`  - p13n: ${markers.hasP13n}`);
-  console.log(`  - csrf: ${markers.hasCsrf}`);
-  console.log(`  - data-a-state: ${markers.hasDataAState}`);
+  if (DEBUG) {
+    console.log("[AMAZON_REGISTRY_ANALYZE] Shell page markers:");
+    console.log(`  - registry-item: ${markers.hasRegistryItem}`);
+    console.log(`  - gl-guest-view: ${markers.hasGlGuestView}`);
+    console.log(`  - p13n: ${markers.hasP13n}`);
+    console.log(`  - csrf: ${markers.hasCsrf}`);
+    console.log(`  - data-a-state: ${markers.hasDataAState}`);
+  }
   
   // Extract configuration for potential API calls
   const extractedConfig: AmazonRegistryAnalysis["extractedConfig"] = {};
@@ -288,7 +292,7 @@ const analyzeAmazonRegistryHtml = (html: string, url: string): AmazonRegistryAna
                           html.match(/listId["']\s*:\s*["']([A-Z0-9]+)["']/i);
   if (registryIdMatch) {
     extractedConfig.registryId = registryIdMatch[1];
-    console.log(`[AMAZON_REGISTRY_ANALYZE] Found registryId: ${extractedConfig.registryId}`);
+    if (DEBUG) console.log(`[AMAZON_REGISTRY_ANALYZE] Found registryId: ${extractedConfig.registryId}`);
   }
   
   // Extract list ID
@@ -296,7 +300,7 @@ const analyzeAmazonRegistryHtml = (html: string, url: string): AmazonRegistryAna
                       html.match(/data-list-id=["']([A-Z0-9]+)["']/i);
   if (listIdMatch) {
     extractedConfig.listId = listIdMatch[1];
-    console.log(`[AMAZON_REGISTRY_ANALYZE] Found listId: ${extractedConfig.listId}`);
+    if (DEBUG) console.log(`[AMAZON_REGISTRY_ANALYZE] Found listId: ${extractedConfig.listId}`);
   }
   
   // Extract marketplace ID
@@ -304,7 +308,7 @@ const analyzeAmazonRegistryHtml = (html: string, url: string): AmazonRegistryAna
                              html.match(/obfuscatedMarketplaceId["']\s*:\s*["']([A-Z0-9]+)["']/i);
   if (marketplaceIdMatch) {
     extractedConfig.marketplaceId = marketplaceIdMatch[1];
-    console.log(`[AMAZON_REGISTRY_ANALYZE] Found marketplaceId: ${extractedConfig.marketplaceId}`);
+    if (DEBUG) console.log(`[AMAZON_REGISTRY_ANALYZE] Found marketplaceId: ${extractedConfig.marketplaceId}`);
   }
   
   // Extract CSRF token
@@ -314,7 +318,7 @@ const analyzeAmazonRegistryHtml = (html: string, url: string): AmazonRegistryAna
                     html.match(/name=["']csrf[^"']*["']\s+value=["']([^"']+)["']/i);
   if (csrfMatch) {
     extractedConfig.csrfToken = csrfMatch[1];
-    console.log(`[AMAZON_REGISTRY_ANALYZE] Found CSRF token (length: ${extractedConfig.csrfToken?.length})`);
+    if (DEBUG) console.log(`[AMAZON_REGISTRY_ANALYZE] Found CSRF token (length: ${extractedConfig.csrfToken?.length})`);
   }
   
   // Look for API endpoints
@@ -333,7 +337,7 @@ const analyzeAmazonRegistryHtml = (html: string, url: string): AmazonRegistryAna
     const match = html.match(pattern);
     if (match) {
       extractedConfig.apiEndpoint = match[1];
-      console.log(`[AMAZON_REGISTRY_ANALYZE] Found potential API endpoint: ${extractedConfig.apiEndpoint}`);
+      if (DEBUG) console.log(`[AMAZON_REGISTRY_ANALYZE] Found potential API endpoint: ${extractedConfig.apiEndpoint}`);
       break;
     }
   }
@@ -344,7 +348,7 @@ const analyzeAmazonRegistryHtml = (html: string, url: string): AmazonRegistryAna
   const lacksItemData = !lowerHtml.includes('"asin"') && !lowerHtml.includes('data-asin=');
   
   const isShellPage = hasMinimalContent && hasShellMarkers && lacksItemData;
-  console.log(`[AMAZON_REGISTRY_ANALYZE] Shell page detection: isShell=${isShellPage} (minContent=${hasMinimalContent}, shellMarkers=${hasShellMarkers}, lacksItems=${lacksItemData})`);
+  if (DEBUG) console.log(`[AMAZON_REGISTRY_ANALYZE] Shell page detection: isShell=${isShellPage} (minContent=${hasMinimalContent}, shellMarkers=${hasShellMarkers}, lacksItems=${lacksItemData})`);
   
   return {
     isShellPage,
@@ -365,13 +369,13 @@ const tryAmazonRegistryApi = async (
   analysis: AmazonRegistryAnalysis,
   scraperApiKey: string
 ): Promise<AmazonApiResult> => {
-  console.log("[AMAZON_REGISTRY_API] Attempting API-based extraction...");
+  if (DEBUG) console.log("[AMAZON_REGISTRY_API] Attempting API-based extraction...");
   
   const { extractedConfig } = analysis;
   
   // If we don't have enough info to call an API, return early
   if (!extractedConfig.registryId && !extractedConfig.listId) {
-    console.log("[AMAZON_REGISTRY_API] No registry/list ID found, cannot attempt API call");
+    if (DEBUG) console.log("[AMAZON_REGISTRY_API] No registry/list ID found, cannot attempt API call");
     return { success: false, items: [], requiresAuth: false, error: "No registry ID found" };
   }
   
@@ -417,7 +421,7 @@ const tryAmazonRegistryApi = async (
       // Check if we got blocked
       if (responseText.toLowerCase().includes("captcha") || 
           responseText.toLowerCase().includes("robot check")) {
-        console.log("[AMAZON_REGISTRY_API] API endpoint returned captcha/blocked");
+        if (DEBUG) console.log("[AMAZON_REGISTRY_API] API endpoint returned captcha/blocked");
         return { success: false, items: [], requiresAuth: true, error: "Blocked by Amazon" };
       }
       
@@ -426,7 +430,7 @@ const tryAmazonRegistryApi = async (
       
       try {
         const jsonData = JSON.parse(responseText);
-        console.log("[AMAZON_REGISTRY_API] Successfully parsed JSON response");
+        if (DEBUG) console.log("[AMAZON_REGISTRY_API] Successfully parsed JSON response");
         
         // Look for items in various JSON structures
         const itemArrays = [
@@ -440,7 +444,7 @@ const tryAmazonRegistryApi = async (
         
         for (const itemArray of itemArrays) {
           if (Array.isArray(itemArray) && itemArray.length > 0) {
-            console.log(`[AMAZON_REGISTRY_API] Found ${itemArray.length} items in JSON`);
+            if (DEBUG) console.log(`[AMAZON_REGISTRY_API] Found ${itemArray.length} items in JSON`);
             
             for (const item of itemArray) {
               const asin = item.asin || item.ASIN || item.itemId;
@@ -457,32 +461,32 @@ const tryAmazonRegistryApi = async (
             }
             
             if (items.length > 0) {
-              console.log(`[AMAZON_REGISTRY_API] Extracted ${items.length} items from API`);
+              if (DEBUG) console.log(`[AMAZON_REGISTRY_API] Extracted ${items.length} items from API`);
               return { success: true, items, requiresAuth: false };
             }
           }
         }
       } catch (jsonErr) {
         // Not JSON, try HTML parsing
-        console.log("[AMAZON_REGISTRY_API] Response is not JSON, checking for HTML items...");
+        if (DEBUG) console.log("[AMAZON_REGISTRY_API] Response is not JSON, checking for HTML items...");
         
         // Check if response contains ASIN data
         const asinMatches = responseText.matchAll(/data-asin=["']([A-Z0-9]{10})["']/gi);
         const asins = [...asinMatches].map(m => m[1]);
         
         if (asins.length > 0) {
-          console.log(`[AMAZON_REGISTRY_API] Found ${asins.length} ASINs in HTML response`);
+          if (DEBUG) console.log(`[AMAZON_REGISTRY_API] Found ${asins.length} ASINs in HTML response`);
           // If we found ASINs, the page has some data but needs DOM parsing
           // Return empty to let DOM parser handle it
         }
       }
       
     } catch (e: any) {
-      console.log(`[AMAZON_REGISTRY_API] Error with endpoint: ${e.message}`);
+      if (DEBUG) console.log(`[AMAZON_REGISTRY_API] Error with endpoint: ${e.message}`);
     }
   }
   
-  console.log("[AMAZON_REGISTRY_API] All API endpoints failed or require auth");
+  if (DEBUG) console.log("[AMAZON_REGISTRY_API] All API endpoints failed or require auth");
   return { success: false, items: [], requiresAuth: true, error: "No accessible API found" };
 };
 
@@ -638,26 +642,27 @@ function logAllProductArrays(obj: any, path = '', debugEnabled: boolean) {
 
 const scrapeTargetRegistry = ($: any, html: string, debugEnabled: boolean): ScrapedItem[] => {
   let normalizedItems: any[] = [];
-  console.log('[TARGET_PARSER] normalizedItems declared:', typeof normalizedItems !== 'undefined');
   
-  console.log("[TARGET_PARSE] Starting Target registry parsing...");
-  console.log("[TARGET_PARSE] HTML length:", html.length, "chars");
+  if (DEBUG) {
+    console.log("[TARGET_PARSE] Starting Target registry parsing...");
+    console.log("[TARGET_PARSE] HTML length:", html.length, "chars");
+  }
   
   // Check for basic page content indicators
   const hasNextData = html.includes("__NEXT_DATA__");
   const hasRegistryKeyword = html.toLowerCase().includes("registry");
   const hasGiftKeyword = html.toLowerCase().includes("gift");
-  console.log("[TARGET_PARSE] Content indicators - __NEXT_DATA__:", hasNextData, "| 'registry':", hasRegistryKeyword, "| 'gift':", hasGiftKeyword);
+  if (DEBUG) console.log("[TARGET_PARSE] Content indicators - __NEXT_DATA__:", hasNextData, "| 'registry':", hasRegistryKeyword, "| 'gift':", hasGiftKeyword);
   
   // Try to parse embedded JSON first (__NEXT_DATA__)
   try {
     const nextDataScript = $('script#__NEXT_DATA__').html();
     if (nextDataScript) {
-      console.log("[TARGET_PARSE] Found __NEXT_DATA__ script, length:", nextDataScript.length);
+      if (DEBUG) console.log("[TARGET_PARSE] Found __NEXT_DATA__ script, length:", nextDataScript.length);
       const nextData = JSON.parse(nextDataScript);
       
       // Enhanced debug logging for structure analysis (only if debug enabled)
-      if (debugEnabled) {
+      if (DEBUG && debugEnabled) {
         console.log("[TARGET_PARSE] nextData keys:", Object.keys(nextData).join(", "));
         console.log("[TARGET_PARSE] nextData.props keys:", Object.keys(nextData?.props ?? {}).join(", "));
         console.log("[TARGET_PARSE] nextData.props.pageProps keys:", Object.keys(nextData?.props?.pageProps ?? {}).join(", "));
@@ -727,10 +732,10 @@ const scrapeTargetRegistry = ($: any, html: string, debugEnabled: boolean): Scra
         "props.pageProps.data.registryItems",
       ];
       
-      console.log(`[TARGET_PARSE] Checking ${candidatePaths.length} candidate paths...`);
+      if (DEBUG) console.log(`[TARGET_PARSE] Checking ${candidatePaths.length} candidate paths...`);
       
       // Run deep search to find all product arrays (only if debug enabled)
-      if (debugEnabled) {
+      if (DEBUG && debugEnabled) {
         console.log("[TARGET_DEEP_SEARCH] Starting deep recursive search...");
         logAllProductArrays(nextData, '', debugEnabled);
       }
@@ -740,12 +745,12 @@ const scrapeTargetRegistry = ($: any, html: string, debugEnabled: boolean): Scra
       for (const path of candidatePaths) {
         const items = getNestedValue(nextData, path);
         if (Array.isArray(items) && items.length > 0) {
-          console.log(`[TARGET_PARSE] Found ${items.length} items at path: ${path}`);
+          if (DEBUG) console.log(`[TARGET_PARSE] Found ${items.length} items at path: ${path}`);
           allItems.push(...items);
         }
       }
       
-      console.log(`[TARGET_PARSE] Combined ${allItems.length} items from all paths`);
+      if (DEBUG) console.log(`[TARGET_PARSE] Combined ${allItems.length} items from all paths`);
       
       if (allItems.length > 0) {
         for (const item of allItems) {
@@ -754,19 +759,18 @@ const scrapeTargetRegistry = ($: any, html: string, debugEnabled: boolean): Scra
             normalizedItems.push(normalized);
           }
         }
-        console.log(`[TARGET_PARSE] Normalized ${normalizedItems.length} items`);
+        if (DEBUG) console.log(`[TARGET_PARSE] Normalized ${normalizedItems.length} items`);
       }
       
       // If primary paths found items, return early
       if (normalizedItems.length > 0) {
-        console.log(`[TARGET_PARSE] Returning ${normalizedItems.length} items from combined paths`);
-        console.log(`[TARGET_FINAL] items=${normalizedItems.length} via=next_data`);
+        if (DEBUG) console.log(`[TARGET_PARSE] Returning ${normalizedItems.length} items from combined paths`);
         return normalizedItems;
       }
       
       // Check APOLLO_STATE for cache entries (common in newer Next.js apps)
       if (pageProps.APOLLO_STATE) {
-        console.log("[TARGET_PARSE] Checking APOLLO_STATE for registry items...");
+        if (DEBUG) console.log("[TARGET_PARSE] Checking APOLLO_STATE for registry items...");
         const apolloState = pageProps.APOLLO_STATE;
         for (const key of Object.keys(apolloState)) {
           const entry = apolloState[key];
@@ -775,7 +779,7 @@ const scrapeTargetRegistry = ($: any, html: string, debugEnabled: boolean): Scra
             const possibleItemsKeys = ['items', 'registryItems', 'giftItems', 'productItems'];
             for (const itemKey of possibleItemsKeys) {
               if (Array.isArray(entry[itemKey]) && entry[itemKey].length > 0) {
-                console.log(`[TARGET_PARSE] Found ${entry[itemKey].length} items in APOLLO_STATE.${key}.${itemKey}`);
+                if (DEBUG) console.log(`[TARGET_PARSE] Found ${entry[itemKey].length} items in APOLLO_STATE.${key}.${itemKey}`);
                 for (const item of entry[itemKey]) {
                   const normalized = normalizeTargetItem(item);
                   if (normalized) {
@@ -788,18 +792,17 @@ const scrapeTargetRegistry = ($: any, html: string, debugEnabled: boolean): Scra
         }
         
         if (normalizedItems.length > 0) {
-          console.log(`[TARGET_PARSE] Items extracted via APOLLO_STATE | Count: ${normalizedItems.length}`);
-          console.log(`[TARGET_FINAL] items=${normalizedItems.length} via=apollo_state`);
+          if (DEBUG) console.log(`[TARGET_PARSE] Items extracted via APOLLO_STATE | Count: ${normalizedItems.length}`);
           return normalizedItems;
         }
       }
       
-      // Deep search for any arrays that might contain products
-      console.log("[TARGET_PARSE] Standard paths exhausted, attempting deep search fallback...");
+      // Deep search for any arrays that might contain products (only if DEBUG)
+      if (DEBUG) console.log("[TARGET_PARSE] Standard paths exhausted, attempting deep search fallback...");
       const deepResult = findTargetItemsDeep(nextData?.props?.pageProps);
       
       if (deepResult && deepResult.items.length > 0) {
-        console.log(`[TARGET_PARSE] Deep search found ${deepResult.items.length} items at path: ${deepResult.path}`);
+        if (DEBUG) console.log(`[TARGET_PARSE] Deep search found ${deepResult.items.length} items at path: ${deepResult.path}`);
         
         for (const item of deepResult.items) {
           const normalized = normalizeTargetItem(item);
@@ -809,23 +812,22 @@ const scrapeTargetRegistry = ($: any, html: string, debugEnabled: boolean): Scra
         }
         
         if (normalizedItems.length > 0) {
-          console.log(`[TARGET_PARSE] Items extracted via deep-search at: ${deepResult.path} | Count: ${normalizedItems.length}`);
-          console.log(`[TARGET_FINAL] items=${normalizedItems.length} via=deep_search`);
+          if (DEBUG) console.log(`[TARGET_PARSE] Items extracted via deep-search at: ${deepResult.path} | Count: ${normalizedItems.length}`);
           return normalizedItems;
         }
       }
       
-      console.log(`[TARGET_PARSE] __NEXT_DATA__ parsing complete | Total items found: ${normalizedItems.length}`);
+      if (DEBUG) console.log(`[TARGET_PARSE] __NEXT_DATA__ parsing complete | Total items found: ${normalizedItems.length}`);
     } else {
-      console.log("[TARGET_PARSE] No __NEXT_DATA__ script found");
+      if (DEBUG) console.log("[TARGET_PARSE] No __NEXT_DATA__ script found");
     }
   } catch (e: any) {
-    console.log("[TARGET_PARSE] __NEXT_DATA__ parsing failed:", e.message);
+    if (DEBUG) console.log("[TARGET_PARSE] __NEXT_DATA__ parsing failed:", e.message);
   }
   
   // Try to find alternative embedded JSON structures (inline scripts)
   try {
-    console.log("[TARGET_PARSE] Searching for alternative embedded JSON...");
+    if (DEBUG) console.log("[TARGET_PARSE] Searching for alternative embedded JSON...");
     const scripts = $('script').toArray();
     for (const script of scripts) {
       const content = $(script).html() || "";
@@ -862,8 +864,7 @@ const scrapeTargetRegistry = ($: any, html: string, debugEnabled: boolean): Scra
               });
               
               if (normalizedItems.length > 0) {
-                console.log("[TARGET_PARSE] Parsed from embedded JSON:", normalizedItems.length, "items");
-                console.log(`[TARGET_FINAL] items=${normalizedItems.length} via=embedded_json`);
+                if (DEBUG) console.log("[TARGET_PARSE] Parsed from embedded JSON:", normalizedItems.length, "items");
                 return normalizedItems;
               }
             } catch (parseErr) {
@@ -874,11 +875,11 @@ const scrapeTargetRegistry = ($: any, html: string, debugEnabled: boolean): Scra
       }
     }
   } catch (e) {
-    console.log("[TARGET_PARSE] Alternative JSON parsing failed, falling back to DOM");
+    if (DEBUG) console.log("[TARGET_PARSE] Alternative JSON parsing failed, falling back to DOM");
   }
   
   // Fallback: DOM parsing
-  console.log("[TARGET_PARSE] Attempting DOM parsing...");
+  if (DEBUG) console.log("[TARGET_PARSE] Attempting DOM parsing...");
   const selectors = [
     '[data-test="registry-item"]',
     '[data-test="gift-registry-item"]',
@@ -922,8 +923,7 @@ const scrapeTargetRegistry = ($: any, html: string, debugEnabled: boolean): Scra
     });
     
     if (normalizedItems.length > 0) {
-      console.log("[TARGET_PARSE] Parsed from DOM with selector:", selector, normalizedItems.length, "items");
-      console.log(`[TARGET_FINAL] items=${normalizedItems.length} via=dom`);
+      if (DEBUG) console.log("[TARGET_PARSE] Parsed from DOM with selector:", selector, normalizedItems.length, "items");
       break;
     }
   }
@@ -944,12 +944,11 @@ const scrapeTargetRegistry = ($: any, html: string, debugEnabled: boolean): Scra
       }
     });
     if (normalizedItems.length > 0) {
-      console.log("[TARGET_PARSE] Parsed from product links:", normalizedItems.length, "items");
-      console.log(`[TARGET_FINAL] items=${normalizedItems.length} via=product_links`);
+      if (DEBUG) console.log("[TARGET_PARSE] Parsed from product links:", normalizedItems.length, "items");
     }
   }
   
-  console.log(`[TARGET_PARSE] ========== END PARSING | Final items: ${normalizedItems.length} ==========`);
+  if (DEBUG) console.log(`[TARGET_PARSE] ========== END PARSING | Final items: ${normalizedItems.length} ==========`);
   return normalizedItems;
 };
 
@@ -1011,25 +1010,28 @@ const scrapeAmazon = ($: any): ScrapedItem[] => {
 const scrapeWalmartWishlist = ($: any, html: string, url: string): ScrapedItem[] => {
   const items: ScrapedItem[] = [];
   
-  console.log("[WALMART_WISHLIST_PARSE] ========== START PARSING ==========");
-  console.log("[WALMART_WISHLIST_PARSE] HTML length:", html.length, "chars");
-  console.log("[WALMART_WISHLIST_PARSE] URL:", url);
+  if (DEBUG) {
+    console.log("[WALMART_WISHLIST_PARSE] HTML length:", html.length, "chars");
+    console.log("[WALMART_WISHLIST_PARSE] URL:", url);
+  }
   
   // Log page title for debugging
   const pageTitle = $('title').text();
-  console.log("[WALMART_WISHLIST_PARSE] Page title:", pageTitle);
+  if (DEBUG) console.log("[WALMART_WISHLIST_PARSE] Page title:", pageTitle);
   
   // Try to parse embedded JSON first (__NEXT_DATA__ or similar)
   try {
     const nextDataScript = $('script#__NEXT_DATA__').html();
     if (nextDataScript) {
-      console.log("[WALMART_WISHLIST_PARSE] Found __NEXT_DATA__ script, length:", nextDataScript.length);
+      if (DEBUG) console.log("[WALMART_WISHLIST_PARSE] Found __NEXT_DATA__ script, length:", nextDataScript.length);
       const nextData = JSON.parse(nextDataScript);
       
       // Enhanced debug logging
-      console.log("[WALMART_WISHLIST_PARSE] nextData keys:", Object.keys(nextData).join(", "));
-      console.log("[WALMART_WISHLIST_PARSE] nextData.props keys:", Object.keys(nextData?.props ?? {}).join(", "));
-      console.log("[WALMART_WISHLIST_PARSE] nextData.props.pageProps keys:", Object.keys(nextData?.props?.pageProps ?? {}).join(", "));
+      if (DEBUG) {
+        console.log("[WALMART_WISHLIST_PARSE] nextData keys:", Object.keys(nextData).join(", "));
+        console.log("[WALMART_WISHLIST_PARSE] nextData.props keys:", Object.keys(nextData?.props ?? {}).join(", "));
+        console.log("[WALMART_WISHLIST_PARSE] nextData.props.pageProps keys:", Object.keys(nextData?.props?.pageProps ?? {}).join(", "));
+      }
       
       // Navigate through possible paths for list items
       const pathDescriptions = [
@@ -1042,15 +1044,15 @@ const scrapeWalmartWishlist = ($: any, html: string, url: string): ScrapedItem[]
         { path: "props.pageProps.items", data: nextData?.props?.pageProps?.items },
       ];
       
-      console.log("[WALMART_WISHLIST_PARSE] Checking paths...");
+      if (DEBUG) console.log("[WALMART_WISHLIST_PARSE] Checking paths...");
       
       for (const { path, data: listItems } of pathDescriptions) {
         const isArray = Array.isArray(listItems);
         const len = isArray ? listItems.length : 0;
-        console.log(`[WALMART_WISHLIST_PARSE] Path: ${path} | isArray=${isArray} | length=${len}`);
+        if (DEBUG) console.log(`[WALMART_WISHLIST_PARSE] Path: ${path} | isArray=${isArray} | length=${len}`);
         
         if (isArray && len > 0) {
-          console.log(`[WALMART_WISHLIST_PARSE] Found items array at ${path} with ${len} items`);
+          if (DEBUG) console.log(`[WALMART_WISHLIST_PARSE] Found items array at ${path} with ${len} items`);
           
           for (const item of listItems) {
             const product = item.product || item.productDetails || item;
@@ -1087,14 +1089,14 @@ const scrapeWalmartWishlist = ($: any, html: string, url: string): ScrapedItem[]
           //   console.log("[WALMART_WISHLIST_PARSE] Extracted", items.length, "items from __NEXT_DATA__");
           //   return items;
           // }
-          console.log(`[WALMART_WISHLIST_PARSE] After path ${path}, cumulative items: ${items.length}`);
+          if (DEBUG) console.log(`[WALMART_WISHLIST_PARSE] After path ${path}, cumulative items: ${items.length}`);
         }
       }
     } else {
-      console.log("[WALMART_WISHLIST_PARSE] No __NEXT_DATA__ script found");
+      if (DEBUG) console.log("[WALMART_WISHLIST_PARSE] No __NEXT_DATA__ script found");
     }
   } catch (e: any) {
-    console.log("[WALMART_WISHLIST_PARSE] __NEXT_DATA__ parsing failed:", e.message);
+    if (DEBUG) console.log("[WALMART_WISHLIST_PARSE] __NEXT_DATA__ parsing failed:", e.message);
   }
   
   // Try to find embedded JSON in other script tags
@@ -1107,7 +1109,7 @@ const scrapeWalmartWishlist = ($: any, html: string, url: string): ScrapedItem[]
         if (itemsMatch) {
           try {
             const itemsArray = JSON.parse(itemsMatch[1]);
-            console.log("[WALMART_WISHLIST_PARSE] Found embedded items array with", itemsArray.length, "items");
+            if (DEBUG) console.log("[WALMART_WISHLIST_PARSE] Found embedded items array with", itemsArray.length, "items");
             
             for (const item of itemsArray) {
               const name = item.name || item.title || item.productName || "";
@@ -1127,7 +1129,7 @@ const scrapeWalmartWishlist = ($: any, html: string, url: string): ScrapedItem[]
             }
             
             if (items.length > 0) {
-              console.log("[WALMART_WISHLIST_PARSE] Extracted", items.length, "items from embedded JSON");
+              if (DEBUG) console.log("[WALMART_WISHLIST_PARSE] Extracted", items.length, "items from embedded JSON");
               return items;
             }
           } catch (parseErr) {
@@ -1137,11 +1139,11 @@ const scrapeWalmartWishlist = ($: any, html: string, url: string): ScrapedItem[]
       }
     }
   } catch (e: any) {
-    console.log("[WALMART_WISHLIST_PARSE] Embedded JSON search failed:", e.message);
+    if (DEBUG) console.log("[WALMART_WISHLIST_PARSE] Embedded JSON search failed:", e.message);
   }
   
   // DOM parsing fallback
-  console.log("[WALMART_WISHLIST_PARSE] Falling back to DOM parsing...");
+  if (DEBUG) console.log("[WALMART_WISHLIST_PARSE] Falling back to DOM parsing...");
   
   const itemSelectors = [
     '[data-testid="list-item"]',
@@ -1183,7 +1185,7 @@ const scrapeWalmartWishlist = ($: any, html: string, url: string): ScrapedItem[]
     });
     
     if (items.length > 0) {
-      console.log("[WALMART_WISHLIST_PARSE] Parsed", items.length, "items from DOM with selector:", selector);
+      if (DEBUG) console.log("[WALMART_WISHLIST_PARSE] Parsed", items.length, "items from DOM with selector:", selector);
       break;
     }
   }
@@ -1205,11 +1207,11 @@ const scrapeWalmartWishlist = ($: any, html: string, url: string): ScrapedItem[]
     });
     
     if (items.length > 0) {
-      console.log("[WALMART_WISHLIST_PARSE] Extracted", items.length, "items from product links");
+      if (DEBUG) console.log("[WALMART_WISHLIST_PARSE] Extracted", items.length, "items from product links");
     }
   }
   
-  console.log("[WALMART_WISHLIST_PARSE] Final item count:", items.length);
+  if (DEBUG) console.log("[WALMART_WISHLIST_PARSE] Final item count:", items.length);
   return items;
 };
 
@@ -1217,33 +1219,36 @@ const scrapeWalmartWishlist = ($: any, html: string, url: string): ScrapedItem[]
 const scrapeWalmartRegistry = ($: any, html: string, url: string): ScrapedItem[] => {
   const items: ScrapedItem[] = [];
   
-  console.log("[WALMART_REGISTRY_PARSE] ========== START PARSING ==========");
-  console.log("[WALMART_REGISTRY_PARSE] HTML length:", html.length, "chars");
-  console.log("[WALMART_REGISTRY_PARSE] URL:", url);
+  if (DEBUG) {
+    console.log("[WALMART_REGISTRY_PARSE] HTML length:", html.length, "chars");
+    console.log("[WALMART_REGISTRY_PARSE] URL:", url);
+  }
   
   // Log page title for debugging
   const pageTitle = $('title').text();
-  console.log("[WALMART_REGISTRY_PARSE] Page title:", pageTitle);
+  if (DEBUG) console.log("[WALMART_REGISTRY_PARSE] Page title:", pageTitle);
   
   // Extract registry ID from URL
   const registryIdMatch = url.match(/\/registry\/WR\/([a-f0-9-]+)/i) ||
                           url.match(/registryId=([a-f0-9-]+)/i);
   const rawRegistryId = registryIdMatch ? registryIdMatch[1] : null;
   const registryId = rawRegistryId ? escapeRegex(rawRegistryId) : null;
-  console.log("[WALMART_REGISTRY_PARSE] Extracted registry ID:", registryId || "Not found");
-  if (rawRegistryId) console.log('[SAFE_QUERY] Walmart registry ID (escaped):', registryId);
+  if (DEBUG) console.log("[WALMART_REGISTRY_PARSE] Extracted registry ID:", registryId || "Not found");
+  if (DEBUG && rawRegistryId) console.log('[SAFE_QUERY] Walmart registry ID (escaped):', registryId);
   
   // Try to parse embedded JSON first (__NEXT_DATA__)
   try {
     const nextDataScript = $('script#__NEXT_DATA__').html();
     if (nextDataScript) {
-      console.log("[WALMART_REGISTRY_PARSE] Found __NEXT_DATA__ script, length:", nextDataScript.length);
+      if (DEBUG) console.log("[WALMART_REGISTRY_PARSE] Found __NEXT_DATA__ script, length:", nextDataScript.length);
       const nextData = JSON.parse(nextDataScript);
       
       // Enhanced debug logging
-      console.log("[WALMART_REGISTRY_PARSE] nextData keys:", Object.keys(nextData).join(", "));
-      console.log("[WALMART_REGISTRY_PARSE] nextData.props keys:", Object.keys(nextData?.props ?? {}).join(", "));
-      console.log("[WALMART_REGISTRY_PARSE] nextData.props.pageProps keys:", Object.keys(nextData?.props?.pageProps ?? {}).join(", "));
+      if (DEBUG) {
+        console.log("[WALMART_REGISTRY_PARSE] nextData keys:", Object.keys(nextData).join(", "));
+        console.log("[WALMART_REGISTRY_PARSE] nextData.props keys:", Object.keys(nextData?.props ?? {}).join(", "));
+        console.log("[WALMART_REGISTRY_PARSE] nextData.props.pageProps keys:", Object.keys(nextData?.props?.pageProps ?? {}).join(", "));
+      }
       
       // Navigate through possible paths for registry items
       const pathDescriptions = [
@@ -1258,15 +1263,15 @@ const scrapeWalmartRegistry = ($: any, html: string, url: string): ScrapedItem[]
         { path: "props.pageProps.weddingRegistry.items", data: nextData?.props?.pageProps?.weddingRegistry?.items },
       ];
       
-      console.log("[WALMART_REGISTRY_PARSE] Checking paths...");
+      if (DEBUG) console.log("[WALMART_REGISTRY_PARSE] Checking paths...");
       
       for (const { path, data: registryItems } of pathDescriptions) {
         const isArray = Array.isArray(registryItems);
         const len = isArray ? registryItems.length : 0;
-        console.log(`[WALMART_REGISTRY_PARSE] Path: ${path} | isArray=${isArray} | length=${len}`);
+        if (DEBUG) console.log(`[WALMART_REGISTRY_PARSE] Path: ${path} | isArray=${isArray} | length=${len}`);
         
         if (isArray && len > 0) {
-          console.log(`[WALMART_REGISTRY_PARSE] Found registry items array at ${path} with ${len} items`);
+          if (DEBUG) console.log(`[WALMART_REGISTRY_PARSE] Found registry items array at ${path} with ${len} items`);
           
           for (const item of registryItems) {
             const product = item.product || item.productDetails || item.item || item;
@@ -1302,7 +1307,7 @@ const scrapeWalmartRegistry = ($: any, html: string, url: string): ScrapedItem[]
             const quantityPurchased = item.quantityPurchased || item.purchasedQuantity || 
                                      item.fulfilledQuantity || 0;
             
-            console.log(`[WALMART_REGISTRY_PARSE] Item: "${name}" | Price: ${price || 'N/A'} | Qty: ${quantityRequested}/${quantityPurchased}`);
+            if (DEBUG) console.log(`[WALMART_REGISTRY_PARSE] Item: "${name}" | Price: ${price || 'N/A'} | Qty: ${quantityRequested}/${quantityPurchased}`);
             
             items.push({
               name,
@@ -1317,16 +1322,16 @@ const scrapeWalmartRegistry = ($: any, html: string, url: string): ScrapedItem[]
           //   console.log("[WALMART_REGISTRY_PARSE] Extracted", items.length, "items from __NEXT_DATA__");
           //   return items;
           // }
-          console.log(`[WALMART_REGISTRY_PARSE] After path ${path}, cumulative items: ${items.length}`);
+          if (DEBUG) console.log(`[WALMART_REGISTRY_PARSE] After path ${path}, cumulative items: ${items.length}`);
         }
       }
       
-      console.log(`[WALMART_REGISTRY_PARSE] __NEXT_DATA__ parsing complete | Total items: ${items.length}`);
+      if (DEBUG) console.log(`[WALMART_REGISTRY_PARSE] __NEXT_DATA__ parsing complete | Total items: ${items.length}`);
     } else {
-      console.log("[WALMART_REGISTRY_PARSE] No __NEXT_DATA__ script found");
+      if (DEBUG) console.log("[WALMART_REGISTRY_PARSE] No __NEXT_DATA__ script found");
     }
   } catch (e: any) {
-    console.log("[WALMART_REGISTRY_PARSE] __NEXT_DATA__ parsing failed:", e.message);
+    if (DEBUG) console.log("[WALMART_REGISTRY_PARSE] __NEXT_DATA__ parsing failed:", e.message);
   }
   
   // Try to find embedded registry data in other scripts
@@ -1339,7 +1344,7 @@ const scrapeWalmartRegistry = ($: any, html: string, url: string): ScrapedItem[]
         if (registryMatch) {
           try {
             const itemsArray = JSON.parse(registryMatch[1]);
-            console.log("[WALMART_REGISTRY_PARSE] Found embedded registry items with", itemsArray.length, "items");
+            if (DEBUG) console.log("[WALMART_REGISTRY_PARSE] Found embedded registry items with", itemsArray.length, "items");
             
             for (const item of itemsArray) {
               const name = item.name || item.title || item.productName || "";
@@ -1359,7 +1364,7 @@ const scrapeWalmartRegistry = ($: any, html: string, url: string): ScrapedItem[]
             }
             
             if (items.length > 0) {
-              console.log("[WALMART_REGISTRY_PARSE] Extracted", items.length, "items from embedded JSON");
+              if (DEBUG) console.log("[WALMART_REGISTRY_PARSE] Extracted", items.length, "items from embedded JSON");
               return items;
             }
           } catch (parseErr) {
@@ -1369,11 +1374,11 @@ const scrapeWalmartRegistry = ($: any, html: string, url: string): ScrapedItem[]
       }
     }
   } catch (e: any) {
-    console.log("[WALMART_REGISTRY_PARSE] Embedded JSON search failed:", e.message);
+    if (DEBUG) console.log("[WALMART_REGISTRY_PARSE] Embedded JSON search failed:", e.message);
   }
   
   // DOM parsing fallback
-  console.log("[WALMART_REGISTRY_PARSE] Falling back to DOM parsing...");
+  if (DEBUG) console.log("[WALMART_REGISTRY_PARSE] Falling back to DOM parsing...");
   
   const registryItemSelectors = [
     '[data-testid="registry-item"]',
@@ -1416,7 +1421,7 @@ const scrapeWalmartRegistry = ($: any, html: string, url: string): ScrapedItem[]
     });
     
     if (items.length > 0) {
-      console.log("[WALMART_REGISTRY_PARSE] Parsed", items.length, "items from DOM with selector:", selector);
+      if (DEBUG) console.log("[WALMART_REGISTRY_PARSE] Parsed", items.length, "items from DOM with selector:", selector);
       break;
     }
   }
@@ -1438,18 +1443,18 @@ const scrapeWalmartRegistry = ($: any, html: string, url: string): ScrapedItem[]
     });
     
     if (items.length > 0) {
-      console.log("[WALMART_REGISTRY_PARSE] Extracted", items.length, "items from product links");
+      if (DEBUG) console.log("[WALMART_REGISTRY_PARSE] Extracted", items.length, "items from product links");
     }
   }
   
-  console.log("[WALMART_REGISTRY_PARSE] Final item count:", items.length);
+  if (DEBUG) console.log("[WALMART_REGISTRY_PARSE] Final item count:", items.length);
   return items;
 };
 
 const scrapeAmazonRegistry = ($: any, html: string, url: string): ScrapedItem[] => {
   const items: ScrapedItem[] = [];
   
-  console.log("[AMAZON_REGISTRY_PARSE] Starting Amazon registry parsing...");
+  if (DEBUG) console.log("[AMAZON_REGISTRY_PARSE] Starting Amazon registry parsing...");
   
   // Helper to validate item has proper Amazon product URL
   const isValidAmazonProductUrl = (link?: string): boolean => {
@@ -1492,7 +1497,7 @@ const scrapeAmazonRegistry = ($: any, html: string, url: string): ScrapedItem[] 
       
       // Check if this looks like an ad/recommendation
       if (isRecommendationOrAd(item)) {
-        console.log(`[AMAZON_REGISTRY_PARSE] Skipping recommendation/ad item: ${title}`);
+        if (DEBUG) console.log(`[AMAZON_REGISTRY_PARSE] Skipping recommendation/ad item: ${title}`);
         return null;
       }
       
@@ -1525,7 +1530,7 @@ const scrapeAmazonRegistry = ($: any, html: string, url: string): ScrapedItem[] 
       const quantityPurchased = item.quantityPurchased || item.purchasedQuantity || 
                                item.fulfilledQuantity || item.boughtQuantity || 0;
       
-      console.log(`[AMAZON_REGISTRY_PARSE] Extracted item: "${title}" | ASIN: ${asin} | Price: ${price || 'N/A'} | Qty: ${quantityRequested}/${quantityPurchased}`);
+      if (DEBUG) console.log(`[AMAZON_REGISTRY_PARSE] Extracted item: "${title}" | ASIN: ${asin} | Price: ${price || 'N/A'} | Qty: ${quantityRequested}/${quantityPurchased}`);
       
       return {
         name: title,
@@ -1534,7 +1539,7 @@ const scrapeAmazonRegistry = ($: any, html: string, url: string): ScrapedItem[] 
         price,
       };
     } catch (e: any) {
-      console.log(`[AMAZON_REGISTRY_PARSE] Error extracting item: ${e.message}`);
+      if (DEBUG) console.log(`[AMAZON_REGISTRY_PARSE] Error extracting item: ${e.message}`);
       return null;
     }
   };
@@ -1546,12 +1551,12 @@ const scrapeAmazonRegistry = ($: any, html: string, url: string): ScrapedItem[] 
                           url.match(/\/hz\/wishlist\/ls\/([A-Z0-9]+)/i);
   const rawRegistryId = registryIdMatch ? registryIdMatch[1] : null;
   const registryId = rawRegistryId ? escapeRegex(rawRegistryId) : null;
-  console.log("[AMAZON_REGISTRY_PARSE] Extracted registry ID:", registryId || "Not found");
-  if (rawRegistryId) console.log('[SAFE_QUERY] Amazon parse registry ID (escaped):', registryId);
+  if (DEBUG) console.log("[AMAZON_REGISTRY_PARSE] Extracted registry ID:", registryId || "Not found");
+  if (DEBUG && rawRegistryId) console.log('[SAFE_QUERY] Amazon parse registry ID (escaped):', registryId);
   
   // Try to parse embedded JSON first - look for registry-specific data structures
   try {
-    console.log("[AMAZON_REGISTRY_PARSE] Searching for embedded JSON data...");
+    if (DEBUG) console.log("[AMAZON_REGISTRY_PARSE] Searching for embedded JSON data...");
     const scripts = $('script').toArray();
     let foundScriptContent = false;
     let pWhenBlocksFound = 0;
@@ -1563,7 +1568,7 @@ const scrapeAmazonRegistry = ($: any, html: string, url: string): ScrapedItem[] 
       // Pattern 1: P.when data loading - Amazon's primary lazy load pattern for registries
       if (content.includes('P.when')) {
         pWhenBlocksFound++;
-        console.log(`[AMAZON_REGISTRY_PARSE] Found P.when block #${pWhenBlocksFound}`);
+        if (DEBUG) console.log(`[AMAZON_REGISTRY_PARSE] Found P.when block #${pWhenBlocksFound}`);
         
         // Look for registry item data structures within P.when
         // Pattern: P.when('A', 'ready').register(...) with registry data
@@ -1599,7 +1604,7 @@ const scrapeAmazonRegistry = ($: any, html: string, url: string): ScrapedItem[] 
               }
               
               const itemsArray = JSON.parse(jsonStr);
-              console.log(`[AMAZON_REGISTRY_PARSE] P.when: Found array with ${itemsArray.length} potential items`);
+              if (DEBUG) console.log(`[AMAZON_REGISTRY_PARSE] P.when: Found array with ${itemsArray.length} potential items`);
               
               let validItemsFromBlock = 0;
               for (const item of itemsArray) {
@@ -1610,10 +1615,10 @@ const scrapeAmazonRegistry = ($: any, html: string, url: string): ScrapedItem[] 
                   pWhenItemsExtracted++;
                 }
               }
-              console.log(`[AMAZON_REGISTRY_PARSE] P.when block yielded ${validItemsFromBlock} valid registry items`);
+              if (DEBUG) console.log(`[AMAZON_REGISTRY_PARSE] P.when block yielded ${validItemsFromBlock} valid registry items`);
               
             } catch (e: any) {
-              console.log(`[AMAZON_REGISTRY_PARSE] P.when JSON parse error: ${e.message}`);
+              if (DEBUG) console.log(`[AMAZON_REGISTRY_PARSE] P.when JSON parse error: ${e.message}`);
             }
           }
         }
@@ -1658,7 +1663,7 @@ const scrapeAmazonRegistry = ($: any, html: string, url: string): ScrapedItem[] 
           content.includes('itemList') || content.includes('"items":') || 
           content.includes('"registryItems"'))) {
         foundScriptContent = true;
-        console.log("[AMAZON_REGISTRY_PARSE] Found standard registry data script");
+        if (DEBUG) console.log("[AMAZON_REGISTRY_PARSE] Found standard registry data script");
         
         const extractPatterns = [
           { pattern: /"items"\s*:\s*(\[[\s\S]*?\])(?=\s*[,}])/, name: 'items array' },
@@ -1673,7 +1678,7 @@ const scrapeAmazonRegistry = ($: any, html: string, url: string): ScrapedItem[] 
           if (match) {
             try {
               const itemsArray = JSON.parse(match[1]);
-              console.log(`[AMAZON_REGISTRY_PARSE] Found ${name} with ${itemsArray.length} potential items`);
+              if (DEBUG) console.log(`[AMAZON_REGISTRY_PARSE] Found ${name} with ${itemsArray.length} potential items`);
               
               let validItems = 0;
               for (const item of itemsArray) {
@@ -1683,10 +1688,10 @@ const scrapeAmazonRegistry = ($: any, html: string, url: string): ScrapedItem[] 
                   validItems++;
                 }
               }
-              console.log(`[AMAZON_REGISTRY_PARSE] ${name} yielded ${validItems} valid registry items`);
+              if (DEBUG) console.log(`[AMAZON_REGISTRY_PARSE] ${name} yielded ${validItems} valid registry items`);
               
             } catch (e: any) {
-              console.log(`[AMAZON_REGISTRY_PARSE] Failed to parse ${name}: ${e.message}`);
+              if (DEBUG) console.log(`[AMAZON_REGISTRY_PARSE] Failed to parse ${name}: ${e.message}`);
             }
           }
         }
@@ -1694,7 +1699,7 @@ const scrapeAmazonRegistry = ($: any, html: string, url: string): ScrapedItem[] 
       
       // Pattern 3: __PRELOADED_STATE__ with registry data
       if (content.includes("__PRELOADED_STATE__")) {
-        console.log("[AMAZON_REGISTRY_PARSE] Found __PRELOADED_STATE__");
+        if (DEBUG) console.log("[AMAZON_REGISTRY_PARSE] Found __PRELOADED_STATE__");
         const stateMatch = content.match(/window\.__PRELOADED_STATE__\s*=\s*(\{[\s\S]*?\});/);
         if (stateMatch) {
           try {
@@ -1710,7 +1715,7 @@ const scrapeAmazonRegistry = ($: any, html: string, url: string): ScrapedItem[] 
             
             for (const itemArray of possibleItemArrays) {
               if (Array.isArray(itemArray)) {
-                console.log(`[AMAZON_REGISTRY_PARSE] Found ${itemArray.length} items in __PRELOADED_STATE__`);
+                if (DEBUG) console.log(`[AMAZON_REGISTRY_PARSE] Found ${itemArray.length} items in __PRELOADED_STATE__`);
                 let validItems = 0;
                 for (const item of itemArray) {
                   const extracted = extractRegistryItem(item);
@@ -1719,35 +1724,35 @@ const scrapeAmazonRegistry = ($: any, html: string, url: string): ScrapedItem[] 
                     validItems++;
                   }
                 }
-                console.log(`[AMAZON_REGISTRY_PARSE] __PRELOADED_STATE__ yielded ${validItems} valid items`);
+                if (DEBUG) console.log(`[AMAZON_REGISTRY_PARSE] __PRELOADED_STATE__ yielded ${validItems} valid items`);
               }
             }
           } catch (e: any) {
-            console.log("[AMAZON_REGISTRY_PARSE] Failed to parse __PRELOADED_STATE__:", e.message);
+            if (DEBUG) console.log("[AMAZON_REGISTRY_PARSE] Failed to parse __PRELOADED_STATE__:", e.message);
           }
         }
       }
     }
     
     // Log P.when summary
-    if (pWhenBlocksFound > 0) {
+    if (DEBUG && pWhenBlocksFound > 0) {
       console.log(`[AMAZON_REGISTRY_PARSE] P.when Summary: ${pWhenBlocksFound} blocks found, ${pWhenItemsExtracted} items extracted`);
     }
     
     if (items.length > 0) {
-      console.log(`[AMAZON_REGISTRY_PARSE] JSON parsing successful: ${items.length} total items extracted`);
+      if (DEBUG) console.log(`[AMAZON_REGISTRY_PARSE] JSON parsing successful: ${items.length} total items extracted`);
       return items;
     }
     
-    if (!foundScriptContent && pWhenBlocksFound === 0) {
+    if (DEBUG && !foundScriptContent && pWhenBlocksFound === 0) {
       console.log("[AMAZON_REGISTRY_PARSE] No registry-related script content found");
     }
   } catch (e: any) {
-    console.log("[AMAZON_REGISTRY_PARSE] JSON parsing error:", e.message, "| Stack:", e.stack?.substring(0, 200));
+    if (DEBUG) console.log("[AMAZON_REGISTRY_PARSE] JSON parsing error:", e.message, "| Stack:", e.stack?.substring(0, 200));
   }
   
   // DOM parsing fallback - scope to registry list region
-  console.log("[AMAZON_REGISTRY_PARSE] Falling back to DOM parsing...");
+  if (DEBUG) console.log("[AMAZON_REGISTRY_PARSE] Falling back to DOM parsing...");
   
   // Look for the main registry items container first
   const registryContainerSelectors = [
@@ -1771,12 +1776,12 @@ const scrapeAmazonRegistry = ($: any, html: string, url: string): ScrapedItem[] 
     if ($container.length > 0) {
       $registryContainer = $container;
       foundContainer = true;
-      console.log("[AMAZON_REGISTRY_PARSE] Found registry container:", containerSelector, "| Elements:", $container.length);
+      if (DEBUG) console.log("[AMAZON_REGISTRY_PARSE] Found registry container:", containerSelector, "| Elements:", $container.length);
       break;
     }
   }
   
-  if (!foundContainer) {
+  if (DEBUG && !foundContainer) {
     console.log("[AMAZON_REGISTRY_PARSE] No specific registry container found, using body");
   }
   
@@ -1792,7 +1797,7 @@ const scrapeAmazonRegistry = ($: any, html: string, url: string): ScrapedItem[] 
   
   for (const selector of registryItemSelectors) {
     const $foundItems = $registryContainer.find(selector);
-    console.log(`[AMAZON_REGISTRY_PARSE] DOM selector "${selector}" found ${$foundItems.length} elements`);
+    if (DEBUG) console.log(`[AMAZON_REGISTRY_PARSE] DOM selector "${selector}" found ${$foundItems.length} elements`);
     
     $foundItems.each((_index: number, element: any) => {
       const $item = $(element);
@@ -1838,19 +1843,19 @@ const scrapeAmazonRegistry = ($: any, html: string, url: string): ScrapedItem[] 
           image,
           price,
         });
-        console.log(`[AMAZON_REGISTRY_PARSE] DOM: Extracted "${name}" | ASIN: ${asin}`);
+        if (DEBUG) console.log(`[AMAZON_REGISTRY_PARSE] DOM: Extracted "${name}" | ASIN: ${asin}`);
       }
     });
     
     if (items.length > 0) {
-      console.log("[AMAZON_REGISTRY_PARSE] Parsed from DOM with selector:", selector, "| Items:", items.length);
+      if (DEBUG) console.log("[AMAZON_REGISTRY_PARSE] Parsed from DOM with selector:", selector, "| Items:", items.length);
       break;
     }
   }
   
   // If still no items, try a more aggressive approach
   if (items.length === 0) {
-    console.log("[AMAZON_REGISTRY_PARSE] Attempting aggressive ASIN extraction...");
+    if (DEBUG) console.log("[AMAZON_REGISTRY_PARSE] Attempting aggressive ASIN extraction...");
     let aggressiveCount = 0;
     
     $('[data-asin], [data-itemid]').each((_index: number, element: any) => {
@@ -1876,12 +1881,12 @@ const scrapeAmazonRegistry = ($: any, html: string, url: string): ScrapedItem[] 
       }
     });
     
-    if (aggressiveCount > 0) {
+    if (DEBUG && aggressiveCount > 0) {
       console.log("[AMAZON_REGISTRY_PARSE] Aggressive extraction found:", aggressiveCount, "items");
     }
   }
   
-  console.log("[AMAZON_REGISTRY_PARSE] Final item count:", items.length);
+  if (DEBUG) console.log("[AMAZON_REGISTRY_PARSE] Final item count:", items.length);
   return items;
 };
 
@@ -2088,17 +2093,16 @@ async function fetchWalmartWithFallback(
   url: string,
   scraperApiKey: string
 ): Promise<WalmartFetchResult> {
-  console.log("[WALMART_FETCH] Starting Walmart fetch with multi-provider strategy...");
-  console.log("[WALMART_FETCH] Strategy: BrightData → Direct with retries");
+  // Essential: One request start line
+  console.log(`[WALMART_FETCH] Request for URL: ${url}`);
   
   // Strategy 1: Try BrightData Web Unlocker first (best for anti-bot sites)
-  console.log("[WALMART_FETCH] Trying BrightData Web Unlocker...");
   const brightDataResult = await fetchWithBrightDataUnlocker(url);
   
   if (brightDataResult.success && brightDataResult.html.length > 0) {
     const title = extractHtmlTitle(brightDataResult.html);
     const blocked = isWalmartBlockPage(brightDataResult.html);
-    console.log(`[WALMART_BRIGHTDATA] title="${title}" blocked=${blocked} len=${brightDataResult.html.length}`);
+    if (DEBUG) console.log(`[WALMART_BRIGHTDATA] title="${title}" blocked=${blocked} len=${brightDataResult.html.length}`);
     
     // Debug HTML capture
     if (DEBUG_SCRAPE_HTML) {
@@ -2126,24 +2130,25 @@ async function fetchWalmartWithFallback(
     }
     
     if (!blocked) {
-      console.log(`[WALMART_FETCH] BrightData Unlocker succeeded: ${brightDataResult.html.length} chars`);
+      // Essential: Fetch summary
+      console.log(`[WALMART_FETCH] Fetch success via BRIGHTDATA | status=${brightDataResult.status} | length=${brightDataResult.html.length}`);
       return {
         html: brightDataResult.html,
         method: "BRIGHTDATA",
         status: brightDataResult.status,
       };
     }
-    console.log("[WALMART_FETCH] BrightData returned blocked page");
+    if (DEBUG) console.log("[WALMART_FETCH] BrightData returned blocked page");
   }
   
-  console.log(`[WALMART_FETCH] BrightData insufficient (success=${brightDataResult.success}, length=${brightDataResult.html?.length || 0}, error=${brightDataResult.error || "none"})`);
+  if (DEBUG) console.log(`[WALMART_FETCH] BrightData insufficient (success=${brightDataResult.success}, length=${brightDataResult.html?.length || 0}, error=${brightDataResult.error || "none"})`);
   
   // Strategy 2: Try direct fetch with retries and user-agent rotation
-  console.log("[WALMART_FETCH] Trying direct fetch with retries and UA rotation...");
   const retryResult = await fetchWalmartWithRetries(url, 3);
   
   if (retryResult.success && retryResult.html.length > 5000) {
-    console.log(`[WALMART_FETCH] Direct fetch with retries succeeded on attempt ${retryResult.attemptsMade}: ${retryResult.html.length} chars`);
+    // Essential: Fetch summary
+    console.log(`[WALMART_FETCH] Fetch success via DIRECT_RETRY | status=${retryResult.status} | length=${retryResult.html.length}`);
     return {
       html: retryResult.html,
       method: "DIRECT_RETRY",
@@ -2151,8 +2156,9 @@ async function fetchWalmartWithFallback(
     };
   }
   
-  console.log(`[WALMART_FETCH] Direct fetch with retries failed after ${retryResult.attemptsMade} attempts | Error: ${retryResult.error || "unknown"}`);
-  console.log("[WALMART_FETCH] All strategies exhausted - advising manual upload");
+  if (DEBUG) console.log(`[WALMART_FETCH] Direct fetch with retries failed after ${retryResult.attemptsMade} attempts | Error: ${retryResult.error || "unknown"}`);
+  // Essential: Final result line
+  console.log("[WALMART_FETCH] All strategies failed - requiresManualUpload=true");
   
   // Return error with manual upload fallback
   return {
@@ -2175,8 +2181,8 @@ interface AmazonRegistryFetchResult {
 }
 
 async function fetchAmazonRegistryWithUnlocker(url: string): Promise<AmazonRegistryFetchResult> {
-  console.log("[AMAZON_REGISTRY_FETCH] Starting Amazon Registry fetch with BrightData Unlocker...");
-  console.log("[AMAZON_REGISTRY_FETCH] Strategy: Enhanced retry with UA rotation and expect headers");
+  // Essential: Request start line
+  console.log(`[AMAZON_REGISTRY_FETCH] Request for URL: ${url}`);
   
   const maxRetries = 3;
   const delays = [1500, 3000, 5000]; // Backoff delays in ms
@@ -2185,13 +2191,13 @@ async function fetchAmazonRegistryWithUnlocker(url: string): Promise<AmazonRegis
   // Try BrightData with retries and UA rotation
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     const ua = getRandomUserAgent();
-    console.log(`[AMAZON_REGISTRY_FETCH] Attempt ${attempt}/${maxRetries} | UA: "${ua.substring(0, 50)}..."`);
+    if (DEBUG) console.log(`[AMAZON_REGISTRY_FETCH] Attempt ${attempt}/${maxRetries} | UA: "${ua.substring(0, 50)}..."`);
     
     const brightDataToken = Deno.env.get("BRIGHTDATA_UNLOCKER_API_TOKEN");
     const brightDataZone = Deno.env.get("BRIGHTDATA_UNLOCKER_ZONE");
     
     if (!brightDataToken || !brightDataZone) {
-      console.log("[AMAZON_REGISTRY_FETCH] Missing BrightData credentials");
+      if (DEBUG) console.log("[AMAZON_REGISTRY_FETCH] Missing BrightData credentials");
       break;
     }
     
@@ -2212,21 +2218,21 @@ async function fetchAmazonRegistryWithUnlocker(url: string): Promise<AmazonRegis
       });
       
       const status = response.status;
-      console.log(`[AMAZON_REGISTRY_FETCH] Response status: ${status}`);
+      if (DEBUG) console.log(`[AMAZON_REGISTRY_FETCH] Response status: ${status}`);
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.log(`[AMAZON_REGISTRY_FETCH] Failed attempt ${attempt} | status=${status} | error=${errorText.substring(0, 200)}`);
+        if (DEBUG) console.log(`[AMAZON_REGISTRY_FETCH] Failed attempt ${attempt} | status=${status} | error=${errorText.substring(0, 200)}`);
       } else {
         const html = await response.text();
         const title = extractHtmlTitle(html);
         const blocked = isAmazonBlockedOrLogin(html);
         
-        console.log(`[AMAZON_REGISTRY_FETCH] Attempt ${attempt} | status=${status} | title="${title}" | blocked=${blocked} | length=${html.length}`);
+        if (DEBUG) console.log(`[AMAZON_REGISTRY_FETCH] Attempt ${attempt} | status=${status} | title="${title}" | blocked=${blocked} | length=${html.length}`);
         
         if (!blocked && html.length > 5000) {
-          console.log(`[AMAZON_REGISTRY_FETCH] Success on attempt ${attempt}`);
-          console.log(`[AMAZON_REGISTRY_FINAL] success=true requiresManualUpload=false`);
+          // Essential: Fetch summary
+          console.log(`[AMAZON_REGISTRY_FETCH] Fetch success via BRIGHTDATA | status=${status} | length=${html.length}`);
           return {
             html,
             method: "BRIGHTDATA",
@@ -2235,39 +2241,37 @@ async function fetchAmazonRegistryWithUnlocker(url: string): Promise<AmazonRegis
           };
         }
         
-        if (blocked) {
+        if (DEBUG && blocked) {
           console.log(`[AMAZON_REGISTRY_FETCH] Blocked/login detected on attempt ${attempt} | title="${title}"`);
-          console.log(`[AMAZON_REGISTRY_FETCH] First 500 chars: ${html.substring(0, 500).replace(/\s+/g, ' ')}`);
         }
       }
     } catch (e: any) {
-      console.log(`[AMAZON_REGISTRY_FETCH] Fetch error on attempt ${attempt}: ${e.message}`);
+      if (DEBUG) console.log(`[AMAZON_REGISTRY_FETCH] Fetch error on attempt ${attempt}: ${e.message}`);
     }
     
     // Sleep before retry (except after last attempt)
     if (attempt < maxRetries) {
       const delay = delays[attempt - 1];
       const randomizedDelay = delay + Math.floor(Math.random() * 1000);
-      console.log(`[AMAZON_REGISTRY_FETCH] Waiting ${randomizedDelay}ms before retry...`);
+      if (DEBUG) console.log(`[AMAZON_REGISTRY_FETCH] Waiting ${randomizedDelay}ms before retry...`);
       await new Promise(resolve => setTimeout(resolve, randomizedDelay));
     }
   }
   
-  console.log("[AMAZON_REGISTRY_FETCH] All BrightData retry attempts exhausted");
+  if (DEBUG) console.log("[AMAZON_REGISTRY_FETCH] All BrightData retry attempts exhausted");
   
   // Strategy 2: Try direct fetch as last resort (usually won't work for Amazon)
-  console.log("[AMAZON_REGISTRY_FETCH] Trying direct fetch as fallback...");
   const directResult = await fetchDirect(url);
   
-  console.log(`[AMAZON_REGISTRY_FETCH] Direct fetch result: ok=${directResult.ok}, status=${directResult.status}, length=${directResult.html?.length || 0}`);
+  if (DEBUG) console.log(`[AMAZON_REGISTRY_FETCH] Direct fetch result: ok=${directResult.ok}, status=${directResult.status}, length=${directResult.html?.length || 0}`);
   
   if (directResult.ok && directResult.html.length > 5000) {
     const blockedOrLogin = isAmazonBlockedOrLogin(directResult.html);
-    console.log(`[AMAZON_REGISTRY_FETCH] Direct fetch blocked/login check: ${blockedOrLogin}`);
+    if (DEBUG) console.log(`[AMAZON_REGISTRY_FETCH] Direct fetch blocked/login check: ${blockedOrLogin}`);
     
     if (!blockedOrLogin) {
-      console.log(`[AMAZON_REGISTRY_FETCH] Direct fetch succeeded: ${directResult.html.length} chars, not blocked`);
-      console.log(`[AMAZON_REGISTRY_FINAL] success=true requiresManualUpload=false`);
+      // Essential: Fetch summary
+      console.log(`[AMAZON_REGISTRY_FETCH] Fetch success via DIRECT | status=${directResult.status} | length=${directResult.html.length}`);
       return {
         html: directResult.html,
         method: "DIRECT",
@@ -2276,14 +2280,16 @@ async function fetchAmazonRegistryWithUnlocker(url: string): Promise<AmazonRegis
       };
     }
     
-    const titleMatch = directResult.html.match(/<title[^>]*>([^<]+)<\/title>/i);
-    const pageTitle = titleMatch ? titleMatch[1].trim() : "No title found";
-    console.log(`[AMAZON_REGISTRY_FETCH] Blocked/login page detected via direct | Title: ${pageTitle}`);
+    if (DEBUG) {
+      const titleMatch = directResult.html.match(/<title[^>]*>([^<]+)<\/title>/i);
+      const pageTitle = titleMatch ? titleMatch[1].trim() : "No title found";
+      console.log(`[AMAZON_REGISTRY_FETCH] Blocked/login page detected via direct | Title: ${pageTitle}`);
+    }
   }
   
   // All strategies failed - return manual upload required
-  console.log("[AMAZON_REGISTRY_FETCH] All fetch strategies failed");
-  console.log(`[AMAZON_REGISTRY_FINAL] success=false requiresManualUpload=true`);
+  // Essential: Final result line
+  console.log("[AMAZON_REGISTRY_FETCH] All strategies failed - requiresManualUpload=true");
   return {
     html: "",
     method: "BRIGHTDATA",
@@ -2352,45 +2358,44 @@ async function fetchTargetWithRetry(
   url: string,
   apiKey: string
 ): Promise<{ html: string; strategy: string }> {
-  console.log("[TARGET_FETCH] Starting Target fetch with retry strategies...");
+  // Essential: Request start line
+  console.log(`[TARGET_FETCH] Request for URL: ${url}`);
   
   // Strategy 1: Standard fetch with render
   try {
-    console.log("[TARGET_FETCH] Strategy 1: Standard fetch with render");
     const html = await fetchWithScraperAPI(url, apiKey);
     if (html && html.length > 5000) {
-      console.log("[TARGET_FETCH] Strategy 1 succeeded, HTML length:", html.length);
+      // Essential: Fetch summary
+      console.log(`[TARGET_FETCH] Fetch success via standard | length=${html.length}`);
       return { html, strategy: "standard" };
     }
-    console.log("[TARGET_FETCH] Strategy 1 returned minimal content:", html?.length || 0);
+    if (DEBUG) console.log("[TARGET_FETCH] Strategy 1 returned minimal content:", html?.length || 0);
   } catch (e: any) {
-    console.log("[TARGET_FETCH] Strategy 1 failed:", e.message);
+    if (DEBUG) console.log("[TARGET_FETCH] Strategy 1 failed:", e.message);
   }
   
   // Strategy 2: Fetch with browser headers
   try {
-    console.log("[TARGET_FETCH] Strategy 2: Fetch with browser headers");
     const html = await fetchWithScraperAPI(url, apiKey, { withBrowserHeaders: true });
     if (html && html.length > 5000) {
-      console.log("[TARGET_FETCH] Strategy 2 succeeded, HTML length:", html.length);
+      console.log(`[TARGET_FETCH] Fetch success via browser_headers | length=${html.length}`);
       return { html, strategy: "browser_headers" };
     }
-    console.log("[TARGET_FETCH] Strategy 2 returned minimal content:", html?.length || 0);
+    if (DEBUG) console.log("[TARGET_FETCH] Strategy 2 returned minimal content:", html?.length || 0);
   } catch (e: any) {
-    console.log("[TARGET_FETCH] Strategy 2 failed:", e.message);
+    if (DEBUG) console.log("[TARGET_FETCH] Strategy 2 failed:", e.message);
   }
   
   // Strategy 3: Try with US country code and browser headers
   try {
-    console.log("[TARGET_FETCH] Strategy 3: US country code with browser headers");
     const html = await fetchWithScraperAPI(url, apiKey, { withBrowserHeaders: true, country: "us" });
     if (html && html.length > 5000) {
-      console.log("[TARGET_FETCH] Strategy 3 succeeded, HTML length:", html.length);
+      console.log(`[TARGET_FETCH] Fetch success via us_country | length=${html.length}`);
       return { html, strategy: "us_country" };
     }
-    console.log("[TARGET_FETCH] Strategy 3 returned minimal content:", html?.length || 0);
+    if (DEBUG) console.log("[TARGET_FETCH] Strategy 3 returned minimal content:", html?.length || 0);
   } catch (e: any) {
-    console.log("[TARGET_FETCH] Strategy 3 failed:", e.message);
+    if (DEBUG) console.log("[TARGET_FETCH] Strategy 3 failed:", e.message);
   }
   
   // Strategy 4: Try alternative URL format (gift-giver vs gift)
@@ -2400,20 +2405,19 @@ async function fetchTargetWithRetry(
   
   if (altUrl !== url) {
     try {
-      console.log("[TARGET_FETCH] Strategy 4: Alternative URL format:", altUrl);
       const html = await fetchWithScraperAPI(altUrl, apiKey, { withBrowserHeaders: true });
       if (html && html.length > 5000) {
-        console.log("[TARGET_FETCH] Strategy 4 succeeded, HTML length:", html.length);
+        console.log(`[TARGET_FETCH] Fetch success via alt_url | length=${html.length}`);
         return { html, strategy: "alt_url" };
       }
-      console.log("[TARGET_FETCH] Strategy 4 returned minimal content:", html?.length || 0);
+      if (DEBUG) console.log("[TARGET_FETCH] Strategy 4 returned minimal content:", html?.length || 0);
     } catch (e: any) {
-      console.log("[TARGET_FETCH] Strategy 4 failed:", e.message);
+      if (DEBUG) console.log("[TARGET_FETCH] Strategy 4 failed:", e.message);
     }
   }
   
   // Return the last attempt even if minimal content
-  console.log("[TARGET_FETCH] All strategies exhausted, returning best available");
+  if (DEBUG) console.log("[TARGET_FETCH] All strategies exhausted, returning best available");
   const finalHtml = await fetchWithScraperAPI(url, apiKey, { withBrowserHeaders: true });
   return { html: finalHtml, strategy: "final_fallback" };
 }
@@ -2447,11 +2451,12 @@ Deno.serve(async (req) => {
 
   try {
     const { url } = await req.json();
+    const retailer = detectRetailer(url);
     
-    console.log("[SCRAPE_START] Incoming request URL:", url);
+    // Essential: Request start line
+    console.log(`[SCRAPE_START] retailer=${retailer || "UNSUPPORTED"} | url=${url}`);
 
     if (!url || typeof url !== "string") {
-      console.log("[SCRAPE_ERROR] Invalid URL provided:", url);
       return new Response(
         JSON.stringify({ success: false, items: [], message: "URL is required" }),
         {
@@ -2461,11 +2466,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const retailer = detectRetailer(url);
-    console.log("[SCRAPE_DETECT] Detected retailer:", retailer || "UNSUPPORTED", "for URL:", url);
-
     if (!retailer) {
-      console.log("[SCRAPE_UNSUPPORTED] Retailer not supported for URL:", url);
       return new Response(
         JSON.stringify({
           success: false,
@@ -2480,10 +2481,8 @@ Deno.serve(async (req) => {
     }
 
     const scraperApiKey = Deno.env.get("SCRAPER_API_KEY");
-    console.log("[SCRAPE_CONFIG] SCRAPER_API_KEY available:", !!scraperApiKey);
     
     const DEBUG_SCRAPE_HTML = (Deno.env.get('DEBUG_SCRAPE_HTML') || '').toLowerCase() === 'true';
-    if (DEBUG_SCRAPE_HTML) console.log('[DEBUG_HTML] DEBUG_SCRAPE_HTML enabled');
     
     function escapeRegex(string: string): string {
       return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // escape all regex special chars including brackets
@@ -2628,10 +2627,8 @@ Deno.serve(async (req) => {
     let fetchUrl = url;
     if (retailer === "Target") {
       fetchUrl = normalizeTargetRegistryUrl(url);
-      console.log("[SCRAPE_NORMALIZE] Target URL normalized:", url, "->", fetchUrl);
+      if (DEBUG) console.log("[SCRAPE_NORMALIZE] Target URL normalized:", url, "->", fetchUrl);
     }
-    
-    console.log("[SCRAPE_FETCH] Fetching URL:", fetchUrl, "| Retailer:", retailer);
     
     let html: string;
     let fetchStrategy = "standard";
@@ -2643,7 +2640,8 @@ Deno.serve(async (req) => {
         const result = await fetchTargetWithRetry(fetchUrl, scraperApiKey);
         html = result.html;
         fetchStrategy = result.strategy;
-        console.log("[SCRAPE_FETCH] Target HTML fetched with strategy:", fetchStrategy, "| Length:", html?.length || 0, "characters");
+        // Essential: Fetch summary
+        console.log(`[SCRAPE_FETCH] Target | provider=ScraperAPI | strategy=${fetchStrategy} | length=${html?.length || 0}`);
         
         // Debug HTML capture
         if (DEBUG_SCRAPE_HTML) {
@@ -2671,7 +2669,7 @@ Deno.serve(async (req) => {
         
         // TEMPORARILY DISABLED: Target restricted page check bypassed for debugging
         const restrictedCheck = isTargetRestrictedPage(html);
-        console.log(`[SCRAPE_DEBUG] Target restricted check: restricted=${restrictedCheck.restricted} reason=${restrictedCheck.reason}`);
+        if (DEBUG) console.log(`[SCRAPE_DEBUG] Target restricted check: restricted=${restrictedCheck.restricted} reason=${restrictedCheck.reason}`);
         // if (restrictedCheck.restricted) {
         //   console.log(`[SCRAPE_RESTRICTED] Target page appears restricted: ${restrictedCheck.reason}`);
         //   console.log("[SCRAPE_RESTRICTED] URL:", fetchUrl);
@@ -2695,10 +2693,8 @@ Deno.serve(async (req) => {
         const walmartResult = await fetchWalmartWithFallback(fetchUrl, scraperApiKey);
         fetchMethod = walmartResult.method;
         
-        console.log(`[SCRAPE_FETCH] Walmart HTML fetched with method: ${fetchMethod} | Status: ${walmartResult.status} | Length: ${walmartResult.html?.length || 0}`);
-        
         if (walmartResult.error) {
-          console.log(`[SCRAPE_FETCH] Walmart fetch error: ${walmartResult.error} | requiresManualUpload: ${walmartResult.requiresManualUpload}`);
+          if (DEBUG) console.log(`[SCRAPE_FETCH] Walmart fetch error: ${walmartResult.error}`);
           return new Response(
             JSON.stringify({
               success: false,
@@ -2714,9 +2710,9 @@ Deno.serve(async (req) => {
         }
         
         html = walmartResult.html;
+        // Essential: Fetch summary (already logged in fetchWalmartWithFallback)
         
         if (!html || html.length < 1000) {
-          console.log("[SCRAPE_FETCH] Walmart returned minimal/empty HTML");
           return new Response(
             JSON.stringify({
               success: false,
@@ -2734,10 +2730,9 @@ Deno.serve(async (req) => {
         const amazonRegistryResult = await fetchAmazonRegistryWithUnlocker(fetchUrl);
         fetchMethod = amazonRegistryResult.method;
         
-        console.log(`[SCRAPE_FETCH] Amazon Registry HTML fetched with method: ${fetchMethod} | Status: ${amazonRegistryResult.status} | Length: ${amazonRegistryResult.html?.length || 0} | Blocked/Login: ${amazonRegistryResult.blockedOrLogin}`);
+        // Essential: Fetch summary (already logged in fetchAmazonRegistryWithUnlocker)
         
         if (amazonRegistryResult.error || amazonRegistryResult.blockedOrLogin) {
-          console.log(`[SCRAPE_FETCH] Amazon Registry fetch blocked/error: ${amazonRegistryResult.error} | requiresManualUpload: ${amazonRegistryResult.requiresManualUpload}`);
           return new Response(
             JSON.stringify({
               success: false,
@@ -2755,7 +2750,6 @@ Deno.serve(async (req) => {
         html = amazonRegistryResult.html;
         
         if (!html || html.length < 1000) {
-          console.log("[SCRAPE_FETCH] Amazon Registry returned minimal/empty HTML");
           return new Response(
             JSON.stringify({
               success: false,
@@ -2771,11 +2765,11 @@ Deno.serve(async (req) => {
         }
       } else {
         html = await fetchWithScraperAPI(fetchUrl, scraperApiKey);
-        console.log("[SCRAPE_FETCH] HTML fetched successfully, length:", html?.length || 0, "characters");
+        // Essential: Fetch summary
+        console.log(`[SCRAPE_FETCH] Amazon | provider=ScraperAPI | length=${html?.length || 0}`);
       }
     } catch (fetchError: any) {
-      console.error(`[SCRAPE_FETCH_ERROR] Retailer: ${retailer} | URL: ${url} | Error: ${fetchError.message}`);
-      console.error(`[SCRAPE_FETCH_ERROR] Stack:`, fetchError.stack || "No stack trace");
+      console.error(`[SCRAPE_FETCH_ERROR] Retailer: ${retailer} | Error: ${fetchError.message}`);
       return new Response(
         JSON.stringify({
           success: false,
@@ -2791,8 +2785,7 @@ Deno.serve(async (req) => {
     
     // Check for Amazon blocked/captcha pages
     if ((retailer === "Amazon" || retailer === "AmazonRegistry") && isAmazonBlockedPage(html)) {
-      console.log(`[SCRAPE_BLOCKED] Amazon returned captcha/blocked page for URL: ${url}`);
-      logHtmlDebugInfo(html, retailer, url);
+      if (DEBUG) logHtmlDebugInfo(html, retailer, url);
       return new Response(
         JSON.stringify({
           success: false,
@@ -2806,7 +2799,6 @@ Deno.serve(async (req) => {
       );
     }
     
-    console.log("[SCRAPE_PARSE] Starting HTML parsing for retailer:", retailer);
     const $ = load(html);
     
     let items: ScrapedItem[] = [];
@@ -2817,23 +2809,22 @@ Deno.serve(async (req) => {
     if (retailer === "Target") {
       try {
         items = scrapeTargetRegistry($, html, DEBUG_SCRAPE_HTML);
-        console.log("[SCRAPE_PARSE] Target parsing complete, items extracted:", items.length, "| Fetch strategy used:", fetchStrategy);
-        console.log(`[TARGET_FINAL] url=${url} items=${items.length} via=${fetchStrategy}`);
+        // Essential: Parse summary
+        console.log(`[SCRAPE_PARSE] Target | items=${items.length} | parseMethod=scrapeTargetRegistry`);
         
         // Debug log if no items found
-        if (items.length === 0) {
+        if (items.length === 0 && DEBUG) {
           console.log("[SCRAPE_DEBUG] Target returned 0 items despite successful fetch");
-          console.log("[SCRAPE_DEBUG] Fetch strategy was:", fetchStrategy);
-          console.log("[SCRAPE_DEBUG] URL:", fetchUrl);
           logHtmlDebugInfo(html, retailer, url, DEBUG_SCRAPE_HTML);
-          
+        }
+        
+        if (items.length === 0) {
           // Provide more specific error for Target
           scrapeError = "We couldn't retrieve items from this Target registry share link. If this persists, please contact support or use manual import.";
         }
       } catch (e: any) {
-        console.error(`[SCRAPE_PARSE_ERROR] Retailer: Target | URL: ${url} | Error: ${e.message}`);
-        console.error(`[SCRAPE_PARSE_ERROR] Stack:`, e.stack || "No stack trace");
-        logHtmlDebugInfo(html, retailer, url);
+        console.error(`[SCRAPE_PARSE_ERROR] Retailer: Target | Error: ${e.message}`);
+        if (DEBUG) logHtmlDebugInfo(html, retailer, url);
         scrapeError = "We couldn't retrieve items from this Target registry share link. If this persists, please contact support or use manual import.";
       }
     } else if (retailer === "AmazonRegistry") {
@@ -2845,37 +2836,43 @@ Deno.serve(async (req) => {
         
         // Try standard HTML parsing first
         items = scrapeAmazonRegistry($, html, url);
-        console.log("[SCRAPE_PARSE] Amazon Registry initial parsing, items extracted:", items.length);
+        if (DEBUG) console.log("[SCRAPE_PARSE] Amazon Registry initial parsing, items extracted:", items.length);
         
         // If no items found, check if it's a shell page and try API extraction
         if (items.length === 0) {
-          console.log("[SCRAPE_DEBUG] AmazonRegistry returned 0 items, analyzing page...");
-          logHtmlDebugInfo(html, retailer, url, DEBUG_SCRAPE_HTML);
+          if (DEBUG) console.log("[SCRAPE_DEBUG] AmazonRegistry returned 0 items, analyzing page...");
+          if (DEBUG) logHtmlDebugInfo(html, retailer, url, DEBUG_SCRAPE_HTML);
           
           if (analysis.isShellPage || !analysis.markers.hasRegistryItem) {
-            console.log("[AMAZON_REGISTRY] Detected shell page or no registry items in HTML, attempting API extraction...");
+            if (DEBUG) console.log("[AMAZON_REGISTRY] Detected shell page or no registry items in HTML, attempting API extraction...");
             
-            // Try API-based extraction
-            const apiResult = await tryAmazonRegistryApi(analysis, scraperApiKey);
-            
-            if (apiResult.success && apiResult.items.length > 0) {
-              items = apiResult.items;
-              console.log(`[AMAZON_REGISTRY] API extraction successful: ${items.length} items`);
-            } else if (apiResult.requiresAuth) {
-              console.log("[AMAZON_REGISTRY] API requires auth/cookies, falling back to manual import message");
-              scrapeError = "Amazon registries can't be imported automatically right now due to Amazon restrictions. Please use File Import or Paste Items.";
+            // Try API-based extraction (only if DEBUG enabled for deep recursion)
+            if (DEBUG) {
+              const apiResult = await tryAmazonRegistryApi(analysis, scraperApiKey);
+              
+              if (apiResult.success && apiResult.items.length > 0) {
+                items = apiResult.items;
+                console.log(`[AMAZON_REGISTRY] API extraction successful: ${items.length} items`);
+              } else if (apiResult.requiresAuth) {
+                if (DEBUG) console.log("[AMAZON_REGISTRY] API requires auth/cookies, falling back to manual import message");
+                scrapeError = "Amazon registries can't be imported automatically right now due to Amazon restrictions. Please use File Import or Paste Items.";
+              } else {
+                if (DEBUG) console.log("[AMAZON_REGISTRY] API extraction failed:", apiResult.error);
+                scrapeError = "Amazon registries can't be imported automatically right now due to Amazon restrictions. Please use File Import or Paste Items.";
+              }
             } else {
-              console.log("[AMAZON_REGISTRY] API extraction failed:", apiResult.error);
+              // In production, skip deep recursion and go straight to manual upload
               scrapeError = "Amazon registries can't be imported automatically right now due to Amazon restrictions. Please use File Import or Paste Items.";
             }
           } else {
             // Page has registry markers but no items - might be empty or parsing failed
-            console.log("[AMAZON_REGISTRY] Page appears to have registry content but no items extracted");
+            if (DEBUG) console.log("[AMAZON_REGISTRY] Page appears to have registry content but no items extracted");
             scrapeError = "Amazon registries can't be imported automatically right now due to Amazon restrictions. Please use File Import or Paste Items.";
           }
         }
         
-        console.log("[SCRAPE_PARSE] Amazon Registry parsing complete, final items:", items.length);
+        // Essential: Parse summary
+        console.log(`[SCRAPE_PARSE] AmazonRegistry | items=${items.length} | parseMethod=scrapeAmazonRegistry`);
       } catch (e: any) {
         console.error(`[SCRAPE_PARSE_ERROR] Retailer: AmazonRegistry | URL: ${url} | Error: ${e.message}`);
         console.error(`[SCRAPE_PARSE_ERROR] Stack:`, e.stack || "No stack trace");
@@ -2884,55 +2881,52 @@ Deno.serve(async (req) => {
       }
     } else if (retailer === "WalmartWishlist") {
       try {
-        console.log(`[SCRAPE_PARSE] Starting Walmart wishlist parsing... (fetch method: ${fetchMethod})`);
         items = scrapeWalmartWishlist($, html, url);
         displayRetailer = "Walmart Wishlist";
-        console.log(`[SCRAPE_PARSE] Walmart wishlist parsing complete | Items: ${items.length} | Fetch method: ${fetchMethod}`);
+        // Essential: Parse summary
+        console.log(`[SCRAPE_PARSE] WalmartWishlist | items=${items.length} | parseMethod=scrapeWalmartWishlist`);
         
         // Debug log if no items found
-        if (items.length === 0) {
+        if (items.length === 0 && DEBUG) {
           console.log(`[SCRAPE_DEBUG] Walmart wishlist returned 0 items | Fetch method used: ${fetchMethod}`);
           logHtmlDebugInfo(html, retailer, url, DEBUG_SCRAPE_HTML);
         }
       } catch (e: any) {
-        console.error(`[SCRAPE_PARSE_ERROR] Retailer: WalmartWishlist | URL: ${url} | Fetch method: ${fetchMethod} | Error: ${e.message}`);
-        console.error(`[SCRAPE_PARSE_ERROR] Stack:`, e.stack || "No stack trace");
-        logHtmlDebugInfo(html, retailer, url);
+        console.error(`[SCRAPE_PARSE_ERROR] Retailer: WalmartWishlist | URL: ${url} | Error: ${e.message}`);
+        if (DEBUG) logHtmlDebugInfo(html, retailer, url);
         scrapeError = "Walmart import is temporarily unavailable due to site restrictions. Please try again later or use File Import.";
       }
     } else if (retailer === "WalmartRegistry") {
       try {
-        console.log(`[SCRAPE_PARSE] Starting Walmart registry parsing... (fetch method: ${fetchMethod})`);
         items = scrapeWalmartRegistry($, html, url);
         displayRetailer = "Walmart Registry";
-        console.log(`[SCRAPE_PARSE] Walmart registry parsing complete | Items: ${items.length} | Fetch method: ${fetchMethod}`);
+        // Essential: Parse summary
+        console.log(`[SCRAPE_PARSE] WalmartRegistry | items=${items.length} | parseMethod=scrapeWalmartRegistry`);
         
         // Debug log if no items found
-        if (items.length === 0) {
+        if (items.length === 0 && DEBUG) {
           console.log(`[SCRAPE_DEBUG] Walmart registry returned 0 items | Fetch method used: ${fetchMethod}`);
           logHtmlDebugInfo(html, retailer, url, DEBUG_SCRAPE_HTML);
         }
       } catch (e: any) {
         console.error(`[SCRAPE_PARSE_ERROR] Retailer: WalmartRegistry | URL: ${url} | Error: ${e.message}`);
-        console.error(`[SCRAPE_PARSE_ERROR] Stack:`, e.stack || "No stack trace");
-        logHtmlDebugInfo(html, retailer, url);
+        if (DEBUG) logHtmlDebugInfo(html, retailer, url);
         scrapeError = "Walmart import is temporarily unavailable due to site restrictions. Please try again later or use File Import.";
       }
     } else {
       try {
-        console.log("[SCRAPE_PARSE] Starting Amazon wishlist parsing...");
         items = scrapeAmazon($);
-        console.log("[SCRAPE_PARSE] Amazon wishlist parsing complete, items extracted:", items.length);
+        // Essential: Parse summary
+        console.log(`[SCRAPE_PARSE] Amazon | items=${items.length} | parseMethod=scrapeAmazon`);
         
         // Debug log if no items found
-        if (items.length === 0) {
+        if (items.length === 0 && DEBUG) {
           console.log("[SCRAPE_DEBUG] Amazon wishlist returned 0 items, logging HTML info...");
           logHtmlDebugInfo(html, retailer, url, DEBUG_SCRAPE_HTML);
         }
       } catch (e: any) {
         console.error(`[SCRAPE_PARSE_ERROR] Retailer: Amazon | URL: ${url} | Error: ${e.message}`);
-        console.error(`[SCRAPE_PARSE_ERROR] Stack:`, e.stack || "No stack trace");
-        logHtmlDebugInfo(html, retailer, url);
+        if (DEBUG) logHtmlDebugInfo(html, retailer, url);
         scrapeError = "No items found. The list might be empty, private, or the page structure has changed.";
       }
     }
@@ -2949,25 +2943,21 @@ Deno.serve(async (req) => {
           requiresManualUpload = true;
         }
       } else if (retailer === "Target") {
-        console.log(`[SCRAPE_EMPTY] Retailer: Target | URL: ${url} | Reason: 0 items found`);
         errorMessage = "We couldn't find items at that link. Please double-check the Target registry share URL.";
       } else if (retailer === "AmazonRegistry") {
-        console.log(`[SCRAPE_EMPTY] Retailer: AmazonRegistry | URL: ${url} | Reason: 0 items found`);
         errorMessage = "Amazon registries can't be imported automatically right now due to Amazon restrictions. Please use File Import or Paste Items.";
         requiresManualUpload = true;
       } else if (retailer === "WalmartWishlist") {
-        console.log(`[SCRAPE_EMPTY] Retailer: WalmartWishlist | URL: ${url} | Reason: 0 items found`);
         errorMessage = "Walmart import is temporarily unavailable due to site restrictions. Please try again later or use File Import.";
         requiresManualUpload = true;
       } else if (retailer === "WalmartRegistry") {
-        console.log(`[SCRAPE_EMPTY] Retailer: WalmartRegistry | URL: ${url} | Reason: 0 items found`);
         errorMessage = "Walmart import is temporarily unavailable due to site restrictions. Please try again later or use File Import.";
         requiresManualUpload = true;
       } else {
-        console.log(`[SCRAPE_EMPTY] Retailer: Amazon | URL: ${url} | Reason: 0 items found`);
         errorMessage = "No items found. The list might be empty, private, or the page structure has changed.";
       }
-      console.log("[SCRAPE_RESULT] success: false | items: 0 | message:", errorMessage, "| requiresManualUpload:", requiresManualUpload);
+      // Essential: Final result line
+      console.log(`[SCRAPE_RESULT] success=false | items=0 | retailer=${retailer} | requiresManualUpload=${requiresManualUpload}`);
       return new Response(
         JSON.stringify({
           success: false,
@@ -2982,7 +2972,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`[SCRAPE_SUCCESS] Retailer: ${displayRetailer} | Items: ${items.length} | URL: ${url}`);
+    // Essential: Final result line
+    console.log(`[SCRAPE_RESULT] success=true | items=${items.length} | retailer=${displayRetailer}`);
     return new Response(
       JSON.stringify({
         success: true,
@@ -3003,7 +2994,8 @@ Deno.serve(async (req) => {
       ? "Scraping service error. Please try again in a few minutes or contact support."
       : "Failed to import wishlist. Please verify the URL is correct and the wishlist is public, then try again.";
     
-    console.log("[SCRAPE_RESULT] success: false | items: 0 | message:", errorMessage);
+    // Essential: Final result line
+    console.log(`[SCRAPE_RESULT] success=false | items=0 | error=${error.message?.substring(0, 100)}`);
     
     // Always return HTTP 200 with structured error for better frontend handling
     return new Response(
