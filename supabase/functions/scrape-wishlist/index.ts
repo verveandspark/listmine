@@ -519,6 +519,8 @@ const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
       
       // Expanded candidate paths for registry items
       const candidatePaths = [
+        // New path from DEBUG_JSON
+        "props.sapphireInstance.qualifiedExperiments.pages[0].svc",
         // Direct item arrays
         "props.pageProps.giftRegistryData.items",
         "props.pageProps.giftGiverData.items",
@@ -848,6 +850,7 @@ const scrapeWalmartWishlist = ($: any, html: string, url: string): ScrapedItem[]
       
       // Navigate through possible paths for list items
       const pathDescriptions = [
+        { path: "props.sapphireInstance.qualifiedExperiments.pages[0].svc", data: getNestedValue(nextData, "props.sapphireInstance.qualifiedExperiments.pages[0].svc") },
         { path: "props.pageProps.initialData.list.items", data: nextData?.props?.pageProps?.initialData?.list?.items },
         { path: "props.pageProps.list.items", data: nextData?.props?.pageProps?.list?.items },
         { path: "props.pageProps.data.list.items", data: nextData?.props?.pageProps?.data?.list?.items },
@@ -1061,6 +1064,7 @@ const scrapeWalmartRegistry = ($: any, html: string, url: string): ScrapedItem[]
       
       // Navigate through possible paths for registry items
       const pathDescriptions = [
+        { path: "props.sapphireInstance.qualifiedExperiments.pages[0].svc", data: getNestedValue(nextData, "props.sapphireInstance.qualifiedExperiments.pages[0].svc") },
         { path: "props.pageProps.initialData.registry.items", data: nextData?.props?.pageProps?.initialData?.registry?.items },
         { path: "props.pageProps.registry.items", data: nextData?.props?.pageProps?.registry?.items },
         { path: "props.pageProps.registryData.items", data: nextData?.props?.pageProps?.registryData?.items },
@@ -1697,6 +1701,11 @@ const scrapeAmazonRegistry = ($: any, html: string, url: string): ScrapedItem[] 
   console.log("[AMAZON_REGISTRY_PARSE] Final item count:", items.length);
   return items;
 };
+
+// Helper to safely get nested values by path
+function getNestedValue(obj: any, path: string): any {
+  return path.split('.').reduce((o, key) => (o && o[key] !== undefined ? o[key] : null), obj);
+}
 
 interface FetchOptions {
   withBrowserHeaders?: boolean;
