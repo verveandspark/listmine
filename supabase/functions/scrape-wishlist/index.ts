@@ -469,35 +469,39 @@ const findTargetItemsDeep = (obj: any, depth = 0, maxDepth = 8, currentPath = ""
 const normalizeTargetItem = (item: any): ScrapedItem | null => {
   const product = item.product || item.productDetails || item.productInfo || item;
   
-  const name = product.title || product.productTitle || product.name || 
+  const name = product.productTitle || product.title || product.name || 
                product.description || product.displayName ||
-               item.title || item.productTitle || item.name || item.displayName;
+               item.productTitle || item.title || item.name || item.displayName;
   
   if (!name || name === "Unknown Item") return null;
   
   // Build URL from tcin if needed
   let productUrl: string | undefined;
-  const url = product.url || product.pdpUrl || product.productUrl || 
-              product.canonicalUrl || item.url || item.pdpUrl;
+  const url = product.canonicalUrl || product.url || product.pdpUrl || product.productUrl || 
+              item.canonicalUrl || item.url || item.pdpUrl;
   if (url) {
     productUrl = url.startsWith('http') ? url : `https://www.target.com${url}`;
   } else if (product.tcin || item.tcin) {
     productUrl = `https://www.target.com/p/-/A-${product.tcin || item.tcin}`;
   }
   
-  const imageUrl = product.images?.[0]?.baseUrl || 
+  const imageUrl = product.images?.[0] || 
                    product.image?.baseUrl || 
+                   product.image ||
                    product.primaryImageUrl ||
                    product.imageUrl ||
                    product.thumbnailUrl ||
+                   item.images?.[0] ||
                    item.imageUrl || 
                    item.image || 
                    item.primaryImageUrl || undefined;
   
-  const price = product.price?.currentRetail?.toString() || 
-               product.price?.formattedCurrentPrice || 
+  const price = product.price?.formattedCurrentPrice ||
+               product.price?.currentRetail?.toString() || 
                product.price?.regularPrice?.toString() ||
                product.formattedPrice ||
+               product.price ||
+               item.price?.formattedCurrentPrice ||
                item.price || 
                item.formattedPrice || undefined;
   
