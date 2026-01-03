@@ -39,6 +39,7 @@ import {
   AlertCircle,
   ListPlus,
   Plus,
+  FileUp,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -625,17 +626,22 @@ export default function ImportExport() {
               </div>
               
               <div className="space-y-3 mb-4">
-                <div className="text-sm text-gray-600 space-y-1">
-                  <p>Paste a public list URL from any retailer site to import items. Currently supports:</p>
-                  <ul className="list-disc list-inside ml-2 space-y-0.5">
-                    <li><strong>Wishlists:</strong> Amazon, Target, Walmart*</li>
-                    <li><strong>Registries:</strong> Target, Walmart*</li>
-                  </ul>
-                </div>
+                <p className="text-sm text-gray-700">
+                  Paste a public list URL from any retailer site to import items.*
+                </p>
+                
+                <p className="text-sm text-gray-600 bg-blue-50 p-3 rounded border border-blue-200">
+                  <strong>Tip:</strong> Before attempting to import, make sure your list is set to public and searchable for better outcomes.
+                </p>
+                
                 <p className="text-xs text-gray-600 bg-gray-50 p-2 rounded border">
                   <strong>Note:</strong> For favorites, private lists, lists without a public share link, or lists that require you to be signed in to see them, you will need to upload manually.
                 </p>
-                <p className="text-xs text-gray-500 italic">*Walmart may not work consistently.</p>
+                
+                <p className="text-xs text-gray-500 italic">
+                  *Uploading from retailer sites may not always work as many sites change their page structures and access policies frequently.
+                </p>
+                
                 <p className="text-xs text-gray-500">
                   Disclaimer: Imports public wishlists, registries, and shopping lists from third-party sites. Not affiliated with any retailer. You are responsible for data you import.{" "}
                   <a 
@@ -816,6 +822,7 @@ export default function ImportExport() {
 
             <Card className="p-4 sm:p-6">
               <div className="flex items-center gap-2 mb-4">
+                <FileUp className="w-5 h-5 text-gray-700" />
                 <h2 className="text-xl font-semibold text-gray-900">
                   Import List from File
                 </h2>
