@@ -72,11 +72,8 @@ export default function ScrapeWishlistModal({
       if (!data.success) {
         // Handle all structured error responses with friendly messages
         if (data.errorCode === "UNSUPPORTED_RETAILER" || data.requiresManualUpload) {
-          // Build a helpful message for manual upload cases
-          let errorMsg = data.message || "This retailer requires sign-in or doesn't provide a public share link.";
-          if (data.requiresManualUpload) {
-            errorMsg += "\n\nTip: You can export your registry from Amazon's website as a file, then use File Import to add items.";
-          }
+          // Use the error message from backend (it's already user-friendly)
+          const errorMsg = data.message || "This retailer requires sign-in or doesn't provide a public share link.";
           setError(errorMsg);
           setLoading(false);
           return;

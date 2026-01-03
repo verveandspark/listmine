@@ -566,7 +566,7 @@ export default function Templates() {
                               <CardTitle className="text-xl text-foreground">
                                 {template.name}
                               </CardTitle>
-                              <CardDescription className="line-clamp-2">
+                              <CardDescription className="text-muted-foreground min-h-[4.5rem] leading-relaxed">
                                 {template.description}
                               </CardDescription>
                             </CardHeader>
