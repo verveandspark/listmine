@@ -1,5 +1,23 @@
 import { load } from "https://esm.sh/cheerio@1.0.0-rc.12";
 
+const ALLOWED_ORIGINS = ['https://app.listmine.com'];
+
+function getCorsHeaders(origin: string | null) {
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    return {
+      'Access-Control-Allow-Origin': origin,
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-client-info, apikey',
+      'Access-Control-Allow-Credentials': 'true',
+    };
+  }
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-client-info, apikey',
+  };
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -2258,15 +2276,18 @@ async function fetchTargetWithRetry(
 }
 
 Deno.serve(async (req) => {
+  const origin = req.headers.get('Origin');
+  const dynamicCorsHeaders = getCorsHeaders(origin);
+  
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders, status: 200 });
+    return new Response(null, { headers: dynamicCorsHeaders, status: 204 });
   }
 
   if (req.method !== "POST") {
     return new Response(
       JSON.stringify({ success: false, items: [], message: "Method not allowed" }),
       {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" },
         status: 200,
       }
     );
@@ -2282,7 +2303,7 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ success: false, items: [], message: "URL is required" }),
         {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" },
           status: 200,
         }
       );
@@ -2300,7 +2321,7 @@ Deno.serve(async (req) => {
           message: "This retailer requires sign-in or doesn't provide a public share link. Please use File Import or Paste Items.",
         }),
         {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" },
           status: 200,
         }
       );
@@ -2400,7 +2421,7 @@ Deno.serve(async (req) => {
           message: "Scraping service is temporarily unavailable. Please contact support or try again later.",
         }),
         {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" },
           status: 200,
         }
       );
@@ -2487,7 +2508,7 @@ Deno.serve(async (req) => {
               requiresManualUpload: walmartResult.requiresManualUpload || false,
             }),
             {
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
+              headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" },
               status: 200,
             }
           );
@@ -2504,7 +2525,7 @@ Deno.serve(async (req) => {
               message: "We couldn't fetch the Walmart page. Please verify the URL is correct and try again.",
             }),
             {
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
+              headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" },
               status: 200,
             }
           );
@@ -2526,7 +2547,7 @@ Deno.serve(async (req) => {
               requiresManualUpload: true,
             }),
             {
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
+              headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" },
               status: 200,
             }
           );
@@ -2544,7 +2565,7 @@ Deno.serve(async (req) => {
               requiresManualUpload: true,
             }),
             {
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
+              headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" },
               status: 200,
             }
           );
@@ -2563,7 +2584,7 @@ Deno.serve(async (req) => {
           message: "Failed to fetch the page. Please verify the URL is correct and try again.",
         }),
         {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" },
           status: 200,
         }
       );
@@ -2580,7 +2601,7 @@ Deno.serve(async (req) => {
           message: "Amazon blocked the import (captcha/robot check). Please use File Import or Paste Items for Amazon registries.",
         }),
         {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" },
           status: 200,
         }
       );
@@ -2753,7 +2774,7 @@ Deno.serve(async (req) => {
           requiresManualUpload,
         }),
         {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" },
           status: 200,
         }
       );
@@ -2768,7 +2789,7 @@ Deno.serve(async (req) => {
         message: null,
       }),
       {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" },
         status: 200,
       }
     );
@@ -2790,7 +2811,7 @@ Deno.serve(async (req) => {
         message: errorMessage,
       }),
       {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" },
         status: 200,
       }
     );
