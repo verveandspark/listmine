@@ -1,5 +1,11 @@
 import { load } from "https://esm.sh/cheerio@1.0.0-rc.12";
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 const ALLOWED_ORIGINS = ['https://app.listmine.com'];
 
 function getCorsHeaders(origin: string | null) {
@@ -1720,11 +1726,6 @@ const scrapeAmazonRegistry = ($: any, html: string, url: string): ScrapedItem[] 
   return items;
 };
 
-// Helper to safely get nested values by path
-function getNestedValue(obj: any, path: string): any {
-  return path.split('.').reduce((o, key) => (o && o[key] !== undefined ? o[key] : null), obj);
-}
-
 interface FetchOptions {
   withBrowserHeaders?: boolean;
   country?: string;
@@ -2278,12 +2279,13 @@ async function fetchTargetWithRetry(
 }
 
 Deno.serve(async (req) => {
-  const origin = req.headers.get('Origin');
-  const dynamicCorsHeaders = getCorsHeaders(origin);
-  
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: dynamicCorsHeaders, status: 204 });
+  // Handle preflight CORS
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: CORS_HEADERS, status: 204 });
   }
+
+  const origin = req.headers.get('Origin');
+  const dynamicCorsHeaders = { ...CORS_HEADERS, ...getCorsHeaders(origin) };
 
   if (req.method !== "POST") {
     return new Response(
