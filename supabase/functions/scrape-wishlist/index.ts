@@ -2281,7 +2281,7 @@ async function fetchTargetWithRetry(
 Deno.serve(async (req) => {
   // Handle preflight CORS
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: CORS_HEADERS, status: 204 });
+    return new Response(undefined, { status: 204, headers: CORS_HEADERS });
   }
 
   const origin = req.headers.get('Origin');
