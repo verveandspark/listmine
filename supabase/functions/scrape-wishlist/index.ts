@@ -423,8 +423,9 @@ const isTargetRestrictedPage = (html: string): { restricted: boolean; reason: st
   return { restricted: false, reason: "" };
 };
 
-// Debug helper to log HTML snippet
-const logHtmlDebugInfo = (html: string, retailer: string, url: string): void => {
+// Debug helper to log HTML snippet (only if debug enabled)
+const logHtmlDebugInfo = (html: string, retailer: string, url: string, debugEnabled: boolean): void => {
+  if (!debugEnabled) return;
   const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
   const pageTitle = titleMatch ? titleMatch[1].trim() : "No title found";
   const snippet = html.substring(0, 1000).replace(/\s+/g, ' ');
@@ -524,21 +525,22 @@ function looksLikeProductItem(obj: any): boolean {
 }
 
 // Recursive function to find and log all arrays of plausible product items
-function logAllProductArrays(obj: any, path = '') {
+function logAllProductArrays(obj: any, path = '', debugEnabled: boolean) {
+  if (!debugEnabled) return;
   if (!obj || typeof obj !== 'object') return;
   if (Array.isArray(obj)) {
     if (obj.length > 0 && looksLikeProductItem(obj[0])) {
       console.log(`[TARGET_DEEP_SEARCH] Found product array at path: ${path} length: ${obj.length}`);
     }
-    obj.forEach((item: any, i: number) => logAllProductArrays(item, `${path}[${i}]`));
+    obj.forEach((item: any, i: number) => logAllProductArrays(item, `${path}[${i}]`, debugEnabled));
   } else {
     for (const key in obj) {
-      logAllProductArrays(obj[key], path ? `${path}.${key}` : key);
+      logAllProductArrays(obj[key], path ? `${path}.${key}` : key, debugEnabled);
     }
   }
 }
 
-const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
+const scrapeTargetRegistry = ($: any, html: string, debugEnabled: boolean): ScrapedItem[] => {
   let normalizedItems: any[] = [];
   console.log('[TARGET_PARSER] normalizedItems declared:', typeof normalizedItems !== 'undefined');
   
@@ -558,20 +560,22 @@ const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
       console.log("[TARGET_PARSE] Found __NEXT_DATA__ script, length:", nextDataScript.length);
       const nextData = JSON.parse(nextDataScript);
       
-      // Enhanced debug logging for structure analysis
-      console.log("[TARGET_PARSE] nextData keys:", Object.keys(nextData).join(", "));
-      console.log("[TARGET_PARSE] nextData.props keys:", Object.keys(nextData?.props ?? {}).join(", "));
-      console.log("[TARGET_PARSE] nextData.props.pageProps keys:", Object.keys(nextData?.props?.pageProps ?? {}).join(", "));
-      
-      const pageProps = nextData?.props?.pageProps ?? {};
-      if (pageProps.initialState) {
-        console.log("[TARGET_PARSE] pageProps.initialState keys:", Object.keys(pageProps.initialState).join(", "));
-      }
-      if (pageProps.APOLLO_STATE) {
-        console.log("[TARGET_PARSE] pageProps.APOLLO_STATE keys:", Object.keys(pageProps.APOLLO_STATE).slice(0, 10).join(", "), "... (first 10)");
-      }
-      if (pageProps.dehydratedState) {
-        console.log("[TARGET_PARSE] pageProps.dehydratedState keys:", Object.keys(pageProps.dehydratedState).join(", "));
+      // Enhanced debug logging for structure analysis (only if debug enabled)
+      if (debugEnabled) {
+        console.log("[TARGET_PARSE] nextData keys:", Object.keys(nextData).join(", "));
+        console.log("[TARGET_PARSE] nextData.props keys:", Object.keys(nextData?.props ?? {}).join(", "));
+        console.log("[TARGET_PARSE] nextData.props.pageProps keys:", Object.keys(nextData?.props?.pageProps ?? {}).join(", "));
+        
+        const pageProps = nextData?.props?.pageProps ?? {};
+        if (pageProps.initialState) {
+          console.log("[TARGET_PARSE] pageProps.initialState keys:", Object.keys(pageProps.initialState).join(", "));
+        }
+        if (pageProps.APOLLO_STATE) {
+          console.log("[TARGET_PARSE] pageProps.APOLLO_STATE keys:", Object.keys(pageProps.APOLLO_STATE).slice(0, 10).join(", "), "... (first 10)");
+        }
+        if (pageProps.dehydratedState) {
+          console.log("[TARGET_PARSE] pageProps.dehydratedState keys:", Object.keys(pageProps.dehydratedState).join(", "));
+        }
       }
       
       // Expanded candidate paths for registry items
@@ -629,9 +633,11 @@ const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
       
       console.log(`[TARGET_PARSE] Checking ${candidatePaths.length} candidate paths...`);
       
-      // Run deep search to find all product arrays
-      console.log("[TARGET_DEEP_SEARCH] Starting deep recursive search...");
-      logAllProductArrays(nextData);
+      // Run deep search to find all product arrays (only if debug enabled)
+      if (debugEnabled) {
+        console.log("[TARGET_DEEP_SEARCH] Starting deep recursive search...");
+        logAllProductArrays(nextData, '', debugEnabled);
+      }
       
       // Combine items from all candidate paths
       const allItems: any[] = [];
@@ -658,6 +664,7 @@ const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
       // If primary paths found items, return early
       if (normalizedItems.length > 0) {
         console.log(`[TARGET_PARSE] Returning ${normalizedItems.length} items from combined paths`);
+        console.log(`[TARGET_FINAL] items=${normalizedItems.length} via=next_data`);
         return normalizedItems;
       }
       
@@ -686,6 +693,7 @@ const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
         
         if (normalizedItems.length > 0) {
           console.log(`[TARGET_PARSE] Items extracted via APOLLO_STATE | Count: ${normalizedItems.length}`);
+          console.log(`[TARGET_FINAL] items=${normalizedItems.length} via=apollo_state`);
           return normalizedItems;
         }
       }
@@ -706,6 +714,7 @@ const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
         
         if (normalizedItems.length > 0) {
           console.log(`[TARGET_PARSE] Items extracted via deep-search at: ${deepResult.path} | Count: ${normalizedItems.length}`);
+          console.log(`[TARGET_FINAL] items=${normalizedItems.length} via=deep_search`);
           return normalizedItems;
         }
       }
@@ -758,6 +767,7 @@ const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
               
               if (normalizedItems.length > 0) {
                 console.log("[TARGET_PARSE] Parsed from embedded JSON:", normalizedItems.length, "items");
+                console.log(`[TARGET_FINAL] items=${normalizedItems.length} via=embedded_json`);
                 return normalizedItems;
               }
             } catch (parseErr) {
@@ -817,6 +827,7 @@ const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
     
     if (normalizedItems.length > 0) {
       console.log("[TARGET_PARSE] Parsed from DOM with selector:", selector, normalizedItems.length, "items");
+      console.log(`[TARGET_FINAL] items=${normalizedItems.length} via=dom`);
       break;
     }
   }
@@ -838,6 +849,7 @@ const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
     });
     if (normalizedItems.length > 0) {
       console.log("[TARGET_PARSE] Parsed from product links:", normalizedItems.length, "items");
+      console.log(`[TARGET_FINAL] items=${normalizedItems.length} via=product_links`);
     }
   }
   
@@ -1990,18 +2002,20 @@ async function fetchWalmartWithFallback(
       console.log(`[DEBUG_HTML][WALMART][BRIGHTDATA] title="${titleDebug}" len=${brightDataResult.html.length} snippet="${safeSnippet(brightDataResult.html)}"`);
       await maybeWriteDebugHtml('debug_walmart_brightdata.html', brightDataResult.html);
       
-      const next = tryExtractNextDataJson(brightDataResult.html);
-      if (!next) {
-        console.log('[DEBUG_JSON][WALMART] no __NEXT_DATA__ found');
-      } else {
-        const candidates = findCandidateArrays(next);
-        console.log('[DEBUG_JSON][WALMART] __NEXT_DATA__ candidate arrays:', JSON.stringify(candidates, null, 2));
-        const payloads = findPayloadObjects(next);
-        console.log('[DEBUG_JSON][WALMART] payload objects:', JSON.stringify(payloads, null, 2));
-        const apollo = (next?.props?.pageProps as any)?.apolloState || (next?.props?.pageProps as any)?.__APOLLO_STATE__;
-        if (apollo) {
-          const apolloCandidates = findCandidateArrays(apollo);
-          console.log('[DEBUG_JSON][WALMART] APOLLO candidate arrays:', JSON.stringify(apolloCandidates, null, 2));
+      if (DEBUG_SCRAPE_HTML) {
+        const next = tryExtractNextDataJson(brightDataResult.html);
+        if (!next) {
+          console.log('[DEBUG_JSON][WALMART] no __NEXT_DATA__ found');
+        } else {
+          const candidates = findCandidateArrays(next);
+          console.log('[DEBUG_JSON][WALMART] __NEXT_DATA__ candidate arrays:', JSON.stringify(candidates, null, 2));
+          const payloads = findPayloadObjects(next);
+          console.log('[DEBUG_JSON][WALMART] payload objects:', JSON.stringify(payloads, null, 2));
+          const apollo = (next?.props?.pageProps as any)?.apolloState || (next?.props?.pageProps as any)?.__APOLLO_STATE__;
+          if (apollo) {
+            const apolloCandidates = findCandidateArrays(apollo);
+            console.log('[DEBUG_JSON][WALMART] APOLLO candidate arrays:', JSON.stringify(apolloCandidates, null, 2));
+          }
         }
       }
     }
@@ -2658,15 +2672,16 @@ Deno.serve(async (req) => {
     // Wrap each retailer scraping in try/catch to prevent non-2xx responses
     if (retailer === "Target") {
       try {
-        items = scrapeTargetRegistry($, html);
+        items = scrapeTargetRegistry($, html, DEBUG_SCRAPE_HTML);
         console.log("[SCRAPE_PARSE] Target parsing complete, items extracted:", items.length, "| Fetch strategy used:", fetchStrategy);
+        console.log(`[TARGET_FINAL] url=${url} items=${items.length} via=${fetchStrategy}`);
         
         // Debug log if no items found
         if (items.length === 0) {
           console.log("[SCRAPE_DEBUG] Target returned 0 items despite successful fetch");
           console.log("[SCRAPE_DEBUG] Fetch strategy was:", fetchStrategy);
           console.log("[SCRAPE_DEBUG] URL:", fetchUrl);
-          logHtmlDebugInfo(html, retailer, url);
+          logHtmlDebugInfo(html, retailer, url, DEBUG_SCRAPE_HTML);
           
           // Provide more specific error for Target
           scrapeError = "We couldn't retrieve items from this Target registry share link. If this persists, please contact support or use manual import.";
@@ -2691,7 +2706,7 @@ Deno.serve(async (req) => {
         // If no items found, check if it's a shell page and try API extraction
         if (items.length === 0) {
           console.log("[SCRAPE_DEBUG] AmazonRegistry returned 0 items, analyzing page...");
-          logHtmlDebugInfo(html, retailer, url);
+          logHtmlDebugInfo(html, retailer, url, DEBUG_SCRAPE_HTML);
           
           if (analysis.isShellPage || !analysis.markers.hasRegistryItem) {
             console.log("[AMAZON_REGISTRY] Detected shell page or no registry items in HTML, attempting API extraction...");
@@ -2733,7 +2748,7 @@ Deno.serve(async (req) => {
         // Debug log if no items found
         if (items.length === 0) {
           console.log(`[SCRAPE_DEBUG] Walmart wishlist returned 0 items | Fetch method used: ${fetchMethod}`);
-          logHtmlDebugInfo(html, retailer, url);
+          logHtmlDebugInfo(html, retailer, url, DEBUG_SCRAPE_HTML);
         }
       } catch (e: any) {
         console.error(`[SCRAPE_PARSE_ERROR] Retailer: WalmartWishlist | URL: ${url} | Fetch method: ${fetchMethod} | Error: ${e.message}`);
@@ -2751,7 +2766,7 @@ Deno.serve(async (req) => {
         // Debug log if no items found
         if (items.length === 0) {
           console.log(`[SCRAPE_DEBUG] Walmart registry returned 0 items | Fetch method used: ${fetchMethod}`);
-          logHtmlDebugInfo(html, retailer, url);
+          logHtmlDebugInfo(html, retailer, url, DEBUG_SCRAPE_HTML);
         }
       } catch (e: any) {
         console.error(`[SCRAPE_PARSE_ERROR] Retailer: WalmartRegistry | URL: ${url} | Error: ${e.message}`);
@@ -2768,7 +2783,7 @@ Deno.serve(async (req) => {
         // Debug log if no items found
         if (items.length === 0) {
           console.log("[SCRAPE_DEBUG] Amazon wishlist returned 0 items, logging HTML info...");
-          logHtmlDebugInfo(html, retailer, url);
+          logHtmlDebugInfo(html, retailer, url, DEBUG_SCRAPE_HTML);
         }
       } catch (e: any) {
         console.error(`[SCRAPE_PARSE_ERROR] Retailer: Amazon | URL: ${url} | Error: ${e.message}`);
