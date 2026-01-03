@@ -514,6 +514,30 @@ const normalizeTargetItem = (item: any): ScrapedItem | null => {
   return { name, link: productUrl, image: imageUrl, price, quantity };
 };
 
+// Helper function to detect if an object looks like a product item
+function looksLikeProductItem(obj: any): boolean {
+  if (!obj || typeof obj !== 'object') return false;
+  const hasProductKeys = ['productTitle', 'title', 'name', 'product'].some(k => k in obj);
+  const hasPriceKeys = ['price', 'currentPrice', 'listPrice'].some(k => k in obj);
+  const hasUrlKeys = ['url', 'canonicalUrl', 'productUrl'].some(k => k in obj);
+  return hasProductKeys || (hasPriceKeys && hasUrlKeys);
+}
+
+// Recursive function to find and log all arrays of plausible product items
+function logAllProductArrays(obj: any, path = '') {
+  if (!obj || typeof obj !== 'object') return;
+  if (Array.isArray(obj)) {
+    if (obj.length > 0 && looksLikeProductItem(obj[0])) {
+      console.log(`[TARGET_DEEP_SEARCH] Found product array at path: ${path} length: ${obj.length}`);
+    }
+    obj.forEach((item: any, i: number) => logAllProductArrays(item, `${path}[${i}]`));
+  } else {
+    for (const key in obj) {
+      logAllProductArrays(obj[key], path ? `${path}.${key}` : key);
+    }
+  }
+}
+
 const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
   let normalizedItems: any[] = [];
   console.log('[TARGET_PARSER] normalizedItems declared:', typeof normalizedItems !== 'undefined');
@@ -589,6 +613,10 @@ const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
       ];
       
       console.log(`[TARGET_PARSE] Checking ${candidatePaths.length} candidate paths...`);
+      
+      // Run deep search to find all product arrays
+      console.log("[TARGET_DEEP_SEARCH] Starting deep recursive search...");
+      logAllProductArrays(nextData);
       
       let items: any = null;
       for (const path of candidatePaths) {
@@ -1926,6 +1954,7 @@ async function fetchWalmartWithFallback(
   scraperApiKey: string
 ): Promise<WalmartFetchResult> {
   console.log("[WALMART_FETCH] Starting Walmart fetch with multi-provider strategy...");
+  console.log("[WALMART_FETCH] Strategy: Skipping ScraperAPI (Walmart registry) - Using BrightData only to save credits");
   
   // Strategy 1: Try BrightData Web Unlocker first (best for anti-bot sites)
   console.log("[WALMART_FETCH] Trying BrightData Web Unlocker...");
@@ -1986,80 +2015,16 @@ async function fetchWalmartWithFallback(
   }
   
   console.log(`[WALMART_FETCH] Direct fetch insufficient (ok=${directResult.ok}, length=${directResult.html.length}, blocked=${isBlockedResponse(directResult.html)})`);
+  console.log("[WALMART_FETCH] All strategies exhausted - ScraperAPI skipped to save credits");
   
-  // Strategy 3: Fall back to ScraperAPI with enhanced options for Walmart
-  console.log("[WALMART_FETCH] Falling back to ScraperAPI with premium options...");
-  
-  try {
-    // Use enhanced ScraperAPI options for Walmart: keep_headers, country_code=us, premium, render
-    const scraperApiUrl = `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(url)}&render=true&keep_headers=true&country_code=us&premium=true`;
-    
-    const response = await fetch(scraperApiUrl, {
-      method: "GET",
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Referer": "https://www.walmart.com/",
-        "Upgrade-Insecure-Requests": "1",
-      },
-    });
-    
-    console.log(`[WALMART_FETCH] ScraperAPI response status: ${response.status}`);
-    
-    if (!response.ok) {
-      if (response.status === 500) {
-        return {
-          html: "",
-          method: "SCRAPERAPI",
-          status: response.status,
-          error: "Walmart import is temporarily unavailable. Please try again later or use File Import.",
-          requiresManualUpload: true,
-        };
-      }
-      return {
-        html: "",
-        method: "SCRAPERAPI",
-        status: response.status,
-        error: `Walmart import failed (error ${response.status}). Please try again later or use File Import.`,
-        requiresManualUpload: true,
-      };
-    }
-    
-    const html = await response.text();
-    const title = extractHtmlTitle(html);
-    const blocked = isWalmartBlockPage(html);
-    console.log(`[WALMART_SCRAPERAPI] title="${title}" blocked=${blocked} len=${html.length}`);
-    
-    // Check if ScraperAPI returned blocked content using precise detection
-    if (blocked) {
-      console.log(`[WALMART_FETCH] ScraperAPI returned blocked content | Title: ${title}`);
-      return {
-        html: "",
-        method: "SCRAPERAPI",
-        status: response.status,
-        error: "Walmart import is temporarily unavailable. Please try again later or use File Import.",
-        requiresManualUpload: true,
-      };
-    }
-    
-    console.log(`[WALMART_FETCH] ScraperAPI succeeded: ${html.length} chars`);
-    
-    return {
-      html,
-      method: "SCRAPERAPI",
-      status: response.status,
-    };
-  } catch (e: any) {
-    console.log(`[WALMART_FETCH] ScraperAPI error: ${e.message}`);
-    return {
-      html: "",
-      method: "SCRAPERAPI",
-      status: 0,
-      error: "Walmart import is temporarily unavailable. Please try again later or use File Import.",
-      requiresManualUpload: true,
-    };
-  }
+  // Return error - no ScraperAPI fallback for Walmart registry
+  return {
+    html: "",
+    method: "SCRAPERAPI",
+    status: 0,
+    error: "Walmart import is temporarily unavailable. Please try again later or use File Import.",
+    requiresManualUpload: true,
+  };
 }
 
 // Amazon Registry-specific fetch with BrightData Unlocker (no ScraperAPI fallback - Amazon blocks it)
@@ -2074,6 +2039,7 @@ interface AmazonRegistryFetchResult {
 
 async function fetchAmazonRegistryWithUnlocker(url: string): Promise<AmazonRegistryFetchResult> {
   console.log("[AMAZON_REGISTRY_FETCH] Starting Amazon Registry fetch with BrightData Unlocker...");
+  console.log("[AMAZON_REGISTRY_FETCH] Strategy: Skipping ScraperAPI (Amazon registry) - Using BrightData only to save credits");
   
   // Strategy 1: Try BrightData Web Unlocker (only viable option for Amazon)
   console.log("[AMAZON_REGISTRY_FETCH] Trying BrightData Web Unlocker...");
