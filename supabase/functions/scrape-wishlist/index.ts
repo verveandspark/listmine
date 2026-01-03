@@ -576,10 +576,20 @@ const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
       
       // Expanded candidate paths for registry items
       const candidatePaths = [
+        'props.dehydratedState.queries[0].state.data.slots.1008.content.taxonomy_nodes',
+        'props.dehydratedState.queries[0].state.data.slots.1058.metadata.components',
+        'props.dehydratedState.queries[0].state.data.slots.1008.metadata.components',
+        'props.dehydratedState.queries[0].state.data.metadata.breadcrumbs',
+        'props.dehydratedState.queries[0].state.data.slots.1608.metadata.components',
+        'props.dehydratedState.queries[0].state.data.slots.200.metadata.components',
+        'props.dehydratedState.queries[0].state.data.slots.1458.metadata.components',
+        'props.dehydratedState.queries[0].state.data.slots.2808.metadata.components',
+        'props.dehydratedState.queries[0].state.data.slots.3008.metadata.components',
+        'props.dehydratedState.queries[0].state.data.slots.3108.metadata.components',
+        'props.dehydratedState.queries[0].state.data.slots.1608.content.taxonomy_nodes',
+        'props.sapphireInstance.qualifiedExperiments.pages[0].svc',
         'props.sapphireInstance.qualifiedExperiments.pages[0].svc[0].payload',
-        // New path from DEBUG_JSON
-        "props.sapphireInstance.qualifiedExperiments.pages[0].svc",
-        // New dehydratedState slot paths
+        // Previous dehydratedState slot paths
         'props.dehydratedState.queries[0].state.data.slots.1000.metadata.components',
         'props.dehydratedState.queries[0].state.data.slots.3100.metadata.components',
         'props.dehydratedState.queries[0].state.data.slots.1600.content.taxonomy_nodes',
@@ -623,17 +633,20 @@ const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
       console.log("[TARGET_DEEP_SEARCH] Starting deep recursive search...");
       logAllProductArrays(nextData);
       
-      let items: any = null;
+      // Combine items from all candidate paths
+      const allItems: any[] = [];
       for (const path of candidatePaths) {
-        items = getNestedValue(nextData, path);
+        const items = getNestedValue(nextData, path);
         if (Array.isArray(items) && items.length > 0) {
-          console.log(`Target items extracted via path: ${path}`);
-          break;
+          console.log(`[TARGET_PARSE] Found ${items.length} items at path: ${path}`);
+          allItems.push(...items);
         }
       }
       
-      if (Array.isArray(items) && items.length > 0) {
-        for (const item of items) {
+      console.log(`[TARGET_PARSE] Combined ${allItems.length} items from all paths`);
+      
+      if (allItems.length > 0) {
+        for (const item of allItems) {
           const normalized = normalizeTargetItem(item);
           if (normalized) {
             normalizedItems.push(normalized);
@@ -644,7 +657,7 @@ const scrapeTargetRegistry = ($: any, html: string): ScrapedItem[] => {
       
       // If primary paths found items, return early
       if (normalizedItems.length > 0) {
-        console.log(`[TARGET_PARSE] Returning ${normalizedItems.length} items from primary paths`);
+        console.log(`[TARGET_PARSE] Returning ${normalizedItems.length} items from combined paths`);
         return normalizedItems;
       }
       
