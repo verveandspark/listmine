@@ -621,30 +621,26 @@ export default function ImportExport() {
               
               <div className="space-y-3 mb-4">
                 <p className="text-sm text-gray-700">
-                  Paste a public list URL from any retailer site to import items.*
+                  Paste a public list URL from a supported retailer to import items.*
                 </p>
                 
                 <p className="text-sm text-gray-600 bg-blue-50 p-3 rounded border border-blue-200">
-                  <strong>Tip:</strong> Before attempting to import, make sure your list is set to public and searchable for better outcomes.
+                  <strong>Tip:</strong> For best results, make sure the list is set to <strong>Public</strong> and can be viewed without signing in.
                 </p>
                 
                 <p className="text-xs text-gray-600 bg-gray-50 p-2 rounded border">
-                  <strong>Note:</strong> For favorites, private lists, lists without a public share link, or lists that require you to be signed in to see them, you will need to upload manually.
-                </p>
-                
-                <p className="text-xs text-gray-500 italic">
-                  *Uploading from retailer sites may not always work as many sites change their page structures and access policies frequently.
+                  <strong>*Note:</strong> Retailer imports may fail. Sites frequently change their page structure and may block automated access. If the import doesn't work—or if your list is private, requires sign-in, isn't searchable, or doesn't have a public share link—upload your items manually instead.
                 </p>
                 
                 <p className="text-xs text-gray-500">
-                  Disclaimer: Imports public wishlists, registries, and shopping lists from third-party sites. Not affiliated with any retailer. You are responsible for data you import.{" "}
+                  Disclaimer: ListMine is not affiliated with any retailer. You're responsible for the data you import.{" "}
                   <a 
                     href="https://listmine.com/terms-of-use" 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="text-primary hover:underline"
                   >
-                    Learn More
+                    Learn more
                   </a>
                 </p>
               </div>

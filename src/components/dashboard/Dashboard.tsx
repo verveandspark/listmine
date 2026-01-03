@@ -1566,8 +1566,8 @@ export default function Dashboard() {
                     <SelectContent>
                       <SelectItem value="all">All Types</SelectItem>
                       {listTypes.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
+                        <SelectItem key={type} value={type}>
+                          {type}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1762,10 +1762,7 @@ export default function Dashboard() {
                               </CardTitle>
                               <CardDescription>
                                 {list.category} ·{" "}
-                                {
-                                  listTypes.find((t) => t.value === list.listType)
-                                    ?.label
-                                }
+                                {list.listType}
                               </CardDescription>
                             </div>
                           </div>
@@ -2130,10 +2127,7 @@ export default function Dashboard() {
                             </CardTitle>
                             <CardDescription>
                               {list.category} ·{" "}
-                              {
-                                listTypes.find((t) => t.value === list.listType)
-                                  ?.label
-                              }
+                              {list.listType}
                             </CardDescription>
                           </div>
                         </div>
@@ -2280,10 +2274,7 @@ export default function Dashboard() {
                           </CardTitle>
                           <CardDescription>
                             {list.category} ·{" "}
-                            {
-                              listTypes.find((t) => t.value === list.listType)
-                                ?.label
-                            }
+                            {list.listType}
                           </CardDescription>
                         </div>
                       </div>
@@ -2545,8 +2536,8 @@ export default function Dashboard() {
                 </SelectTrigger>
                 <SelectContent>
                   {listTypes.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
+                    <SelectItem key={type} value={type}>
+                      {type}
                     </SelectItem>
                   ))}
                 </SelectContent>
