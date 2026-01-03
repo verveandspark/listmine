@@ -1953,24 +1953,6 @@ const extractHtmlTitle = (html: string): string => {
   return titleMatch ? titleMatch[1].trim() : "";
 };
 
-// Helper to get a random user agent
-function getRandomUserAgent(): string {
-  const userAgents = [
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:120.0) Gecko/20100101 Firefox/120.0',
-  ];
-  return userAgents[Math.floor(Math.random() * userAgents.length)];
-}
-
-// Helper for sleep delays
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 // Helper to detect Walmart block page specifically
 const isWalmartBlockPage = (html: string): boolean => {
   const lowerHtml = html.toLowerCase();
@@ -2263,8 +2245,9 @@ async function fetchAmazonRegistryWithUnlocker(url: string): Promise<AmazonRegis
     // Sleep before retry (except after last attempt)
     if (attempt < maxRetries) {
       const delay = delays[attempt - 1];
-      console.log(`[AMAZON_REGISTRY_FETCH] Waiting ${delay}ms before retry...`);
-      await sleep(delay);
+      const randomizedDelay = delay + Math.floor(Math.random() * 1000);
+      console.log(`[AMAZON_REGISTRY_FETCH] Waiting ${randomizedDelay}ms before retry...`);
+      await new Promise(resolve => setTimeout(resolve, randomizedDelay));
     }
   }
   
