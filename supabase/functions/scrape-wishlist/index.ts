@@ -4,10 +4,12 @@ function escapeRegex(string: string): string {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // escape regex special chars
 }
 
+const ALLOWED_HEADERS = 'authorization, apikey, content-type, x-client-info, x-supabase-api-version, x-requested-with';
+
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Headers': ALLOWED_HEADERS,
 };
 
 const ALLOWED_ORIGINS = ['https://app.listmine.com'];
@@ -2424,7 +2426,8 @@ Deno.serve(async (req) => {
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-client-info',
+        'Access-Control-Allow-Headers': ALLOWED_HEADERS,
+        'Access-Control-Max-Age': '86400',
       },
     });
   }
