@@ -1943,6 +1943,8 @@ async function fetchWalmartWithFallback(
       } else {
         const candidates = findCandidateArrays(next);
         console.log('[DEBUG_JSON][WALMART] __NEXT_DATA__ candidate arrays:', JSON.stringify(candidates, null, 2));
+        const payloads = findPayloadObjects(next);
+        console.log('[DEBUG_JSON][WALMART] payload objects:', JSON.stringify(payloads, null, 2));
         const apollo = (next?.props?.pageProps as any)?.apolloState || (next?.props?.pageProps as any)?.__APOLLO_STATE__;
         if (apollo) {
           const apolloCandidates = findCandidateArrays(apollo);
@@ -2365,20 +2367,35 @@ Deno.serve(async (req) => {
     function looksLikeProductItem(obj: any): boolean {
       if (!obj || typeof obj !== 'object') return false;
       const keys = Object.keys(obj);
-      return (
+
+      // Target signals
+      const targetSignals =
         keys.includes('tcin') ||
+        keys.includes('product') ||
+        keys.includes('product_description') ||
         keys.includes('productTitle') ||
-        keys.includes('primaryOffer') ||
-        keys.includes('price') ||
-        keys.includes('image') ||
+        keys.includes('item') ||
+        keys.includes('item_id') ||
         keys.includes('images') ||
-        keys.includes('name') ||
-        keys.includes('title') ||
+        keys.includes('image') ||
+        keys.includes('price') ||
+        keys.includes('formatted_current_price') ||
+        keys.includes('current_retail') ||
+        keys.includes('primary_offer') ||
+        keys.includes('offers');
+
+      // Walmart signals
+      const walmartSignals =
         keys.includes('usItemId') ||
         keys.includes('itemId') ||
         keys.includes('canonicalUrl') ||
-        keys.includes('productId')
-      );
+        keys.includes('name') ||
+        keys.includes('title') ||
+        keys.includes('priceInfo') ||
+        keys.includes('imageInfo') ||
+        keys.includes('thumbnailUrl');
+
+      return targetSignals || walmartSignals;
     }
     
     function findCandidateArrays(obj: any, maxDepth = 9) {
@@ -2409,6 +2426,36 @@ Deno.serve(async (req) => {
 
       walk(obj, '', 0);
       results.sort((a, b) => b.length - a.length);
+      return results.slice(0, 12);
+    }
+    
+    function findPayloadObjects(obj: any, maxDepth = 10) {
+      const results: Array<{ path: string; sampleKeys: string[] }> = [];
+      const seen = new Set<any>();
+
+      function walk(node: any, path: string, depth: number) {
+        if (!node || depth > maxDepth) return;
+        if (typeof node !== 'object') return;
+        if (seen.has(node)) return;
+        seen.add(node);
+
+        if (!Array.isArray(node)) {
+          const keys = Object.keys(node);
+          if (keys.includes('payload') && typeof (node as any).payload === 'object') {
+            const pk = Object.keys((node as any).payload || {}).slice(0, 25);
+            results.push({ path: path ? `${path}.payload` : 'payload', sampleKeys: pk });
+          }
+          for (const [k, v] of Object.entries(node)) {
+            walk(v, path ? `${path}.${k}` : k, depth + 1);
+          }
+        } else {
+          for (let i = 0; i < Math.min(node.length, 10); i++) {
+            walk(node[i], `${path}[${i}]`, depth + 1);
+          }
+        }
+      }
+
+      walk(obj, '', 0);
       return results.slice(0, 12);
     }
 
@@ -2462,6 +2509,8 @@ Deno.serve(async (req) => {
           } else {
             const candidates = findCandidateArrays(next);
             console.log('[DEBUG_JSON][TARGET] __NEXT_DATA__ candidate arrays:', JSON.stringify(candidates, null, 2));
+            const payloads = findPayloadObjects(next);
+            console.log('[DEBUG_JSON][TARGET] payload objects:', JSON.stringify(payloads, null, 2));
             const apollo = (next?.props?.pageProps as any)?.__APOLLO_STATE__ || (next?.props?.pageProps as any)?.apolloState;
             if (apollo) {
               const apolloCandidates = findCandidateArrays(apollo);
