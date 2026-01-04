@@ -2,7 +2,7 @@ import SharedListView from "@/components/list/SharedListView";
 import InviteAccept from "@/components/invite/InviteAccept";
 import { DashboardSkeleton } from "@/components/ui/DashboardSkeleton";
 import { Suspense, useEffect } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContextProvider";
 import { ListProvider } from "./contexts/ListContext";
 import { AccountProvider } from "./contexts/AccountContext";
@@ -19,6 +19,32 @@ import Profile from "./components/profile/Profile";
 import Upgrade from "./components/upgrade/Upgrade";
 import Templates from "./components/templates/Templates";
 import AdminPanel from "./components/admin/AdminPanel";
+
+// Auth callback handler for magic link redirects
+function AuthCallback() {
+  const { isAuthenticated, loading } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  
+  useEffect(() => {
+    if (!loading) {
+      if (isAuthenticated) {
+        // Check if this was an impersonation redirect
+        const impersonated = searchParams.get('impersonated');
+        if (impersonated === 'true') {
+          navigate('/dashboard?impersonated=true', { replace: true });
+        } else {
+          navigate('/dashboard', { replace: true });
+        }
+      } else {
+        // If not authenticated after callback, redirect to auth page
+        navigate('/', { replace: true });
+      }
+    }
+  }, [isAuthenticated, loading, navigate, searchParams]);
+  
+  return <DashboardSkeleton />;
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
@@ -70,6 +96,7 @@ function AppRoutes() {
         element={isAuthenticated ? <Navigate to={getRedirectPath()} replace /> : <AuthPage />} 
       />
       <Route path="/auth" element={<AuthPage />} />
+      <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/auth/reset-password" element={<ResetPassword />} />
       <Route path="/invite" element={<ErrorBoundary><InviteAccept /></ErrorBoundary>} />
       <Route path="/shared/:shareId" element={<ErrorBoundary><SharedListView /></ErrorBoundary>} />

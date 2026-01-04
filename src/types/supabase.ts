@@ -375,6 +375,9 @@ export type Database = {
           due_date: string | null
           id: string
           item_order: number
+          last_edited_at: string | null
+          last_edited_by_email: string | null
+          last_edited_by_user_id: string | null
           links: string[] | null
           list_id: string
           notes: string | null
@@ -391,6 +394,9 @@ export type Database = {
           due_date?: string | null
           id?: string
           item_order?: number
+          last_edited_at?: string | null
+          last_edited_by_email?: string | null
+          last_edited_by_user_id?: string | null
           links?: string[] | null
           list_id: string
           notes?: string | null
@@ -407,6 +413,9 @@ export type Database = {
           due_date?: string | null
           id?: string
           item_order?: number
+          last_edited_at?: string | null
+          last_edited_by_email?: string | null
+          last_edited_by_user_id?: string | null
           links?: string[] | null
           list_id?: string
           notes?: string | null
@@ -416,6 +425,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "list_items_last_edited_by_user_id_fkey"
+            columns: ["last_edited_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "list_items_list_id_fkey"
             columns: ["list_id"]
@@ -460,6 +476,9 @@ export type Database = {
           is_pinned: boolean | null
           is_public: boolean | null
           is_shared: boolean | null
+          last_edited_at: string | null
+          last_edited_by_email: string | null
+          last_edited_by_user_id: string | null
           list_type: string
           public_link: string | null
           share_link: string | null
@@ -485,6 +504,9 @@ export type Database = {
           is_pinned?: boolean | null
           is_public?: boolean | null
           is_shared?: boolean | null
+          last_edited_at?: string | null
+          last_edited_by_email?: string | null
+          last_edited_by_user_id?: string | null
           list_type: string
           public_link?: string | null
           share_link?: string | null
@@ -510,6 +532,9 @@ export type Database = {
           is_pinned?: boolean | null
           is_public?: boolean | null
           is_shared?: boolean | null
+          last_edited_at?: string | null
+          last_edited_by_email?: string | null
+          last_edited_by_user_id?: string | null
           list_type?: string
           public_link?: string | null
           share_link?: string | null
@@ -1241,6 +1266,9 @@ export type Database = {
           is_pinned: boolean | null
           is_public: boolean | null
           is_shared: boolean | null
+          last_edited_at: string | null
+          last_edited_by_email: string | null
+          last_edited_by_user_id: string | null
           list_type: string
           public_link: string | null
           share_link: string | null
@@ -1314,12 +1342,16 @@ export type Database = {
         Args: { p_share_link: string }
         Returns: {
           category: string
+          collaborators: string[]
           created_at: string
           id: string
           is_archived: boolean
           is_favorite: boolean
           is_pinned: boolean
           is_shared: boolean
+          last_edited_at: string
+          last_edited_by_email: string
+          last_edited_by_user_id: string
           list_type: string
           share_link: string
           share_mode: string

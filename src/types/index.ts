@@ -103,6 +103,9 @@ export interface List {
   showPurchaserInfo?: boolean;
   source?: 'standard' | 'template';
   templateId?: string | null;
+  lastEditedByUserId?: string | null;
+  lastEditedByEmail?: string | null;
+  lastEditedAt?: Date | null;
 }
 
 // Permission helper functions

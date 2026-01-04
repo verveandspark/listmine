@@ -226,7 +226,7 @@ export default function AdminUsersPage() {
       const { error } = await supabase.auth.signInWithOtp({
         email: email,
         options: {
-          emailRedirectTo: `${window.location.origin}/app`,
+          emailRedirectTo: 'https://app.listmine.com/auth/callback',
           shouldCreateUser: false, // Don't create new user, just send link to existing
         },
       });
@@ -658,7 +658,7 @@ export default function AdminUsersPage() {
       const { error } = await supabase.auth.signInWithOtp({
         email: email,
         options: {
-          emailRedirectTo: `${window.location.origin}/app`,
+          emailRedirectTo: 'https://app.listmine.com/auth/callback',
           shouldCreateUser: false,
         },
       });
@@ -721,7 +721,7 @@ export default function AdminUsersPage() {
       const { error } = await supabase.auth.signInWithOtp({
         email: user.email,
         options: {
-          emailRedirectTo: `${window.location.origin}/app?impersonated=true`,
+          emailRedirectTo: 'https://app.listmine.com/auth/callback?impersonated=true',
           shouldCreateUser: false,
         },
       });

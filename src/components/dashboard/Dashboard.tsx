@@ -1791,7 +1791,7 @@ export default function Dashboard() {
                           <div className="flex items-center justify-between pt-2">
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
                               <Clock className="w-3 h-3" />
-                              <span>Updated {getTimeAgo(list.updatedAt)}</span>
+                              <span>Updated {getTimeAgo(list.updatedAt)}{list.lastEditedByEmail && ` by ${list.lastEditedByEmail.split('@')[0]}`}</span>
                             </div>
                             <div className="flex gap-1">
                               {list.isShared && canShareLists(effectiveTier) && (
@@ -2156,7 +2156,7 @@ export default function Dashboard() {
                         <div className="flex items-center justify-between pt-2">
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             <Clock className="w-3 h-3" />
-                            <span>Updated {getTimeAgo(list.updatedAt)}</span>
+                            <span>Updated {getTimeAgo(list.updatedAt)}{list.lastEditedByEmail && ` by ${list.lastEditedByEmail.split('@')[0]}`}</span>
                           </div>
                           <div className="flex gap-1">
                             {list.isShared && canShareLists(effectiveTier) && (
@@ -2303,7 +2303,7 @@ export default function Dashboard() {
                       <div className="flex items-center justify-between pt-2">
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <Clock className="w-3 h-3" />
-                          <span>Updated {getTimeAgo(list.updatedAt)}</span>
+                          <span>Updated {getTimeAgo(list.updatedAt)}{list.lastEditedByEmail && ` by ${list.lastEditedByEmail.split('@')[0]}`}</span>
                         </div>
                       </div>
                     </div>
