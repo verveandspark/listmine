@@ -95,7 +95,7 @@ function AppRoutes() {
         path="/" 
         element={isAuthenticated ? <Navigate to={getRedirectPath()} replace /> : <AuthPage />} 
       />
-      <Route path="/auth" element={<AuthPage />} />
+      <Route path="/auth" element={<Navigate to="/" replace />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/auth/reset-password" element={<ResetPassword />} />
       <Route path="/invite" element={<ErrorBoundary><InviteAccept /></ErrorBoundary>} />
