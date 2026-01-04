@@ -135,23 +135,12 @@ import { supabase } from "@/lib/supabase";
 import { canInviteGuests, canHaveTeamMembers, canShareLists, canExportLists, getAvailableExportFormats, type UserTier } from "@/lib/tierUtils";
 import ShareSettingsModal from "./ShareSettingsModal";
 
-// Helper to normalize listType variations for consistent handling
-// Maps: todo-list → todo, idea-list → idea, registry-list → registry
-// NOTE: shopping-list is NOT normalized - it's its own distinct type
-const normalizeListType = (listType: string | undefined): string => {
-  if (!listType) return "custom";
-  const normalizations: Record<string, string> = {
-    "todo-list": "todo",
-    "idea-list": "idea",
-    "registry-list": "registry",
-  };
-  return normalizations[listType] || listType;
-};
+import { normalizeListType } from "@/lib/normalizeListType";
 
 // Check if listType is a registry or wishlist (for purchaser UI)
 const isRegistryOrWishlist = (listType: string | undefined): boolean => {
   const normalized = normalizeListType(listType);
-  return normalized === "registry" || normalized === "wishlist";
+  return normalized === "Registry" || normalized === "Wishlist";
 };
 
 export default function ListDetail() {
@@ -2155,6 +2144,11 @@ export default function ListDetail() {
                   <p className="text-xs sm:text-sm text-muted-foreground">
                     {list.category} · {Math.max(0, list.items?.length || 0)}/
                     {user?.itemsPerListLimit === -1 ? "∞" : user?.itemsPerListLimit} items
+                    {list.lastEditedAt && (
+                      <span className="ml-2">
+                        · Last edited {list.lastEditedByEmail ? `by ${list.lastEditedByEmail}` : ''} on {new Date(list.lastEditedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} at {new Date(list.lastEditedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                      </span>
+                    )}
                   </p>
                 </div>
               </div>
@@ -2652,7 +2646,7 @@ export default function ListDetail() {
                     <div className="border-t border-gray-200 my-2" />
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1">More</p>
                     
-                    {(normalizeListType(list.listType) === "registry" || normalizeListType(list.listType) === "wishlist") && (
+                    {(normalizeListType(list.listType) === "Registry" || normalizeListType(list.listType) === "Wishlist") && (
                       <>
                         <Button
                           variant="outline"
@@ -4194,7 +4188,7 @@ export default function ListDetail() {
               (() => {
                 const sortedItems = getSortedItems();
                 // Purchaser UI only for registry/wishlist, NOT shopping-list
-                const isRegistryOrWishlistType = normalizeListType(list.listType) === "registry" || normalizeListType(list.listType) === "wishlist";
+                const isRegistryOrWishlistType = normalizeListType(list.listType) === "Registry" || normalizeListType(list.listType) === "Wishlist";
                 const hasPurchasedItems = isRegistryOrWishlistType && sortedItems.some(item => item.attributes?.purchaseStatus === "purchased");
                 const hasUnpurchasedItems = isRegistryOrWishlistType && sortedItems.some(item => item.attributes?.purchaseStatus !== "purchased");
                 

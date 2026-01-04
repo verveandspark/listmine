@@ -151,6 +151,8 @@ export default function SharedListView() {
             attributes: item.attributes || {},
           })),
           tags: listData.tags || [],
+          lastEditedAt: listData.last_edited_at || listData.updated_at,
+          lastEditedByEmail: listData.last_edited_by_email,
         });
         setIsLoading(false);
         console.log("SharedListView: Successfully loaded list with", itemsData?.length || 0, "items");
@@ -328,19 +330,29 @@ export default function SharedListView() {
     }
   };
 
-  const normalizeListType = (listType: string | undefined): string => {
-    if (!listType) return "custom";
+  // Use the centralized normalizeListType from lib
+  const normalizeListTypeLocal = (listType: string | undefined): string => {
+    if (!listType) return "Custom";
     const normalizations: Record<string, string> = {
-      "todo-list": "todo",
-      "idea-list": "idea",
-      "registry-list": "registry",
+      "todo-list": "To-Do",
+      "todo": "To-Do",
+      "task-list": "To-Do",
+      "checklist": "To-Do",
+      "idea-list": "Idea",
+      "idea": "Idea",
+      "registry-list": "Registry",
+      "registry": "Registry",
+      "wishlist": "Wishlist",
+      "shopping-list": "Shopping List",
+      "grocery-list": "Shopping List",
+      "grocery": "Shopping List",
     };
-    return normalizations[listType] || listType;
+    return normalizations[listType.toLowerCase()] || "Custom";
   };
 
   const isRegistryOrWishlist = (listType: string | undefined): boolean => {
-    const normalized = normalizeListType(listType);
-    return normalized === "registry" || normalized === "wishlist";
+    const normalized = normalizeListTypeLocal(listType);
+    return normalized === "Registry" || normalized === "Wishlist";
   };
 
   const canImport = shareMode === 'importable';
@@ -540,9 +552,14 @@ export default function SharedListView() {
               </div>
               <p className="text-xs sm:text-sm text-gray-600 mt-1">
                 {list.category} · {list.items.length} items · 
-                {normalizeListType(list.listType) === "registry" ? " Shared Registry" : 
-                 normalizeListType(list.listType) === "wishlist" ? " Shared Wishlist" : 
+                {normalizeListTypeLocal(list.listType) === "Registry" ? " Shared Registry" : 
+                 normalizeListTypeLocal(list.listType) === "Wishlist" ? " Shared Wishlist" : 
                  " Shared List"}
+                {list.lastEditedAt && (
+                  <span className="ml-1">
+                    · Last updated {new Date(list.lastEditedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </span>
+                )}
               </p>
             </div>
             <div className="flex items-center gap-2 flex-wrap">

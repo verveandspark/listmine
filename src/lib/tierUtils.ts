@@ -10,11 +10,12 @@ export interface ListTypeInfo {
 }
 
 // Define all list types with their required tiers
+// NOTE: These are the canonical 6 base types shown in the UI
 export const ALL_LIST_TYPES: ListTypeInfo[] = [
   { value: "custom", label: "Custom", requiredTier: "free", tierLabel: "Free" },
   { value: "todo-list", label: "To-Do", requiredTier: "free", tierLabel: "Free" },
-  { value: "shopping-list", label: "Shopping List", requiredTier: "good", tierLabel: "Good" },
   { value: "idea-list", label: "Idea", requiredTier: "good", tierLabel: "Good" },
+  { value: "shopping-list", label: "Shopping List", requiredTier: "good", tierLabel: "Good" },
   { value: "registry-list", label: "Registry", requiredTier: "even_better", tierLabel: "Even Better" },
   { value: "wishlist", label: "Wishlist", requiredTier: "even_better", tierLabel: "Even Better" },
 ];
