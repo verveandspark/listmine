@@ -215,7 +215,7 @@ export default function InviteAccept() {
       const { error } = await supabase.auth.resetPasswordForEmail(
         emailValidation.value!,
         {
-          redirectTo: `${window.location.origin}/auth/reset-password`,
+          redirectTo: 'https://app.listmine.com/auth/callback',
         }
       );
 

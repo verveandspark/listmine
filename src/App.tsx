@@ -20,15 +20,22 @@ import Upgrade from "./components/upgrade/Upgrade";
 import Templates from "./components/templates/Templates";
 import AdminPanel from "./components/admin/AdminPanel";
 
-// Auth callback handler for magic link redirects
+// Auth callback handler for magic link and password reset redirects
 function AuthCallback() {
   const { isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
   useEffect(() => {
+    // Check for recovery flow in URL hash (Supabase appends type=recovery)
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const isRecoveryFlow = hashParams.get('type') === 'recovery';
+    
     if (!loading) {
-      if (isAuthenticated) {
+      if (isRecoveryFlow) {
+        // Password recovery flow - redirect to reset password page
+        navigate('/auth/reset-password', { replace: true });
+      } else if (isAuthenticated) {
         // Check if this was an impersonation redirect
         const impersonated = searchParams.get('impersonated');
         if (impersonated === 'true') {
