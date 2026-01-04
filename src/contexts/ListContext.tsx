@@ -790,6 +790,10 @@ export function ListProvider({ children }: { children: ReactNode }) {
         // Source and template tracking
         source: list.source || 'standard',
         templateId: list.template_id || null,
+        // Last edited tracking
+        lastEditedByUserId: list.last_edited_by_user_id || null,
+        lastEditedByEmail: list.last_edited_by_email || null,
+        lastEditedAt: list.last_edited_at ? new Date(list.last_edited_at) : null,
       })) || [];
 
       // Split lists into categories for tier filtering
@@ -1207,6 +1211,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
             is_favorite: updates.isFavorite,
             tags: updates.tags,
             updated_at: new Date().toISOString(),
+            last_edited_by_user_id: user?.id || null,
+            last_edited_by_email: user?.email || null,
+            last_edited_at: new Date().toISOString(),
           })
           .eq("id", listId),
       )) as any;
@@ -1277,6 +1284,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
           show_purchaser_info: listData.show_purchaser_info,
           created_at: listData.created_at,
           updated_at: new Date().toISOString(),
+          last_edited_by_user_id: user?.id || null,
+          last_edited_by_email: user?.email || null,
+          last_edited_at: new Date().toISOString(),
         })
         .select()
         .single();
@@ -1300,6 +1310,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
           item_order: item.item_order,
           created_at: item.created_at,
           updated_at: new Date().toISOString(),
+          last_edited_by_user_id: user?.id || null,
+          last_edited_by_email: user?.email || null,
+          last_edited_at: new Date().toISOString(),
         }));
 
         const { error: itemsError } = await supabase
@@ -1334,6 +1347,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
           is_archived: false,
           title: newTitle,
           updated_at: new Date().toISOString(),
+          last_edited_by_user_id: user?.id || null,
+          last_edited_by_email: user?.email || null,
+          last_edited_at: new Date().toISOString(),
         })
         .eq("id", listId);
 
@@ -1408,11 +1424,25 @@ export function ListProvider({ children }: { children: ReactNode }) {
           item_order: list.items.length,
           links: item.links,
           attributes: item.attributes,
+          last_edited_by_user_id: user?.id || null,
+          last_edited_by_email: user?.email || null,
+          last_edited_at: new Date().toISOString(),
         }),
       )) as any;
       const { error } = result;
 
       if (error) throw error;
+
+      // Also update the parent list's last edited info
+      await supabase
+        .from("lists")
+        .update({
+          updated_at: new Date().toISOString(),
+          last_edited_by_user_id: user?.id || null,
+          last_edited_by_email: user?.email || null,
+          last_edited_at: new Date().toISOString(),
+        })
+        .eq("id", listId);
 
       await loadLists();
     } catch (error: any) {
@@ -1450,6 +1480,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
     try {
       const updateData: any = {
         updated_at: new Date().toISOString(),
+        last_edited_by_user_id: user?.id || null,
+        last_edited_by_email: user?.email || null,
+        last_edited_at: new Date().toISOString(),
       };
 
       // Only include fields that are being updated
@@ -1476,6 +1509,18 @@ export function ListProvider({ children }: { children: ReactNode }) {
       const { error } = result;
 
       if (error) throw error;
+      
+      // Also update the parent list's last edited info
+      await supabase
+        .from("lists")
+        .update({
+          updated_at: new Date().toISOString(),
+          last_edited_by_user_id: user?.id || null,
+          last_edited_by_email: user?.email || null,
+          last_edited_at: new Date().toISOString(),
+        })
+        .eq("id", listId);
+      
       await loadLists();
     } catch (error: any) {
       logError("updateListItem", error, user?.id);
@@ -1489,6 +1534,18 @@ export function ListProvider({ children }: { children: ReactNode }) {
       const { error } = result;
 
       if (error) throw error;
+      
+      // Update the parent list's last edited info
+      await supabase
+        .from("lists")
+        .update({
+          updated_at: new Date().toISOString(),
+          last_edited_by_user_id: user?.id || null,
+          last_edited_by_email: user?.email || null,
+          last_edited_at: new Date().toISOString(),
+        })
+        .eq("id", listId);
+      
       await loadLists();
     } catch (error: any) {
       logError("deleteListItem", error, user?.id);
@@ -1502,6 +1559,18 @@ export function ListProvider({ children }: { children: ReactNode }) {
       const { error } = result;
 
       if (error) throw error;
+      
+      // Update the parent list's last edited info
+      await supabase
+        .from("lists")
+        .update({
+          updated_at: new Date().toISOString(),
+          last_edited_by_user_id: user?.id || null,
+          last_edited_by_email: user?.email || null,
+          last_edited_at: new Date().toISOString(),
+        })
+        .eq("id", listId);
+      
       await loadLists();
     } catch (error: any) {
       logError("bulkDeleteItems", error, user?.id);
@@ -1527,9 +1596,24 @@ export function ListProvider({ children }: { children: ReactNode }) {
         item_order: itemData.item_order,
         created_at: itemData.created_at,
         updated_at: new Date().toISOString(),
+        last_edited_by_user_id: user?.id || null,
+        last_edited_by_email: user?.email || null,
+        last_edited_at: new Date().toISOString(),
       });
 
       if (error) throw error;
+      
+      // Update the parent list's last edited info
+      await supabase
+        .from("lists")
+        .update({
+          updated_at: new Date().toISOString(),
+          last_edited_by_user_id: user?.id || null,
+          last_edited_by_email: user?.email || null,
+          last_edited_at: new Date().toISOString(),
+        })
+        .eq("id", listId);
+      
       await loadLists();
     } catch (error: any) {
       logError("restoreListItem", error, user?.id);
@@ -1555,11 +1639,26 @@ export function ListProvider({ children }: { children: ReactNode }) {
         item_order: item.item_order,
         created_at: item.created_at,
         updated_at: new Date().toISOString(),
+        last_edited_by_user_id: user?.id || null,
+        last_edited_by_email: user?.email || null,
+        last_edited_at: new Date().toISOString(),
       }));
 
       const { error } = await supabase.from("list_items").insert(itemsToInsert);
 
       if (error) throw error;
+      
+      // Update the parent list's last edited info
+      await supabase
+        .from("lists")
+        .update({
+          updated_at: new Date().toISOString(),
+          last_edited_by_user_id: user?.id || null,
+          last_edited_by_email: user?.email || null,
+          last_edited_at: new Date().toISOString(),
+        })
+        .eq("id", listId);
+      
       await loadLists();
     } catch (error: any) {
       logError("restoreBulkItems", error, user?.id);
@@ -1579,11 +1678,26 @@ export function ListProvider({ children }: { children: ReactNode }) {
           completed: updates.completed,
           priority: updates.priority,
           updated_at: new Date().toISOString(),
+          last_edited_by_user_id: user?.id || null,
+          last_edited_by_email: user?.email || null,
+          last_edited_at: new Date().toISOString(),
         })
         .in("id", itemIds);
       const { error } = result;
 
       if (error) throw error;
+      
+      // Update the parent list's last edited info
+      await supabase
+        .from("lists")
+        .update({
+          updated_at: new Date().toISOString(),
+          last_edited_by_user_id: user?.id || null,
+          last_edited_by_email: user?.email || null,
+          last_edited_at: new Date().toISOString(),
+        })
+        .eq("id", listId);
+      
       await loadLists();
     } catch (error: any) {
       logError("bulkUpdateItems", error, user?.id);
@@ -1612,6 +1726,17 @@ export function ListProvider({ children }: { children: ReactNode }) {
         const { error } = result;
         if (error) throw error;
       }
+      
+      // Update the parent list's last edited info
+      await supabase
+        .from("lists")
+        .update({
+          updated_at: new Date().toISOString(),
+          last_edited_by_user_id: user?.id || null,
+          last_edited_by_email: user?.email || null,
+          last_edited_at: new Date().toISOString(),
+        })
+        .eq("id", listId);
     } catch (error: any) {
       logError("reorderListItems", error, user?.id);
       // Reload lists to restore correct state on error
@@ -2138,6 +2263,10 @@ export function ListProvider({ children }: { children: ReactNode }) {
             share_link: shareId,
             is_shared: true,
             share_mode: shareMode,
+            updated_at: new Date().toISOString(),
+            last_edited_by_user_id: user?.id || null,
+            last_edited_by_email: user?.email || null,
+            last_edited_at: new Date().toISOString(),
           } as any)
           .eq("id", listId),
       )) as any;
@@ -2180,6 +2309,10 @@ export function ListProvider({ children }: { children: ReactNode }) {
             share_link: null,
             is_shared: false,
             share_mode: null,
+            updated_at: new Date().toISOString(),
+            last_edited_by_user_id: user?.id || null,
+            last_edited_by_email: user?.email || null,
+            last_edited_at: new Date().toISOString(),
           } as any)
           .eq("id", listId),
       )) as any;
@@ -2214,6 +2347,10 @@ export function ListProvider({ children }: { children: ReactNode }) {
           .from("lists")
           .update({
             share_mode: shareMode,
+            updated_at: new Date().toISOString(),
+            last_edited_by_user_id: user?.id || null,
+            last_edited_by_email: user?.email || null,
+            last_edited_at: new Date().toISOString(),
           } as any)
           .eq("id", listId),
       )) as any;
@@ -2260,6 +2397,10 @@ export function ListProvider({ children }: { children: ReactNode }) {
           .from("lists")
           .update({
             collaborators: [...collaborators, emailValidation.value],
+            updated_at: new Date().toISOString(),
+            last_edited_by_user_id: user?.id || null,
+            last_edited_by_email: user?.email || null,
+            last_edited_at: new Date().toISOString(),
           } as any)
           .eq("id", listId),
       )) as any;
@@ -2499,6 +2640,10 @@ export function ListProvider({ children }: { children: ReactNode }) {
           .from("lists")
           .update({
             tags: [...tags, tagValidation.value],
+            updated_at: new Date().toISOString(),
+            last_edited_by_user_id: user?.id || null,
+            last_edited_by_email: user?.email || null,
+            last_edited_at: new Date().toISOString(),
           } as any)
           .eq("id", listId),
       )) as any;
@@ -2534,6 +2679,10 @@ export function ListProvider({ children }: { children: ReactNode }) {
         .from("lists")
         .update({
           tags: (list.tags || []).filter((t) => t !== tag),
+          updated_at: new Date().toISOString(),
+          last_edited_by_user_id: user?.id || null,
+          last_edited_by_email: user?.email || null,
+          last_edited_at: new Date().toISOString(),
         } as any)
         .eq("id", listId);
       const { error } = result;
