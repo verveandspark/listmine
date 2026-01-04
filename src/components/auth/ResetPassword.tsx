@@ -64,6 +64,13 @@ export default function ResetPassword() {
 
       if (error) throw error;
 
+      // Clear recovery flow flag from localStorage
+      try {
+        localStorage.removeItem('listmine_recovery_flow');
+      } catch (e) {
+        // localStorage not available
+      }
+
       toast({
         title: "Password Reset Successful",
         description: "Your password has been updated. You can now log in.",

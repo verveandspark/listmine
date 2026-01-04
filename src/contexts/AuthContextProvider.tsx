@@ -200,6 +200,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!isMounted) return;
       
       try {
+        if (event === "PASSWORD_RECOVERY") {
+          // Password recovery flow detected - set flag and redirect
+          try {
+            localStorage.setItem('listmine_recovery_flow', '1');
+          } catch (e) {
+            // localStorage not available
+          }
+          // Trigger navigation to reset password page
+          window.location.href = '/auth/reset-password';
+          return;
+        }
+        
         if (event === "SIGNED_IN" && session?.user) {
           // Only fetch tier if user ID changed
           if (session.user.id !== userIdRef.current) {

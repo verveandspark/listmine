@@ -27,15 +27,23 @@ function AuthCallback() {
   const [searchParams] = useSearchParams();
   
   useEffect(() => {
-    // Check for recovery flow in URL hash (Supabase appends type=recovery)
+    // Check localStorage for recovery flow flag (set by onAuthStateChange)
+    let isRecoveryFlow = false;
+    try {
+      isRecoveryFlow = localStorage.getItem('listmine_recovery_flow') === '1';
+    } catch (e) {
+      // localStorage not available
+    }
+    
+    // Also check for recovery flow in URL hash (Supabase appends type=recovery)
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const hashType = hashParams.get('type');
     
     // Also check query parameters (Supabase may send type as query param)
     const queryType = searchParams.get('type');
     
-    // Recovery flow if either hash or query has type=recovery
-    const isRecoveryFlow = hashType === 'recovery' || queryType === 'recovery';
+    // Recovery flow if any of: localStorage flag, hash, or query has type=recovery
+    isRecoveryFlow = isRecoveryFlow || hashType === 'recovery' || queryType === 'recovery';
     
     if (!loading) {
       if (isRecoveryFlow) {
