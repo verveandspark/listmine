@@ -53,6 +53,24 @@ function AuthCallback() {
   return <DashboardSkeleton />;
 }
 
+// Legacy /app route handler - auth-aware redirect for old magic links
+function LegacyAppRedirect() {
+  const { isAuthenticated, loading } = useAuth();
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    if (!loading) {
+      if (isAuthenticated) {
+        navigate('/dashboard', { replace: true });
+      } else {
+        navigate('/', { replace: true });
+      }
+    }
+  }, [isAuthenticated, loading, navigate]);
+  
+  return <DashboardSkeleton />;
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
 
@@ -104,6 +122,9 @@ function AppRoutes() {
       />
       <Route path="/auth" element={<Navigate to="/" replace />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
+      {/* Legacy route - auth-aware redirect for old magic links */}
+      <Route path="/app" element={<LegacyAppRedirect />} />
+      <Route path="/app/*" element={<LegacyAppRedirect />} />
       <Route path="/auth/reset-password" element={<ResetPassword />} />
       <Route path="/invite" element={<ErrorBoundary><InviteAccept /></ErrorBoundary>} />
       <Route path="/shared/:shareId" element={<ErrorBoundary><SharedListView /></ErrorBoundary>} />
