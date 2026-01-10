@@ -1719,9 +1719,9 @@ export default function ListDetail() {
                     <div className="space-y-2">
                       <Label>Price</Label>
                       <Input
-                        type="number"
-                        step="0.01"
-                        value={editingItem.attributes?.custom?.price ?? ""}
+                        type="text"
+                        placeholder="$0.00"
+                        value={String(editingItem.attributes?.custom?.price ?? "")}
                         onChange={(e) =>
                           setEditingItem({
                             ...editingItem,
@@ -1863,9 +1863,9 @@ export default function ListDetail() {
                     <div className="space-y-2">
                       <Label>Price</Label>
                       <Input
-                        type="number"
-                        step="0.01"
-                        value={editingItem.attributes?.custom?.price ?? ""}
+                        type="text"
+                        placeholder="$0.00"
+                        value={String(editingItem.attributes?.custom?.price ?? "")}
                         onChange={(e) =>
                           setEditingItem({
                             ...editingItem,
@@ -2000,9 +2000,9 @@ export default function ListDetail() {
                     <div className="space-y-2">
                       <Label>Est. Price</Label>
                       <Input
-                        type="number"
-                        step="0.01"
-                        value={editingItem.attributes?.custom?.price ?? ""}
+                        type="text"
+                        placeholder="$0.00"
+                        value={String(editingItem.attributes?.custom?.price ?? "")}
                         onChange={(e) =>
                           setEditingItem({
                             ...editingItem,
