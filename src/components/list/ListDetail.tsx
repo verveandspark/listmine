@@ -1424,7 +1424,11 @@ export default function ListDetail() {
           target="_blank"
           rel="noopener noreferrer"
           className="text-xs sm:text-sm text-primary hover:text-primary/80 underline flex items-center gap-1 break-all"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            window.open(url, "_blank", "noopener,noreferrer");
+          }}
           onMouseDown={(e) => e.stopPropagation()}
         >
           <LinkIcon className="w-3 h-3 flex-shrink-0" />
@@ -3756,9 +3760,11 @@ export default function ListDetail() {
                     <Card
                       className={`p-3 sm:p-4 hover:shadow-md transition-all relative ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2 opacity-50" : ""} ${isDropTarget && itemSortBy === "manual" ? "ring-2 ring-primary/30" : ""}`}
                       draggable={itemSortBy === "manual" && canEditListItems}
-                      onDragStart={(e) =>
-                        itemSortBy === "manual" && canEditListItems && handleDragStart(e, item)
-                      }
+                      onDragStart={(e) => {
+                        const target = e.target as HTMLElement | null;
+                        if (target?.closest("a")) return;
+                        itemSortBy === "manual" && canEditListItems && handleDragStart(e, item);
+                      }}
                       onDragOver={(e) =>
                         itemSortBy === "manual" && handleDragOver(e, item)
                       }
@@ -4023,9 +4029,11 @@ export default function ListDetail() {
                     <Card
                       className={`p-3 sm:p-4 hover:shadow-md transition-all relative ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2 opacity-50" : ""} ${isDropTarget && itemSortBy === "manual" ? "ring-2 ring-primary/30" : ""}`}
                       draggable={itemSortBy === "manual" && canEditListItems}
-                      onDragStart={(e) =>
-                        itemSortBy === "manual" && canEditListItems && handleDragStart(e, item)
-                      }
+                      onDragStart={(e) => {
+                        const target = e.target as HTMLElement | null;
+                        if (target?.closest("a")) return;
+                        itemSortBy === "manual" && canEditListItems && handleDragStart(e, item);
+                      }}
                       onDragOver={(e) =>
                         itemSortBy === "manual" && handleDragOver(e, item)
                       }
