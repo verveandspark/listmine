@@ -2951,7 +2951,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
       const itemsToInsert = items.map((item, index) => ({
         list_id: newList.id,
         text: item.name,
-        notes: item.price ? `Price: ${item.price}` : null,
+        notes: null,
         links: item.link ? [item.link] : null,
         completed: false,
         item_order: index,

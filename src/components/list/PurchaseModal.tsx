@@ -77,9 +77,9 @@ export default function PurchaseModal({
               {item.quantity && <span className="font-semibold">{item.quantity}× </span>}
               {item.text}
             </p>
-            {item.attributes?.price && (
+            {(item.attributes?.custom?.price || item.attributes?.price) && (
               <p className="text-sm text-gray-600 mt-1">
-                Price: ${item.attributes.price}
+                Price: ${item.attributes?.custom?.price ?? item.attributes?.price}
               </p>
             )}
             {item.attributes?.quantityNeeded && item.attributes.quantityNeeded > 1 && (

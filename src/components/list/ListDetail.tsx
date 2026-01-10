@@ -1424,6 +1424,8 @@ export default function ListDetail() {
           target="_blank"
           rel="noopener noreferrer"
           className="text-xs sm:text-sm text-primary hover:text-primary/80 underline flex items-center gap-1 break-all"
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
         >
           <LinkIcon className="w-3 h-3 flex-shrink-0" />
           {url}
@@ -1719,17 +1721,16 @@ export default function ListDetail() {
                       <Input
                         type="number"
                         step="0.01"
-                        value={editingItem.attributes?.custom?.price ?? editingItem.attributes?.price ?? ""}
+                        value={editingItem.attributes?.custom?.price ?? ""}
                         onChange={(e) =>
                           setEditingItem({
                             ...editingItem,
                             attributes: {
                               ...editingItem.attributes,
-                              price: e.target.value ? parseFloat(e.target.value) : undefined,
-                               custom: {
-                                 ...editingItem.attributes?.custom,
-                                 price: e.target.value,
-                               },
+                              custom: {
+                                ...editingItem.attributes?.custom,
+                                price: e.target.value,
+                              },
                             },
                           })
                         }
@@ -1864,17 +1865,16 @@ export default function ListDetail() {
                       <Input
                         type="number"
                         step="0.01"
-                        value={editingItem.attributes?.custom?.price ?? editingItem.attributes?.price ?? ""}
+                        value={editingItem.attributes?.custom?.price ?? ""}
                         onChange={(e) =>
                           setEditingItem({
                             ...editingItem,
                             attributes: {
                               ...editingItem.attributes,
-                              price: e.target.value ? parseFloat(e.target.value) : undefined,
-                               custom: {
-                                 ...editingItem.attributes?.custom,
-                                 price: e.target.value,
-                               },
+                              custom: {
+                                ...editingItem.attributes?.custom,
+                                price: e.target.value,
+                              },
                             },
                           })
                         }
@@ -2002,17 +2002,16 @@ export default function ListDetail() {
                       <Input
                         type="number"
                         step="0.01"
-                        value={editingItem.attributes?.custom?.price ?? editingItem.attributes?.price ?? ""}
+                        value={editingItem.attributes?.custom?.price ?? ""}
                         onChange={(e) =>
                           setEditingItem({
                             ...editingItem,
                             attributes: {
                               ...editingItem.attributes,
-                              price: e.target.value ? parseFloat(e.target.value) : undefined,
-                               custom: {
-                                 ...editingItem.attributes?.custom,
-                                 price: e.target.value,
-                               },
+                              custom: {
+                                ...editingItem.attributes?.custom,
+                                price: e.target.value,
+                              },
                             },
                           })
                         }
@@ -3899,7 +3898,7 @@ export default function ListDetail() {
                           )}
 
                           {item.links && item.links.length > 0 && (
-                            <div className="mt-2 space-y-1 pointer-events-none">
+                            <div className="mt-2 space-y-1">
                               {item.links.map((link, idx) => (
                                 <LinkIconWithPreview key={idx} url={link} />
                               ))}
@@ -4105,7 +4104,7 @@ export default function ListDetail() {
                           </div>
 
                           {item.links && item.links.length > 0 && (
-                            <div className="mt-2 space-y-1 pointer-events-none">
+                            <div className="mt-2 space-y-1">
                               {item.links.map((link, idx) => (
                                 <LinkIconWithPreview key={idx} url={link} />
                               ))}
@@ -4452,7 +4451,7 @@ export default function ListDetail() {
                           )}
 
                           {item.links && item.links.length > 0 && (
-                            <div className="mt-2 space-y-1 pointer-events-none">
+                            <div className="mt-2 space-y-1">
                               {item.links.map((link, idx) => (
                                 <LinkIconWithPreview key={idx} url={link} />
                               ))}
