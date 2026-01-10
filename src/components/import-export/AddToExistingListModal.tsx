@@ -172,14 +172,14 @@ export default function AddToExistingListModal({
           completed: originalItem?.completed || false,
           priority: originalItem?.priority,
           dueDate: originalItem?.dueDate,
-          notes: originalItem?.notes || (item.price ? `Price: ${item.price}` : undefined),
+          notes: originalItem?.notes,
           quantity: originalItem?.quantity,
           links: item.link ? [item.link] : undefined,
           attributes: {
-            price: item.price ? parseFloat(item.price.replace(/[^0-9.]/g, "")) : undefined,
-            productLink: item.link,
-            linkImage: item.image,
-            linkTitle: item.name,
+            custom: {
+              price: item.price,
+              image: item.image,
+            },
           },
         });
       }

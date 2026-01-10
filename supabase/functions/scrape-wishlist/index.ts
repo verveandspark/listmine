@@ -78,6 +78,22 @@ const detectRetailer = (url: string): string | null => {
     // Walmart Wishlist URLs: /lists/wishlist/<uuid>
     if (lowerUrl.includes("/lists/wishlist/") || lowerUrl.includes("/lists/")) return "WalmartWishlist";
   }
+  // Detect Bed Bath & Beyond (MyRegistry) URLs
+  if (lowerUrl.includes("bedbathandbeyond.myregistry.com")) {
+    return "MyRegistryBedBathAndBeyond";
+  }
+  // Detect The Knot Registry URLs
+  if (lowerUrl.includes("theknot.com") && lowerUrl.includes("/registry")) {
+    return "TheKnotRegistry";
+  }
+  // Detect Crate & Barrel Registry URLs
+  if (lowerUrl.includes("crateandbarrel.com") && lowerUrl.includes("/gift-registry/")) {
+    return "CrateAndBarrelRegistry";
+  }
+  // Detect CB2 Registry URLs (same parent company, similar structure)
+  if (lowerUrl.includes("cb2.com") && lowerUrl.includes("/gift-registry/")) {
+    return "CB2Registry";
+  }
   return null;
 };
 
@@ -1451,6 +1467,984 @@ const scrapeWalmartRegistry = ($: any, html: string, url: string): ScrapedItem[]
   return items;
 };
 
+// MyRegistry Bed Bath & Beyond Registry Scraper
+interface MyRegistryMetadata {
+  registryId: string;
+  merchantWebsiteId: string;
+  merchantSiteKey: string;
+  isWishList?: boolean;
+}
+
+// Extract hidden input values from MyRegistry page HTML
+const extractMyRegistryMetadata = ($: any): MyRegistryMetadata | null => {
+  const registryId = $('input#hidRegistryId').val() || $('input[name="hidRegistryId"]').val();
+  const merchantWebsiteId = $('input#hidMerchantWebsiteId').val() || $('input[name="hidMerchantWebsiteId"]').val();
+  const merchantSiteKey = $('input#hidMerchantSiteKey').val() || $('input[name="hidMerchantSiteKey"]').val();
+  const isWishList = $('input#hidIsWishList').val() || $('input[name="hidIsWishList"]').val();
+  
+  if (DEBUG) {
+    console.log("[MYREGISTRY_PARSE] hidRegistryId:", registryId || "NOT FOUND");
+    console.log("[MYREGISTRY_PARSE] hidMerchantWebsiteId:", merchantWebsiteId || "NOT FOUND");
+    console.log("[MYREGISTRY_PARSE] hidMerchantSiteKey:", merchantSiteKey || "NOT FOUND");
+    console.log("[MYREGISTRY_PARSE] hidIsWishList:", isWishList || "NOT FOUND");
+  }
+  
+  if (!registryId || !merchantWebsiteId || !merchantSiteKey) {
+    return null;
+  }
+  
+  return {
+    registryId,
+    merchantWebsiteId,
+    merchantSiteKey,
+    isWishList: isWishList === 'True',
+  };
+};
+
+// Parse items from MyRegistry GridGiftList HTML response
+const parseMyRegistryItems = (html: string): ScrapedItem[] => {
+  const items: ScrapedItem[] = [];
+  const $ = load(html);
+  const BASE_URL = 'https://bedbathandbeyond.myregistry.com';
+  
+  // Track link/image extraction stats
+  let itemsWithLink = 0;
+  let itemsWithImage = 0;
+  
+  // Each item is wrapped in .itemGiftVisitorList
+  $('.itemGiftVisitorList').each((_, element) => {
+    try {
+      const itemEl = $(element);
+      
+      // Extract title/name - try multiple selectors
+      let name = '';
+      const titleEl = itemEl.find('.productTitle, .gift-title, .item-title, .product-name, h3, h4').first();
+      if (titleEl.length) {
+        name = titleEl.text().trim();
+      }
+      if (!name) {
+        // Fallback to finding any meaningful text content
+        const allText = itemEl.find('a').first().text().trim();
+        if (allText && allText.length > 2 && allText.length < 200) {
+          name = allText;
+        }
+      }
+      if (!name) {
+        // Try to get text from product link
+        const productLinkEl = itemEl.find('a[href*="product"], a[href*="item"]').first();
+        if (productLinkEl.length) {
+          name = productLinkEl.text().trim();
+        }
+      }
+      
+      // Extract product URL - find first anchor with href
+      let link: string | undefined;
+      const anchorEl = itemEl.find('a[href]').first();
+      if (anchorEl.length) {
+        const href = anchorEl.attr('href') || '';
+        if (href) {
+          if (href.startsWith('http')) {
+            link = href;
+          } else if (href.startsWith('//')) {
+            // Protocol-relative URL
+            link = `https:${href}`;
+          } else if (href.startsWith('/')) {
+            // Relative URL
+            link = `${BASE_URL}${href}`;
+          }
+        }
+      }
+      
+      // Extract image URL - find first img with src
+      let image: string | undefined;
+      const imgEl = itemEl.find('img[src], img[data-src]').first();
+      if (imgEl.length) {
+        const src = imgEl.attr('src') || imgEl.attr('data-src') || '';
+        if (src) {
+          if (src.startsWith('http')) {
+            image = src;
+          } else if (src.startsWith('//')) {
+            // Protocol-relative URL - normalize to https
+            image = `https:${src}`;
+          } else if (src.startsWith('/')) {
+            // Relative URL
+            image = `${BASE_URL}${src}`;
+          }
+        }
+      }
+      
+      // Extract price
+      let price = '';
+      const priceEl = itemEl.find('.price, .product-price, .gift-price, .item-price, [class*="price"]').first();
+      if (priceEl.length) {
+        const priceText = priceEl.text().trim();
+        // Extract dollar amount
+        const priceMatch = priceText.match(/\$[\d,]+\.?\d*/);
+        if (priceMatch) {
+          price = priceMatch[0];
+        } else if (priceText) {
+          price = priceText;
+        }
+      }
+      
+      // Extract quantity info if present
+      const qtyEl = itemEl.find('.quantity, .qty, [class*="quantity"], [class*="needed"]').first();
+      let desiredQty: number | undefined;
+      let purchasedQty: number | undefined;
+      if (qtyEl.length) {
+        const qtyText = qtyEl.text();
+        const neededMatch = qtyText.match(/(\d+)\s*(?:needed|wants|desired)/i);
+        const purchasedMatch = qtyText.match(/(\d+)\s*(?:purchased|bought|received)/i);
+        if (neededMatch) desiredQty = parseInt(neededMatch[1], 10);
+        if (purchasedMatch) purchasedQty = parseInt(purchasedMatch[1], 10);
+      }
+      
+      // Only add item if we have at least a name
+      if (name) {
+        const item: ScrapedItem = { name };
+        if (link) {
+          item.link = link;
+          itemsWithLink++;
+        }
+        if (image) {
+          item.image = image;
+          itemsWithImage++;
+        }
+        if (price) item.price = price;
+        
+        if (DEBUG) {
+          console.log(`[MYREGISTRY_PARSE] Item: "${name}" | price: ${price || 'N/A'} | link: ${link ? 'yes' : 'no'} | image: ${image ? 'yes' : 'no'}`);
+        }
+        
+        items.push(item);
+      }
+    } catch (e: any) {
+      if (DEBUG) console.log(`[MYREGISTRY_PARSE] Error parsing item: ${e.message}`);
+    }
+  });
+  
+  // Debug log extraction stats
+  if (DEBUG && items.length > 0) {
+    console.log(`[MYREGISTRY_PARSE] items with link: ${itemsWithLink}/${items.length} | items with image: ${itemsWithImage}/${items.length}`);
+  }
+  
+  return items;
+};
+
+// Fetch all pages from MyRegistry GridGiftList endpoint
+const fetchMyRegistryPages = async (metadata: MyRegistryMetadata, originalUrl: string): Promise<ScrapedItem[]> => {
+  const allItems: ScrapedItem[] = [];
+  let page = 1;
+  const maxPages = 50; // Safety limit
+  
+  const gridEndpoint = 'https://bedbathandbeyond.myregistry.com/ExternalApps/BedBathAndBeyond/UserControls/GridGiftList.aspx';
+  
+  while (page <= maxPages) {
+    try {
+      // Build POST body exactly as browser does (all values as strings)
+      const formData = new URLSearchParams();
+      formData.append('page', String(page));           // page number as string
+      formData.append('sortmode', '');                  // empty string, but include the key
+      formData.append('categoryId', '-1');              // "-1" for all categories
+      formData.append('websiteId', String(metadata.merchantWebsiteId));
+      formData.append('registryId', String(metadata.registryId));
+      formData.append('sitekey', String(metadata.merchantSiteKey));
+      formData.append('showAllGifts', 'false');         // string "false"
+      formData.append('lang', 'en-US');
+      
+      const response = await fetch(gridEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+          'X-Requested-With': 'XMLHttpRequest',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'User-Agent': getRandomUserAgent(),
+          'Origin': 'https://bedbathandbeyond.myregistry.com',
+          'Referer': originalUrl || 'https://bedbathandbeyond.myregistry.com/',
+        },
+        body: formData.toString(),
+      });
+      
+      console.log(`[MYREGISTRY_FETCH] Page ${page} | status: ${response.status}`);
+      
+      if (!response.ok) {
+        console.error(`[MYREGISTRY_FETCH] Page ${page} failed with status ${response.status}`);
+        // Debug info on failure
+        if (DEBUG) {
+          console.log(`[MYREGISTRY_FETCH] POST body: page=${page}&sortmode=&categoryId=-1&websiteId=${metadata.merchantWebsiteId}&registryId=${metadata.registryId}&sitekey=${metadata.merchantSiteKey}&showAllGifts=false&lang=en-US`);
+        }
+        break;
+      }
+      
+      const html = await response.text();
+      
+      // Parse items from this page
+      const pageItems = parseMyRegistryItems(html);
+      
+      console.log(`[MYREGISTRY_FETCH] Page ${page} | length: ${html.length} | items: ${pageItems.length}`);
+      
+      // Debug on failure/suspicious response
+      const isFailure = pageItems.length === 0 || html.length < 200;
+      if (DEBUG || isFailure) {
+        if (isFailure) {
+          console.log(`[MYREGISTRY_FETCH] POST body: page=${page}&sortmode=&categoryId=-1&websiteId=${metadata.merchantWebsiteId}&registryId=${metadata.registryId}&sitekey=${metadata.merchantSiteKey}&showAllGifts=false&lang=en-US`);
+          console.log(`[MYREGISTRY_FETCH] First 1000 chars: ${html.substring(0, 1000)}`);
+        }
+      }
+      
+      // If no items on this page, we've reached the end
+      if (pageItems.length === 0) {
+        break;
+      }
+      
+      allItems.push(...pageItems);
+      page++;
+      
+      // Small delay between pages to be respectful
+      if (page <= maxPages) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+    } catch (e: any) {
+      console.error(`[MYREGISTRY_FETCH] Error fetching page ${page}: ${e.message}`);
+      break;
+    }
+  }
+  
+  return allItems;
+};
+
+// Main scraper function for MyRegistry Bed Bath & Beyond
+const scrapeMyRegistryBedBathAndBeyond = async ($: any, html: string, url: string): Promise<{ items: ScrapedItem[]; error?: string }> => {
+  if (DEBUG) {
+    console.log("[MYREGISTRY_PARSE] Starting MyRegistry Bed Bath & Beyond parsing...");
+    console.log("[MYREGISTRY_PARSE] HTML length:", html.length, "chars");
+    console.log("[MYREGISTRY_PARSE] URL:", url);
+  }
+  
+  // Extract metadata from hidden inputs
+  const metadata = extractMyRegistryMetadata($);
+  
+  if (!metadata) {
+    console.error("[MYREGISTRY_PARSE] Unable to scrape: missing registry metadata (hidRegistryId, hidMerchantWebsiteId, or hidMerchantSiteKey)");
+    return {
+      items: [],
+      error: "Unable to scrape: missing registry metadata. The registry page may have changed or be inaccessible.",
+    };
+  }
+  
+  if (DEBUG) {
+    console.log("[MYREGISTRY_PARSE] Extracted metadata:", JSON.stringify(metadata));
+  }
+  
+  // Fetch all pages from the GridGiftList endpoint
+  try {
+    const items = await fetchMyRegistryPages(metadata, url);
+    
+    if (items.length === 0) {
+      // Try parsing the initial page HTML directly as a fallback
+      if (DEBUG) console.log("[MYREGISTRY_PARSE] No items from API, trying direct HTML parsing...");
+      const directItems = parseMyRegistryItems(html);
+      if (directItems.length > 0) {
+        if (DEBUG) console.log("[MYREGISTRY_PARSE] Found", directItems.length, "items from direct HTML parsing");
+        return { items: directItems };
+      }
+      
+      return {
+        items: [],
+        error: "No items found in this registry. The registry may be empty or private.",
+      };
+    }
+    
+    return { items };
+  } catch (e: any) {
+    console.error("[MYREGISTRY_PARSE] Error during scraping:", e.message);
+    return {
+      items: [],
+      error: `Failed to scrape registry: ${e.message}`,
+    };
+  }
+};
+
+// The Knot Registry Scraper
+interface TheKnotItem {
+  name?: string;
+  imageUrl?: string;
+  detailPageUrlKey?: string;
+  offers?: Array<{
+    price?: number;
+    currencyCode?: string;
+  }>;
+}
+
+interface TheKnotApiResponse {
+  data?: TheKnotItem[];
+  count?: number;
+  totalCount?: number;
+}
+
+// Extract memberId from The Knot registry page HTML
+const extractTheKnotMemberId = ($: any, htmlLength?: number): string | null => {
+  // Primary: data-member-id attribute on #products-grid-app-root
+  const productsGridElement = $('#products-grid-app-root');
+  const hasProductsGridRoot = productsGridElement.length > 0;
+  let memberId = productsGridElement.attr('data-member-id');
+  
+  // Debug logging for memberId extraction
+  console.log(`[THEKNOT_PARSE] #products-grid-app-root found: ${hasProductsGridRoot}`);
+  if (hasProductsGridRoot) {
+    console.log(`[THEKNOT_PARSE] #products-grid-app-root data-member-id: ${memberId || "NOT_PRESENT"}`);
+  }
+  
+  if (!memberId) {
+    // Fallback: look for data-member-id anywhere
+    const anyMemberIdElement = $('[data-member-id]').first();
+    const hasAnyMemberId = anyMemberIdElement.length > 0;
+    console.log(`[THEKNOT_PARSE] Any [data-member-id] element found: ${hasAnyMemberId}`);
+    if (hasAnyMemberId) {
+      memberId = anyMemberIdElement.attr('data-member-id');
+      console.log(`[THEKNOT_PARSE] Fallback data-member-id value: ${memberId || "NOT_PRESENT"}`);
+    }
+  }
+  
+  if (!memberId) {
+    // Fallback: try to find memberId in script tags
+    $('script').each((_: number, el: any) => {
+      const text = $(el).html() || '';
+      const match = text.match(/memberId[\"']?\s*[:=]\s*[\"']([^\"']+)[\"']/);
+      if (match && match[1]) {
+        memberId = match[1];
+        console.log(`[THEKNOT_PARSE] Found memberId in script tag: ${memberId}`);
+        return false; // break
+      }
+    });
+  }
+  
+  console.log(`[THEKNOT_PARSE] Final memberId: ${memberId || "NOT FOUND"} | HTML length: ${htmlLength || "unknown"}`);
+  
+  return memberId || null;
+};
+
+// Fetch items from The Knot registry-item-gateway API
+const fetchTheKnotItems = async (memberId: string): Promise<{ items: ScrapedItem[]; error?: string }> => {
+  const items: ScrapedItem[] = [];
+  const baseUrl = 'https://registry-item-gateway.regsvcs.theknot.com/items';
+  
+  // Try to fetch with large limit first
+  const limit = 256;
+  let offset = 0;
+  let totalCount = -1;
+  const maxIterations = 50; // Safety limit
+  let iteration = 0;
+  
+  while (iteration < maxIterations) {
+    iteration++;
+    
+    const params = new URLSearchParams({
+      limit: limit.toString(),
+      offset: offset.toString(),
+      memberId: memberId,
+      showCash: 'true',
+      registryStatusFilter: 'active,visible',
+      sort: 'retailerSortOrder-asc',
+      showGiftCards: 'true',
+      showDisabled: 'false',
+    });
+    
+    const requestUrl = `${baseUrl}?${params.toString()}`;
+    
+    if (DEBUG) {
+      console.log(`[THEKNOT_FETCH] Fetching page ${iteration}, offset=${offset}...`);
+      console.log(`[THEKNOT_FETCH] URL: ${requestUrl}`);
+    }
+    
+    try {
+      const response = await fetch(requestUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'User-Agent': getRandomUserAgent(),
+          'Origin': 'https://www.theknot.com',
+          'Referer': 'https://www.theknot.com/',
+        },
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[THEKNOT_FETCH] API request failed with status ${response.status}: ${errorText.substring(0, 500)}`);
+        if (items.length > 0) {
+          // We already have some items, return what we have
+          break;
+        }
+        return {
+          items: [],
+          error: `The Knot API returned status ${response.status}. The registry may be private or unavailable.`,
+        };
+      }
+      
+      const json: TheKnotApiResponse = await response.json();
+      
+      if (DEBUG) {
+        console.log(`[THEKNOT_FETCH] Response count: ${json.data?.length || 0}, totalCount: ${json.totalCount || json.count || 'unknown'}`);
+      }
+      
+      // Set totalCount on first request
+      if (totalCount === -1) {
+        totalCount = json.totalCount || json.count || 0;
+        if (DEBUG) console.log(`[THEKNOT_FETCH] Total items to fetch: ${totalCount}`);
+      }
+      
+      // Parse items from response
+      if (json.data && Array.isArray(json.data)) {
+        for (const item of json.data) {
+          if (!item.name) continue;
+          
+          const scrapedItem: ScrapedItem = {
+            name: item.name,
+          };
+          
+          // Extract image URL
+          if (item.imageUrl) {
+            scrapedItem.image = item.imageUrl;
+          }
+          
+          // Build product link
+          if (item.detailPageUrlKey) {
+            if (item.detailPageUrlKey.startsWith('http')) {
+              scrapedItem.link = item.detailPageUrlKey;
+            } else {
+              scrapedItem.link = `https://gifts.theknot.com/${item.detailPageUrlKey}`;
+            }
+          }
+          
+          // Extract price from offers
+          if (item.offers && Array.isArray(item.offers) && item.offers.length > 0) {
+            const offer = item.offers[0];
+            if (offer.price !== undefined && offer.price !== null) {
+              if (offer.currencyCode === 'USD') {
+                scrapedItem.price = `$${Number(offer.price).toFixed(2)}`;
+              } else {
+                scrapedItem.price = String(offer.price);
+              }
+            }
+          }
+          
+          if (DEBUG) {
+            console.log(`[THEKNOT_PARSE] Item: "${scrapedItem.name}" | price: ${scrapedItem.price || 'N/A'} | link: ${scrapedItem.link ? 'yes' : 'no'} | image: ${scrapedItem.image ? 'yes' : 'no'}`);
+          }
+          
+          items.push(scrapedItem);
+        }
+      }
+      
+      // Check if we've fetched all items
+      if (!json.data || json.data.length === 0) {
+        if (DEBUG) console.log(`[THEKNOT_FETCH] No more items, stopping pagination`);
+        break;
+      }
+      
+      // Update offset for next page
+      offset += json.data.length;
+      
+      // If we've fetched all items based on totalCount, stop
+      if (totalCount > 0 && offset >= totalCount) {
+        if (DEBUG) console.log(`[THEKNOT_FETCH] Fetched all ${totalCount} items`);
+        break;
+      }
+      
+      // If we got less items than limit, we've reached the end
+      if (json.data.length < limit) {
+        if (DEBUG) console.log(`[THEKNOT_FETCH] Got ${json.data.length} items (less than limit ${limit}), stopping pagination`);
+        break;
+      }
+      
+      // Small delay between pages to be respectful
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+    } catch (e: any) {
+      console.error(`[THEKNOT_FETCH] Error fetching items: ${e.message}`);
+      if (items.length > 0) {
+        // Return what we have
+        break;
+      }
+      return {
+        items: [],
+        error: `Failed to fetch The Knot registry items: ${e.message}`,
+      };
+    }
+  }
+  
+  if (DEBUG) console.log(`[THEKNOT_FETCH] Total items fetched: ${items.length}`);
+  return { items };
+};
+
+// Main scraper function for The Knot Registry
+const scrapeTheKnotRegistry = async ($: any, html: string, url: string): Promise<{ items: ScrapedItem[]; error?: string }> => {
+  if (DEBUG) {
+    console.log("[THEKNOT_PARSE] Starting The Knot Registry parsing...");
+    console.log("[THEKNOT_PARSE] HTML length:", html.length, "chars");
+    console.log("[THEKNOT_PARSE] URL:", url);
+  }
+  
+  // Extract memberId from the page HTML
+  const memberId = extractTheKnotMemberId($, html.length);
+  
+  if (!memberId) {
+    console.error("[THEKNOT_PARSE] Unable to scrape: missing The Knot memberId");
+    return {
+      items: [],
+      error: "Unable to scrape: missing The Knot memberId. The registry page may have changed or be inaccessible.",
+    };
+  }
+  
+  if (DEBUG) {
+    console.log("[THEKNOT_PARSE] Extracted memberId:", memberId);
+  }
+  
+  // Fetch items from The Knot API
+  try {
+    const result = await fetchTheKnotItems(memberId);
+    
+    if (result.items.length === 0 && !result.error) {
+      return {
+        items: [],
+        error: "No items found in this registry. The registry may be empty or private.",
+      };
+    }
+    
+    return result;
+  } catch (e: any) {
+    console.error("[THEKNOT_PARSE] Error during scraping:", e.message);
+    return {
+      items: [],
+      error: `Failed to scrape registry: ${e.message}`,
+    };
+  }
+};
+
+// Crate & Barrel Registry Scraper
+interface CrateAndBarrelProduct {
+  title?: string;
+  descriptionShort?: string;
+  descriptionLong?: string;
+  urlPath?: string;
+  images?: {
+    desktop?: string;
+    desktopHiRes?: string;
+    mobile?: string;
+    mobileHiRes?: string;
+  };
+  formattedPrice?: string;
+  currentPrice?: number;
+  regularPrice?: number;
+  sku?: string;
+  quantityWants?: number;
+  quantityPurchased?: number;
+}
+
+// Helper to decode JS single-quoted string (for JSON.parse('...') payloads)
+// This properly handles all escape sequences by converting to JSON string literal
+function decodeJsSingleQuotedString(s: string): string {
+  const jsonLiteral =
+    '"' +
+    s
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"')
+      .replace(/\r/g, '\\r')
+      .replace(/\n/g, '\\n') +
+    '"';
+  return JSON.parse(jsonLiteral);
+}
+
+// Extract products array from Crate & Barrel registry page HTML
+const extractCrateAndBarrelProducts = (html: string): CrateAndBarrelProduct[] | null => {
+  console.log("[CRATEBARREL_PARSE] Attempting to extract products from HTML, length:", html.length);
+  
+  // Method 1 (Primary): Find UniversalRegistry JSON.parse('...') payload
+  try {
+    // Regex to capture the JSON string inside ReactDOM.hydrate(React.createElement(UniversalRegistry, JSON.parse('...')))
+    const universalRegistryRegex = /UniversalRegistry[\s\S]*?JSON\.parse\('([\s\S]*?)'\)/;
+    const regexMatch = html.match(universalRegistryRegex);
+    
+    console.log("[CRATEBARREL_PARSE] UniversalRegistry regex matched:", !!regexMatch);
+    
+    if (regexMatch && regexMatch[1]) {
+      // Decode the JS single-quoted string to get the actual JSON
+      const decoded = decodeJsSingleQuotedString(regexMatch[1]);
+      
+      try {
+        const payload = JSON.parse(decoded);
+        
+        // Debug: log top-level keys
+        const topKeys = payload ? Object.keys(payload) : [];
+        console.log("[CRATEBARREL_PARSE] Payload top-level keys:", topKeys.join(', '));
+        
+        // Try to find products from various paths
+        let products: CrateAndBarrelProduct[] | null = null;
+        
+        // Path 1: payload.model.products (CB2 structure)
+        if (payload?.model?.products && Array.isArray(payload.model.products)) {
+          products = payload.model.products;
+          console.log(`[CRATEBARREL_PARSE] Found ${products.length} products via payload.model.products`);
+        }
+        // Path 2: payload.products (direct)
+        else if (payload?.products && Array.isArray(payload.products)) {
+          products = payload.products;
+          console.log(`[CRATEBARREL_PARSE] Found ${products.length} products via payload.products`);
+        }
+        // Path 3: payload.model.registry.products
+        else if (payload?.model?.registry?.products && Array.isArray(payload.model.registry.products)) {
+          products = payload.model.registry.products;
+          console.log(`[CRATEBARREL_PARSE] Found ${products.length} products via payload.model.registry.products`);
+        }
+        
+        if (products && products.length > 0) {
+          return products;
+        } else {
+          console.log("[CRATEBARREL_PARSE] No products array found in payload");
+        }
+      } catch (parseErr: any) {
+        console.log(`[CRATEBARREL_PARSE] UniversalRegistry JSON parse failed: ${parseErr.message}`);
+      }
+    }
+  } catch (e: any) {
+    console.log(`[CRATEBARREL_PARSE] UniversalRegistry regex search failed: ${e.message}`);
+  }
+  
+  // Method 2: Alternative regex - try broader pattern for JSON.parse in hydrate calls
+  try {
+    const hydrateRegex = /ReactDOM\.hydrate\([^,]+,\s*JSON\.parse\('([\s\S]*?)'\)\s*\)/;
+    const hydrateMatch = html.match(hydrateRegex);
+    
+    console.log("[CRATEBARREL_PARSE] ReactDOM.hydrate regex matched:", !!hydrateMatch);
+    
+    if (hydrateMatch && hydrateMatch[1]) {
+      // Decode the JS single-quoted string to get the actual JSON
+      const decoded = decodeJsSingleQuotedString(hydrateMatch[1]);
+      
+      try {
+        const payload = JSON.parse(decoded);
+        const topKeys = payload ? Object.keys(payload) : [];
+        console.log("[CRATEBARREL_PARSE] Hydrate payload top-level keys:", topKeys.join(', '));
+        
+        // Try all product paths
+        const possibleProducts = [
+          payload?.model?.products,
+          payload?.products,
+          payload?.model?.registry?.products,
+          payload?.data?.products,
+        ];
+        
+        for (const products of possibleProducts) {
+          if (products && Array.isArray(products) && products.length > 0) {
+            console.log(`[CRATEBARREL_PARSE] Found ${products.length} products via ReactDOM.hydrate fallback`);
+            return products;
+          }
+        }
+      } catch (parseErr: any) {
+        console.log(`[CRATEBARREL_PARSE] ReactDOM.hydrate JSON parse failed: ${parseErr.message}`);
+      }
+    }
+  } catch (e: any) {
+    console.log(`[CRATEBARREL_PARSE] ReactDOM.hydrate search failed: ${e.message}`);
+  }
+  
+  // Method 3: Look for __NEXT_DATA__ or similar data blob
+  try {
+    const nextDataMatch = html.match(/<script[^>]*id="__NEXT_DATA__"[^>]*>([^<]+)<\/script>/);
+    console.log("[CRATEBARREL_PARSE] __NEXT_DATA__ found:", !!nextDataMatch);
+    
+    if (nextDataMatch && nextDataMatch[1]) {
+      try {
+        const data = JSON.parse(nextDataMatch[1]);
+        // Navigate through potential paths to find products
+        const possiblePaths = [
+          data?.props?.pageProps?.products,
+          data?.props?.pageProps?.registry?.products,
+          data?.props?.pageProps?.initialState?.products,
+          data?.props?.initialData?.products,
+          data?.props?.pageProps?.model?.products,
+        ];
+        for (const products of possiblePaths) {
+          if (products && Array.isArray(products) && products.length > 0) {
+            console.log(`[CRATEBARREL_PARSE] Found ${products.length} products via __NEXT_DATA__`);
+            return products;
+          }
+        }
+      } catch (parseErr: any) {
+        console.log(`[CRATEBARREL_PARSE] __NEXT_DATA__ JSON parse failed: ${parseErr.message}`);
+      }
+    }
+  } catch (e: any) {
+    console.log(`[CRATEBARREL_PARSE] __NEXT_DATA__ search failed: ${e.message}`);
+  }
+  
+  // Method 4 (Fallback): Find "products":[ with surrounding {"model": context
+  try {
+    const productsStartIdx = html.indexOf('"products":[');
+    console.log("[CRATEBARREL_PARSE] Direct \"products\":[ found at index:", productsStartIdx);
+    
+    if (productsStartIdx !== -1) {
+      // Try to find the nearest preceding {"model": to get proper context
+      const modelIdx = html.lastIndexOf('{"model":', productsStartIdx);
+      if (modelIdx !== -1 && (productsStartIdx - modelIdx) < 50000) {
+        // Try to parse from model start
+        let depth = 1;
+        let pos = modelIdx + 1;
+        
+        // Find matching closing brace
+        while (depth > 0 && pos < html.length - 1) {
+          pos++;
+          const char = html[pos];
+          if (char === '{') depth++;
+          else if (char === '}') depth--;
+          else if (char === '"') {
+            // Skip string content
+            pos++;
+            while (pos < html.length && html[pos] !== '"') {
+              if (html[pos] === '\\') pos++;
+              pos++;
+            }
+          }
+        }
+        
+        if (depth === 0) {
+          const jsonStr = html.substring(modelIdx, pos + 1);
+          try {
+            const data = JSON.parse(jsonStr);
+            if (data?.model?.products && Array.isArray(data.model.products) && data.model.products.length > 0) {
+              console.log(`[CRATEBARREL_PARSE] Found ${data.model.products.length} products via model context extraction`);
+              return data.model.products;
+            }
+          } catch {
+            // Continue to array-only extraction
+          }
+        }
+      }
+      
+      // Array-only extraction as final attempt
+      const arrayStart = productsStartIdx + 11; // length of '"products":['
+      let depth = 1;
+      let pos = arrayStart;
+      
+      while (depth > 0 && pos < html.length - 1) {
+        pos++;
+        const char = html[pos];
+        if (char === '[') depth++;
+        else if (char === ']') depth--;
+        else if (char === '"') {
+          pos++;
+          while (pos < html.length && html[pos] !== '"') {
+            if (html[pos] === '\\') pos++;
+            pos++;
+          }
+        }
+      }
+      
+      if (depth === 0) {
+        const arrayStr = html.substring(arrayStart - 1, pos + 1);
+        try {
+          const products = JSON.parse(arrayStr);
+          if (Array.isArray(products) && products.length > 0) {
+            console.log(`[CRATEBARREL_PARSE] Found ${products.length} products via direct array extraction`);
+            return products;
+          }
+        } catch (parseErr: any) {
+          console.log(`[CRATEBARREL_PARSE] Direct products array parse failed: ${parseErr.message}`);
+        }
+      }
+    }
+  } catch (e: any) {
+    console.log(`[CRATEBARREL_PARSE] Direct products search failed: ${e.message}`);
+  }
+  
+  // Method 5: Search for window.__INITIAL_STATE__ or similar
+  try {
+    const statePatterns = [
+      /window\.__INITIAL_STATE__\s*=\s*({.+?});?\s*<\/script>/s,
+      /window\.__DATA__\s*=\s*({.+?});?\s*<\/script>/s,
+      /__PRELOADED_STATE__\s*=\s*({.+?});?\s*<\/script>/s,
+    ];
+    
+    for (const pattern of statePatterns) {
+      const match = html.match(pattern);
+      if (match && match[1]) {
+        try {
+          const data = JSON.parse(match[1]);
+          // Deep search for products array
+          const findProducts = (obj: any, depth = 0): CrateAndBarrelProduct[] | null => {
+            if (depth > 6 || !obj) return null;
+            if (Array.isArray(obj) && obj.length > 0 && obj[0]?.title) return obj;
+            if (typeof obj === 'object') {
+              if (obj.products && Array.isArray(obj.products)) return obj.products;
+              if (obj.model?.products && Array.isArray(obj.model.products)) return obj.model.products;
+              for (const key of Object.keys(obj)) {
+                const found = findProducts(obj[key], depth + 1);
+                if (found) return found;
+              }
+            }
+            return null;
+          };
+          const products = findProducts(data);
+          if (products) {
+            console.log(`[CRATEBARREL_PARSE] Found ${products.length} products via window state`);
+            return products;
+          }
+        } catch (parseErr: any) {
+          console.log(`[CRATEBARREL_PARSE] Window state JSON parse failed: ${parseErr.message}`);
+        }
+      }
+    }
+  } catch (e: any) {
+    console.log(`[CRATEBARREL_PARSE] Window state search failed: ${e.message}`);
+  }
+  
+  // Method 6: Search all script tags for products array
+  try {
+    const scriptMatches = html.matchAll(/<script[^>]*>([^<]+)<\/script>/gi);
+    for (const match of scriptMatches) {
+      const content = match[1];
+      if (content.includes('"products"') && content.includes('"title"')) {
+        // Try to find and extract products array from this script
+        const productsMatch = content.match(/"products"\s*:\s*(\[[^\]]*(?:\[[^\]]*\][^\]]*)*\])/);
+        if (productsMatch && productsMatch[1]) {
+          try {
+            const products = JSON.parse(productsMatch[1]);
+            if (Array.isArray(products) && products.length > 0) {
+              console.log(`[CRATEBARREL_PARSE] Found ${products.length} products via script tag search`);
+              return products;
+            }
+          } catch {
+            // Continue searching
+          }
+        }
+      }
+    }
+  } catch (e: any) {
+    console.log(`[CRATEBARREL_PARSE] Script tag search failed: ${e.message}`);
+  }
+  
+  console.log("[CRATEBARREL_PARSE] Could not find products array in HTML");
+  return null;
+};
+
+// Strip HTML tags from a string
+const stripHtmlTags = (str: string): string => {
+  return str.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+};
+
+// Helper to determine base URL from hostname
+const getCrateBarrelBaseUrl = (url: string): string => {
+  try {
+    const urlObj = new URL(url);
+    const hostname = urlObj.hostname.toLowerCase();
+    if (hostname.includes('cb2.com')) {
+      return 'https://www.cb2.com';
+    }
+  } catch {
+    // Fall through to default
+  }
+  return 'https://www.crateandbarrel.com';
+};
+
+// Main scraper function for Crate & Barrel / CB2 Registry
+// Shared between both retailers since they use the same JSON structure
+const scrapeCrateAndBarrelRegistry = async ($: any, html: string, url: string): Promise<{ items: ScrapedItem[]; error?: string }> => {
+  // Determine base URL from the input URL hostname (not from product.isCB2 which is unreliable)
+  const baseUrl = getCrateBarrelBaseUrl(url);
+  const isCB2 = baseUrl.includes('cb2.com');
+  const logPrefix = isCB2 ? '[CB2_PARSE]' : '[CRATEBARREL_PARSE]';
+  const retailerName = isCB2 ? 'CB2' : 'Crate & Barrel';
+  
+  if (DEBUG) {
+    console.log(`${logPrefix} Starting ${retailerName} Registry parsing...`);
+    console.log(`${logPrefix} HTML length:`, html.length, "chars");
+    console.log(`${logPrefix} URL:`, url);
+    console.log(`${logPrefix} Base URL for product links:`, baseUrl);
+  }
+  
+  // Extract products from embedded JSON
+  const products = extractCrateAndBarrelProducts(html);
+  
+  if (!products || products.length === 0) {
+    console.error(`${logPrefix} Unable to scrape: ${retailerName} products not found in page HTML`);
+    return {
+      items: [],
+      error: `Unable to scrape: ${retailerName} products not found in page HTML. The registry page structure may have changed.`,
+    };
+  }
+  
+  if (DEBUG) {
+    console.log(`${logPrefix} Found ${products.length} products to process`);
+  }
+  
+  const items: ScrapedItem[] = [];
+  
+  for (const product of products) {
+    try {
+      // Extract name: prefer title, fallback to descriptions
+      const name = product.title || product.descriptionLong || product.descriptionShort;
+      if (!name) {
+        if (DEBUG) console.log(`${logPrefix} Skipping product without name`);
+        continue;
+      }
+      
+      const scrapedItem: ScrapedItem = { name };
+      
+      // Extract link from urlPath, using the correct base URL for the retailer
+      if (product.urlPath) {
+        if (product.urlPath.startsWith('http')) {
+          scrapedItem.link = product.urlPath;
+        } else {
+          scrapedItem.link = `${baseUrl}${product.urlPath}`;
+        }
+      }
+      
+      // Extract image: prefer desktopHiRes > desktop > mobileHiRes > mobile
+      if (product.images) {
+        const imageUrl = product.images.desktopHiRes || 
+                        product.images.desktop || 
+                        product.images.mobileHiRes || 
+                        product.images.mobile;
+        if (imageUrl) {
+          scrapedItem.image = imageUrl;
+        }
+      }
+      
+      // Extract price
+      if (product.formattedPrice) {
+        // Strip HTML tags and normalize whitespace
+        // e.g. "Sale $62.95 reg. $69.95" or "$160.00"
+        scrapedItem.price = stripHtmlTags(product.formattedPrice);
+      } else if (product.currentPrice !== undefined && product.currentPrice !== null) {
+        // Format as USD
+        scrapedItem.price = `$${Number(product.currentPrice).toFixed(2)}`;
+      } else if (product.regularPrice !== undefined && product.regularPrice !== null) {
+        scrapedItem.price = `$${Number(product.regularPrice).toFixed(2)}`;
+      }
+      
+      if (DEBUG) {
+        console.log(`${logPrefix} Item: "${name}" | price: ${scrapedItem.price || 'N/A'} | link: ${scrapedItem.link ? 'yes' : 'no'} | image: ${scrapedItem.image ? 'yes' : 'no'}`);
+      }
+      
+      items.push(scrapedItem);
+    } catch (e: any) {
+      if (DEBUG) console.log(`${logPrefix} Error processing product: ${e.message}`);
+    }
+  }
+  
+  if (items.length === 0) {
+    return {
+      items: [],
+      error: "No valid items found in the registry. The registry may be empty or the data format has changed.",
+    };
+  }
+  
+  if (DEBUG) console.log(`[CRATEBARREL_PARSE] Successfully extracted ${items.length} items`);
+  return { items };
+};
+
 const scrapeAmazonRegistry = ($: any, html: string, url: string): ScrapedItem[] => {
   const items: ScrapedItem[] = [];
   
@@ -1894,6 +2888,7 @@ interface FetchOptions {
   withBrowserHeaders?: boolean;
   country?: string;
   premium?: boolean;
+  ultraPremium?: boolean; // Use ultra_premium for most demanding JS-rendered sites
 }
 
 interface DirectFetchResult {
@@ -2328,6 +3323,11 @@ async function fetchWithScraperAPI(
   if (options.premium) {
     scraperApiUrl += "&premium=true";
   }
+  
+  // Use ultra_premium for most demanding JS-rendered sites (Crate/CB2)
+  if (options.ultraPremium) {
+    scraperApiUrl += "&ultra_premium=true";
+  }
 
   const headers: Record<string, string> = {};
   
@@ -2450,11 +3450,18 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { url } = await req.json();
+    const { url: rawUrl } = await req.json();
+    
+    // Normalize incoming URL: trim whitespace and ensure protocol
+    let url = (rawUrl || '').toString().trim();
+    if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'https://' + url;
+    }
+    
     const retailer = detectRetailer(url);
     
-    // Essential: Request start line
-    console.log(`[SCRAPE_START] retailer=${retailer || "UNSUPPORTED"} | url=${url}`);
+    // Essential: Request start line (show normalized URL)
+    console.log(`[SCRAPE_START] retailer=${retailer || "UNSUPPORTED"} | url=${url} | raw=${rawUrl}`);
 
     if (!url || typeof url !== "string") {
       return new Response(
@@ -2763,6 +3770,149 @@ Deno.serve(async (req) => {
             }
           );
         }
+      } else if (retailer === "MyRegistryBedBathAndBeyond") {
+        // Direct fetch for MyRegistry - no ScraperAPI needed
+        if (DEBUG) console.log("[SCRAPE_FETCH] MyRegistryBedBathAndBeyond | Using direct fetch");
+        fetchMethod = "DIRECT";
+        
+        try {
+          const response = await fetch(fetchUrl, {
+            method: "GET",
+            headers: {
+              "User-Agent": getRandomUserAgent(),
+              "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+              "Accept-Language": "en-US,en;q=0.9",
+              "Cache-Control": "no-cache",
+            },
+          });
+          
+          if (!response.ok) {
+            console.error(`[MYREGISTRY_FETCH] Initial page fetch failed with status ${response.status}`);
+            return new Response(
+              JSON.stringify({
+                success: false,
+                items: [],
+                message: "Failed to fetch the Bed Bath & Beyond registry page. Please verify the URL is correct and try again.",
+              }),
+              {
+                headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" },
+                status: 200,
+              }
+            );
+          }
+          
+          html = await response.text();
+          console.log(`[SCRAPE_FETCH] MyRegistryBedBathAndBeyond | provider=DIRECT | length=${html?.length || 0}`);
+        } catch (e: any) {
+          console.error(`[MYREGISTRY_FETCH] Direct fetch error: ${e.message}`);
+          return new Response(
+            JSON.stringify({
+              success: false,
+              items: [],
+              message: "Failed to fetch the Bed Bath & Beyond registry page. Please verify the URL is correct and try again.",
+            }),
+            {
+              headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" },
+              status: 200,
+            }
+          );
+        }
+      } else if (retailer === "TheKnotRegistry") {
+        // Use ScraperAPI for The Knot (direct fetch gets 403)
+        if (DEBUG) console.log("[SCRAPE_FETCH] TheKnotRegistry | Using ScraperAPI");
+        fetchMethod = "ScraperAPI";
+        
+        try {
+          html = await fetchWithScraperAPI(fetchUrl, scraperApiKey);
+          console.log(`[SCRAPE_FETCH] TheKnotRegistry | provider=ScraperAPI | length=${html?.length || 0}`);
+        } catch (e: any) {
+          console.error(`[THEKNOT_FETCH] ScraperAPI fetch error: ${e.message}`);
+          return new Response(
+            JSON.stringify({
+              success: false,
+              items: [],
+              message: "Failed to fetch The Knot registry page. Please verify the URL is correct and try again.",
+            }),
+            {
+              headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" },
+              status: 200,
+            }
+          );
+        }
+      } else if (retailer === "CrateAndBarrelRegistry") {
+        // Use ScraperAPI with premium + ultra_premium for Crate & Barrel (needs fully rendered JS)
+        if (DEBUG) console.log("[SCRAPE_FETCH] CrateAndBarrelRegistry | Using ScraperAPI with premium rendering");
+        fetchMethod = "ScraperAPI_Premium";
+        
+        try {
+          // First attempt: premium + ultra_premium for full JS rendering
+          html = await fetchWithScraperAPI(fetchUrl, scraperApiKey, { premium: true, ultraPremium: true, country: "us" });
+          console.log(`[SCRAPE_FETCH] CrateAndBarrelRegistry | provider=ScraperAPI_Premium | length=${html?.length || 0}`);
+          
+          // Check if HTML is sufficient (needs ReactDOM.hydrate or "products":[)
+          const hasRequiredContent = html && (
+            html.length >= 300000 || 
+            html.includes("ReactDOM.hydrate") || 
+            html.includes('"products":[')
+          );
+          
+          if (!hasRequiredContent) {
+            console.log(`[CRATEBARREL_FETCH] Insufficient HTML (length=${html?.length || 0}, missing required content). Retrying with ultra_premium...`);
+            // Retry with stronger settings
+            html = await fetchWithScraperAPI(fetchUrl, scraperApiKey, { premium: true, ultraPremium: true, withBrowserHeaders: true, country: "us" });
+            console.log(`[SCRAPE_FETCH] CrateAndBarrelRegistry | provider=ScraperAPI_UltraPremium_Retry | length=${html?.length || 0}`);
+          }
+        } catch (e: any) {
+          console.error(`[CRATEBARREL_FETCH] ScraperAPI fetch error: ${e.message}`);
+          return new Response(
+            JSON.stringify({
+              success: false,
+              items: [],
+              message: "Failed to fetch the Crate & Barrel registry page. Please verify the URL is correct and try again.",
+            }),
+            {
+              headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" },
+              status: 200,
+            }
+          );
+        }
+      } else if (retailer === "CB2Registry") {
+        // Use ScraperAPI with premium + ultra_premium for CB2 (needs fully rendered JS)
+        if (DEBUG) console.log("[SCRAPE_FETCH] CB2Registry | Using ScraperAPI with premium rendering");
+        fetchMethod = "ScraperAPI_Premium";
+        
+        try {
+          // First attempt: premium + ultra_premium for full JS rendering
+          html = await fetchWithScraperAPI(fetchUrl, scraperApiKey, { premium: true, ultraPremium: true, country: "us" });
+          console.log(`[SCRAPE_FETCH] CB2Registry | provider=ScraperAPI_Premium | length=${html?.length || 0}`);
+          
+          // Check if HTML is sufficient (needs ReactDOM.hydrate or "products":[)
+          const hasRequiredContent = html && (
+            html.length >= 300000 || 
+            html.includes("ReactDOM.hydrate") || 
+            html.includes('"products":[')
+          );
+          
+          if (!hasRequiredContent) {
+            console.log(`[CB2_FETCH] Insufficient HTML (length=${html?.length || 0}, missing required content). Retrying with ultra_premium...`);
+            // Retry with stronger settings
+            html = await fetchWithScraperAPI(fetchUrl, scraperApiKey, { premium: true, ultraPremium: true, withBrowserHeaders: true, country: "us" });
+            console.log(`[SCRAPE_FETCH] CB2Registry | provider=ScraperAPI_UltraPremium_Retry | length=${html?.length || 0}`);
+          }
+        } catch (e: any) {
+          console.error(`[CB2_FETCH] ScraperAPI fetch error: ${e.message}`);
+          return new Response(
+            JSON.stringify({
+              success: false,
+              items: [],
+              message: "Failed to fetch the CB2 registry page. Please verify the URL is correct and try again.",
+            }),
+            {
+              headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" },
+              status: 200,
+            }
+          );
+        }
       } else {
         html = await fetchWithScraperAPI(fetchUrl, scraperApiKey);
         // Essential: Fetch summary
@@ -2913,6 +4063,99 @@ Deno.serve(async (req) => {
         if (DEBUG) logHtmlDebugInfo(html, retailer, url);
         scrapeError = "Walmart import is temporarily unavailable due to site restrictions. Please try again later or use File Import.";
       }
+    } else if (retailer === "MyRegistryBedBathAndBeyond") {
+      try {
+        displayRetailer = "Bed Bath & Beyond Registry";
+        const result = await scrapeMyRegistryBedBathAndBeyond($, html, url);
+        items = result.items;
+        
+        // Essential: Parse summary
+        console.log(`[SCRAPE_PARSE] MyRegistryBedBathAndBeyond | items=${items.length} | parseMethod=scrapeMyRegistryBedBathAndBeyond`);
+        
+        // Debug log if no items found
+        if (items.length === 0 && DEBUG) {
+          console.log(`[SCRAPE_DEBUG] MyRegistry Bed Bath & Beyond returned 0 items | Fetch method used: ${fetchMethod}`);
+          logHtmlDebugInfo(html, retailer, url, DEBUG_SCRAPE_HTML);
+        }
+        
+        if (result.error) {
+          scrapeError = result.error;
+        }
+      } catch (e: any) {
+        console.error(`[SCRAPE_PARSE_ERROR] Retailer: MyRegistryBedBathAndBeyond | URL: ${url} | Error: ${e.message}`);
+        if (DEBUG) logHtmlDebugInfo(html, retailer, url);
+        scrapeError = "Bed Bath & Beyond registry import failed. Please try again later or use File Import.";
+      }
+    } else if (retailer === "TheKnotRegistry") {
+      try {
+        displayRetailer = "The Knot Registry";
+        const result = await scrapeTheKnotRegistry($, html, url);
+        items = result.items;
+        
+        // Essential: Parse summary
+        console.log(`[SCRAPE_PARSE] TheKnotRegistry | items=${items.length} | parseMethod=scrapeTheKnotRegistry`);
+        
+        // Debug log if no items found
+        if (items.length === 0 && DEBUG) {
+          console.log(`[SCRAPE_DEBUG] The Knot Registry returned 0 items | Fetch method used: ${fetchMethod}`);
+          logHtmlDebugInfo(html, retailer, url, DEBUG_SCRAPE_HTML);
+        }
+        
+        if (result.error) {
+          scrapeError = result.error;
+        }
+      } catch (e: any) {
+        console.error(`[SCRAPE_PARSE_ERROR] Retailer: TheKnotRegistry | URL: ${url} | Error: ${e.message}`);
+        if (DEBUG) logHtmlDebugInfo(html, retailer, url);
+        scrapeError = "The Knot registry import failed. Please try again later or use File Import.";
+      }
+    } else if (retailer === "CrateAndBarrelRegistry") {
+      try {
+        displayRetailer = "Crate & Barrel Registry";
+        const result = await scrapeCrateAndBarrelRegistry($, html, url);
+        items = result.items;
+        
+        // Essential: Parse summary
+        console.log(`[SCRAPE_PARSE] CrateAndBarrelRegistry | items=${items.length} | parseMethod=scrapeCrateAndBarrelRegistry`);
+        
+        // Debug log if no items found
+        if (items.length === 0 && DEBUG) {
+          console.log(`[SCRAPE_DEBUG] Crate & Barrel Registry returned 0 items | Fetch method used: ${fetchMethod}`);
+          logHtmlDebugInfo(html, retailer, url, DEBUG_SCRAPE_HTML);
+        }
+        
+        if (result.error) {
+          scrapeError = result.error;
+        }
+      } catch (e: any) {
+        console.error(`[SCRAPE_PARSE_ERROR] Retailer: CrateAndBarrelRegistry | URL: ${url} | Error: ${e.message}`);
+        if (DEBUG) logHtmlDebugInfo(html, retailer, url);
+        scrapeError = "Crate & Barrel registry import failed. Please try again later or use File Import.";
+      }
+    } else if (retailer === "CB2Registry") {
+      try {
+        displayRetailer = "CB2 Registry";
+        // Reuse the same scraper as Crate & Barrel - it determines base URL from input URL hostname
+        const result = await scrapeCrateAndBarrelRegistry($, html, url);
+        items = result.items;
+        
+        // Essential: Parse summary
+        console.log(`[SCRAPE_PARSE] CB2Registry | items=${items.length} | parseMethod=scrapeCrateAndBarrelRegistry`);
+        
+        // Debug log if no items found
+        if (items.length === 0 && DEBUG) {
+          console.log(`[SCRAPE_DEBUG] CB2 Registry returned 0 items | Fetch method used: ${fetchMethod}`);
+          logHtmlDebugInfo(html, retailer, url, DEBUG_SCRAPE_HTML);
+        }
+        
+        if (result.error) {
+          scrapeError = result.error;
+        }
+      } catch (e: any) {
+        console.error(`[SCRAPE_PARSE_ERROR] Retailer: CB2Registry | URL: ${url} | Error: ${e.message}`);
+        if (DEBUG) logHtmlDebugInfo(html, retailer, url);
+        scrapeError = "CB2 registry import failed. Please try again later or use File Import.";
+      }
     } else {
       try {
         items = scrapeAmazon($);
@@ -2953,6 +4196,14 @@ Deno.serve(async (req) => {
       } else if (retailer === "WalmartRegistry") {
         errorMessage = "Walmart import is temporarily unavailable due to site restrictions. Please try again later or use File Import.";
         requiresManualUpload = true;
+      } else if (retailer === "MyRegistryBedBathAndBeyond") {
+        errorMessage = "We couldn't retrieve items from this Bed Bath & Beyond registry. The registry may be empty, private, or the page structure has changed.";
+      } else if (retailer === "TheKnotRegistry") {
+        errorMessage = "We couldn't retrieve items from this The Knot registry. The registry may be empty, private, or the page structure has changed.";
+      } else if (retailer === "CrateAndBarrelRegistry") {
+        errorMessage = "We couldn't retrieve items from this Crate & Barrel registry. The registry may be empty, private, or the page structure has changed.";
+      } else if (retailer === "CB2Registry") {
+        errorMessage = "We couldn't retrieve items from this CB2 registry. The registry may be empty, private, or the page structure has changed.";
       } else {
         errorMessage = "No items found. The list might be empty, private, or the page structure has changed.";
       }

@@ -1597,13 +1597,17 @@ export default function ListDetail() {
                     <Input
                       type="url"
                       placeholder="e.g., https://example.com/image.jpg"
-                      value={editingItem.attributes?.customLinkImage || ""}
+                      value={editingItem.attributes?.custom?.image ?? editingItem.attributes?.customLinkImage ?? ""}
                       onChange={(e) =>
                         setEditingItem({
                           ...editingItem,
                           attributes: {
                             ...editingItem.attributes,
                             customLinkImage: e.target.value,
+                             custom: {
+                               ...editingItem.attributes?.custom,
+                               image: e.target.value,
+                             },
                           },
                         })
                       }
@@ -1645,16 +1649,14 @@ export default function ListDetail() {
                     <Input
                       type="url"
                       placeholder="https://example.com/product"
-                      value={editingItem.attributes?.productLink || ""}
-                      onChange={(e) =>
+                      value={editingItem.links?.[0] ?? editingItem.attributes?.productLink ?? ""}
+                      onChange={(e) => {
+                        const v = e.target.value.trim();
                         setEditingItem({
                           ...editingItem,
-                          attributes: {
-                            ...editingItem.attributes,
-                            productLink: e.target.value,
-                          },
-                        })
-                      }
+                          links: v ? [v] : [],
+                        });
+                      }}
                     />
                   </div>
                   <div className="space-y-2">
@@ -1695,13 +1697,17 @@ export default function ListDetail() {
                     <Input
                       type="url"
                       placeholder="e.g., https://example.com/image.jpg"
-                      value={editingItem.attributes?.customLinkImage || ""}
+                      value={editingItem.attributes?.custom?.image ?? editingItem.attributes?.customLinkImage ?? ""}
                       onChange={(e) =>
                         setEditingItem({
                           ...editingItem,
                           attributes: {
                             ...editingItem.attributes,
                             customLinkImage: e.target.value,
+                             custom: {
+                               ...editingItem.attributes?.custom,
+                               image: e.target.value,
+                             },
                           },
                         })
                       }
@@ -1713,13 +1719,17 @@ export default function ListDetail() {
                       <Input
                         type="number"
                         step="0.01"
-                        value={editingItem.attributes?.price || ""}
+                        value={editingItem.attributes?.custom?.price ?? editingItem.attributes?.price ?? ""}
                         onChange={(e) =>
                           setEditingItem({
                             ...editingItem,
                             attributes: {
                               ...editingItem.attributes,
                               price: e.target.value ? parseFloat(e.target.value) : undefined,
+                               custom: {
+                                 ...editingItem.attributes?.custom,
+                                 price: e.target.value,
+                               },
                             },
                           })
                         }
@@ -1784,16 +1794,14 @@ export default function ListDetail() {
                     <Input
                       type="url"
                       placeholder="https://example.com/product"
-                      value={editingItem.attributes?.productLink || ""}
-                      onChange={(e) =>
+                      value={editingItem.links?.[0] ?? editingItem.attributes?.productLink ?? ""}
+                      onChange={(e) => {
+                        const v = e.target.value.trim();
                         setEditingItem({
                           ...editingItem,
-                          attributes: {
-                            ...editingItem.attributes,
-                            productLink: e.target.value,
-                          },
-                        })
-                      }
+                          links: v ? [v] : [],
+                        });
+                      }}
                     />
                   </div>
                   <div className="space-y-2">
@@ -1834,13 +1842,17 @@ export default function ListDetail() {
                     <Input
                       type="url"
                       placeholder="e.g., https://example.com/image.jpg"
-                      value={editingItem.attributes?.customLinkImage || ""}
+                      value={editingItem.attributes?.custom?.image ?? editingItem.attributes?.customLinkImage ?? ""}
                       onChange={(e) =>
                         setEditingItem({
                           ...editingItem,
                           attributes: {
                             ...editingItem.attributes,
                             customLinkImage: e.target.value,
+                             custom: {
+                               ...editingItem.attributes?.custom,
+                               image: e.target.value,
+                             },
                           },
                         })
                       }
@@ -1852,13 +1864,17 @@ export default function ListDetail() {
                       <Input
                         type="number"
                         step="0.01"
-                        value={editingItem.attributes?.price || ""}
+                        value={editingItem.attributes?.custom?.price ?? editingItem.attributes?.price ?? ""}
                         onChange={(e) =>
                           setEditingItem({
                             ...editingItem,
                             attributes: {
                               ...editingItem.attributes,
                               price: e.target.value ? parseFloat(e.target.value) : undefined,
+                               custom: {
+                                 ...editingItem.attributes?.custom,
+                                 price: e.target.value,
+                               },
                             },
                           })
                         }
@@ -1986,13 +2002,17 @@ export default function ListDetail() {
                       <Input
                         type="number"
                         step="0.01"
-                        value={editingItem.attributes?.price || ""}
+                        value={editingItem.attributes?.custom?.price ?? editingItem.attributes?.price ?? ""}
                         onChange={(e) =>
                           setEditingItem({
                             ...editingItem,
                             attributes: {
                               ...editingItem.attributes,
                               price: e.target.value ? parseFloat(e.target.value) : undefined,
+                               custom: {
+                                 ...editingItem.attributes?.custom,
+                                 price: e.target.value,
+                               },
                             },
                           })
                         }
@@ -2046,6 +2066,7 @@ export default function ListDetail() {
                         quantity: editingItem.quantity,
                         attributes: editingItem.attributes,
                         completed: editingItem.completed,
+                        links: editingItem.links,
                       });
                       setIsEditModalOpen(false);
                       setEditingItem(null);
