@@ -1427,7 +1427,9 @@ export default function ListDetail() {
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            window.open(url, "_blank", "noopener,noreferrer");
+            const href = (e.currentTarget as HTMLAnchorElement).href;
+            console.log("[LINK_OPEN]", { url, href });
+            window.open(href, "_blank", "noopener,noreferrer");
           }}
           onMouseDown={(e) => e.stopPropagation()}
         >
@@ -3765,6 +3767,14 @@ export default function ListDetail() {
                         if (target?.closest("a")) return;
                         itemSortBy === "manual" && canEditListItems && handleDragStart(e, item);
                       }}
+                      onClick={(e) => {
+                        const target = e.target as HTMLElement | null;
+                        if (target?.closest("a")) return;
+                      }}
+                      onMouseDown={(e) => {
+                        const target = e.target as HTMLElement | null;
+                        if (target?.closest("a")) return;
+                      }}
                       onDragOver={(e) =>
                         itemSortBy === "manual" && handleDragOver(e, item)
                       }
@@ -3918,6 +3928,8 @@ export default function ListDetail() {
                               type="button"
                               className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 px-3"
                               onClick={(e) => {
+                                const target = e.target as HTMLElement | null;
+                                if (target?.closest("a")) return;
                                 e.stopPropagation();
                                 e.preventDefault();
                                 if (import.meta.env.DEV) console.log('[DEV] VIEW 1 Edit button clicked for item:', item.id, item.text);
@@ -4034,6 +4046,14 @@ export default function ListDetail() {
                         if (target?.closest("a")) return;
                         itemSortBy === "manual" && canEditListItems && handleDragStart(e, item);
                       }}
+                      onClick={(e) => {
+                        const target = e.target as HTMLElement | null;
+                        if (target?.closest("a")) return;
+                      }}
+                      onMouseDown={(e) => {
+                        const target = e.target as HTMLElement | null;
+                        if (target?.closest("a")) return;
+                      }}
                       onDragOver={(e) =>
                         itemSortBy === "manual" && handleDragOver(e, item)
                       }
@@ -4126,6 +4146,8 @@ export default function ListDetail() {
                               type="button"
                               className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 px-3"
                               onClick={(e) => {
+                                const target = e.target as HTMLElement | null;
+                                if (target?.closest("a")) return;
                                 e.stopPropagation();
                                 e.preventDefault();
                                 if (import.meta.env.DEV) console.log('[DEV] VIEW 2 Edit button clicked for item:', item.id, item.text);
@@ -4263,9 +4285,19 @@ export default function ListDetail() {
                     <Card
                       className={`p-3 sm:p-4 hover:shadow-md transition-all relative ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${isPurchased ? "border-success/20 bg-success/5" : ""} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2 opacity-50" : ""} ${isDropTarget && itemSortBy === "manual" ? "ring-2 ring-primary/30" : ""}`}
                       draggable={itemSortBy === "manual" && canEditListItems}
-                      onDragStart={(e) =>
-                        itemSortBy === "manual" && canEditListItems && handleDragStart(e, item)
-                      }
+                      onDragStart={(e) => {
+                        const target = e.target as HTMLElement | null;
+                        if (target?.closest("a")) return;
+                        itemSortBy === "manual" && canEditListItems && handleDragStart(e, item);
+                      }}
+                      onClick={(e) => {
+                        const target = e.target as HTMLElement | null;
+                        if (target?.closest("a")) return;
+                      }}
+                      onMouseDown={(e) => {
+                        const target = e.target as HTMLElement | null;
+                        if (target?.closest("a")) return;
+                      }}
                       onDragOver={(e) =>
                         itemSortBy === "manual" && handleDragOver(e, item)
                       }
@@ -4306,6 +4338,15 @@ export default function ListDetail() {
                           }
                           className={`mt-1 h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform ${item.completed ? "animate-check-bounce" : ""}`}
                         />
+                        {item.attributes?.custom?.image && (
+                          <img
+                            src={item.attributes.custom.image}
+                            alt={item.text}
+                            className="h-10 w-10 rounded object-cover flex-shrink-0 mr-3"
+                            loading="lazy"
+                            referrerPolicy="no-referrer"
+                          />
+                        )}
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-col gap-1 min-w-0 w-full">
                             <p
@@ -4473,6 +4514,8 @@ export default function ListDetail() {
                               type="button"
                               className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 px-3"
                               onClick={(e) => {
+                                const target = e.target as HTMLElement | null;
+                                if (target?.closest("a")) return;
                                 e.stopPropagation();
                                 e.preventDefault();
                                 if (import.meta.env.DEV) console.log('[DEV] VIEW 3 Edit button clicked for item:', item.id, item.text);
