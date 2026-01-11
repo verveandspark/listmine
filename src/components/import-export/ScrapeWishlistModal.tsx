@@ -29,7 +29,7 @@ interface ScrapedItem {
 interface ScrapeWishlistModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onImport: (items: ScrapedItem[], retailer: string) => Promise<void>;
+  onImport: (items: ScrapedItem[], retailer: string, sourceUrl?: string) => Promise<void>;
 }
 
 export default function ScrapeWishlistModal({
@@ -172,7 +172,12 @@ export default function ScrapeWishlistModal({
         throw new Error(error.message || "Failed to process items");
       }
 
-      await onImport(selectedItems, listName);
+      // Pass the source URL for The Knot registries
+      const normalizedUrl = url.trim().startsWith('https://') || url.trim().startsWith('http://') 
+        ? url.trim() 
+        : `https://${url.trim()}`;
+      const sourceUrl = retailer === 'TheKnotRegistry' ? normalizedUrl : undefined;
+      await onImport(selectedItems, listName, sourceUrl);
       handleClose();
     } catch (err: any) {
       toast({

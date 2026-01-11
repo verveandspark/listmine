@@ -114,6 +114,7 @@ interface ListContextType {
     listName: string,
     category: ListCategory,
     accountId?: string | null,
+    sourceUrl?: string,
   ) => Promise<string>;
   loading: boolean;
   error: string | null;
@@ -2869,6 +2870,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
     listName: string,
     category: ListCategory = "Shopping",
     accountId?: string | null,
+    sourceUrl?: string,
   ): Promise<string> => {
     if (!user) throw new Error("User not authenticated");
 
@@ -2947,6 +2949,20 @@ export function ListProvider({ children }: { children: ReactNode }) {
         .single();
 
       if (fetchError) throw fetchError;
+
+      // If sourceUrl is provided (e.g., for The Knot), update the list's source field
+      if (sourceUrl) {
+        const sourceValue = sourceUrl.includes('theknot.com') 
+          ? `theknot:${sourceUrl}` 
+          : sourceUrl;
+        const { error: sourceError } = await supabase
+          .from("lists")
+          .update({ source: sourceValue })
+          .eq("id", newListId);
+        if (sourceError) {
+          console.error("[ListContext] Error updating list source:", sourceError);
+        }
+      }
 
       const itemsToInsert = items.map((item, index) => ({
         list_id: newList.id,

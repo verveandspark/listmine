@@ -101,7 +101,7 @@ export interface List {
   createdAt: Date;
   updatedAt: Date;
   showPurchaserInfo?: boolean;
-  source?: 'standard' | 'template';
+  source?: string; // 'standard' | 'template' | 'theknot:<url>' | etc
   templateId?: string | null;
   lastEditedByUserId?: string | null;
   lastEditedByEmail?: string | null;

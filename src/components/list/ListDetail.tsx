@@ -67,6 +67,7 @@ import {
   Merge,
   Archive,
   ArchiveRestore,
+  Copy,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -1416,26 +1417,65 @@ export default function ListDetail() {
     Other: "Other",
   };
 
-  const LinkIconWithPreview = ({ url }: { url: string }) => {
+  const LinkIconWithPreview = ({ url, isTheKnotList }: { url: string; isTheKnotList?: boolean }) => {
+    const isTheKnotProductLink = url.includes('gifts.theknot.com') || url.includes('theknot.com/registry');
+    const showCopyOnly = isTheKnotList && isTheKnotProductLink;
+    
+    const handleCopyLink = async (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      try {
+        await navigator.clipboard.writeText(url);
+        toast({
+          title: "Copied!",
+          description: "Product link copied to clipboard",
+        });
+      } catch {
+        toast({
+          title: "Copy failed",
+          description: "Could not copy link",
+          variant: "destructive",
+        });
+      }
+    };
+    
     return (
-      <div className="relative inline-block">
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs sm:text-sm text-primary hover:text-primary/80 underline flex items-center gap-1 break-all"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const href = (e.currentTarget as HTMLAnchorElement).href;
-            console.log("[LINK_OPEN]", { url, href });
-            window.open(href, "_blank", "noopener,noreferrer");
-          }}
-          onMouseDown={(e) => e.stopPropagation()}
-        >
-          <LinkIcon className="w-3 h-3 flex-shrink-0" />
-          {url}
-        </a>
+      <div className="relative inline-flex items-center gap-2">
+        {showCopyOnly ? (
+          <>
+            <span className="text-xs sm:text-sm text-gray-500 flex items-center gap-1 break-all">
+              <LinkIcon className="w-3 h-3 flex-shrink-0" />
+              Product link (may redirect)
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-xs"
+              onClick={handleCopyLink}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <Copy className="w-3 h-3 mr-1" />
+              Copy
+            </Button>
+          </>
+        ) : (
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs sm:text-sm text-primary hover:text-primary/80 underline flex items-center gap-1 break-all"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const href = (e.currentTarget as HTMLAnchorElement).href;
+              window.open(href, "_blank", "noopener,noreferrer");
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <LinkIcon className="w-3 h-3 flex-shrink-0" />
+            {url}
+          </a>
+        )}
       </div>
     );
   };
@@ -2265,6 +2305,45 @@ export default function ListDetail() {
 
                 {/* Secondary Actions Group */}
                 <div className="flex items-center gap-1 px-2 border-r border-gray-200">
+                  {/* Open Registry Button - for The Knot lists */}
+                  {(() => {
+                    const isTheKnot = list.source?.startsWith('theknot:');
+                    const hasTheKnotItems = !isTheKnot && list.items.some(item => 
+                      item.links?.[0]?.includes('gifts.theknot.com') || 
+                      item.links?.[0]?.includes('theknot.com')
+                    );
+                    const registryUrl = isTheKnot 
+                      ? list.source?.replace(/^theknot:/, '') 
+                      : hasTheKnotItems 
+                        ? 'https://www.theknot.com/registry' 
+                        : null;
+                    
+                    if (registryUrl) {
+                      return (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-9"
+                                onClick={() => window.open(registryUrl, '_blank', 'noopener,noreferrer')}
+                              >
+                                <ExternalLink className="w-4 h-4 mr-2" />
+                                Open Registry
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {!isTheKnot && hasTheKnotItems 
+                                ? "Registry URL not saved for this import" 
+                                : "Open The Knot registry in new tab"}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      );
+                    }
+                    return null;
+                  })()}
                   {/* Favorite Toggle */}
                   <TooltipProvider>
                     <Tooltip>
@@ -2595,6 +2674,40 @@ export default function ListDetail() {
                     {/* Secondary Actions */}
                     <div className="border-t border-gray-200 my-2" />
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1">Actions</p>
+                    
+                    {/* Open Registry Button - Mobile - for The Knot lists */}
+                    {(() => {
+                      const isTheKnot = list.source?.startsWith('theknot:');
+                      const hasTheKnotItems = !isTheKnot && list.items.some(item => 
+                        item.links?.[0]?.includes('gifts.theknot.com') || 
+                        item.links?.[0]?.includes('theknot.com')
+                      );
+                      const registryUrl = isTheKnot 
+                        ? list.source?.replace(/^theknot:/, '') 
+                        : hasTheKnotItems 
+                          ? 'https://www.theknot.com/registry' 
+                          : null;
+                      
+                      if (registryUrl) {
+                        return (
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              window.open(registryUrl, '_blank', 'noopener,noreferrer');
+                              setIsMobileMenuOpen(false);
+                            }}
+                            className="w-full justify-start min-h-[44px]"
+                          >
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            Open Registry
+                            {!isTheKnot && hasTheKnotItems && (
+                              <span className="ml-auto text-xs text-gray-400">(URL not saved)</span>
+                            )}
+                          </Button>
+                        );
+                      }
+                      return null;
+                    })()}
                     
                     {/* Favorite Toggle - Mobile */}
                     <Button
@@ -3916,7 +4029,7 @@ export default function ListDetail() {
                           {item.links && item.links.length > 0 && (
                             <div className="mt-2 space-y-1">
                               {item.links.map((link, idx) => (
-                                <LinkIconWithPreview key={idx} url={link} />
+                                <LinkIconWithPreview key={idx} url={link} isTheKnotList={list.source?.startsWith('theknot:')} />
                               ))}
                             </div>
                           )}
@@ -4134,7 +4247,7 @@ export default function ListDetail() {
                           {item.links && item.links.length > 0 && (
                             <div className="mt-2 space-y-1">
                               {item.links.map((link, idx) => (
-                                <LinkIconWithPreview key={idx} url={link} />
+                                <LinkIconWithPreview key={idx} url={link} isTheKnotList={list.source?.startsWith('theknot:')} />
                               ))}
                             </div>
                           )}
@@ -4502,7 +4615,7 @@ export default function ListDetail() {
                           {item.links && item.links.length > 0 && (
                             <div className="mt-2 space-y-1">
                               {item.links.map((link, idx) => (
-                                <LinkIconWithPreview key={idx} url={link} />
+                                <LinkIconWithPreview key={idx} url={link} isTheKnotList={list.source?.startsWith('theknot:')} />
                               ))}
                             </div>
                           )}

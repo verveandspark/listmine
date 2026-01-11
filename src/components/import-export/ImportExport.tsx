@@ -448,7 +448,12 @@ export default function ImportExport() {
     }
 
     try {
-      const newListId = await importFromWishlist(selectedItems, wishlistName, "Shopping", importAccountId);
+      // Normalize and pass source URL for The Knot registries
+      const normalizedUrl = wishlistUrl.trim().startsWith('https://') || wishlistUrl.trim().startsWith('http://') 
+        ? wishlistUrl.trim() 
+        : `https://${wishlistUrl.trim()}`;
+      const sourceUrl = retailer === 'TheKnotRegistry' ? normalizedUrl : undefined;
+      const newListId = await importFromWishlist(selectedItems, wishlistName, "Shopping", importAccountId, sourceUrl);
       
       toast({
         title: "Wishlist imported successfully!",
