@@ -2872,6 +2872,8 @@ export function ListProvider({ children }: { children: ReactNode }) {
     accountId?: string | null,
     sourceUrl?: string,
   ): Promise<string> => {
+    console.log("[IMPORT_FROM_WISHLIST_ARGS]", { listName, category, accountId, sourceUrl, itemCount: items?.length });
+    
     if (!user) throw new Error("User not authenticated");
 
     if (!items || items.length === 0) {
