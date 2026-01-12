@@ -2920,9 +2920,13 @@ export function ListProvider({ children }: { children: ReactNode }) {
       // For registry/wishlist imports, always use 'registry' list type
       const listType = 'registry';
       
-      console.log("authUserId before insert:", authUserId);
-      console.log("Supabase auth user ID:", authUser?.id);
-      console.log("[ListContext] Using list type:", listType, "for registry/wishlist import");
+      console.log("[ListContext] importFromWishlist - params:", {
+        authUserId,
+        listName: nameValidation.value,
+        listType,
+        accountId,
+        sourceUrl,
+      });
       
       // Use RPC function to ensure user exists and create list (supports both personal and team)
       const { data: rpcData, error: rpcError } = await supabase.rpc('create_list_for_user', {
@@ -2941,7 +2945,28 @@ export function ListProvider({ children }: { children: ReactNode }) {
       const created = Array.isArray(rpcData) ? rpcData[0] : rpcData;
       const newListId = created?.id;
 
-      // Fetch the created list
+      // Compute the source value upfront
+      // If sourceUrl is provided and it's a The Knot registry, use theknot: prefix
+      // Otherwise default to 'standard'
+      const computedSource = sourceUrl 
+        ? (sourceUrl.includes('theknot.com') ? `theknot:${sourceUrl}` : sourceUrl)
+        : 'standard';
+
+      // Update the list's source field immediately after creation
+      // This ensures the correct source is set before any realtime subscription triggers a reload
+      const { error: sourceError } = await supabase
+        .from("lists")
+        .update({ source: computedSource })
+        .eq("id", newListId);
+      
+      if (sourceError) {
+        console.error("[ListContext] Error updating list source:", sourceError);
+        // Don't throw - continue with import even if source update fails
+      } else {
+        console.log("[ListContext] Updated list source to:", computedSource);
+      }
+
+      // Fetch the created list (with updated source)
       const { data: newList, error: fetchError } = await supabase
         .from("lists")
         .select()
@@ -2949,20 +2974,6 @@ export function ListProvider({ children }: { children: ReactNode }) {
         .single();
 
       if (fetchError) throw fetchError;
-
-      // If sourceUrl is provided (e.g., for The Knot), update the list's source field
-      if (sourceUrl) {
-        const sourceValue = sourceUrl.includes('theknot.com') 
-          ? `theknot:${sourceUrl}` 
-          : sourceUrl;
-        const { error: sourceError } = await supabase
-          .from("lists")
-          .update({ source: sourceValue })
-          .eq("id", newListId);
-        if (sourceError) {
-          console.error("[ListContext] Error updating list source:", sourceError);
-        }
-      }
 
       const itemsToInsert = items.map((item, index) => ({
         list_id: newList.id,
