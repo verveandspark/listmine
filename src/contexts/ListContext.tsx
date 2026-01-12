@@ -2952,6 +2952,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
 
       // Compute the source value from the importUrl and retailer
       // For The Knot registries, use theknot:<url> prefix
+      // For MyRegistry/BB&B, use myregistry:<url> prefix
       // Otherwise default to 'standard'
       const normalizedImportUrl = importUrl.trim().startsWith('https://') || importUrl.trim().startsWith('http://')
         ? importUrl.trim()
@@ -2960,8 +2961,15 @@ export function ListProvider({ children }: { children: ReactNode }) {
         retailer === "TheKnotRegistry" ||
         /theknot\.com\/us\//i.test(normalizedImportUrl) ||
         /theknot\.com\/.*registry/i.test(normalizedImportUrl);
+      const isMyRegistry =
+        /myregistry\.com\//i.test(normalizedImportUrl) ||
+        (retailer === "Registry" && /myregistry/i.test(normalizedImportUrl));
 
-      const computedSource = isTheKnot ? `theknot:${normalizedImportUrl}` : "standard";
+      const computedSource = isTheKnot 
+        ? `theknot:${normalizedImportUrl}` 
+        : isMyRegistry 
+        ? `myregistry:${normalizedImportUrl}` 
+        : "standard";
 
       // Update the list's source field immediately after creation
       // This ensures the correct source is set before any realtime subscription triggers a reload

@@ -68,6 +68,7 @@ import {
   Archive,
   ArchiveRestore,
   Copy,
+  Info,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -1422,9 +1423,9 @@ export default function ListDetail() {
     Other: "Other",
   };
 
-  const LinkIconWithPreview = ({ url, isTheKnotList }: { url: string; isTheKnotList?: boolean }) => {
+  const LinkIconWithPreview = ({ url, isTheKnotList, isMyRegistryList }: { url: string; isTheKnotList?: boolean; isMyRegistryList?: boolean }) => {
     const isTheKnotProductLink = url.includes('gifts.theknot.com') || url.includes('theknot.com/registry');
-    const showCopyOnly = isTheKnotList && isTheKnotProductLink;
+    const showCopyOnly = (isTheKnotList && isTheKnotProductLink) || isMyRegistryList;
     
     const handleCopyLink = async (e: React.MouseEvent) => {
       e.preventDefault();
@@ -1449,9 +1450,11 @@ export default function ListDetail() {
         {showCopyOnly ? (
           <>
             {(() => {
-              const registryUrl = (list.source?.startsWith('theknot:') 
+              const registryUrl = list.source?.startsWith('theknot:') 
                 ? list.source?.replace(/^theknot:/, '') 
-                : null);
+                : list.source?.startsWith('myregistry:')
+                ? list.source?.replace(/^myregistry:/, '')
+                : null;
               
               if (registryUrl) {
                 return (
@@ -1471,17 +1474,24 @@ export default function ListDetail() {
               return null;
             })()}
             
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 px-2 text-xs"
-              onClick={handleCopyLink}
-              onMouseDown={(e) => e.stopPropagation()}
-              title='The Knot may redirect this link. Use "View on Registry" if it does not open the product.'
-            >
-              <Copy className="w-3 h-3 mr-1" />
-              Copy Product Link
-            </Button>
+            {url && (
+              <div className="inline-flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-xs"
+                  onClick={handleCopyLink}
+                  onMouseDown={(e) => e.stopPropagation()}
+                >
+                  <Copy className="w-3 h-3 mr-1" />
+                  Copy Product Link
+                </Button>
+                <Info 
+                  className="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 cursor-help" 
+                  title='Some registries may redirect or not provide direct product links. Use "View on Registry" if needed.'
+                />
+              </div>
+            )}
           </>
         ) : (
           <a
@@ -2330,18 +2340,27 @@ export default function ListDetail() {
 
                 {/* Secondary Actions Group */}
                 <div className="flex items-center gap-1 px-2 border-r border-gray-200">
-                  {/* Open Registry Button - for The Knot lists */}
+                  {/* Open Registry Button - for The Knot and MyRegistry lists */}
                   {(() => {
                     const isTheKnot = list.source?.startsWith('theknot:');
-                    const hasTheKnotItems = !isTheKnot && list.items.some(item => 
+                    const isMyRegistry = list.source?.startsWith('myregistry:');
+                    const hasTheKnotItems = !isTheKnot && !isMyRegistry && list.items.some(item => 
                       item.links?.[0]?.includes('gifts.theknot.com') || 
                       item.links?.[0]?.includes('theknot.com')
                     );
                     const registryUrl = isTheKnot 
                       ? list.source?.replace(/^theknot:/, '') 
+                      : isMyRegistry
+                      ? list.source?.replace(/^myregistry:/, '')
                       : hasTheKnotItems 
                         ? 'https://www.theknot.com/registry' 
                         : null;
+                    
+                    const registryName = isTheKnot 
+                      ? 'The Knot' 
+                      : isMyRegistry 
+                      ? 'MyRegistry' 
+                      : 'The Knot';
                     
                     const handleCopyRegistryLink = async () => {
                       try {
@@ -2376,9 +2395,9 @@ export default function ListDetail() {
                                 </a>
                               </TooltipTrigger>
                               <TooltipContent>
-                                {!isTheKnot && hasTheKnotItems 
+                                {!isTheKnot && !isMyRegistry && hasTheKnotItems 
                                   ? "Registry URL not saved for this import" 
-                                  : "Open The Knot registry in new tab"}
+                                  : `Open ${registryName} registry in new tab`}
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
@@ -2736,15 +2755,18 @@ export default function ListDetail() {
                     <div className="border-t border-gray-200 my-2" />
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1">Actions</p>
                     
-                    {/* Open Registry Button - Mobile - for The Knot lists */}
+                    {/* Open Registry Button - Mobile - for The Knot and MyRegistry lists */}
                     {(() => {
                       const isTheKnot = list.source?.startsWith('theknot:');
-                      const hasTheKnotItems = !isTheKnot && list.items.some(item => 
+                      const isMyRegistry = list.source?.startsWith('myregistry:');
+                      const hasTheKnotItems = !isTheKnot && !isMyRegistry && list.items.some(item => 
                         item.links?.[0]?.includes('gifts.theknot.com') || 
                         item.links?.[0]?.includes('theknot.com')
                       );
                       const registryUrl = isTheKnot 
                         ? list.source?.replace(/^theknot:/, '') 
+                        : isMyRegistry
+                        ? list.source?.replace(/^myregistry:/, '')
                         : hasTheKnotItems 
                           ? 'https://www.theknot.com/registry' 
                           : null;
@@ -2778,7 +2800,7 @@ export default function ListDetail() {
                             >
                               <ExternalLink className="w-4 h-4 mr-2" />
                               Open Registry
-                              {!isTheKnot && hasTheKnotItems && (
+                              {!isTheKnot && !isMyRegistry && hasTheKnotItems && (
                                 <span className="ml-auto text-xs text-gray-400">(URL not saved)</span>
                               )}
                             </Button>
@@ -4120,7 +4142,12 @@ export default function ListDetail() {
                           {item.links && item.links.length > 0 && (
                             <div className="mt-2 space-y-1">
                               {item.links.map((link, idx) => (
-                                <LinkIconWithPreview key={idx} url={link} isTheKnotList={list.source?.startsWith('theknot:')} />
+                                <LinkIconWithPreview 
+                                  key={idx} 
+                                  url={link} 
+                                  isTheKnotList={list.source?.startsWith('theknot:')} 
+                                  isMyRegistryList={list.source?.startsWith('myregistry:')}
+                                />
                               ))}
                             </div>
                           )}
@@ -4338,7 +4365,12 @@ export default function ListDetail() {
                           {item.links && item.links.length > 0 && (
                             <div className="mt-2 space-y-1">
                               {item.links.map((link, idx) => (
-                                <LinkIconWithPreview key={idx} url={link} isTheKnotList={list.source?.startsWith('theknot:')} />
+                                <LinkIconWithPreview 
+                                  key={idx} 
+                                  url={link} 
+                                  isTheKnotList={list.source?.startsWith('theknot:')} 
+                                  isMyRegistryList={list.source?.startsWith('myregistry:')}
+                                />
                               ))}
                             </div>
                           )}
@@ -4706,7 +4738,12 @@ export default function ListDetail() {
                           {item.links && item.links.length > 0 && (
                             <div className="mt-2 space-y-1">
                               {item.links.map((link, idx) => (
-                                <LinkIconWithPreview key={idx} url={link} isTheKnotList={list.source?.startsWith('theknot:')} />
+                                <LinkIconWithPreview 
+                                  key={idx} 
+                                  url={link} 
+                                  isTheKnotList={list.source?.startsWith('theknot:')} 
+                                  isMyRegistryList={list.source?.startsWith('myregistry:')}
+                                />
                               ))}
                             </div>
                           )}
