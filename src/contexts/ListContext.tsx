@@ -114,7 +114,8 @@ interface ListContextType {
     listName: string,
     category: ListCategory,
     accountId?: string | null,
-    sourceUrl?: string,
+    importUrl: string,
+    retailer: string,
   ) => Promise<string>;
   loading: boolean;
   error: string | null;
@@ -2870,9 +2871,10 @@ export function ListProvider({ children }: { children: ReactNode }) {
     listName: string,
     category: ListCategory = "Shopping",
     accountId?: string | null,
-    sourceUrl?: string,
+    importUrl: string,
+    retailer: string,
   ): Promise<string> => {
-    console.log("[IMPORT_FROM_WISHLIST_ARGS]", { listName, category, accountId, sourceUrl, itemCount: items?.length });
+    console.log("[IMPORT_FROM_WISHLIST_ARGS]", { listName, category, accountId, importUrl, retailer, itemCount: items?.length });
     
     if (!user) throw new Error("User not authenticated");
 
@@ -2927,7 +2929,8 @@ export function ListProvider({ children }: { children: ReactNode }) {
         listName: nameValidation.value,
         listType,
         accountId,
-        sourceUrl,
+        importUrl,
+        retailer,
       });
       
       // Use RPC function to ensure user exists and create list (supports both personal and team)
@@ -2947,11 +2950,14 @@ export function ListProvider({ children }: { children: ReactNode }) {
       const created = Array.isArray(rpcData) ? rpcData[0] : rpcData;
       const newListId = created?.id;
 
-      // Compute the source value upfront
-      // If sourceUrl is provided and it's a The Knot registry, use theknot: prefix
+      // Compute the source value from the importUrl and retailer
+      // For The Knot registries, use theknot:<url> prefix
       // Otherwise default to 'standard'
-      const computedSource = sourceUrl 
-        ? (sourceUrl.includes('theknot.com') ? `theknot:${sourceUrl}` : sourceUrl)
+      const normalizedImportUrl = importUrl.trim().startsWith('https://') || importUrl.trim().startsWith('http://')
+        ? importUrl.trim()
+        : `https://${importUrl.trim()}`;
+      const computedSource = retailer === "TheKnotRegistry" 
+        ? `theknot:${normalizedImportUrl}` 
         : 'standard';
 
       // Update the list's source field immediately after creation
@@ -2961,11 +2967,11 @@ export function ListProvider({ children }: { children: ReactNode }) {
         .update({ source: computedSource })
         .eq("id", newListId);
       
+      console.log("[IMPORT_SET_SOURCE]", { listId: newListId, retailer, importUrl: normalizedImportUrl, computedSource, error: sourceError });
+      
       if (sourceError) {
         console.error("[ListContext] Error updating list source:", sourceError);
         // Don't throw - continue with import even if source update fails
-      } else {
-        console.log("[ListContext] Updated list source to:", computedSource);
       }
 
       // Fetch the created list (with updated source)
