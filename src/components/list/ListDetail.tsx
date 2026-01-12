@@ -1445,41 +1445,71 @@ export default function ListDetail() {
     };
     
     return (
-      <div className="relative inline-flex items-center gap-2">
-        {showCopyOnly ? (
-          <>
-            <span className="text-xs sm:text-sm text-gray-500 flex items-center gap-1 break-all">
-              <LinkIcon className="w-3 h-3 flex-shrink-0" />
-              Product link (may redirect)
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 px-2 text-xs"
-              onClick={handleCopyLink}
+      <div className="relative inline-flex flex-col gap-1">
+        <div className="inline-flex items-center gap-2">
+          {showCopyOnly ? (
+            <>
+              <span className="text-xs sm:text-sm text-gray-500 flex items-center gap-1 break-all">
+                <LinkIcon className="w-3 h-3 flex-shrink-0" />
+                Product link (may redirect)
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-xs"
+                onClick={handleCopyLink}
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                <Copy className="w-3 h-3 mr-1" />
+                Copy
+              </Button>
+            </>
+          ) : (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs sm:text-sm text-primary hover:text-primary/80 underline flex items-center gap-1 break-all"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const href = (e.currentTarget as HTMLAnchorElement).href;
+                window.open(href, "_blank", "noopener,noreferrer");
+              }}
               onMouseDown={(e) => e.stopPropagation()}
             >
-              <Copy className="w-3 h-3 mr-1" />
-              Copy
-            </Button>
+              <LinkIcon className="w-3 h-3 flex-shrink-0" />
+              {url}
+            </a>
+          )}
+        </div>
+        {showCopyOnly && (
+          <>
+            <p className="text-xs text-gray-400 pl-4">
+              If this redirects, use "Open Registry" above.
+            </p>
+            {(() => {
+              const registryUrl = (list.source?.startsWith('theknot:') 
+                ? list.source?.replace(/^theknot:/, '') 
+                : null);
+              
+              if (registryUrl) {
+                return (
+                  <a
+                    href={registryUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-primary hover:text-primary/80 underline pl-4"
+                    onClick={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
+                  >
+                    View on Registry
+                  </a>
+                );
+              }
+              return null;
+            })()}
           </>
-        ) : (
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs sm:text-sm text-primary hover:text-primary/80 underline flex items-center gap-1 break-all"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              const href = (e.currentTarget as HTMLAnchorElement).href;
-              window.open(href, "_blank", "noopener,noreferrer");
-            }}
-            onMouseDown={(e) => e.stopPropagation()}
-          >
-            <LinkIcon className="w-3 h-3 flex-shrink-0" />
-            {url}
-          </a>
         )}
       </div>
     );
@@ -2323,28 +2353,64 @@ export default function ListDetail() {
                         ? 'https://www.theknot.com/registry' 
                         : null;
                     
+                    const handleCopyRegistryLink = async () => {
+                      try {
+                        await navigator.clipboard.writeText(registryUrl!);
+                        toast({
+                          title: "Copied!",
+                          description: "Registry link copied to clipboard",
+                        });
+                      } catch {
+                        toast({
+                          title: "Copy failed",
+                          description: "Could not copy. Please copy from the address bar.",
+                          variant: "destructive",
+                        });
+                      }
+                    };
+                    
                     if (registryUrl) {
                       return (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-9"
-                                onClick={() => window.open(registryUrl, '_blank', 'noopener,noreferrer')}
-                              >
-                                <ExternalLink className="w-4 h-4 mr-2" />
-                                Open Registry
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              {!isTheKnot && hasTheKnotItems 
-                                ? "Registry URL not saved for this import" 
-                                : "Open The Knot registry in new tab"}
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                        <>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <a 
+                                  href={registryUrl} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3"
+                                >
+                                  <ExternalLink className="w-4 h-4 mr-2" />
+                                  Open Registry
+                                </a>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {!isTheKnot && hasTheKnotItems 
+                                  ? "Registry URL not saved for this import" 
+                                  : "Open The Knot registry in new tab"}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-9"
+                                  onClick={handleCopyRegistryLink}
+                                >
+                                  <Copy className="w-4 h-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Copy registry link
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </>
                       );
                     }
                     return null;
@@ -2693,22 +2759,52 @@ export default function ListDetail() {
                           ? 'https://www.theknot.com/registry' 
                           : null;
                       
+                      const handleCopyRegistryLink = async () => {
+                        try {
+                          await navigator.clipboard.writeText(registryUrl!);
+                          toast({
+                            title: "Copied!",
+                            description: "Registry link copied to clipboard",
+                          });
+                        } catch {
+                          toast({
+                            title: "Copy failed",
+                            description: "Could not copy. Please copy from the address bar.",
+                            variant: "destructive",
+                          });
+                        }
+                      };
+                      
                       if (registryUrl) {
                         return (
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              window.open(registryUrl, '_blank', 'noopener,noreferrer');
-                              setIsMobileMenuOpen(false);
-                            }}
-                            className="w-full justify-start min-h-[44px]"
-                          >
-                            <ExternalLink className="w-4 h-4 mr-2" />
-                            Open Registry
-                            {!isTheKnot && hasTheKnotItems && (
-                              <span className="ml-auto text-xs text-gray-400">(URL not saved)</span>
-                            )}
-                          </Button>
+                          <>
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                window.open(registryUrl, '_blank', 'noopener,noreferrer');
+                                setIsMobileMenuOpen(false);
+                              }}
+                              className="w-full justify-start min-h-[44px]"
+                            >
+                              <ExternalLink className="w-4 h-4 mr-2" />
+                              Open Registry
+                              {!isTheKnot && hasTheKnotItems && (
+                                <span className="ml-auto text-xs text-gray-400">(URL not saved)</span>
+                              )}
+                            </Button>
+                            
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                handleCopyRegistryLink();
+                                setIsMobileMenuOpen(false);
+                              }}
+                              className="w-full justify-start min-h-[44px]"
+                            >
+                              <Copy className="w-4 h-4 mr-2" />
+                              Copy Registry Link
+                            </Button>
+                          </>
                         );
                       }
                       return null;
