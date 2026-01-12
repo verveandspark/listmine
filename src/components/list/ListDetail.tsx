@@ -458,12 +458,45 @@ export default function ListDetail() {
   }
 
   if (!list) {
+    // Clear localStorage entries related to this missing list
+    const clearDeletedListFromStorage = () => {
+      if (!id) return;
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key) continue;
+        const value = localStorage.getItem(key);
+        // Remove any key whose value equals the missing listId
+        if (value === id) {
+          keysToRemove.push(key);
+        }
+        // Remove any key matching /last|active|selected|current/i AND /list/i
+        if (/last|active|selected|current/i.test(key) && /list/i.test(key)) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+    };
+    
+    const handleGoToDashboard = () => {
+      clearDeletedListFromStorage();
+      navigate("/dashboard");
+    };
+    
+    // Auto-clear and redirect after a short delay
+    setTimeout(() => {
+      clearDeletedListFromStorage();
+      navigate("/dashboard");
+    }, 3000);
+    
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 flex items-center justify-center">
         <Card className="p-8 text-center">
           <h2 className="text-xl font-semibold mb-4">List not found</h2>
-          <Button onClick={() => navigate("/dashboard")}>
-            Back to Dashboard
+          <p className="text-sm text-muted-foreground mb-4">This list may have been deleted.</p>
+          <p className="text-xs text-muted-foreground mb-4">Redirecting to dashboard...</p>
+          <Button onClick={handleGoToDashboard}>
+            Go to Dashboard
           </Button>
         </Card>
       </div>
@@ -1442,6 +1475,7 @@ export default function ListDetail() {
   // Universal item link component
   const ItemLinkActions = ({ item }: { item: ListItemType }) => {
     const { url: primaryUrl, isFallback } = getPrimaryItemUrl(item, list.source);
+    const isTheKnotList = (list.source ?? "").startsWith("theknot:");
     
     const handleCopyLink = async (e: React.MouseEvent) => {
       e.preventDefault();
@@ -1462,16 +1496,13 @@ export default function ListDetail() {
       }
     };
 
+    // Don't render anything if no URL - parent should conditionally render ItemLinkActions
     if (!primaryUrl) {
-      return (
-        <div className="text-xs text-gray-400 flex items-center gap-1">
-          <Link2Off className="w-3 h-3" />
-          No link available
-        </div>
-      );
+      return null;
     }
 
     const searchUrl = `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(item.text + " buy")}`;
+    const showSearch = isFallback || isTheKnotList;
 
     return (
       <div className="relative inline-flex items-center gap-2">
@@ -1501,7 +1532,7 @@ export default function ListDetail() {
           <Copy className="w-3 h-3 mr-1" />
           Copy link
         </Button>
-        {isFallback && (
+        {showSearch && (
           <a
             href={searchUrl}
             target="_blank"
@@ -1516,6 +1547,13 @@ export default function ListDetail() {
         )}
       </div>
     );
+  };
+  
+  // Helper to check if ItemLinkActions should render
+  const shouldShowItemLinks = (item: ListItemType): boolean => {
+    const hasDirectLink = !!item.links?.[0];
+    const hasRegistryFallback = (list.source ?? "").startsWith("theknot:") || (list.source ?? "").startsWith("myregistry:");
+    return hasDirectLink || hasRegistryFallback;
   };
 
   return (
@@ -4123,10 +4161,12 @@ export default function ListDetail() {
                             </div>
                           )}
 
-                          {/* Universal item link actions */}
-                          <div className="mt-2">
-                            <ItemLinkActions item={item} />
-                          </div>
+                          {/* Universal item link actions - only show for registry/wishlist with links */}
+                          {shouldShowItemLinks(item) && (
+                            <div className="mt-2">
+                              <ItemLinkActions item={item} />
+                            </div>
+                          )}
                         </div>
                         {/* VIEW 1 Actions - Standard/Category View */}
                         {!isSelectMode && canEditListItems && (
@@ -4338,10 +4378,12 @@ export default function ListDetail() {
                             </div>
                           </div>
 
-                          {/* Universal item link actions */}
-                          <div className="mt-2">
-                            <ItemLinkActions item={item} />
-                          </div>
+                          {/* Universal item link actions - only show for registry/wishlist with links */}
+                          {shouldShowItemLinks(item) && (
+                            <div className="mt-2">
+                              <ItemLinkActions item={item} />
+                            </div>
+                          )}
                         </div>
                         {/* VIEW 2 Actions - Section View */}
                         {!isSelectMode && canEditListItems && (
@@ -4708,10 +4750,12 @@ export default function ListDetail() {
                             </div>
                           )}
 
-                          {/* Universal item link actions */}
-                          <div className="mt-2">
-                            <ItemLinkActions item={item} />
-                          </div>
+                          {/* Universal item link actions - only show for registry/wishlist with links */}
+                          {shouldShowItemLinks(item) && (
+                            <div className="mt-2">
+                              <ItemLinkActions item={item} />
+                            </div>
+                          )}
                         </div>
                         {/* VIEW 3 Actions - Compact View */}
                         {!isSelectMode && canEditListItems && (

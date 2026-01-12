@@ -1684,12 +1684,22 @@ const parseMyRegistryItems = (html: string): ScrapedItem[] => {
         
         // Debug log for first 3 items when DEBUG is enabled
         if (DEBUG && items.length < 3) {
+          // Collect first 10 anchors for debugging
+          const first10Anchors: Array<{ text: string; href: string }> = [];
+          const debugAnchors = itemEl.find('a, button');
+          debugAnchors.each((idx: number, anchorEl: any) => {
+            if (first10Anchors.length < 10) {
+              first10Anchors.push({
+                text: $(anchorEl).text().trim().substring(0, 50),
+                href: $(anchorEl).attr('href') || $(anchorEl).attr('data-href') || $(anchorEl).attr('data-url') || ''
+              });
+            }
+          });
+          
           console.log(`[MYREGISTRY_PARSE] Item ${items.length + 1}: "${name}"`);
           console.log(`  - buyUrl: ${buyUrl || 'N/A'}`);
-          console.log(`  - availability: ${isUnavailable ? 'unavailable' : 'available'}`);
-          console.log(`  - links: ${JSON.stringify(item.links || [])}`);
-          console.log(`  - price: ${price || 'N/A'}`);
-          console.log(`  - imageUrl: ${image || 'N/A'}`);
+          console.log(`  - unavailable: ${isUnavailable}`);
+          console.log(`  - first10Anchors:`, JSON.stringify(first10Anchors));
         }
         
         items.push(item);
