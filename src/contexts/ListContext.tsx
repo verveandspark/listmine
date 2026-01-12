@@ -113,9 +113,9 @@ interface ListContextType {
     items: Array<{ name: string; price?: string; link?: string; image?: string }>,
     listName: string,
     category: ListCategory,
-    accountId?: string | null,
     importUrl: string,
     retailer: string,
+    accountId?: string | null,
   ) => Promise<string>;
   loading: boolean;
   error: string | null;
@@ -2870,9 +2870,9 @@ export function ListProvider({ children }: { children: ReactNode }) {
     items: Array<{ name: string; price?: string; link?: string; image?: string }>,
     listName: string,
     category: ListCategory = "Shopping",
-    accountId?: string | null,
     importUrl: string,
     retailer: string,
+    accountId?: string | null,
   ): Promise<string> => {
     console.log("[IMPORT_FROM_WISHLIST_ARGS]", JSON.stringify({ listName, category, accountId, importUrl, retailer, itemCount: items?.length }));
     

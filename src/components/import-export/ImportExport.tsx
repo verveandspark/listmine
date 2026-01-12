@@ -452,7 +452,7 @@ export default function ImportExport() {
       const normalizedUrl = wishlistUrl.trim().startsWith('https://') || wishlistUrl.trim().startsWith('http://') 
         ? wishlistUrl.trim() 
         : `https://${wishlistUrl.trim()}`;
-      const newListId = await importFromWishlist(selectedItems, wishlistName, "Shopping", importAccountId, normalizedUrl, retailer);
+      const newListId = await importFromWishlist(selectedItems, wishlistName, "Shopping", normalizedUrl, retailer, importAccountId);
       
       toast({
         title: "Wishlist imported successfully!",

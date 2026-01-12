@@ -23,6 +23,10 @@ interface PurchaseModalProps {
     attributes?: {
       price?: number;
       quantityNeeded?: number;
+      custom?: {
+        price?: string;
+        image?: string;
+      };
     };
   };
   listId: string;

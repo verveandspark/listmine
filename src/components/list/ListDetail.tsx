@@ -1486,10 +1486,9 @@ export default function ListDetail() {
                   <Copy className="w-3 h-3 mr-1" />
                   Copy Product Link
                 </Button>
-                <Info 
-                  className="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 cursor-help" 
-                  title='Some registries may redirect or not provide direct product links. Use "View on Registry" if needed.'
-                />
+                <span title='Some registries may redirect or not provide direct product links. Use "View on Registry" if needed.'>
+                  <Info className="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 cursor-help" />
+                </span>
               </div>
             )}
           </>
