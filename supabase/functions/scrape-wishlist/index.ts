@@ -43,6 +43,14 @@ interface ScrapedItem {
   price?: string;
   link?: string;
   image?: string;
+  links?: string[];
+  attributes?: {
+    custom?: {
+      availability?: string;
+      price?: string;
+      image?: string;
+    };
+  };
 }
 
 const detectRetailer = (url: string): string | null => {
@@ -1537,24 +1545,65 @@ const parseMyRegistryItems = (html: string): ScrapedItem[] => {
         }
       }
       
-      // Extract product URL - find first meaningful anchor with href
+      // Check for unavailable status (button text matches /unavailable/i)
+      let isUnavailable = false;
+      const buttonEls = itemEl.find('button, a.btn, .button, [class*="action"], [class*="cta"]');
+      buttonEls.each((_: number, btnEl: any) => {
+        const btnText = $(btnEl).text().trim();
+        if (/unavailable/i.test(btnText)) {
+          isUnavailable = true;
+        }
+      });
+      
+      // Also check for unavailable text elsewhere in the card
+      const cardText = itemEl.text();
+      if (/item.*unavailable|out.*of.*stock|no longer available/i.test(cardText)) {
+        isUnavailable = true;
+      }
+      
+      // Extract "Buy This Gift" URL - look for anchor/button with that text
+      let buyUrl: string | undefined;
+      if (!isUnavailable) {
+        const allAnchors = itemEl.find('a, button');
+        allAnchors.each((_: number, anchorEl: any) => {
+          if (buyUrl) return; // Already found
+          const anchorText = $(anchorEl).text().trim();
+          if (/buy\s*this\s*gift/i.test(anchorText)) {
+            // Extract href from anchor or data-href/data-url
+            const href = $(anchorEl).attr('href') || $(anchorEl).attr('data-href') || $(anchorEl).attr('data-url') || '';
+            if (href && href !== '#' && !href.startsWith('javascript:')) {
+              if (href.startsWith('http')) {
+                buyUrl = href;
+              } else if (href.startsWith('//')) {
+                buyUrl = `https:${href}`;
+              } else if (href.startsWith('/')) {
+                buyUrl = `${BASE_URL}${href}`;
+              }
+            }
+          }
+        });
+      }
+      
+      // Extract product URL - find first meaningful anchor with href (fallback)
       let link: string | undefined;
-      const anchors = itemEl.find('a[href]');
-      for (let i = 0; i < anchors.length; i++) {
-        const href = $(anchors[i]).attr('href') || '';
-        // Skip empty, #, javascript:, and other non-meaningful links
-        if (href && href !== '#' && !href.startsWith('javascript:') && href.length > 1) {
-          if (href.startsWith('http')) {
-            link = href;
-            break;
-          } else if (href.startsWith('//')) {
-            // Protocol-relative URL
-            link = `https:${href}`;
-            break;
-          } else if (href.startsWith('/')) {
-            // Relative URL
-            link = `${BASE_URL}${href}`;
-            break;
+      if (!buyUrl && !isUnavailable) {
+        const anchors = itemEl.find('a[href]');
+        for (let i = 0; i < anchors.length; i++) {
+          const href = $(anchors[i]).attr('href') || '';
+          // Skip empty, #, javascript:, and other non-meaningful links
+          if (href && href !== '#' && !href.startsWith('javascript:') && href.length > 1) {
+            if (href.startsWith('http')) {
+              link = href;
+              break;
+            } else if (href.startsWith('//')) {
+              // Protocol-relative URL
+              link = `https:${href}`;
+              break;
+            } else if (href.startsWith('/')) {
+              // Relative URL
+              link = `${BASE_URL}${href}`;
+              break;
+            }
           }
         }
       }
@@ -1606,20 +1655,39 @@ const parseMyRegistryItems = (html: string): ScrapedItem[] => {
       // Only add item if we have at least a name
       if (name) {
         const item: ScrapedItem = { name };
-        if (link) {
-          item.link = link;
+        
+        // Set links array - prioritize buyUrl ("Buy This Gift") over generic link
+        const primaryLink = buyUrl || link;
+        if (primaryLink) {
+          item.links = [primaryLink];
+          item.link = primaryLink; // Keep backward compatibility
           itemsWithLink++;
+        } else if (isUnavailable) {
+          // No links for unavailable items
+          item.links = [];
         }
+        
         if (image) {
           item.image = image;
           itemsWithImage++;
         }
         if (price) item.price = price;
         
+        // Set unavailable attribute
+        if (isUnavailable) {
+          item.attributes = {
+            custom: {
+              availability: 'unavailable',
+            },
+          };
+        }
+        
         // Debug log for first 3 items when DEBUG is enabled
         if (DEBUG && items.length < 3) {
           console.log(`[MYREGISTRY_PARSE] Item ${items.length + 1}: "${name}"`);
-          console.log(`  - productUrl: ${link || 'N/A'}`);
+          console.log(`  - buyUrl: ${buyUrl || 'N/A'}`);
+          console.log(`  - availability: ${isUnavailable ? 'unavailable' : 'available'}`);
+          console.log(`  - links: ${JSON.stringify(item.links || [])}`);
           console.log(`  - price: ${price || 'N/A'}`);
           console.log(`  - imageUrl: ${image || 'N/A'}`);
         }
