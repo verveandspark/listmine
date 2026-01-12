@@ -1445,49 +1445,9 @@ export default function ListDetail() {
     };
     
     return (
-      <div className="relative inline-flex flex-col gap-1">
-        <div className="inline-flex items-center gap-2">
-          {showCopyOnly ? (
-            <>
-              <span className="text-xs sm:text-sm text-gray-500 flex items-center gap-1 break-all">
-                <LinkIcon className="w-3 h-3 flex-shrink-0" />
-                Product link (may redirect)
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 px-2 text-xs"
-                onClick={handleCopyLink}
-                onMouseDown={(e) => e.stopPropagation()}
-              >
-                <Copy className="w-3 h-3 mr-1" />
-                Copy
-              </Button>
-            </>
-          ) : (
-            <a
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs sm:text-sm text-primary hover:text-primary/80 underline flex items-center gap-1 break-all"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const href = (e.currentTarget as HTMLAnchorElement).href;
-                window.open(href, "_blank", "noopener,noreferrer");
-              }}
-              onMouseDown={(e) => e.stopPropagation()}
-            >
-              <LinkIcon className="w-3 h-3 flex-shrink-0" />
-              {url}
-            </a>
-          )}
-        </div>
-        {showCopyOnly && (
+      <div className="relative inline-flex items-center gap-2">
+        {showCopyOnly ? (
           <>
-            <p className="text-xs text-gray-400 pl-4">
-              If this redirects, use "Open Registry" above.
-            </p>
             {(() => {
               const registryUrl = (list.source?.startsWith('theknot:') 
                 ? list.source?.replace(/^theknot:/, '') 
@@ -1499,17 +1459,46 @@ export default function ListDetail() {
                     href={registryUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs text-primary hover:text-primary/80 underline pl-4"
+                    className="text-xs sm:text-sm text-primary hover:text-primary/80 underline flex items-center gap-1"
                     onClick={(e) => e.stopPropagation()}
                     onMouseDown={(e) => e.stopPropagation()}
                   >
+                    <ExternalLink className="w-3 h-3 flex-shrink-0" />
                     View on Registry
                   </a>
                 );
               }
               return null;
             })()}
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-xs"
+              onClick={handleCopyLink}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <Copy className="w-3 h-3 mr-1" />
+              Copy Product Link
+            </Button>
           </>
+        ) : (
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs sm:text-sm text-primary hover:text-primary/80 underline flex items-center gap-1 break-all"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const href = (e.currentTarget as HTMLAnchorElement).href;
+              window.open(href, "_blank", "noopener,noreferrer");
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <LinkIcon className="w-3 h-3 flex-shrink-0" />
+            {url}
+          </a>
         )}
       </div>
     );
