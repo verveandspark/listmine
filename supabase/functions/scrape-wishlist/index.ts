@@ -1537,20 +1537,24 @@ const parseMyRegistryItems = (html: string): ScrapedItem[] => {
         }
       }
       
-      // Extract product URL - find first anchor with href
+      // Extract product URL - find first meaningful anchor with href
       let link: string | undefined;
-      const anchorEl = itemEl.find('a[href]').first();
-      if (anchorEl.length) {
-        const href = anchorEl.attr('href') || '';
-        if (href) {
+      const anchors = itemEl.find('a[href]');
+      for (let i = 0; i < anchors.length; i++) {
+        const href = $(anchors[i]).attr('href') || '';
+        // Skip empty, #, javascript:, and other non-meaningful links
+        if (href && href !== '#' && !href.startsWith('javascript:') && href.length > 1) {
           if (href.startsWith('http')) {
             link = href;
+            break;
           } else if (href.startsWith('//')) {
             // Protocol-relative URL
             link = `https:${href}`;
+            break;
           } else if (href.startsWith('/')) {
             // Relative URL
             link = `${BASE_URL}${href}`;
+            break;
           }
         }
       }
@@ -1612,8 +1616,12 @@ const parseMyRegistryItems = (html: string): ScrapedItem[] => {
         }
         if (price) item.price = price;
         
-        if (DEBUG) {
-          console.log(`[MYREGISTRY_PARSE] Item: "${name}" | price: ${price || 'N/A'} | link: ${link ? 'yes' : 'no'} | image: ${image ? 'yes' : 'no'}`);
+        // Debug log for first 3 items when DEBUG is enabled
+        if (DEBUG && items.length < 3) {
+          console.log(`[MYREGISTRY_PARSE] Item ${items.length + 1}: "${name}"`);
+          console.log(`  - productUrl: ${link || 'N/A'}`);
+          console.log(`  - price: ${price || 'N/A'}`);
+          console.log(`  - imageUrl: ${image || 'N/A'}`);
         }
         
         items.push(item);
