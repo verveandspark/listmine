@@ -2961,14 +2961,12 @@ export function ListProvider({ children }: { children: ReactNode }) {
         retailer === "TheKnotRegistry" ||
         /theknot\.com\/us\//i.test(normalizedImportUrl) ||
         /theknot\.com\/.*registry/i.test(normalizedImportUrl);
-      const isMyRegistry =
-        /myregistry\.com\//i.test(normalizedImportUrl) ||
-        (retailer === "Registry" && /myregistry/i.test(normalizedImportUrl));
+      const isMyRegistry = /myregistry\.com/i.test(normalizedImportUrl);
 
-      const computedSource = isTheKnot 
-        ? `theknot:${normalizedImportUrl}` 
-        : isMyRegistry 
-        ? `myregistry:${normalizedImportUrl}` 
+      const computedSource = isTheKnot
+        ? `theknot:${normalizedImportUrl}`
+        : isMyRegistry
+        ? `myregistry:${normalizedImportUrl}`
         : "standard";
 
       // Update the list's source field immediately after creation
