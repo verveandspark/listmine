@@ -1477,6 +1477,7 @@ export default function ListDetail() {
               className="h-6 px-2 text-xs"
               onClick={handleCopyLink}
               onMouseDown={(e) => e.stopPropagation()}
+              title='The Knot may redirect this link. Use "View on Registry" if it does not open the product.'
             >
               <Copy className="w-3 h-3 mr-1" />
               Copy Product Link
