@@ -2874,7 +2874,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
     importUrl: string,
     retailer: string,
   ): Promise<string> => {
-    console.log("[IMPORT_FROM_WISHLIST_ARGS]", { listName, category, accountId, importUrl, retailer, itemCount: items?.length });
+    console.log("[IMPORT_FROM_WISHLIST_ARGS]", JSON.stringify({ listName, category, accountId, importUrl, retailer, itemCount: items?.length }));
     
     if (!user) throw new Error("User not authenticated");
 
@@ -2924,14 +2924,14 @@ export function ListProvider({ children }: { children: ReactNode }) {
       // For registry/wishlist imports, always use 'registry' list type
       const listType = 'registry';
       
-      console.log("[ListContext] importFromWishlist - params:", {
+      console.log("[ListContext] importFromWishlist - params:", JSON.stringify({
         authUserId,
         listName: nameValidation.value,
         listType,
         accountId,
         importUrl,
         retailer,
-      });
+      }));
       
       // Use RPC function to ensure user exists and create list (supports both personal and team)
       const { data: rpcData, error: rpcError } = await supabase.rpc('create_list_for_user', {
@@ -2956,9 +2956,12 @@ export function ListProvider({ children }: { children: ReactNode }) {
       const normalizedImportUrl = importUrl.trim().startsWith('https://') || importUrl.trim().startsWith('http://')
         ? importUrl.trim()
         : `https://${importUrl.trim()}`;
-      const computedSource = retailer === "TheKnotRegistry" 
-        ? `theknot:${normalizedImportUrl}` 
-        : 'standard';
+      const isTheKnot =
+        retailer === "TheKnotRegistry" ||
+        /theknot\.com\/us\//i.test(normalizedImportUrl) ||
+        /theknot\.com\/.*registry/i.test(normalizedImportUrl);
+
+      const computedSource = isTheKnot ? `theknot:${normalizedImportUrl}` : "standard";
 
       // Update the list's source field immediately after creation
       // This ensures the correct source is set before any realtime subscription triggers a reload
@@ -2967,7 +2970,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
         .update({ source: computedSource })
         .eq("id", newListId);
       
-      console.log("[IMPORT_SET_SOURCE]", { listId: newListId, retailer, importUrl: normalizedImportUrl, computedSource, error: sourceError });
+      console.log("[IMPORT_SET_SOURCE]", JSON.stringify({ listId: newListId, retailer, importUrl: normalizedImportUrl, computedSource, error: sourceError }));
       
       if (sourceError) {
         console.error("[ListContext] Error updating list source:", sourceError);
