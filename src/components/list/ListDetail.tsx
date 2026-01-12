@@ -447,6 +447,11 @@ export default function ListDetail() {
   // Also show skeleton while retrying to find a newly created list
   const isRetrying = !list && retryCount < maxRetries && hasLoadedOnce;
 
+  // Debug log to verify source is fetched and stored
+  if (list) {
+    console.log("[LIST_SOURCE]", list?.id, list?.source);
+  }
+
   if (isLoading || isRetrying) {
     return <ListDetailSkeleton />;
   }
