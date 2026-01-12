@@ -3012,6 +3012,16 @@ export function ListProvider({ children }: { children: ReactNode }) {
         image: i.attributes?.custom?.image 
       }))));
 
+      console.log(
+        "[IMPORT_ITEMS_TO_INSERT_RAW]",
+        JSON.stringify(itemsToInsert.slice(0, 3).map(i => ({
+          text: i.text,
+          links: i.links,
+          linksType: typeof i.links,
+          linksIsArray: Array.isArray(i.links),
+        })))
+      );
+
       const itemsResult = (await withTimeout(
         supabase.from("list_items").insert(itemsToInsert),
       )) as any;
