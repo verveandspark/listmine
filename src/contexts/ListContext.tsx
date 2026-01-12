@@ -2990,7 +2990,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
         list_id: newList.id,
         text: item.name,
         notes: null,
-        links: item.link ? [item.link] : null,
+        links: item.link ? [item.link] : [],
         completed: false,
         item_order: index,
         attributes: {
@@ -3004,6 +3004,13 @@ export function ListProvider({ children }: { children: ReactNode }) {
           },
         },
       }));
+
+      // Debug log for first 3 items (temporary)
+      console.log("[IMPORT_ITEM_LINKS_SAMPLE]", JSON.stringify(itemsToInsert.slice(0, 3).map(i => ({ 
+        text: i.text, 
+        links: i.links, 
+        image: i.attributes?.custom?.image 
+      }))));
 
       const itemsResult = (await withTimeout(
         supabase.from("list_items").insert(itemsToInsert),
