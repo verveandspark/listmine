@@ -1561,50 +1561,75 @@ const parseMyRegistryItems = (html: string): ScrapedItem[] => {
         isUnavailable = true;
       }
       
-      // Extract "Buy This Gift" URL - look for anchor/button with that text
+      // Collect first 10 anchors for debugging (before any filtering)
+      const first10Anchors: Array<{ text: string; href: string }> = [];
+      const allAnchorsDebug = itemEl.find('a, button');
+      allAnchorsDebug.each((idx: number, anchorEl: any) => {
+        if (first10Anchors.length < 10) {
+          const anchorText = $(anchorEl).text().trim().replace(/\s+/g, ' ').substring(0, 60);
+          const href = $(anchorEl).attr('href') || $(anchorEl).attr('data-href') || $(anchorEl).attr('data-url') || '';
+          first10Anchors.push({ text: anchorText, href });
+        }
+      });
+      
+      // Helper to normalize URLs
+      const normalizeUrl = (href: string): string | undefined => {
+        if (!href || href === '#' || href.startsWith('javascript:')) return undefined;
+        if (href.startsWith('http')) return href;
+        if (href.startsWith('//')) return `https:${href}`;
+        if (href.startsWith('/')) return `https://bedbathandbeyond.myregistry.com${href}`;
+        return undefined;
+      };
+      
+      // Extract "Buy This Gift" URL with improved logic
       let buyUrl: string | undefined;
       if (!isUnavailable) {
-        const allAnchors = itemEl.find('a, button');
+        const allAnchors = itemEl.find('a, button, div, span');
+        
+        // Priority A: Find anchor whose text matches /buy\s*this\s*gift/i
         allAnchors.each((_: number, anchorEl: any) => {
-          if (buyUrl) return; // Already found
+          if (buyUrl) return;
           const anchorText = $(anchorEl).text().trim();
           if (/buy\s*this\s*gift/i.test(anchorText)) {
-            // Extract href from anchor or data-href/data-url
             const href = $(anchorEl).attr('href') || $(anchorEl).attr('data-href') || $(anchorEl).attr('data-url') || '';
-            if (href && href !== '#' && !href.startsWith('javascript:')) {
-              if (href.startsWith('http')) {
-                buyUrl = href;
-              } else if (href.startsWith('//')) {
-                buyUrl = `https:${href}`;
-              } else if (href.startsWith('/')) {
-                buyUrl = `${BASE_URL}${href}`;
-              }
+            const normalized = normalizeUrl(href);
+            if (normalized) {
+              buyUrl = normalized;
             }
           }
         });
-      }
-      
-      // Extract product URL - find first meaningful anchor with href (fallback)
-      let link: string | undefined;
-      if (!buyUrl && !isUnavailable) {
-        const anchors = itemEl.find('a[href]');
-        for (let i = 0; i < anchors.length; i++) {
-          const href = $(anchors[i]).attr('href') || '';
-          // Skip empty, #, javascript:, and other non-meaningful links
-          if (href && href !== '#' && !href.startsWith('javascript:') && href.length > 1) {
-            if (href.startsWith('http')) {
-              link = href;
-              break;
-            } else if (href.startsWith('//')) {
-              // Protocol-relative URL
-              link = `https:${href}`;
-              break;
-            } else if (href.startsWith('/')) {
-              // Relative URL
-              link = `${BASE_URL}${href}`;
-              break;
-            }
+        
+        // Priority B: If element with "buy this gift" text found but no href, search card for bedbathandbeyond/buybuybaby anchors
+        if (!buyUrl) {
+          const hasButtonText = itemEl.text().toLowerCase().includes('buy this gift');
+          if (hasButtonText) {
+            const cardAnchors = itemEl.find('a[href]');
+            cardAnchors.each((_: number, anchorEl: any) => {
+              if (buyUrl) return;
+              const href = $(anchorEl).attr('href') || '';
+              if (/bedbathandbeyond\.com|buybuybaby/i.test(href)) {
+                const normalized = normalizeUrl(href);
+                if (normalized) {
+                  buyUrl = normalized;
+                }
+              }
+            });
           }
+        }
+        
+        // Priority C: Find first anchor with product.html, mrRID=, or mrGID=
+        if (!buyUrl) {
+          const cardAnchors = itemEl.find('a[href]');
+          cardAnchors.each((_: number, anchorEl: any) => {
+            if (buyUrl) return;
+            const href = $(anchorEl).attr('href') || '';
+            if (/product\.html|mrRID=|mrGID=/i.test(href)) {
+              const normalized = normalizeUrl(href);
+              if (normalized) {
+                buyUrl = normalized;
+              }
+            }
+          });
         }
       }
       
@@ -1656,14 +1681,17 @@ const parseMyRegistryItems = (html: string): ScrapedItem[] => {
       if (name) {
         const item: ScrapedItem = { name };
         
-        // Set links array - prioritize buyUrl ("Buy This Gift") over generic link
-        const primaryLink = buyUrl || link;
-        if (primaryLink) {
-          item.links = [primaryLink];
-          item.link = primaryLink; // Keep backward compatibility
-          itemsWithLink++;
-        } else if (isUnavailable) {
+        // Set link based on availability
+        if (isUnavailable) {
           // No links for unavailable items
+          item.link = undefined;
+          item.links = [];
+        } else if (buyUrl) {
+          item.link = buyUrl;
+          item.links = [buyUrl];
+          itemsWithLink++;
+        } else {
+          item.link = undefined;
           item.links = [];
         }
         
@@ -1682,19 +1710,11 @@ const parseMyRegistryItems = (html: string): ScrapedItem[] => {
           };
         }
         
-        // Debug log for first 3 items when DEBUG is enabled
+        // Attach debug fields to first 3 items when DEBUG is enabled (surfaced to frontend)
         if (DEBUG && items.length < 3) {
-          // Collect first 10 anchors for debugging
-          const first10Anchors: Array<{ text: string; href: string }> = [];
-          const debugAnchors = itemEl.find('a, button');
-          debugAnchors.each((idx: number, anchorEl: any) => {
-            if (first10Anchors.length < 10) {
-              first10Anchors.push({
-                text: $(anchorEl).text().trim().substring(0, 50),
-                href: $(anchorEl).attr('href') || $(anchorEl).attr('data-href') || $(anchorEl).attr('data-url') || ''
-              });
-            }
-          });
+          (item as any).debug_first10Anchors = first10Anchors;
+          (item as any).debug_buyUrl = buyUrl ?? null;
+          (item as any).debug_unavailable = isUnavailable;
           
           console.log(`[MYREGISTRY_PARSE] Item ${items.length + 1}: "${name}"`);
           console.log(`  - buyUrl: ${buyUrl || 'N/A'}`);

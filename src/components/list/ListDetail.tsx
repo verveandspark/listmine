@@ -177,7 +177,19 @@ export default function ListDetail() {
   const { toast } = useToast();
   const { executeWithUndo } = useUndoAction();
 
+  // Log list load attempt
+  console.log("[LIST_LOAD_START]", { listId: id });
+  
   const list = lists.find((l) => l.id === id);
+  
+  // Log list load result
+  console.log("[LIST_LOAD_RESULT]", { 
+    listId: id, 
+    hasData: !!list, 
+    hasLoadedOnce,
+    isLoading,
+    listsCount: lists.length 
+  });
   
   // Use global account context
   const { effectiveTier: accountEffectiveTier, isTeamContext: globalIsTeamContext } = useAccount();
@@ -447,17 +459,24 @@ export default function ListDetail() {
   
   // Also show skeleton while retrying to find a newly created list
   const isRetrying = !list && retryCount < maxRetries && hasLoadedOnce;
+  
+  // Detect "not found" state: list data loaded but list doesn't exist (after retries exhausted)
+  const isNotFound = hasLoadedOnce && !list && retryCount >= maxRetries;
 
   // Debug log to verify source is fetched and stored
   if (list) {
     console.log("[LIST_SOURCE]", list?.id, list?.source);
   }
 
-  if (isLoading || isRetrying) {
+  // Only show skeleton when loading and NOT in notFound state
+  if ((isLoading || isRetrying) && !isNotFound) {
     return <ListDetailSkeleton />;
   }
 
   if (!list) {
+    // Log not found
+    console.log("[LIST_NOT_FOUND]", { listId: id, hasLoadedOnce, retryCount });
+    
     // Clear localStorage entries related to this missing list
     const clearDeletedListFromStorage = () => {
       if (!id) return;
@@ -478,26 +497,17 @@ export default function ListDetail() {
       keysToRemove.forEach(k => localStorage.removeItem(k));
     };
     
-    const handleGoToDashboard = () => {
-      clearDeletedListFromStorage();
-      navigate("/dashboard");
-    };
+    // Immediately clear and redirect (no delay)
+    clearDeletedListFromStorage();
+    navigate("/dashboard");
     
-    // Auto-clear and redirect after a short delay
-    setTimeout(() => {
-      clearDeletedListFromStorage();
-      navigate("/dashboard");
-    }, 3000);
-    
+    // Show brief message while redirecting
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 flex items-center justify-center">
         <Card className="p-8 text-center">
           <h2 className="text-xl font-semibold mb-4">List not found</h2>
           <p className="text-sm text-muted-foreground mb-4">This list may have been deleted.</p>
-          <p className="text-xs text-muted-foreground mb-4">Redirecting to dashboard...</p>
-          <Button onClick={handleGoToDashboard}>
-            Go to Dashboard
-          </Button>
+          <p className="text-xs text-muted-foreground">Redirecting to dashboard...</p>
         </Card>
       </div>
     );

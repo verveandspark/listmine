@@ -85,6 +85,17 @@ export default function ScrapeWishlistModal({
         return;
       }
 
+      // Debug log for BB&B items - surfaces edge function debug fields
+      console.log("[BBB_DEBUG_ITEMS]", data.items.slice(0, 3));
+      
+      // Log sample of item links for validation
+      const sampleWithLinks = data.items.slice(0, 5).map((item: any) => ({
+        name: item.name?.substring(0, 30),
+        link: item.link,
+        links: item.links,
+      }));
+      console.log("[IMPORT_ITEM_LINKS_SAMPLE]", sampleWithLinks);
+
       const itemsWithSelection = data.items.map((item: ScrapedItem) => ({
         ...item,
         selected: true,
