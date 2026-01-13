@@ -140,9 +140,10 @@ import ShareSettingsModal from "./ShareSettingsModal";
 import { normalizeListType } from "@/lib/normalizeListType";
 
 // Check if listType is a registry or wishlist (for purchaser UI)
+// Uses normalizeListType output values (lowercase keys)
 const isRegistryOrWishlist = (listType: string | undefined): boolean => {
   const normalized = normalizeListType(listType);
-  return normalized === "Registry" || normalized === "Wishlist";
+  return normalized === "registry" || normalized === "wishlist";
 };
 
 export default function ListDetail() {
@@ -182,11 +183,16 @@ export default function ListDetail() {
   
   const list = lists.find((l) => l.id === id);
   
+  // Compute effective list type from DB field (list_type) with fallback to listType
+  // Use lowercase comparison for registry/wishlist checks
+  const effectiveListType = normalizeListType((list as any)?.list_type ?? list?.listType);
+  
   // Log list load result (avoid referencing variables declared later)
   console.log("[LIST_LOAD_RESULT]", { 
     listId: id, 
     hasData: !!list, 
-    listsCount: lists.length 
+    listsCount: lists.length,
+    effectiveListType 
   });
   
   // Use global account context
@@ -278,13 +284,14 @@ export default function ListDetail() {
     localStorage.setItem("last_list_id", id);
   }
   
-  // Safe list type checks (support both short and long formats)
-  const lt = list?.listType;
-  const isTodo = lt === 'todo' || lt === 'todo-list';
-  const isIdea = lt === 'idea' || lt === 'idea-list';
-  // grocery-list is the grocery template; 'grocery' (Weekly Meal Planning) should use custom Add Item
-  const isGroceryTemplate = lt === 'grocery-list';
-  const isGrocery = isGroceryTemplate; // Only grocery-list uses grocery fields, 'grocery' uses custom
+  // Safe list type checks using effectiveListType (lowercase keys)
+  const isTodo = effectiveListType === 'todo';
+  const isIdea = effectiveListType === 'idea';
+  const isRegistry = effectiveListType === 'registry';
+  const isWishlist = effectiveListType === 'wishlist';
+  const isRegistryOrWishlistType = isRegistry || isWishlist;
+  const isGrocery = effectiveListType === 'grocery';
+  const isShoppingList = effectiveListType === 'shopping';
   
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [newItemText, setNewItemText] = useState("");
@@ -617,7 +624,7 @@ export default function ListDetail() {
         }
         if (newItemUnit) attributes.unit = newItemUnit;
         if (newItemPrice) attributes.price = newItemPrice;
-      } else if (normalizeListType(list.listType) === "registry") {
+      } else if (isRegistryOrWishlistType) {
         if (newItemPrice) attributes.price = newItemPrice;
         if (newItemQuantityNeeded) attributes.quantityNeeded = newItemQuantityNeeded;
         if (newItemQuantityPurchased) attributes.quantityPurchased = newItemQuantityPurchased;
@@ -633,7 +640,7 @@ export default function ListDetail() {
           if (newItemLinkDescription) attributes.customLinkDescription = newItemLinkDescription;
           if (newItemLinkImage) attributes.customLinkImage = newItemLinkImage;
         }
-      } else if (list.listType === "shopping-list") {
+      } else if (isShoppingList && !isGrocery) {
         if (newItemPrice) attributes.price = newItemPrice;
         if (newItemStatus) attributes.purchaseStatus = newItemStatus;
         if (newItemProductLink) {
@@ -662,7 +669,7 @@ export default function ListDetail() {
           if (newItemLinkDescription) attributes.customLinkDescription = newItemLinkDescription;
           if (newItemLinkImage) attributes.customLinkImage = newItemLinkImage;
         }
-      } else if (list.listType === "custom") {
+      } else if (effectiveListType === "custom") {
         // Add section for sectioned custom lists (Recipe, Vacation Packing, Home Maintenance, Moving Checklist)
         if (isSectioned && newItemSection) {
           attributes.section = newItemSection;
@@ -1315,7 +1322,7 @@ export default function ListDetail() {
     let items = [...list.items];
 
     // For registry/wishlist, group by purchase status first
-    if (normalizeListType(list.listType) === "registry" || normalizeListType(list.listType) === "wishlist") {
+    if (isRegistryOrWishlistType) {
       const unpurchased = items.filter(item => item.attributes?.purchaseStatus !== "purchased");
       const purchased = items.filter(item => item.attributes?.purchaseStatus === "purchased");
       
@@ -1370,7 +1377,7 @@ export default function ListDetail() {
   };
 
   const getGroupedGroceryItems = () => {
-    if (!list || list.listType !== "grocery-list") return {};
+    if (!list || !isGrocery) return {};
     
     const items = getSortedItems();
     const grouped: Record<string, ListItemType[]> = {};
@@ -1613,7 +1620,7 @@ export default function ListDetail() {
               </div>
 
               {/* TO-DO LIST FIELDS: todo, todo-list */}
-              {normalizeListType(list.listType) === "todo" && (
+              {isTodo && (
                 <>
                   <div className="space-y-2">
                     <Label>Due Date</Label>
@@ -1675,7 +1682,7 @@ export default function ListDetail() {
               )}
 
               {/* IDEA LIST FIELDS: idea, idea-list */}
-              {normalizeListType(list.listType) === "idea" && (
+              {isIdea && (
                 <>
                   <div className="space-y-2">
                     <Label>Inspiration Link (optional)</Label>
@@ -1777,7 +1784,7 @@ export default function ListDetail() {
               )}
 
               {/* REGISTRY/WISHLIST FIELDS: registry, registry-list, wishlist */}
-              {isRegistryOrWishlist(list.listType) && (
+              {isRegistryOrWishlistType && (
                 <>
                   <div className="space-y-2">
                     <Label>Product Link (optional)</Label>
@@ -1921,7 +1928,7 @@ export default function ListDetail() {
               )}
 
               {/* SHOPPING LIST FIELDS: shopping-list - NO purchaser UI */}
-              {list.listType === "shopping-list" && (
+              {isShoppingList && !isGrocery && (
                 <>
                   <div className="space-y-2">
                     <Label>Product Link (optional)</Label>
@@ -2055,7 +2062,7 @@ export default function ListDetail() {
               )}
 
               {/* GROCERY LIST FIELDS: grocery-list */}
-              {list.listType === "grocery-list" && (
+              {isGrocery && (
                 <>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -2193,7 +2200,7 @@ export default function ListDetail() {
                       await updateListItem(list.id, editingItem.id, {
                         text: editingItem.text,
                         notes: editingItem.notes,
-                        dueDate: normalizeListType(list.listType) === "todo" ? dueDate : editingItem.dueDate,
+                        dueDate: isTodo ? dueDate : editingItem.dueDate,
                         priority: editingItem.priority,
                         quantity: editingItem.quantity,
                         attributes: editingItem.attributes,
@@ -2553,7 +2560,7 @@ export default function ListDetail() {
 
                 {/* Utility Actions Group */}
                 <div className="flex items-center gap-1 px-2 border-r border-gray-200">
-                  {(normalizeListType(list.listType) === "registry" || normalizeListType(list.listType) === "wishlist") && (
+                  {isRegistryOrWishlistType && (
                     <>
                       <TooltipProvider>
                         <Tooltip>
@@ -2931,7 +2938,7 @@ export default function ListDetail() {
                     <div className="border-t border-gray-200 my-2" />
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1">More</p>
                     
-                    {(normalizeListType(list.listType) === "Registry" || normalizeListType(list.listType) === "Wishlist") && (
+                    {isRegistryOrWishlistType && (
                       <>
                         <Button
                           variant="outline"
@@ -3182,7 +3189,7 @@ export default function ListDetail() {
                 )}
 
                 {/* CUSTOM LIST - Simple fields */}
-                {list.listType === "custom" && (
+                {effectiveListType === "custom" && (
                   <>
                     {/* Section dropdown for sectioned custom lists (Recipe, Vacation Packing, etc.) */}
                     {isSectioned && (
@@ -3486,7 +3493,7 @@ export default function ListDetail() {
                 )}
 
                 {/* REGISTRY LIST - Registry fields (Baby Registry, Wedding Registry, etc.) */}
-                {normalizeListType(list.listType) === "registry" && (
+                {isRegistryOrWishlistType && (
                   <>
                     {/* Section dropdown for sectioned registry lists */}
                     {isSectioned && (
@@ -3634,7 +3641,7 @@ export default function ListDetail() {
                 )}
 
                 {/* SHOPPING LIST - Shopping fields (NO purchaser UI, simpler than registry) */}
-                {list.listType === "shopping-list" && (
+                {isShoppingList && !isGrocery && (
                   <>
                     {!detailedMode && (
                       <div className="space-y-2">
@@ -3970,7 +3977,7 @@ export default function ListDetail() {
           </div>
 
           {/* Purchase History Note - ONLY for Registry/Wishlist (purchaser tracking) */}
-          {isRegistryOrWishlist(list.listType) && (
+          {isRegistryOrWishlistType && (
             <Alert className="mb-4 bg-primary/10 border-primary/20">
               <ShoppingCart className="h-4 w-4 text-primary" />
               <AlertDescription className="text-sm text-primary">
@@ -3995,7 +4002,7 @@ export default function ListDetail() {
                   </p>
                 </div>
               </Card>
-            ) : list.listType === "grocery-list" ? (
+            ) : isGrocery ? (
               // Grouped display for grocery lists
               Object.entries(getGroupedGroceryItems()).map(([category, categoryItems]) => (
                 <div key={category} className="space-y-2">
@@ -4009,7 +4016,7 @@ export default function ListDetail() {
                     </Badge>
                   </div>
                   {categoryItems.map((item, index) => {
-                    const isPurchased = isRegistryOrWishlist(list.listType) && item.attributes?.purchaseStatus === "purchased";
+                    const isPurchased = isRegistryOrWishlistType && item.attributes?.purchaseStatus === "purchased";
                     const isDropTarget = dropTargetId === item.id;
                     
                     return (
@@ -4294,7 +4301,7 @@ export default function ListDetail() {
                     </Badge>
                   </div>
                   {sectionItems.map((item, index) => {
-                    const isPurchased = isRegistryOrWishlist(list.listType) && item.attributes?.purchaseStatus === "purchased";
+                    const isPurchased = isRegistryOrWishlistType && item.attributes?.purchaseStatus === "purchased";
                     const isDropTarget = dropTargetId === item.id;
                     
                     return (
@@ -4517,7 +4524,6 @@ export default function ListDetail() {
               (() => {
                 const sortedItems = getSortedItems();
                 // Purchaser UI only for registry/wishlist, NOT shopping-list
-                const isRegistryOrWishlistType = normalizeListType(list.listType) === "Registry" || normalizeListType(list.listType) === "Wishlist";
                 const hasPurchasedItems = isRegistryOrWishlistType && sortedItems.some(item => item.attributes?.purchaseStatus === "purchased");
                 const hasUnpurchasedItems = isRegistryOrWishlistType && sortedItems.some(item => item.attributes?.purchaseStatus !== "purchased");
                 
@@ -4952,7 +4958,7 @@ export default function ListDetail() {
       </Dialog>
 
       {/* Purchase History Modal */}
-      {(normalizeListType(list.listType) === "registry" || normalizeListType(list.listType) === "wishlist") && (
+      {isRegistryOrWishlistType && (
         <PurchaseHistoryModal
           open={isPurchaseHistoryOpen}
           onOpenChange={(open) => {
@@ -4970,7 +4976,7 @@ export default function ListDetail() {
       )}
 
       {/* Update from Retailer Modal */}
-      {(normalizeListType(list.listType) === "registry" || normalizeListType(list.listType) === "wishlist") && (
+      {isRegistryOrWishlistType && (
         <UpdateFromRetailerModal
           open={isUpdateFromRetailerOpen}
           onOpenChange={setIsUpdateFromRetailerOpen}

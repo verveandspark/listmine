@@ -1,33 +1,34 @@
 export function normalizeListType(listType: string | null | undefined): string {
-  if (!listType) return 'Custom';
+  if (!listType) return 'custom';
   switch (listType.toLowerCase()) {
     case 'todo-list':
     case 'todo':
     case 'task-list':
     case 'checklist':
-      return 'To-Do';
+      return 'todo';
     case 'idea-list':
     case 'idea':
-      return 'Idea';
+      return 'idea';
     case 'shopping-list':
     case 'shopping':
+      return 'shopping';
     case 'grocery-list':
     case 'grocery':
-      return 'Shopping List';
+      return 'grocery';
     case 'registry-list':
     case 'registry':
-      return 'Registry';
+      return 'registry';
     case 'wishlist':
-      return 'Wishlist';
+      return 'wishlist';
     case 'custom':
     case 'job-search':
     case 'multi-topic':
     case 'compare-contrast':
     case 'pro-con':
     case 'multi-option':
-      return 'Custom';
+      return 'custom';
     default:
-      return 'Custom';
+      return 'custom';
   }
 }
 
