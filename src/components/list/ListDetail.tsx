@@ -182,12 +182,10 @@ export default function ListDetail() {
   
   const list = lists.find((l) => l.id === id);
   
-  // Log list load result
+  // Log list load result (avoid referencing variables declared later)
   console.log("[LIST_LOAD_RESULT]", { 
     listId: id, 
     hasData: !!list, 
-    hasLoadedOnce,
-    isLoading,
     listsCount: lists.length 
   });
   
@@ -462,6 +460,9 @@ export default function ListDetail() {
   
   // Detect "not found" state: list data loaded but list doesn't exist (after retries exhausted)
   const isNotFound = hasLoadedOnce && !list && retryCount >= maxRetries;
+  
+  // Log state after variables are declared
+  console.log("[LIST_LOAD_STATE]", { listId: id, hasLoadedOnce, isLoading, retryCount, retrying: isRetrying });
 
   // Debug log to verify source is fetched and stored
   if (list) {
