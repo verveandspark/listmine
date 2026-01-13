@@ -1475,32 +1475,42 @@ export default function ListDetail() {
   };
 
   // Helper function to compute the primary outbound URL for an item
-  const getPrimaryItemUrl = (item: ListItemType, listSource?: string): { url: string | null; isFallback: boolean } => {
-    // If item has a direct link, use it
+  const getPrimaryItemUrl = (item: ListItemType, listSource?: string): { url: string | null; isFallback: boolean; isTheKnot: boolean } => {
+    const isTheKnot = !!listSource?.startsWith('theknot:');
+    const isMyRegistry = !!listSource?.startsWith('myregistry:');
+    
+    // For The Knot lists: ALWAYS use registry URL, treat item links as unreliable
+    if (isTheKnot) {
+      return { url: listSource!.replace(/^theknot:/, ''), isFallback: true, isTheKnot: true };
+    }
+    
+    // For other lists: use item's direct link if available
     if (item.links?.[0] && item.links[0].trim() !== '') {
-      return { url: item.links[0], isFallback: false };
+      return { url: item.links[0], isFallback: false, isTheKnot: false };
     }
-    // Fallback to registry source if available
-    if (listSource?.startsWith('theknot:')) {
-      return { url: listSource.replace(/^theknot:/, ''), isFallback: true };
+    
+    // Fallback to MyRegistry source if available
+    if (isMyRegistry) {
+      return { url: listSource!.replace(/^myregistry:/, ''), isFallback: true, isTheKnot: false };
     }
-    if (listSource?.startsWith('myregistry:')) {
-      return { url: listSource.replace(/^myregistry:/, ''), isFallback: true };
-    }
-    return { url: null, isFallback: false };
+    
+    return { url: null, isFallback: false, isTheKnot: false };
   };
 
   // Universal item link component
   const ItemLinkActions = ({ item }: { item: ListItemType }) => {
-    const { url: primaryUrl, isFallback } = getPrimaryItemUrl(item, list.source);
-    const isTheKnotList = (list.source ?? "").startsWith("theknot:");
+    const { url: primaryUrl, isFallback, isTheKnot } = getPrimaryItemUrl(item, list.source);
+    
+    // For copy link: only copy real non-Knot links
+    const hasRealLink = !isTheKnot && item.links?.[0] && item.links[0].trim() !== '';
+    const copyableUrl = hasRealLink ? item.links![0] : null;
     
     const handleCopyLink = async (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      if (!primaryUrl) return;
+      if (!copyableUrl) return;
       try {
-        await navigator.clipboard.writeText(primaryUrl);
+        await navigator.clipboard.writeText(copyableUrl);
         toast({
           title: "Copied!",
           description: "Link copied to clipboard",
@@ -1520,7 +1530,6 @@ export default function ListDetail() {
     }
 
     const searchUrl = `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(item.text + " buy")}`;
-    const showSearch = isFallback || isTheKnotList;
 
     return (
       <div className="relative inline-flex items-center gap-2">
@@ -1535,42 +1544,52 @@ export default function ListDetail() {
           <ExternalLink className="w-3 h-3 flex-shrink-0" />
           View item
         </a>
-        {isFallback && (
+        {/* The Knot tooltip - always show for Knot lists */}
+        {isTheKnot && (
+          <span title="The Knot doesn't provide reliable per-item product links. View item opens the registry.">
+            <Info className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground cursor-help" />
+          </span>
+        )}
+        {/* Non-Knot fallback tooltip */}
+        {isFallback && !isTheKnot && (
           <span title="This item opens in the source registry (no direct product link available).">
             <Info className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground cursor-help" />
           </span>
         )}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 px-2 text-xs"
-          onClick={handleCopyLink}
-          onMouseDown={(e) => e.stopPropagation()}
-        >
-          <Copy className="w-3 h-3 mr-1" />
-          Copy link
-        </Button>
-        {showSearch && (
-          <a
-            href={searchUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
-            onClick={(e) => e.stopPropagation()}
+        {/* Copy link - only show if there's a real non-Knot link */}
+        {copyableUrl && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2 text-xs"
+            onClick={handleCopyLink}
             onMouseDown={(e) => e.stopPropagation()}
           >
-            <Search className="w-3 h-3" />
-            Search
-          </a>
+            <Copy className="w-3 h-3 mr-1" />
+            Copy link
+          </Button>
         )}
+        {/* Search - always available */}
+        <a
+          href={searchUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <Search className="w-3 h-3" />
+          Search
+        </a>
       </div>
     );
   };
   
   // Helper to check if ItemLinkActions should render
   const shouldShowItemLinks = (item: ListItemType): boolean => {
-    const hasDirectLink = !!item.links?.[0];
-    const hasRegistryFallback = (list.source ?? "").startsWith("theknot:") || (list.source ?? "").startsWith("myregistry:");
+    const isTheKnot = (list.source ?? "").startsWith("theknot:");
+    const hasDirectLink = !isTheKnot && !!item.links?.[0];
+    const hasRegistryFallback = isTheKnot || (list.source ?? "").startsWith("myregistry:");
     return hasDirectLink || hasRegistryFallback;
   };
 
@@ -4103,7 +4122,10 @@ export default function ListDetail() {
                             {/* Price display - attributes.price or custom.price (registry imports) */}
                             {(item.attributes?.price || item.attributes?.custom?.price) && (
                               <span className="text-sm font-medium text-gray-700">
-                                ${item.attributes?.price || item.attributes?.custom?.price}
+                                {(() => {
+                                  const priceVal = String(item.attributes?.price || item.attributes?.custom?.price || '');
+                                  return priceVal.startsWith('$') ? priceVal : `$${priceVal}`;
+                                })()}
                               </span>
                             )}
                             {item.dueDate && (
@@ -4388,7 +4410,10 @@ export default function ListDetail() {
                             {/* Price display - attributes.price or custom.price (registry imports) */}
                             {(item.attributes?.price || item.attributes?.custom?.price) && (
                               <span className="text-sm font-medium text-gray-700">
-                                ${item.attributes?.price || item.attributes?.custom?.price}
+                                {(() => {
+                                  const priceVal = String(item.attributes?.price || item.attributes?.custom?.price || '');
+                                  return priceVal.startsWith('$') ? priceVal : `$${priceVal}`;
+                                })()}
                               </span>
                             )}
                             {item.dueDate && (
@@ -4659,7 +4684,10 @@ export default function ListDetail() {
                             {/* Price display - attributes.price or custom.price (registry imports) */}
                             {(item.attributes?.price || item.attributes?.custom?.price) && (
                               <span className="text-sm font-medium text-gray-700">
-                                ${item.attributes?.price || item.attributes?.custom?.price}
+                                {(() => {
+                                  const priceVal = String(item.attributes?.price || item.attributes?.custom?.price || '');
+                                  return priceVal.startsWith('$') ? priceVal : `$${priceVal}`;
+                                })()}
                               </span>
                             )}
                             {item.dueDate && (
