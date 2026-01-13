@@ -197,24 +197,29 @@ export default function ListDetail() {
   const isTeamContext = globalIsTeamContext || !!list?.accountId || !!list?.isTeamMember || !!list?.isTeamOwner;
   const effectiveTier = (isTeamContext ? 'lots_more' : accountEffectiveTier) as UserTier;
   
-  // Retry state for newly created lists
-  const [retryCount, setRetryCount] = useState(0);
+  // Track attempts independent of hasLoadedOnce
+  const [attempts, setAttempts] = useState(0);
   const [retrying, setRetrying] = useState(false);
-  const maxRetries = 3;
+  const maxAttempts = 3;
   const retryDelay = 250;
   
   // Retry fetching the list if not found (handles race condition with newly created lists)
   useEffect(() => {
-    if (!list && id && hasLoadedOnce && retryCount < maxRetries && !retrying) {
+    if (!list && id && attempts < maxAttempts && !retrying) {
       setRetrying(true);
       const timer = setTimeout(async () => {
-        setRetryCount(prev => prev + 1);
+        setAttempts(prev => prev + 1);
         await refreshLists();
         setRetrying(false);
       }, retryDelay);
       return () => clearTimeout(timer);
     }
-  }, [list, id, hasLoadedOnce, retryCount, retrying, refreshLists]);
+  }, [list, id, attempts, retrying, refreshLists]);
+  
+  // Reset attempts when id changes
+  useEffect(() => {
+    setAttempts(0);
+  }, [id]);
   
   // Reset retry count when navigating to a different list
   useEffect(() => {
@@ -456,13 +461,13 @@ export default function ListDetail() {
   const isLoading = !hasLoadedOnce && !list;
   
   // Also show skeleton while retrying to find a newly created list
-  const isRetrying = !list && retryCount < maxRetries && hasLoadedOnce;
+  const isRetrying = !list && attempts < maxAttempts && retrying;
   
-  // Detect "not found" state: list data loaded but list doesn't exist (after retries exhausted)
-  const isNotFound = hasLoadedOnce && !list && retryCount >= maxRetries;
+  // Detect "not found" state: list doesn't exist after attempts exhausted (no hasLoadedOnce requirement)
+  const isNotFound = !!id && !list && attempts >= maxAttempts;
   
   // Log state after variables are declared
-  console.log("[LIST_LOAD_STATE]", { listId: id, hasLoadedOnce, isLoading, retryCount, retrying: isRetrying });
+  console.log("[LIST_LOAD_STATE]", { listId: id, hasLoadedOnce, isLoading, attempts, retrying: isRetrying, isNotFound });
 
   // Debug log to verify source is fetched and stored
   if (list) {
@@ -474,9 +479,9 @@ export default function ListDetail() {
     return <ListDetailSkeleton />;
   }
 
-  if (!list) {
+  if (isNotFound) {
     // Log not found
-    console.log("[LIST_NOT_FOUND]", { listId: id, hasLoadedOnce, retryCount });
+    console.log("[LIST_NOT_FOUND]", { listId: id, attempts });
     
     // Clear localStorage entries related to this missing list
     const clearDeletedListFromStorage = () => {
@@ -1530,7 +1535,7 @@ export default function ListDetail() {
         </a>
         {isFallback && (
           <span title="This item opens in the source registry (no direct product link available).">
-            <Info className="w-3.5 h-3.5 text-amber-500 hover:text-amber-600 cursor-help" />
+            <Info className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground cursor-help" />
           </span>
         )}
         <Button
@@ -4093,6 +4098,12 @@ export default function ListDetail() {
                                 ✓ Purchased
                               </Badge>
                             )}
+                            {/* Price display - attributes.price or custom.price (registry imports) */}
+                            {(item.attributes?.price || item.attributes?.custom?.price) && (
+                              <span className="text-sm font-medium text-gray-700">
+                                ${item.attributes?.price || item.attributes?.custom?.price}
+                              </span>
+                            )}
                             {item.dueDate && (
                               <Badge
                                 variant="outline"
@@ -4108,10 +4119,19 @@ export default function ListDetail() {
                                 {item.assignedTo}
                               </Badge>
                             )}
+                            {/* Note indicator only shows when notes exist but are hidden (item completed) */}
+                            {item.notes && item.completed && 
+                              !item.text.match(/^(Main idea|Supporting details|Action items|Follow-up needed|Resources\/links|Breakfast|Lunch|Dinner|Snack|Notes)$/) &&
+                              !item.notes.match(/^(Add meal|Add snack|Add idea|Add item|Ideas for next week)/) && (
+                              <Badge variant="outline" className="text-xs">
+                                <FileText className="w-3 h-3 mr-1" />
+                                Note
+                              </Badge>
+                            )}
                             </div>
                           </div>
 
-                          {/* Grocery-specific attributes */}
+                          {/* Grocery-specific attributes - price excluded since it's shown above */}
                           {item.attributes && (
                             <div className="flex items-center gap-2 mt-2 flex-wrap pointer-events-none">
                               {item.attributes.unit && (
@@ -4120,14 +4140,6 @@ export default function ListDetail() {
                                   className="bg-primary/10 text-primary border-primary/20 text-xs"
                                 >
                                   {item.attributes.unit}
-                                </Badge>
-                              )}
-                              {item.attributes.price && (
-                                <Badge
-                                  variant="outline"
-                                  className="bg-muted text-muted-foreground border-border text-xs"
-                                >
-                                  ${item.attributes.price}
                                 </Badge>
                               )}
                             </div>
@@ -4371,6 +4383,12 @@ export default function ListDetail() {
                                 ✓ Purchased
                               </Badge>
                             )}
+                            {/* Price display - attributes.price or custom.price (registry imports) */}
+                            {(item.attributes?.price || item.attributes?.custom?.price) && (
+                              <span className="text-sm font-medium text-gray-700">
+                                ${item.attributes?.price || item.attributes?.custom?.price}
+                              </span>
+                            )}
                             {item.dueDate && (
                               <Badge
                                 variant="outline"
@@ -4384,6 +4402,15 @@ export default function ListDetail() {
                               <Badge variant="outline" className="text-xs">
                                 <UserIcon className="w-3 h-3 mr-1" />
                                 {item.assignedTo}
+                              </Badge>
+                            )}
+                            {/* Note indicator only shows when notes exist but are hidden (item completed) */}
+                            {item.notes && item.completed && 
+                              !item.text.match(/^(Main idea|Supporting details|Action items|Follow-up needed|Resources\/links|Breakfast|Lunch|Dinner|Snack|Notes)$/) &&
+                              !item.notes.match(/^(Add meal|Add snack|Add idea|Add item|Ideas for next week)/) && (
+                              <Badge variant="outline" className="text-xs">
+                                <FileText className="w-3 h-3 mr-1" />
+                                Note
                               </Badge>
                             )}
                             </div>
@@ -4628,6 +4655,12 @@ export default function ListDetail() {
                                 ✓ Purchased
                               </Badge>
                             )}
+                            {/* Price display - attributes.price or custom.price (registry imports) */}
+                            {(item.attributes?.price || item.attributes?.custom?.price) && (
+                              <span className="text-sm font-medium text-gray-700">
+                                ${item.attributes?.price || item.attributes?.custom?.price}
+                              </span>
+                            )}
                             {item.dueDate && (
                               <Badge
                                 variant="outline"
@@ -4646,7 +4679,7 @@ export default function ListDetail() {
                             </div>
                           </div>
 
-                          {/* Attribute Tags */}
+                          {/* Attribute Tags - price excluded since it's shown above */}
                           {item.attributes && (
                             <div className="flex items-center gap-2 mt-2 flex-wrap">
                               {item.attributes.color && (
@@ -4673,14 +4706,6 @@ export default function ListDetail() {
                                   Weight: {item.attributes.weight}
                                 </Badge>
                               )}
-                              {item.attributes.price && (
-                                <Badge
-                                  variant="outline"
-                                  className="bg-muted text-muted-foreground border-border text-xs"
-                                >
-                                  ${item.attributes.price}
-                                </Badge>
-                              )}
                             </div>
                           )}
 
@@ -4694,7 +4719,8 @@ export default function ListDetail() {
                                 {item.priority}
                               </Badge>
                             )}
-                            {item.notes && 
+                            {/* Note indicator only shows when notes exist but are hidden (item completed) */}
+                            {item.notes && item.completed && 
                               !item.text.match(/^(Main idea|Supporting details|Action items|Follow-up needed|Resources\/links|Breakfast|Lunch|Dinner|Snack|Notes)$/) &&
                               !item.notes.match(/^(Add meal|Add snack|Add idea|Add item|Ideas for next week)/) && (
                               <Badge variant="outline" className="text-xs">
@@ -4708,18 +4734,6 @@ export default function ListDetail() {
                                 <span className="text-primary underline">{isIdea ? "Inspiration" : "Product"} Link</span>
                               </Badge>
                             )}
-                            {(() => {
-                              const { url: primaryUrl } = getPrimaryItemUrl(item, list.source);
-                              if (primaryUrl) {
-                                return (
-                                  <Badge variant="outline" className="text-xs">
-                                    <LinkIcon className="w-3 h-3 mr-1" />
-                                    Has link
-                                  </Badge>
-                                );
-                              }
-                              return null;
-                            })()}
                           </div>
 
                           {/* Link Preview Card for Registry/Wishlist/Idea items */}
