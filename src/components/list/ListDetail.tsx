@@ -219,11 +219,6 @@ export default function ListDetail() {
   // Reset attempts when id changes
   useEffect(() => {
     setAttempts(0);
-  }, [id]);
-  
-  // Reset retry count when navigating to a different list
-  useEffect(() => {
-    setRetryCount(0);
     setRetrying(false);
   }, [id]);
   
