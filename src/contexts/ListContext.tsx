@@ -1424,7 +1424,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
           assigned_to: item.assignedTo ? sanitizeInput(item.assignedTo) : null,
           completed: item.completed || false,
           item_order: list.items.length,
-          links: item.links,
+          links: Array.isArray(item.links) ? item.links : [],
           attributes: item.attributes,
           last_edited_by_user_id: user?.id || null,
           last_edited_by_email: user?.email || null,
@@ -1500,7 +1500,10 @@ export function ListProvider({ children }: { children: ReactNode }) {
         updateData.assigned_to = updates.assignedTo;
       if (updates.completed !== undefined)
         updateData.completed = updates.completed;
-      if (updates.links !== undefined) updateData.links = updates.links;
+      // Allow links to be updated to [] or [url] - caller controls when links should be included
+      if (updates.links !== undefined) {
+        updateData.links = Array.isArray(updates.links) ? updates.links : [];
+      }
       if (updates.attributes !== undefined)
         updateData.attributes = updates.attributes;
 
@@ -2018,7 +2021,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
         assigned_to: item.assignedTo,
         completed: item.completed || false,
         item_order: index,
-        links: item.links,
+        links: Array.isArray(item.links) ? item.links : [],
         attributes: item.attributes,
       }));
 
@@ -2812,7 +2815,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
             assigned_to: item.assigned_to,
             completed: false, // Fresh start
             item_order: index,
-            links: item.links,
+            links: Array.isArray(item.links) ? item.links : [],
             attributes: item.attributes,
           }));
 

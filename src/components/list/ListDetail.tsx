@@ -325,6 +325,10 @@ export default function ListDetail() {
   });
 
   const [editingItem, setEditingItem] = useState<ListItemType | null>(null);
+  // Track the original links when edit modal opens (to detect if links field was touched)
+  const [originalItemLinks, setOriginalItemLinks] = useState<string[] | null>(null);
+  // Track if the Product Link field was explicitly edited
+  const [linkFieldTouched, setLinkFieldTouched] = useState(false);
   // Separate boolean to persist modal open state across item refreshes
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   // Separate state for due date input string (to avoid type mismatch with Date)
@@ -431,6 +435,8 @@ export default function ListDetail() {
         setIsEditModalOpen(false);
         setEditingItem(null);
         setItemToDelete(null);
+        setLinkFieldTouched(false);
+        setOriginalItemLinks(null);
       }
     };
 
@@ -1612,6 +1618,8 @@ export default function ListDetail() {
               setIsEditModalOpen(false);
               setEditingItem(null);
               setDueDateInput('');
+              setLinkFieldTouched(false);
+              setOriginalItemLinks(null);
             }
           }}
           modal={true}
@@ -1813,6 +1821,7 @@ export default function ListDetail() {
                       value={editingItem.links?.[0] ?? editingItem.attributes?.productLink ?? ""}
                       onChange={(e) => {
                         const v = e.target.value.trim();
+                        setLinkFieldTouched(true);
                         setEditingItem({
                           ...editingItem,
                           links: v ? [v] : [],
@@ -1957,6 +1966,7 @@ export default function ListDetail() {
                       value={editingItem.links?.[0] ?? editingItem.attributes?.productLink ?? ""}
                       onChange={(e) => {
                         const v = e.target.value.trim();
+                        setLinkFieldTouched(true);
                         setEditingItem({
                           ...editingItem,
                           links: v ? [v] : [],
@@ -2204,6 +2214,8 @@ export default function ListDetail() {
                     setIsEditModalOpen(false);
                     setEditingItem(null);
                     setDueDateInput('');
+                    setLinkFieldTouched(false);
+                    setOriginalItemLinks(null);
                   }}
                 >
                   Cancel
@@ -2216,7 +2228,8 @@ export default function ListDetail() {
                         ? new Date(dueDateInput + 'T00:00:00') 
                         : undefined;
                       
-                      await updateListItem(list.id, editingItem.id, {
+                      // Build update payload - only include links if the Product Link field was edited
+                      const updatePayload: Partial<ListItemType> = {
                         text: editingItem.text,
                         notes: editingItem.notes,
                         dueDate: isTodo ? dueDate : editingItem.dueDate,
@@ -2224,11 +2237,25 @@ export default function ListDetail() {
                         quantity: editingItem.quantity,
                         attributes: editingItem.attributes,
                         completed: editingItem.completed,
-                        links: editingItem.links,
-                      });
+                      };
+                      // Only include links in payload if the Product Link field was explicitly edited
+                      // If edited and blank: set links: []
+                      // If edited and non-empty: set links: [url]
+                      // Otherwise: omit links so existing links are preserved
+                      if (linkFieldTouched) {
+                        const currentLinks = editingItem.links;
+                        if (Array.isArray(currentLinks) && currentLinks.length > 0) {
+                          updatePayload.links = currentLinks;
+                        } else {
+                          updatePayload.links = [];
+                        }
+                      }
+                      await updateListItem(list.id, editingItem.id, updatePayload);
                       setIsEditModalOpen(false);
                       setEditingItem(null);
                       setDueDateInput('');
+                      setLinkFieldTouched(false);
+                      setOriginalItemLinks(null);
                     }
                   }}
                 >
@@ -4228,6 +4255,9 @@ export default function ListDetail() {
                                 e.preventDefault();
                                 if (import.meta.env.DEV) console.log('[DEV] VIEW 1 Edit button clicked for item:', item.id, item.text);
                                 setEditingItem(item);
+                                // Store original links and reset touched state
+                                setOriginalItemLinks(item.links ?? null);
+                                setLinkFieldTouched(false);
                                 // Initialize dueDateInput from item.dueDate
                                 if (item.dueDate) {
                                   const d = typeof item.dueDate === 'string' ? item.dueDate : new Date(item.dueDate).toISOString().split('T')[0];
@@ -4463,6 +4493,9 @@ export default function ListDetail() {
                                 e.preventDefault();
                                 if (import.meta.env.DEV) console.log('[DEV] VIEW 2 Edit button clicked for item:', item.id, item.text);
                                 setEditingItem(item);
+                                // Store original links and reset touched state
+                                setOriginalItemLinks(item.links ?? null);
+                                setLinkFieldTouched(false);
                                 // Initialize dueDateInput from item.dueDate
                                 if (item.dueDate) {
                                   const d = typeof item.dueDate === 'string' ? item.dueDate : new Date(item.dueDate).toISOString().split('T')[0];
@@ -4824,6 +4857,9 @@ export default function ListDetail() {
                                 e.preventDefault();
                                 if (import.meta.env.DEV) console.log('[DEV] VIEW 3 Edit button clicked for item:', item.id, item.text);
                                 setEditingItem(item);
+                                // Store original links and reset touched state
+                                setOriginalItemLinks(item.links ?? null);
+                                setLinkFieldTouched(false);
                                 // Initialize dueDateInput from item.dueDate
                                 if (item.dueDate) {
                                   const d = typeof item.dueDate === 'string' ? item.dueDate : new Date(item.dueDate).toISOString().split('T')[0];
