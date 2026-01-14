@@ -105,37 +105,313 @@ const detectRetailer = (url: string): string | null => {
   return null;
 };
 
-// Normalize Target registry URLs to canonical form: /gift-registry/gift-giver?registryId=<uuid>
-const normalizeTargetRegistryUrl = (url: string): string => {
+// Extract Target registry ID from URL
+const extractTargetRegistryId = (url: string): string | null => {
   try {
     const urlObj = new URL(url);
     
-    // Pattern 1: /gift-registry/gift/<uuid> -> extract uuid from path
+    // Pattern 1: /gift-registry/gift/<uuid>
     const giftPathMatch = urlObj.pathname.match(/\/gift-registry\/gift\/([a-f0-9-]+)/i);
     if (giftPathMatch && giftPathMatch[1]) {
-      const registryId = escapeRegex(giftPathMatch[1]);
-      if (DEBUG) console.log('[SAFE_QUERY] Target registryId (escaped):', registryId);
-      return `https://www.target.com/gift-registry/gift-giver?registryId=${registryId}`;
+      return giftPathMatch[1];
     }
     
     // Pattern 2: /gift-registry/gift-giver with registryId query param
     if (urlObj.pathname.includes("/gift-registry/gift-giver")) {
-      const rawRegistryId = urlObj.searchParams.get("registryId");
-      if (rawRegistryId) {
-        const registryId = escapeRegex(rawRegistryId);
-        if (DEBUG) console.log('[SAFE_QUERY] Target registryId from query (escaped):', registryId);
-        // Normalize to just the registryId param for consistency
-        return `https://www.target.com/gift-registry/gift-giver?registryId=${registryId}`;
+      const registryId = urlObj.searchParams.get("registryId");
+      if (registryId) return registryId;
+    }
+    
+    return null;
+  } catch (e) {
+    console.error("Failed to extract Target registry ID:", e);
+    return null;
+  }
+};
+
+// Target API-based registry fetcher
+interface TargetRegistryApiItem {
+  tcin?: string;
+  title?: string;
+  product_title?: string;
+  name?: string;
+  description?: string;
+  images?: Array<{ base_url?: string; primary?: string }>;
+  primary_image_url?: string;
+  image_url?: string;
+  price?: {
+    current_retail?: number;
+    formatted_current_price?: string;
+    reg_retail?: number;
+    formatted_reg_price?: string;
+  };
+  current_price?: number;
+  formatted_price?: string;
+  registry_info?: {
+    requested_quantity?: number;
+    needed_quantity?: number;
+    purchased_quantity?: number;
+    is_unavailable?: boolean;
+  };
+  availability?: {
+    is_unavailable?: boolean;
+  };
+}
+
+interface TargetRegistryApiResponse {
+  registry_items?: TargetRegistryApiItem[];
+  items?: TargetRegistryApiItem[];
+  data?: {
+    registry_items?: TargetRegistryApiItem[];
+    items?: TargetRegistryApiItem[];
+  };
+}
+
+async function fetchTargetRegistryViaApi(
+  registryId: string,
+  originalUrl: string
+): Promise<{ success: boolean; items: ScrapedItem[]; error?: string }> {
+  console.log(`[TARGET_API] ========== Starting Target API Request ==========`);
+  console.log(`[TARGET_API] Registry ID: ${registryId}`);
+  console.log(`[TARGET_API] Original URL: ${originalUrl}`);
+  
+  // Target API endpoint
+  const apiUrl = `https://api.target.com/registries/v2/${registryId}/gift_givers`;
+  
+  // Target public API key - this is a public key visible in Target's frontend code
+  const TARGET_API_KEY = "9f36aeafbe60771e321a7cc95a78140772ab3e96";
+  console.log(`[TARGET_API] Using API key: ${TARGET_API_KEY.substring(0, 8)}...${TARGET_API_KEY.substring(TARGET_API_KEY.length - 8)} (masked)`);
+  
+  // Query parameters
+  const queryParams = new URLSearchParams({
+    channel: "WEB",
+    sub_channel: "TGTWEB",
+    location_id: "1904",
+    pricing_context: "DIGITAL",
+    contents_field_group: "REGISTRY_ITEMS",
+    key: TARGET_API_KEY,
+  });
+  
+  const fullApiUrl = `${apiUrl}?${queryParams.toString()}`;
+  console.log(`[TARGET_API] Full API URL: ${fullApiUrl}`);
+  
+  // Request body
+  const requestBody = {
+    registry_id: registryId,
+    channel: "WEB",
+    sub_channel: "TGTWEB",
+    location_id: "1904",
+    pricing_context: "DIGITAL",
+    contents_field_group: "REGISTRY_ITEMS",
+    filters: {
+      types: ["TARGET_ITEMS"],
+      // Can add sub_types: ["YET_TO_PURCHASE"] to filter only unpurchased items
+    },
+    sort: {
+      field: "PRICE",
+      order: "ASCENDING",
+    },
+  };
+  
+  console.log(`[TARGET_API] Request body: ${JSON.stringify(requestBody)}`);
+  
+  try {
+    console.log(`[TARGET_API] Sending POST request...`);
+    const response = await fetch(fullApiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+        "Origin": "https://www.target.com",
+        "Referer": originalUrl,
+      },
+      body: JSON.stringify(requestBody),
+    });
+    
+    console.log(`[TARGET_API] Response status: ${response.status} ${response.statusText}`);
+    console.log(`[TARGET_API] Response headers:`);
+    response.headers.forEach((value, key) => {
+      console.log(`[TARGET_API]   ${key}: ${value}`);
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log(`[TARGET_API] ERROR: Non-OK response status ${response.status}`);
+      console.log(`[TARGET_API] Error response body (first 1000 chars): ${errorText.substring(0, 1000)}`);
+      return {
+        success: false,
+        items: [],
+        error: `Target API returned status ${response.status}: ${errorText.substring(0, 200)}`,
+      };
+    }
+    
+    const responseText = await response.text();
+    console.log(`[TARGET_API] Raw response length: ${responseText.length} chars`);
+    console.log(`[TARGET_API] Raw response (first 2000 chars): ${responseText.substring(0, 2000)}`);
+    
+    let data: TargetRegistryApiResponse;
+    try {
+      data = JSON.parse(responseText);
+      console.log(`[TARGET_API] Response parsed as JSON successfully`);
+    } catch (parseError: any) {
+      console.log(`[TARGET_API] ERROR: Failed to parse response as JSON: ${parseError.message}`);
+      console.log(`[TARGET_API] Full raw response: ${responseText}`);
+      return {
+        success: false,
+        items: [],
+        error: `Target API returned invalid JSON: ${parseError.message}`,
+      };
+    }
+    
+    // Log the full response structure for debugging
+    console.log(`[TARGET_API] Response top-level keys: ${Object.keys(data).join(", ")}`);
+    console.log(`[TARGET_API] Full response JSON: ${JSON.stringify(data).substring(0, 5000)}`);
+    
+    // Check for error fields in response
+    if ((data as any).error || (data as any).errors || (data as any).message) {
+      console.log(`[TARGET_API] WARNING: Response contains error fields:`);
+      if ((data as any).error) console.log(`[TARGET_API]   error: ${JSON.stringify((data as any).error)}`);
+      if ((data as any).errors) console.log(`[TARGET_API]   errors: ${JSON.stringify((data as any).errors)}`);
+      if ((data as any).message) console.log(`[TARGET_API]   message: ${(data as any).message}`);
+    }
+    
+    // Find items array in response
+    let rawItems: TargetRegistryApiItem[] = [];
+    if (data.registry_items && Array.isArray(data.registry_items)) {
+      rawItems = data.registry_items;
+      console.log(`[TARGET_API] Found items in data.registry_items`);
+    } else if (data.items && Array.isArray(data.items)) {
+      rawItems = data.items;
+      console.log(`[TARGET_API] Found items in data.items`);
+    } else if (data.data?.registry_items && Array.isArray(data.data.registry_items)) {
+      rawItems = data.data.registry_items;
+      console.log(`[TARGET_API] Found items in data.data.registry_items`);
+    } else if (data.data?.items && Array.isArray(data.data.items)) {
+      rawItems = data.data.items;
+      console.log(`[TARGET_API] Found items in data.data.items`);
+    } else {
+      console.log(`[TARGET_API] WARNING: Could not find items array in any expected location`);
+    }
+    
+    console.log(`[TARGET_API] Found ${rawItems.length} raw items in response`);
+    
+    if (rawItems.length === 0) {
+      // Log detailed response structure for debugging
+      console.log(`[TARGET_API] WARNING: Zero items found!`);
+      console.log(`[TARGET_API] Response keys: ${Object.keys(data).join(", ")}`);
+      if (data.data) {
+        console.log(`[TARGET_API] data.data keys: ${Object.keys(data.data).join(", ")}`);
+      }
+      // Log full response for debugging empty responses
+      console.log(`[TARGET_API] Full response (no items): ${JSON.stringify(data)}`);
+      return {
+        success: false,
+        items: [],
+        error: "No items found in Target API response. The registry may be empty, private, or requires authentication.",
+      };
+    }
+    
+    // Log first raw item for debugging
+    if (rawItems.length > 0) {
+      console.log(`[TARGET_API] First raw item sample: ${JSON.stringify(rawItems[0]).substring(0, 1000)}`);
+    }
+    
+    // Transform to ScrapedItem format
+    const items: ScrapedItem[] = [];
+    
+    for (const rawItem of rawItems) {
+      try {
+        // Extract name
+        const name = rawItem.title || rawItem.product_title || rawItem.name || rawItem.description;
+        if (!name) {
+          if (DEBUG) console.log(`[TARGET_API] Skipping item without name`);
+          continue;
+        }
+        
+        // Extract image
+        let image: string | undefined;
+        if (rawItem.images && rawItem.images.length > 0) {
+          const primaryImage = rawItem.images.find(img => img.primary) || rawItem.images[0];
+          image = primaryImage?.base_url;
+        }
+        if (!image) {
+          image = rawItem.primary_image_url || rawItem.image_url;
+        }
+        
+        // Extract price
+        let price: string | undefined;
+        if (rawItem.price) {
+          price = rawItem.price.formatted_current_price || 
+                  (rawItem.price.current_retail ? `$${rawItem.price.current_retail.toFixed(2)}` : undefined) ||
+                  rawItem.price.formatted_reg_price ||
+                  (rawItem.price.reg_retail ? `$${rawItem.price.reg_retail.toFixed(2)}` : undefined);
+        } else if (rawItem.current_price) {
+          price = `$${rawItem.current_price.toFixed(2)}`;
+        } else if (rawItem.formatted_price) {
+          price = rawItem.formatted_price;
+        }
+        
+        // Extract TCIN and build link
+        const tcin = rawItem.tcin;
+        let link: string | undefined;
+        let links: string[] = [];
+        if (tcin) {
+          link = `https://www.target.com/p/-/A-${tcin}`;
+          links = [link];
+        }
+        
+        // Extract registry metadata
+        const registryInfo = rawItem.registry_info;
+        const isUnavailable = registryInfo?.is_unavailable || rawItem.availability?.is_unavailable;
+        
+        const scrapedItem: ScrapedItem = {
+          name,
+          link,
+          links,
+          image,
+          price,
+          attributes: {
+            custom: {
+              image,
+              price,
+              tcin,
+              requested_quantity: registryInfo?.requested_quantity,
+              needed_quantity: registryInfo?.needed_quantity,
+              purchased_quantity: registryInfo?.purchased_quantity,
+              is_unavailable: isUnavailable,
+            },
+            registry: registryInfo ? {
+              requested: registryInfo.requested_quantity,
+              needed: registryInfo.needed_quantity,
+              purchased: registryInfo.purchased_quantity,
+            } : undefined,
+          },
+        };
+        
+        items.push(scrapedItem);
+        if (DEBUG) console.log(`[TARGET_API] Item: "${name}" | tcin: ${tcin || 'N/A'} | price: ${price || 'N/A'}`);
+      } catch (e: any) {
+        if (DEBUG) console.log(`[TARGET_API] Error processing item: ${e.message}`);
       }
     }
     
-    // Return original if no normalization needed
-    return url;
-  } catch (e) {
-    console.error("Failed to normalize Target registry URL:", e);
-    return url;
+    console.log(`[TARGET_API] Successfully extracted ${items.length} items`);
+    console.log(`[TARGET_API] ========== Target API Request Complete ==========`);
+    return { success: true, items };
+    
+  } catch (e: any) {
+    console.error(`[TARGET_API] ========== FETCH ERROR ==========`);
+    console.error(`[TARGET_API] Error type: ${e.constructor?.name || 'Unknown'}`);
+    console.error(`[TARGET_API] Error message: ${e.message}`);
+    console.error(`[TARGET_API] Error stack: ${e.stack || 'No stack trace'}`);
+    return {
+      success: false,
+      items: [],
+      error: `Target API fetch failed: ${e.message}`,
+    };
   }
-};
+}
 
 // Random User-Agent strings for rotation
 const USER_AGENTS = [
@@ -437,38 +713,7 @@ const tryAmazonRegistryApi = async (
   return { success: false, items: [], requiresAuth: true, error: "No accessible API found" };
 };
 
-// Check if Target returned a restricted/private/blocked page
-const isTargetRestrictedPage = (html: string): { restricted: boolean; reason: string } => {
-  const lowerHtml = html.toLowerCase();
-  
-  // Check for access restriction markers
-  const restrictedMarkers = [
-    { marker: "registry not found", reason: "Registry not found" },
-    { marker: "this registry is private", reason: "Private registry" },
-    { marker: "unable to load registry", reason: "Unable to load registry" },
-    { marker: "no items in this registry", reason: "Empty registry page" },
-    { marker: "registry is no longer available", reason: "Registry no longer available" },
-    { marker: "page you requested cannot be found", reason: "Page not found" },
-    { marker: "sorry, something went wrong", reason: "Error page" },
-    { marker: "access denied", reason: "Access denied" },
-    { marker: "403 forbidden", reason: "Forbidden" },
-    { marker: "please sign in", reason: "Sign-in required" },
-    { marker: "sign in to view", reason: "Sign-in required to view" },
-  ];
-  
-  for (const { marker, reason } of restrictedMarkers) {
-    if (lowerHtml.includes(marker)) {
-      return { restricted: true, reason };
-    }
-  }
-  
-  // Check if page has very minimal content (might be a loading/error page)
-  if (html.length < 5000 && !lowerHtml.includes("__next_data__") && !lowerHtml.includes("registry")) {
-    return { restricted: true, reason: "Minimal page content - possible loading/error state" };
-  }
-  
-  return { restricted: false, reason: "" };
-};
+// Target restricted page check removed - using API instead of HTML parsing
 
 // Debug helper to log HTML snippet (only if debug enabled)
 const logHtmlDebugInfo = (html: string, retailer: string, url: string, debugEnabled: boolean): void => {
@@ -487,417 +732,7 @@ const getNestedValue = (obj: any, path: string): any => {
   return path.split('.').reduce((o, key) => (o && o[key] !== undefined ? o[key] : null), obj);
 };
 
-// Helper to check if object looks like a Target product item
-const isPlausibleTargetItem = (item: any): boolean => {
-  if (typeof item !== 'object' || !item) return false;
-  const keys = Object.keys(item);
-  const productKeys = ['tcin', 'tcinList', 'product', 'productTitle', 'title', 'price', 'image', 'primaryImageUrl', 'name', 'dpci', 'pdpUrl'];
-  return productKeys.some(k => keys.includes(k));
-};
-
-// Helper to deep search for plausible items array in Target data
-const findTargetItemsDeep = (obj: any, depth = 0, maxDepth = 8, currentPath = ""): { items: any[]; path: string } | null => {
-  if (depth > maxDepth || !obj || typeof obj !== 'object') return null;
-  
-  if (Array.isArray(obj)) {
-    if (obj.length > 0 && isPlausibleTargetItem(obj[0])) {
-      return { items: obj, path: currentPath };
-    }
-    for (let i = 0; i < obj.length; i++) {
-      const found = findTargetItemsDeep(obj[i], depth + 1, maxDepth, `${currentPath}[${i}]`);
-      if (found) return found;
-    }
-  } else {
-    for (const key in obj) {
-      const newPath = currentPath ? `${currentPath}.${key}` : key;
-      const found = findTargetItemsDeep(obj[key], depth + 1, maxDepth, newPath);
-      if (found) return found;
-    }
-  }
-  return null;
-};
-
-// Normalize Target items to standard shape
-const normalizeTargetItem = (item: any): ScrapedItem | null => {
-  const product = item.product || item.productDetails || item.productInfo || item;
-  
-  const name = product.productTitle || product.title || product.name || 
-               product.description || product.displayName ||
-               item.productTitle || item.title || item.name || item.displayName;
-  
-  if (!name || name === "Unknown Item") return null;
-  
-  // Build URL from tcin if needed
-  let productUrl: string | undefined;
-  const url = product.canonicalUrl || product.url || product.pdpUrl || product.productUrl || 
-              item.canonicalUrl || item.url || item.pdpUrl;
-  if (url) {
-    productUrl = url.startsWith('http') ? url : `https://www.target.com${url}`;
-  } else if (product.tcin || item.tcin) {
-    productUrl = `https://www.target.com/p/-/A-${product.tcin || item.tcin}`;
-  }
-  
-  const imageUrl = product.images?.[0] || 
-                   product.image?.baseUrl || 
-                   product.image ||
-                   product.primaryImageUrl ||
-                   product.imageUrl ||
-                   product.thumbnailUrl ||
-                   item.images?.[0] ||
-                   item.imageUrl || 
-                   item.image || 
-                   item.primaryImageUrl || undefined;
-  
-  const price = product.price?.formattedCurrentPrice ||
-               product.price?.currentRetail?.toString() || 
-               product.price?.regularPrice?.toString() ||
-               product.formattedPrice ||
-               product.price ||
-               item.price?.formattedCurrentPrice ||
-               item.price || 
-               item.formattedPrice || undefined;
-  
-  const quantity = item.quantity || item.quantityNeeded || item.quantityWanted || 1;
-  
-  return { name, link: productUrl, image: imageUrl, price, quantity };
-};
-
-// Helper function to detect if an object looks like a product item
-function looksLikeProductItem(obj: any): boolean {
-  if (!obj || typeof obj !== 'object') return false;
-  const hasProductKeys = ['productTitle', 'title', 'name', 'product'].some(k => k in obj);
-  const hasPriceKeys = ['price', 'currentPrice', 'listPrice'].some(k => k in obj);
-  const hasUrlKeys = ['url', 'canonicalUrl', 'productUrl'].some(k => k in obj);
-  return hasProductKeys || (hasPriceKeys && hasUrlKeys);
-}
-
-// Recursive function to find and log all arrays of plausible product items
-function logAllProductArrays(obj: any, path = '', debugEnabled: boolean) {
-  if (!debugEnabled) return;
-  if (!obj || typeof obj !== 'object') return;
-  if (Array.isArray(obj)) {
-    if (obj.length > 0 && looksLikeProductItem(obj[0])) {
-      console.log(`[TARGET_DEEP_SEARCH] Found product array at path: ${path} length: ${obj.length}`);
-    }
-    obj.forEach((item: any, i: number) => logAllProductArrays(item, `${path}[${i}]`, debugEnabled));
-  } else {
-    for (const key in obj) {
-      logAllProductArrays(obj[key], path ? `${path}.${key}` : key, debugEnabled);
-    }
-  }
-}
-
-const scrapeTargetRegistry = ($: any, html: string, debugEnabled: boolean): ScrapedItem[] => {
-  let normalizedItems: any[] = [];
-  
-  if (DEBUG) {
-    console.log("[TARGET_PARSE] Starting Target registry parsing...");
-    console.log("[TARGET_PARSE] HTML length:", html.length, "chars");
-  }
-  
-  // Check for basic page content indicators
-  const hasNextData = html.includes("__NEXT_DATA__");
-  const hasRegistryKeyword = html.toLowerCase().includes("registry");
-  const hasGiftKeyword = html.toLowerCase().includes("gift");
-  if (DEBUG) console.log("[TARGET_PARSE] Content indicators - __NEXT_DATA__:", hasNextData, "| 'registry':", hasRegistryKeyword, "| 'gift':", hasGiftKeyword);
-  
-  // Try to parse embedded JSON first (__NEXT_DATA__)
-  try {
-    const nextDataScript = $('script#__NEXT_DATA__').html();
-    if (nextDataScript) {
-      if (DEBUG) console.log("[TARGET_PARSE] Found __NEXT_DATA__ script, length:", nextDataScript.length);
-      const nextData = JSON.parse(nextDataScript);
-      
-      // Enhanced debug logging for structure analysis (only if debug enabled)
-      if (DEBUG && debugEnabled) {
-        console.log("[TARGET_PARSE] nextData keys:", Object.keys(nextData).join(", "));
-        console.log("[TARGET_PARSE] nextData.props keys:", Object.keys(nextData?.props ?? {}).join(", "));
-        console.log("[TARGET_PARSE] nextData.props.pageProps keys:", Object.keys(nextData?.props?.pageProps ?? {}).join(", "));
-        
-        const pageProps = nextData?.props?.pageProps ?? {};
-        if (pageProps.initialState) {
-          console.log("[TARGET_PARSE] pageProps.initialState keys:", Object.keys(pageProps.initialState).join(", "));
-        }
-        if (pageProps.APOLLO_STATE) {
-          console.log("[TARGET_PARSE] pageProps.APOLLO_STATE keys:", Object.keys(pageProps.APOLLO_STATE).slice(0, 10).join(", "), "... (first 10)");
-        }
-        if (pageProps.dehydratedState) {
-          console.log("[TARGET_PARSE] pageProps.dehydratedState keys:", Object.keys(pageProps.dehydratedState).join(", "));
-        }
-      }
-      
-      // Expanded candidate paths for registry items
-      const candidatePaths = [
-        'props.dehydratedState.queries[0].state.data.slots.1008.content.taxonomy_nodes',
-        'props.dehydratedState.queries[0].state.data.slots.1058.metadata.components',
-        'props.dehydratedState.queries[0].state.data.slots.1008.metadata.components',
-        'props.dehydratedState.queries[0].state.data.metadata.breadcrumbs',
-        'props.dehydratedState.queries[0].state.data.slots.1608.metadata.components',
-        'props.dehydratedState.queries[0].state.data.slots.200.metadata.components',
-        'props.dehydratedState.queries[0].state.data.slots.1458.metadata.components',
-        'props.dehydratedState.queries[0].state.data.slots.2808.metadata.components',
-        'props.dehydratedState.queries[0].state.data.slots.3008.metadata.components',
-        'props.dehydratedState.queries[0].state.data.slots.3108.metadata.components',
-        'props.dehydratedState.queries[0].state.data.slots.1608.content.taxonomy_nodes',
-        'props.sapphireInstance.qualifiedExperiments.pages[0].svc',
-        'props.sapphireInstance.qualifiedExperiments.pages[0].svc[0].payload',
-        // Previous dehydratedState slot paths
-        'props.dehydratedState.queries[0].state.data.slots.1000.metadata.components',
-        'props.dehydratedState.queries[0].state.data.slots.3100.metadata.components',
-        'props.dehydratedState.queries[0].state.data.slots.1600.content.taxonomy_nodes',
-        'props.dehydratedState.queries[0].state.data.slots.1450.metadata.components',
-        // Direct item arrays
-        "props.pageProps.giftRegistryData.items",
-        "props.pageProps.giftGiverData.items",
-        "props.pageProps.registryDetails.items",
-        "props.pageProps.registryData.items",
-        "props.pageProps.registry.items",
-        "props.pageProps.giftRegistry.items",
-        "props.pageProps.data.items",
-        "props.pageProps.props.items",
-        "props.pageProps.state.items",
-        "props.pageProps.pageData.registry.items",
-        "props.pageProps.initialData.registry.items",
-        // Registry item variants
-        "props.pageProps.registryData.registryItems",
-        "props.pageProps.giftRegistryData.registryItems",
-        "props.pageProps.registryData.giftRegistryItems",
-        "props.pageProps.registryData.registryItemList",
-        "props.pageProps.registryData.productItems",
-        "props.pageProps.registryData.wantedItems",
-        "props.pageProps.registryData.stillNeeded",
-        // initialState paths
-        "props.pageProps.initialState.items",
-        "props.pageProps.initialState.registry.items",
-        "props.pageProps.initialState.registryItems",
-        "props.pageProps.initialState.giftRegistry.items",
-        // dehydratedState paths
-        "props.pageProps.dehydratedState.queries",
-        // data nested
-        "props.pageProps.data.registry.items",
-        "props.pageProps.data.giftRegistry.items",
-        "props.pageProps.data.registryItems",
-      ];
-      
-      if (DEBUG) console.log(`[TARGET_PARSE] Checking ${candidatePaths.length} candidate paths...`);
-      
-      // Run deep search to find all product arrays (only if debug enabled)
-      if (DEBUG && debugEnabled) {
-        console.log("[TARGET_DEEP_SEARCH] Starting deep recursive search...");
-        logAllProductArrays(nextData, '', debugEnabled);
-      }
-      
-      // Combine items from all candidate paths
-      const allItems: any[] = [];
-      for (const path of candidatePaths) {
-        const items = getNestedValue(nextData, path);
-        if (Array.isArray(items) && items.length > 0) {
-          if (DEBUG) console.log(`[TARGET_PARSE] Found ${items.length} items at path: ${path}`);
-          allItems.push(...items);
-        }
-      }
-      
-      if (DEBUG) console.log(`[TARGET_PARSE] Combined ${allItems.length} items from all paths`);
-      
-      if (allItems.length > 0) {
-        for (const item of allItems) {
-          const normalized = normalizeTargetItem(item);
-          if (normalized) {
-            normalizedItems.push(normalized);
-          }
-        }
-        if (DEBUG) console.log(`[TARGET_PARSE] Normalized ${normalizedItems.length} items`);
-      }
-      
-      // If primary paths found items, return early
-      if (normalizedItems.length > 0) {
-        if (DEBUG) console.log(`[TARGET_PARSE] Returning ${normalizedItems.length} items from combined paths`);
-        return normalizedItems;
-      }
-      
-      // Check APOLLO_STATE for cache entries (common in newer Next.js apps)
-      if (pageProps.APOLLO_STATE) {
-        if (DEBUG) console.log("[TARGET_PARSE] Checking APOLLO_STATE for registry items...");
-        const apolloState = pageProps.APOLLO_STATE;
-        for (const key of Object.keys(apolloState)) {
-          const entry = apolloState[key];
-          if (entry && typeof entry === 'object') {
-            // Look for items arrays in Apollo cache entries
-            const possibleItemsKeys = ['items', 'registryItems', 'giftItems', 'productItems'];
-            for (const itemKey of possibleItemsKeys) {
-              if (Array.isArray(entry[itemKey]) && entry[itemKey].length > 0) {
-                if (DEBUG) console.log(`[TARGET_PARSE] Found ${entry[itemKey].length} items in APOLLO_STATE.${key}.${itemKey}`);
-                for (const item of entry[itemKey]) {
-                  const normalized = normalizeTargetItem(item);
-                  if (normalized) {
-                    normalizedItems.push(normalized);
-                  }
-                }
-              }
-            }
-          }
-        }
-        
-        if (normalizedItems.length > 0) {
-          if (DEBUG) console.log(`[TARGET_PARSE] Items extracted via APOLLO_STATE | Count: ${normalizedItems.length}`);
-          return normalizedItems;
-        }
-      }
-      
-      // Deep search for any arrays that might contain products (only if DEBUG)
-      if (DEBUG) console.log("[TARGET_PARSE] Standard paths exhausted, attempting deep search fallback...");
-      const deepResult = findTargetItemsDeep(nextData?.props?.pageProps);
-      
-      if (deepResult && deepResult.items.length > 0) {
-        if (DEBUG) console.log(`[TARGET_PARSE] Deep search found ${deepResult.items.length} items at path: ${deepResult.path}`);
-        
-        for (const item of deepResult.items) {
-          const normalized = normalizeTargetItem(item);
-          if (normalized && !normalizedItems.some(i => i.name === normalized.name)) {
-            normalizedItems.push(normalized);
-          }
-        }
-        
-        if (normalizedItems.length > 0) {
-          if (DEBUG) console.log(`[TARGET_PARSE] Items extracted via deep-search at: ${deepResult.path} | Count: ${normalizedItems.length}`);
-          return normalizedItems;
-        }
-      }
-      
-      if (DEBUG) console.log(`[TARGET_PARSE] __NEXT_DATA__ parsing complete | Total items found: ${normalizedItems.length}`);
-    } else {
-      if (DEBUG) console.log("[TARGET_PARSE] No __NEXT_DATA__ script found");
-    }
-  } catch (e: any) {
-    if (DEBUG) console.log("[TARGET_PARSE] __NEXT_DATA__ parsing failed:", e.message);
-  }
-  
-  // Try to find alternative embedded JSON structures (inline scripts)
-  try {
-    if (DEBUG) console.log("[TARGET_PARSE] Searching for alternative embedded JSON...");
-    const scripts = $('script').toArray();
-    for (const script of scripts) {
-      const content = $(script).html() || "";
-      if (content.includes("registryItems") || content.includes("giftRegistry") || content.includes("registryItemList")) {
-        // Try multiple JSON patterns
-        const patterns = [
-          /\{"registryItems"\s*:\s*\[[\s\S]*?\]\s*[,}]/,
-          /\{"items"\s*:\s*\[[\s\S]*?\]\s*[,}]/,
-          /"registryItemList"\s*:\s*(\[[\s\S]*?\])/,
-        ];
-        
-        for (const pattern of patterns) {
-          const jsonMatch = content.match(pattern);
-          if (jsonMatch) {
-            try {
-              let itemsArray: any[];
-              if (jsonMatch[1]) {
-                itemsArray = JSON.parse(jsonMatch[1]);
-              } else {
-                const parsed = JSON.parse(jsonMatch[0].endsWith(',') ? jsonMatch[0].slice(0, -1) + '}' : jsonMatch[0]);
-                itemsArray = parsed.registryItems || parsed.items || [];
-              }
-              
-              itemsArray.forEach((item: any) => {
-                const name = item.title || item.name || item.productTitle || "Unknown Item";
-                if (name === "Unknown Item") return;
-                
-                normalizedItems.push({
-                  name,
-                  link: item.url ? `https://www.target.com${item.url}` : undefined,
-                  image: item.image || item.imageUrl || item.primaryImage || undefined,
-                  price: item.price || item.formattedPrice || undefined,
-                });
-              });
-              
-              if (normalizedItems.length > 0) {
-                if (DEBUG) console.log("[TARGET_PARSE] Parsed from embedded JSON:", normalizedItems.length, "items");
-                return normalizedItems;
-              }
-            } catch (parseErr) {
-              // Continue to next pattern
-            }
-          }
-        }
-      }
-    }
-  } catch (e) {
-    if (DEBUG) console.log("[TARGET_PARSE] Alternative JSON parsing failed, falling back to DOM");
-  }
-  
-  // Fallback: DOM parsing
-  if (DEBUG) console.log("[TARGET_PARSE] Attempting DOM parsing...");
-  const selectors = [
-    '[data-test="registry-item"]',
-    '[data-test="gift-registry-item"]',
-    '[data-test="productCard"]',
-    '.GiftRegistryItem',
-    '[class*="RegistryItem"]',
-    '[class*="registry-item"]',
-    '[class*="ProductCard"]',
-    '.styles_productCard',
-    '[data-component="ProductCard"]',
-    'article[data-test]',
-  ];
-  
-  for (const selector of selectors) {
-    $(selector).each((_index: number, element: any) => {
-      const $item = $(element);
-      
-      const name = $item.find('[data-test="product-title"], [class*="ProductTitle"], h3, h4, a[data-test="product-title"]').first().text().trim() ||
-                   $item.find('a[href*="/p/"]').first().text().trim() ||
-                   $item.find('img').first().attr('alt') || "";
-      
-      if (!name || name.length < 2) return;
-      
-      const productLink = $item.find('a[href*="/p/"]').first().attr('href');
-      const link = productLink ? `https://www.target.com${productLink}` : undefined;
-      
-      const image = $item.find('img').first().attr('src') || 
-                    $item.find('img').first().attr('data-src') || undefined;
-      
-      const priceText = $item.find('[data-test="current-price"], [class*="Price"], .styles_price').first().text().trim();
-      const price = priceText.match(/\$[\d,.]+/)?.[0] || undefined;
-      
-      if (!normalizedItems.some(i => i.name === name)) {
-        normalizedItems.push({
-          name,
-          link,
-          image,
-          price,
-        });
-      }
-    });
-    
-    if (normalizedItems.length > 0) {
-      if (DEBUG) console.log("[TARGET_PARSE] Parsed from DOM with selector:", selector, normalizedItems.length, "items");
-      break;
-    }
-  }
-  
-  // Last resort: find any product links
-  if (normalizedItems.length === 0) {
-    $('a[href*="/p/"]').each((_index: number, element: any) => {
-      const $link = $(element);
-      const href = $link.attr('href');
-      const name = $link.text().trim() || $link.find('img').attr('alt') || "";
-      
-      if (name && name.length > 3 && !normalizedItems.some(i => i.name === name)) {
-        normalizedItems.push({
-          name,
-          link: href ? `https://www.target.com${href}` : undefined,
-          image: $link.find('img').attr('src') || undefined,
-        });
-      }
-    });
-    if (normalizedItems.length > 0) {
-      if (DEBUG) console.log("[TARGET_PARSE] Parsed from product links:", normalizedItems.length, "items");
-    }
-  }
-  
-  if (DEBUG) console.log(`[TARGET_PARSE] ========== END PARSING | Final items: ${normalizedItems.length} ==========`);
-  return normalizedItems;
-};
+// Target HTML parsing removed - using API-based approach instead
 
 const scrapeAmazon = ($: any): ScrapedItem[] => {
   const items: ScrapedItem[] = [];
@@ -2427,74 +2262,7 @@ async function fetchWithScraperAPI(
   return await response.text();
 }
 
-// Fetch with retry and fallback strategies for Target
-async function fetchTargetWithRetry(
-  url: string,
-  apiKey: string
-): Promise<{ html: string; strategy: string }> {
-  // Essential: Request start line
-  console.log(`[TARGET_FETCH] Request for URL: ${url}`);
-  
-  // Strategy 1: Standard fetch with render
-  try {
-    const html = await fetchWithScraperAPI(url, apiKey);
-    if (html && html.length > 5000) {
-      // Essential: Fetch summary
-      console.log(`[TARGET_FETCH] Fetch success via standard | length=${html.length}`);
-      return { html, strategy: "standard" };
-    }
-    if (DEBUG) console.log("[TARGET_FETCH] Strategy 1 returned minimal content:", html?.length || 0);
-  } catch (e: any) {
-    if (DEBUG) console.log("[TARGET_FETCH] Strategy 1 failed:", e.message);
-  }
-  
-  // Strategy 2: Fetch with browser headers
-  try {
-    const html = await fetchWithScraperAPI(url, apiKey, { withBrowserHeaders: true });
-    if (html && html.length > 5000) {
-      console.log(`[TARGET_FETCH] Fetch success via browser_headers | length=${html.length}`);
-      return { html, strategy: "browser_headers" };
-    }
-    if (DEBUG) console.log("[TARGET_FETCH] Strategy 2 returned minimal content:", html?.length || 0);
-  } catch (e: any) {
-    if (DEBUG) console.log("[TARGET_FETCH] Strategy 2 failed:", e.message);
-  }
-  
-  // Strategy 3: Try with US country code and browser headers
-  try {
-    const html = await fetchWithScraperAPI(url, apiKey, { withBrowserHeaders: true, country: "us" });
-    if (html && html.length > 5000) {
-      console.log(`[TARGET_FETCH] Fetch success via us_country | length=${html.length}`);
-      return { html, strategy: "us_country" };
-    }
-    if (DEBUG) console.log("[TARGET_FETCH] Strategy 3 returned minimal content:", html?.length || 0);
-  } catch (e: any) {
-    if (DEBUG) console.log("[TARGET_FETCH] Strategy 3 failed:", e.message);
-  }
-  
-  // Strategy 4: Try alternative URL format (gift-giver vs gift)
-  const altUrl = url.includes("gift-giver") 
-    ? url.replace("/gift-registry/gift-giver?registryId=", "/gift-registry/gift/")
-    : url;
-  
-  if (altUrl !== url) {
-    try {
-      const html = await fetchWithScraperAPI(altUrl, apiKey, { withBrowserHeaders: true });
-      if (html && html.length > 5000) {
-        console.log(`[TARGET_FETCH] Fetch success via alt_url | length=${html.length}`);
-        return { html, strategy: "alt_url" };
-      }
-      if (DEBUG) console.log("[TARGET_FETCH] Strategy 4 returned minimal content:", html?.length || 0);
-    } catch (e: any) {
-      if (DEBUG) console.log("[TARGET_FETCH] Strategy 4 failed:", e.message);
-    }
-  }
-  
-  // Return the last attempt even if minimal content
-  if (DEBUG) console.log("[TARGET_FETCH] All strategies exhausted, returning best available");
-  const finalHtml = await fetchWithScraperAPI(url, apiKey, { withBrowserHeaders: true });
-  return { html: finalHtml, strategy: "final_fallback" };
-}
+// Target HTML fetch removed - using API-based approach instead
 
 Deno.serve(async (req) => {
   // Handle preflight CORS
@@ -2704,72 +2472,66 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Normalize Target registry URLs to canonical form before fetching
-    let fetchUrl = url;
+    // Handle Target via API (no HTML scraping)
     if (retailer === "Target") {
-      fetchUrl = normalizeTargetRegistryUrl(url);
-      if (DEBUG) console.log("[SCRAPE_NORMALIZE] Target URL normalized:", url, "->", fetchUrl);
+      const registryId = extractTargetRegistryId(url);
+      if (!registryId) {
+        console.log(`[SCRAPE_ERROR] Could not extract Target registry ID from URL: ${url}`);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            items: [],
+            message: "Invalid Target registry URL. Please ensure the URL is in the format: https://www.target.com/gift-registry/gift/<registryId>",
+          }),
+          {
+            headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" },
+            status: 200,
+          }
+        );
+      }
+      
+      // Use API-based approach for Target
+      const targetApiResult = await fetchTargetRegistryViaApi(registryId, url);
+      
+      if (!targetApiResult.success || targetApiResult.items.length === 0) {
+        console.log(`[SCRAPE_RESULT] Target API import failed | error=${targetApiResult.error || "No items found"}`);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            items: [],
+            message: targetApiResult.error || "We couldn't retrieve items from this Target registry. The registry may be empty, private, or the page structure has changed.",
+          }),
+          {
+            headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" },
+            status: 200,
+          }
+        );
+      }
+      
+      // Essential: Final result line
+      console.log(`[SCRAPE_RESULT] success=true | items=${targetApiResult.items.length} | retailer=Target | source=target:${url}`);
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          items: targetApiResult.items,
+          retailer: "Target",
+          source: `target:${url}`,
+        }),
+        {
+          headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        }
+      );
     }
     
+    let fetchUrl = url;
     let html: string;
     let fetchStrategy = "standard";
     let fetchMethod = "SCRAPERAPI";
     
     try {
-      // Use enhanced retry logic for Target
-      if (retailer === "Target") {
-        const result = await fetchTargetWithRetry(fetchUrl, scraperApiKey);
-        html = result.html;
-        fetchStrategy = result.strategy;
-        // Essential: Fetch summary
-        console.log(`[SCRAPE_FETCH] Target | provider=ScraperAPI | strategy=${fetchStrategy} | length=${html?.length || 0}`);
-        
-        // Debug HTML capture
-        if (DEBUG_SCRAPE_HTML) {
-          const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
-          const title = titleMatch?.[1]?.trim() || '';
-          const hasNextData = /id="__NEXT_DATA__"/.test(html);
-          console.log(`[DEBUG_HTML][TARGET][SCRAPERAPI] title="${title}" len=${html.length} hasNextData=${hasNextData} snippet="${safeSnippet(html)}"`);
-          await maybeWriteDebugHtml('debug_target_scraperapi.html', html);
-          
-          const next = tryExtractNextDataJson(html);
-          if (!next) {
-            console.log('[DEBUG_JSON][TARGET] no __NEXT_DATA__ found');
-          } else {
-            const candidates = findCandidateArrays(next);
-            console.log('[DEBUG_JSON][TARGET] __NEXT_DATA__ candidate arrays:', JSON.stringify(candidates, null, 2));
-            const payloads = findPayloadObjects(next);
-            console.log('[DEBUG_JSON][TARGET] payload objects:', JSON.stringify(payloads, null, 2));
-            const apollo = (next?.props?.pageProps as any)?.__APOLLO_STATE__ || (next?.props?.pageProps as any)?.apolloState;
-            if (apollo) {
-              const apolloCandidates = findCandidateArrays(apollo);
-              console.log('[DEBUG_JSON][TARGET] APOLLO candidate arrays:', JSON.stringify(apolloCandidates, null, 2));
-            }
-          }
-        }
-        
-        // TEMPORARILY DISABLED: Target restricted page check bypassed for debugging
-        const restrictedCheck = isTargetRestrictedPage(html);
-        if (DEBUG) console.log(`[SCRAPE_DEBUG] Target restricted check: restricted=${restrictedCheck.restricted} reason=${restrictedCheck.reason}`);
-        // if (restrictedCheck.restricted) {
-        //   console.log(`[SCRAPE_RESTRICTED] Target page appears restricted: ${restrictedCheck.reason}`);
-        //   console.log("[SCRAPE_RESTRICTED] URL:", fetchUrl);
-        //   logHtmlDebugInfo(html, retailer, url);
-        //   
-        //   // Return friendly message for restricted pages
-        //   return new Response(
-        //     JSON.stringify({
-        //       success: false,
-        //       items: [],
-        //       message: "We couldn't retrieve items from this Target registry share link. The registry may be private or the link may have changed. If this persists, please contact support or use manual import.",
-        //     }),
-        //     {
-        //       headers: { ...corsHeaders, "Content-Type": "application/json" },
-        //       status: 200,
-        //     }
-        //   );
-        // }
-      } else if (retailer === "WalmartWishlist" || retailer === "WalmartRegistry") {
+      if (retailer === "WalmartWishlist" || retailer === "WalmartRegistry") {
         // Walmart import is disabled - return unsupported error immediately (no fetch)
         console.log(`[SCRAPE_FETCH] Walmart import disabled | retailer=${retailer} | url=${fetchUrl}`);
         return new Response(
@@ -2785,26 +2547,21 @@ Deno.serve(async (req) => {
           }
         );
       } else if (retailer === "AmazonRegistry") {
-        // Use BrightData Unlocker for Amazon Registry (no ScraperAPI fallback - Amazon blocks it)
-        const amazonRegistryResult = await fetchAmazonRegistryWithUnlocker(fetchUrl);
-        fetchMethod = amazonRegistryResult.method;
-        
-        // Essential: Fetch summary (already logged in fetchAmazonRegistryWithUnlocker)
-        
-        if (amazonRegistryResult.error || amazonRegistryResult.blockedOrLogin) {
-          return new Response(
-            JSON.stringify({
-              success: false,
-              items: [],
-              message: amazonRegistryResult.error || "Amazon registries can't be imported automatically right now due to Amazon restrictions. Please use File Import or Paste Items.",
-              requiresManualUpload: true,
-            }),
-            {
-              headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" },
-              status: 200,
-            }
-          );
-        }
+        // Amazon Registry import is disabled - return unsupported error immediately (no fetch)
+        console.log(`[SCRAPE_FETCH] Amazon Registry import disabled | retailer=${retailer} | url=${fetchUrl}`);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            items: [],
+            message: "Can't import from Amazon Registry right now. Please use Manual Upload.",
+            errorCode: "UNSUPPORTED_RETAILER",
+            requiresManualUpload: true,
+          }),
+          {
+            headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" },
+            status: 200,
+          }
+        );
         
         html = amazonRegistryResult.html;
         
@@ -2950,28 +2707,8 @@ Deno.serve(async (req) => {
     let scrapeError: string | null = null;
     
     // Wrap each retailer scraping in try/catch to prevent non-2xx responses
-    if (retailer === "Target") {
-      try {
-        items = scrapeTargetRegistry($, html, DEBUG_SCRAPE_HTML);
-        // Essential: Parse summary
-        console.log(`[SCRAPE_PARSE] Target | items=${items.length} | parseMethod=scrapeTargetRegistry`);
-        
-        // Debug log if no items found
-        if (items.length === 0 && DEBUG) {
-          console.log("[SCRAPE_DEBUG] Target returned 0 items despite successful fetch");
-          logHtmlDebugInfo(html, retailer, url, DEBUG_SCRAPE_HTML);
-        }
-        
-        if (items.length === 0) {
-          // Provide more specific error for Target
-          scrapeError = "We couldn't retrieve items from this Target registry share link. If this persists, please contact support or use manual import.";
-        }
-      } catch (e: any) {
-        console.error(`[SCRAPE_PARSE_ERROR] Retailer: Target | Error: ${e.message}`);
-        if (DEBUG) logHtmlDebugInfo(html, retailer, url);
-        scrapeError = "We couldn't retrieve items from this Target registry share link. If this persists, please contact support or use manual import.";
-      }
-    } else if (retailer === "AmazonRegistry") {
+    // NOTE: Target is now handled via API above and returns early
+    if (retailer === "AmazonRegistry") {
       try {
         displayRetailer = "Amazon Registry";
         
@@ -3098,8 +2835,6 @@ Deno.serve(async (req) => {
         if (retailer === "AmazonRegistry" && scrapeError.includes("Amazon restrictions")) {
           requiresManualUpload = true;
         }
-      } else if (retailer === "Target") {
-        errorMessage = "We couldn't find items at that link. Please double-check the Target registry share URL.";
       } else if (retailer === "AmazonRegistry") {
         errorMessage = "Amazon registries can't be imported automatically right now due to Amazon restrictions. Please use File Import or Paste Items.";
         requiresManualUpload = true;

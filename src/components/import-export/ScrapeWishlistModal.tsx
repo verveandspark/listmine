@@ -63,6 +63,11 @@ export default function ScrapeWishlistModal({
       setError("Can't import from Crate & Barrel/CB2 right now. Please use Manual Upload.");
       return;
     }
+    // Amazon Registry disabled - but Amazon Wishlist still works
+    if (trimmedUrl.includes("amazon.com") && trimmedUrl.includes("/registries/gl/guest-view/")) {
+      setError("Can't import from Amazon Registry right now. Please use Manual Upload.");
+      return;
+    }
 
     setLoading(true);
     setError("");
