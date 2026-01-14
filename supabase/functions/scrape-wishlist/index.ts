@@ -235,7 +235,7 @@ async function fetchIKEARegistryViaGraphQL(
         zip: defaultZip,
         storeId: defaultStoreId,
       },
-      languageCode: "en",
+      languageCode: "en-US",
     },
     query: graphqlQuery,
   };
@@ -250,6 +250,7 @@ async function fetchIKEARegistryViaGraphQL(
       headers: {
         "Content-Type": "application/json",
         "Accept": "application/json",
+        "Preferred-Locale": "en-US",
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
         "Origin": "https://www.ikea.com",
         "Referer": originalUrl,
@@ -595,7 +596,7 @@ async function fetchTargetRegistryViaApi(
       return {
         success: false,
         items: [],
-        error: "No items found in Target API response. The registry may be empty, private, or requires authentication.",
+        error: "No items found in Target registry. The registry may be empty, private, or temporarily unavailable. Please verify your list and try again, or use Manual Upload.",
       };
     }
     
@@ -692,7 +693,7 @@ async function fetchTargetRegistryViaApi(
         };
         
         items.push(scrapedItem);
-        if (DEBUG) console.log(`[TARGET_API] Item: "${name}" | tcin: ${tcin || 'N/A'} | price: ${price || 'N/A'} | requested: ${requestedQty || 'N/A'} | purchased: ${purchasedQty || 'N/A'}`);
+        if (DEBUG) console.log(`[TARGET_API] Item: "${name}" | tcin: ${tcin || 'N/A'} | price: ${price || 'N/A'} | image: ${image ? 'Yes' : 'No'} | requested: ${requestedQty || 'N/A'} | purchased: ${purchasedQty || 'N/A'}`);
       } catch (e: any) {
         if (DEBUG) console.log(`[TARGET_API] Error processing item: ${e.message}`);
       }
@@ -2801,7 +2802,7 @@ Deno.serve(async (req) => {
           JSON.stringify({
             success: false,
             items: [],
-            message: targetApiResult.error || "We couldn't retrieve items from this Target registry. The registry may be empty, private, or the page structure has changed.",
+            message: targetApiResult.error || "No items found in Target registry. The registry may be empty, private, or temporarily unavailable. Please verify your list and try again, or use Manual Upload.",
           }),
           {
             headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" },
