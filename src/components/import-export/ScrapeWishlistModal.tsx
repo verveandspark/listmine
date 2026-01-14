@@ -53,6 +53,17 @@ export default function ScrapeWishlistModal({
       return;
     }
 
+    // Short-circuit: Disabled retailers - show manual upload message immediately (no edge call)
+    const trimmedUrl = url.trim().toLowerCase();
+    if (trimmedUrl.includes("walmart.com")) {
+      setError("Can't import from Walmart right now. Please use Manual Upload.");
+      return;
+    }
+    if (trimmedUrl.includes("crateandbarrel.com") || trimmedUrl.includes("cb2.com")) {
+      setError("Can't import from Crate & Barrel/CB2 right now. Please use Manual Upload.");
+      return;
+    }
+
     setLoading(true);
     setError("");
     setScrapedItems([]);
@@ -261,7 +272,7 @@ export default function ScrapeWishlistModal({
             <div className="flex gap-2">
               <Input
                 id="wishlist-url"
-                placeholder="Paste Amazon, Target, or Walmart wishlist/registry URL"
+                placeholder="Paste Amazon, Target, or other wishlist/registry URL"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 onKeyDown={(e) => {
@@ -286,7 +297,7 @@ export default function ScrapeWishlistModal({
               )}
             </div>
             <p className="text-xs text-gray-500">
-              Currently supports: Amazon wishlists, Target registries, Walmart wishlists & registries. More retailers coming soon!
+              Currently supports: Amazon wishlists, Target registries, and more. Walmart import temporarily unavailable - please use Manual Upload.
             </p>
           </div>
 
