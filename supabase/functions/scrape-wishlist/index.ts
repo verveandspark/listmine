@@ -49,6 +49,16 @@ interface ScrapedItem {
       availability?: string;
       price?: string;
       image?: string;
+      tcin?: string;
+      requested_quantity?: number;
+      needed_quantity?: number;
+      purchased_quantity?: number;
+      is_unavailable?: boolean;
+    };
+    registry?: {
+      requested?: number;
+      needed?: number;
+      purchased?: number;
     };
   };
 }
@@ -728,21 +738,32 @@ async function fetchTargetRegistryViaApi(
           continue;
         }
         
-        // Extract image: prioritize enrichment.images.primary_image_url
+        // Extract image: prioritize enrichment.images.primary_image_url (full URL with query params)
         let image: string | undefined;
         if (rawItem.enrichment?.images?.primary_image_url) {
+          // Use the full URL as-is (including query params like ?qlt=65&fmt=webp)
           image = rawItem.enrichment.images.primary_image_url;
+          if (DEBUG) console.log(`[TARGET_API] Image from enrichment.images.primary_image_url: ${image?.substring(0, 100)}`);
         } else if (rawItem.images && rawItem.images.length > 0) {
           const primaryImage = rawItem.images.find(img => img.primary) || rawItem.images[0];
           image = primaryImage?.base_url;
+          if (DEBUG && image) console.log(`[TARGET_API] Image from images array: ${image.substring(0, 100)}`);
         }
         if (!image) {
           image = rawItem.primary_image_url || rawItem.image_url;
+          if (DEBUG && image) console.log(`[TARGET_API] Image from fallback fields: ${image.substring(0, 100)}`);
         }
         
-        // Normalize protocol-relative URLs (// to https://)
+        // Normalize protocol-relative URLs (//target.scene7.com/... to https://target.scene7.com/...)
         if (image && image.startsWith('//')) {
           image = `https:${image}`;
+          if (DEBUG) console.log(`[TARGET_API] Normalized protocol-relative URL to: ${image.substring(0, 100)}`);
+        }
+        
+        // Ensure image is not accidentally set to a product page URL
+        if (image && (image.includes('/p/-/A-') || image.includes('target.com/p/'))) {
+          if (DEBUG) console.log(`[TARGET_API] WARNING: Image appears to be a product URL, clearing: ${image}`);
+          image = undefined;
         }
         
         // Extract price: prioritize price.formatted_current_price
@@ -809,7 +830,8 @@ async function fetchTargetRegistryViaApi(
         };
         
         items.push(scrapedItem);
-        if (DEBUG) console.log(`[TARGET_API] Item: "${name}" | tcin: ${tcin || 'N/A'} | price: ${price || 'N/A'} | image: ${image ? 'Yes' : 'No'} | requested: ${requestedQty || 'N/A'} | purchased: ${purchasedQty || 'N/A'}`);
+        // Always log image info for Target items
+        console.log(`[TARGET_API] Item: "${name?.substring(0, 40)}" | image: ${image || 'MISSING'} | attrs.custom.image: ${scrapedItem.attributes?.custom?.image || 'MISSING'}`);
       } catch (e: any) {
         if (DEBUG) console.log(`[TARGET_API] Error processing item: ${e.message}`);
       }
@@ -2945,51 +2967,17 @@ Deno.serve(async (req) => {
       );
     }
     
-    // Handle IKEA via GraphQL API (no HTML scraping)
+    // IKEA Registry - DISABLED TEMPORARILY (no GraphQL/token calls)
+    // Return unsupported message immediately without any network calls
     if (retailer === "IKEARegistry") {
-      const shareId = extractIKEARegistryShareId(url);
-      if (!shareId) {
-        console.log(`[SCRAPE_ERROR] Could not extract IKEA registry share ID from URL: ${url}`);
-        return new Response(
-          JSON.stringify({
-            success: false,
-            items: [],
-            message: "Invalid IKEA registry URL. Please ensure the URL is in the format: https://www.ikea.com/us/en/gift-registry/guest/?id=<shareId>",
-          }),
-          {
-            headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" },
-            status: 200,
-          }
-        );
-      }
-      
-      // Use GraphQL API for IKEA
-      const ikeaApiResult = await fetchIKEARegistryViaGraphQL(shareId, url);
-      
-      if (!ikeaApiResult.success || ikeaApiResult.items.length === 0) {
-        console.log(`[SCRAPE_RESULT] IKEA GraphQL import failed | error=${ikeaApiResult.error || "No items found"}`);
-        return new Response(
-          JSON.stringify({
-            success: false,
-            items: [],
-            message: ikeaApiResult.error || "We couldn't retrieve items from this IKEA registry. The registry may be empty, private, or the API structure has changed.",
-          }),
-          {
-            headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" },
-            status: 200,
-          }
-        );
-      }
-      
-      // Essential: Final result line
-      console.log(`[SCRAPE_RESULT] success=true | items=${ikeaApiResult.items.length} | retailer=IKEA | source=ikea:${url}`);
-      
+      console.log(`[SCRAPE_INFO] IKEA registry detected but importer is temporarily disabled: ${url}`);
       return new Response(
         JSON.stringify({
-          success: true,
-          items: ikeaApiResult.items,
-          retailer: "IKEA",
-          source: `ikea:${url}`,
+          success: false,
+          items: [],
+          errorCode: "UNSUPPORTED_RETAILER",
+          requiresManualUpload: true,
+          message: "IKEA import not supported currently, please use Manual Upload.",
         }),
         {
           headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" },

@@ -110,7 +110,7 @@ interface ListContextType {
   removeTagFromList: (listId: string, tag: string) => Promise<void>;
   importFromShareLink: (shareId: string, accountId?: string | null) => Promise<string>;
   importFromWishlist: (
-    items: Array<{ name: string; price?: string; link?: string; image?: string }>,
+    items: Array<{ name: string; price?: string; link?: string; image?: string; attributes?: Record<string, any> }>,
     listName: string,
     category: ListCategory,
     importUrl: string,
@@ -2870,7 +2870,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
   };
 
   const importFromWishlist = async (
-    items: Array<{ name: string; price?: string; link?: string; image?: string }>,
+    items: Array<{ name: string; price?: string; link?: string; image?: string; attributes?: Record<string, any> }>,
     listName: string,
     category: ListCategory = "Shopping",
     importUrl: string,
@@ -3003,13 +3003,18 @@ export function ListProvider({ children }: { children: ReactNode }) {
         completed: false,
         item_order: index,
         attributes: {
+          // Merge any incoming custom attributes from the scraper
           custom: {
+            ...item.attributes?.custom,
+            // Ensure image is set (root-level takes precedence if present)
             ...(item.image && { image: item.image }),
             ...(item.price && { price: item.price }),
           },
+          // Merge incoming registry attributes
           registry: {
-            quantity_requested: 1,
-            quantity_purchased: 0,
+            ...item.attributes?.registry,
+            quantity_requested: item.attributes?.registry?.requested ?? 1,
+            quantity_purchased: item.attributes?.registry?.purchased ?? 0,
           },
         },
       }));

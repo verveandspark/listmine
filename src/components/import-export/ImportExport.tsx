@@ -70,6 +70,22 @@ interface ScrapedItem {
   link?: string;
   image?: string;
   selected?: boolean;
+  attributes?: {
+    custom?: {
+      image?: string;
+      price?: string;
+      tcin?: string;
+      requested_quantity?: number;
+      needed_quantity?: number;
+      purchased_quantity?: number;
+      is_unavailable?: boolean;
+    };
+    registry?: {
+      requested?: number;
+      needed?: number;
+      purchased?: number;
+    };
+  };
 }
 
 export default function ImportExport() {

@@ -24,6 +24,22 @@ interface ScrapedItem {
   link?: string;
   image?: string;
   selected?: boolean;
+  attributes?: {
+    custom?: {
+      image?: string;
+      price?: string;
+      tcin?: string;
+      requested_quantity?: number;
+      needed_quantity?: number;
+      purchased_quantity?: number;
+      is_unavailable?: boolean;
+    };
+    registry?: {
+      requested?: number;
+      needed?: number;
+      purchased?: number;
+    };
+  };
 }
 
 interface ScrapeWishlistModalProps {
@@ -66,6 +82,11 @@ export default function ScrapeWishlistModal({
     // Amazon Registry disabled - but Amazon Wishlist still works
     if (trimmedUrl.includes("amazon.com") && trimmedUrl.includes("/registries/gl/guest-view/")) {
       setError("Can't import from Amazon Registry right now. Please use Manual Upload.");
+      return;
+    }
+    // IKEA Registry disabled temporarily
+    if (trimmedUrl.includes("ikea.com") && trimmedUrl.includes("/gift-registry/guest")) {
+      setError("IKEA import not supported currently, please use Manual Upload.");
       return;
     }
 

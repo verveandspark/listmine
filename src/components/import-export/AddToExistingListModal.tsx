@@ -99,12 +99,13 @@ export default function AddToExistingListModal({
     setCompareResult(null);
 
     try {
-      // Transform items to match the compare-merge format
+      // Transform items to match the compare-merge format (preserve attributes)
       const retailerList = items.map((item) => ({
         name: item.name || item.text || "",
         price: item.price,
         link: item.link,
         image: item.image,
+        attributes: item.attributes,
       }));
 
       const { data: compareData, error: compareError } = await supabase.functions.invoke(
@@ -176,10 +177,13 @@ export default function AddToExistingListModal({
           quantity: originalItem?.quantity,
           links: item.link ? [item.link] : undefined,
           attributes: {
+            // Merge scraped attributes with custom price/image
             custom: {
+              ...originalItem?.attributes?.custom,
               price: item.price,
               image: item.image,
             },
+            registry: originalItem?.attributes?.registry,
           },
         });
       }
