@@ -172,32 +172,60 @@ async function fetchWalmartWithRetries(
   
   while (attempt < maxRetries) {
     try {
-      // Randomize User-Agent header for each attempt
-      const userAgent = getRandomUserAgent();
-      if (DEBUG) console.log(`[WALMART_RETRY_FETCH] Attempt ${attempt + 1}/${maxRetries} with UA: ${userAgent.substring(0, 50)}...`);
+      // Realistic browser User-Agent
+      const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36";
+      
+      // Debug: log fetch URL
+      console.log(`[WALMART_DIRECT_FETCH] Attempt ${attempt + 1}/${maxRetries} | URL: ${url}`);
+      console.log(`[WALMART_DIRECT_FETCH] User-Agent: ${userAgent}`);
       
       const fetchOptions: RequestInit = {
         method: "GET",
         headers: {
           "User-Agent": userAgent,
-          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
           "Accept-Language": "en-US,en;q=0.9",
-          "Cache-Control": "no-cache",
-          "Pragma": "no-cache",
+          "Accept-Encoding": "gzip, deflate, br",
+          "Cache-Control": "max-age=0",
+          "Sec-Ch-Ua": '"Google Chrome";v="125", "Chromium";v="125", "Not.A/Brand";v="24"',
+          "Sec-Ch-Ua-Mobile": "?0",
+          "Sec-Ch-Ua-Platform": '"Windows"',
+          "Sec-Fetch-Dest": "document",
+          "Sec-Fetch-Mode": "navigate",
+          "Sec-Fetch-Site": "none",
+          "Sec-Fetch-User": "?1",
           "Upgrade-Insecure-Requests": "1",
-          "Referer": "https://www.walmart.com/",
         },
         redirect: "follow",
       };
       
       const response = await fetch(url, fetchOptions);
+      
+      // Debug: log response details
+      const contentType = response.headers.get("content-type") || "unknown";
+      console.log(`[WALMART_DIRECT_FETCH] Response status: ${response.status}`);
+      console.log(`[WALMART_DIRECT_FETCH] Response Content-Type: ${contentType}`);
+      console.log(`[WALMART_DIRECT_FETCH] Response URL (after redirects): ${response.url}`);
+      
+      // Check if binary response
+      const isBinary = contentType.includes("octet-stream") || contentType.includes("image/") || contentType.includes("application/pdf");
+      if (isBinary) {
+        console.log(`[WALMART_DIRECT_FETCH] Response is binary (${contentType}), cannot parse HTML`);
+        lastError = `Binary response received: ${contentType}`;
+        attempt++;
+        continue;
+      }
+      
       const html = await response.text();
       
-      if (DEBUG) console.log(`[WALMART_RETRY_FETCH] Response status: ${response.status}, length: ${html.length}`);
+      // Debug: log first 300 chars of response
+      const snippet = html.substring(0, 300).replace(/[\n\r]+/g, " ");
+      console.log(`[WALMART_DIRECT_FETCH] Response first 300 chars: ${snippet}`);
+      console.log(`[WALMART_DIRECT_FETCH] Response total length: ${html.length}`);
       
       // Check if blocked
       if (!isBlockedResponse(html) && !isWalmartBlockPage(html) && html.length > 5000) {
-        if (DEBUG) console.log(`[WALMART_RETRY_FETCH] Success on attempt ${attempt + 1}`);
+        console.log(`[WALMART_DIRECT_FETCH] Success on attempt ${attempt + 1} | Not blocked, length OK`);
         return {
           success: true,
           html,
@@ -206,22 +234,22 @@ async function fetchWalmartWithRetries(
         };
       } else {
         const title = extractHtmlTitle(html);
-        if (DEBUG) console.log(`[WALMART_RETRY_FETCH] Block detected on attempt ${attempt + 1} | title="${title}" | length=${html.length}`);
+        console.log(`[WALMART_DIRECT_FETCH] Block detected on attempt ${attempt + 1} | title="${title}" | length=${html.length}`);
         lastError = `Block detected (title: ${title})`;
       }
     } catch (e: any) {
-      if (DEBUG) console.log(`[WALMART_RETRY_FETCH] Fetch error on attempt ${attempt + 1}: ${e.message}`);
+      console.log(`[WALMART_DIRECT_FETCH] Fetch error on attempt ${attempt + 1}: ${e.message}`);
       lastError = e.message;
     }
     
     // Random delay between retries (1-3 seconds)
     const delay = 1000 + Math.random() * 2000;
-    if (DEBUG) console.log(`[WALMART_RETRY_FETCH] Waiting ${Math.round(delay)}ms before retry...`);
+    console.log(`[WALMART_DIRECT_FETCH] Waiting ${Math.round(delay)}ms before retry...`);
     await new Promise((res) => setTimeout(res, delay));
     attempt++;
   }
   
-  if (DEBUG) console.log(`[WALMART_RETRY_FETCH] Max retries (${maxRetries}) reached, all attempts blocked`);
+  console.log(`[WALMART_DIRECT_FETCH] Max retries (${maxRetries}) reached, all attempts failed`);
   return {
     success: false,
     html: "",
