@@ -102,6 +102,10 @@ const detectRetailer = (url: string): string | null => {
   if (lowerUrl.includes("cb2.com") && lowerUrl.includes("/gift-registry/")) {
     return "CB2Registry";
   }
+  // Detect IKEA Registry URLs: https://www.ikea.com/us/en/gift-registry/guest/?id=<shareId>
+  if (lowerUrl.includes("ikea.com") && lowerUrl.includes("/gift-registry/guest")) {
+    return "IKEARegistry";
+  }
   return null;
 };
 
@@ -129,16 +133,261 @@ const extractTargetRegistryId = (url: string): string | null => {
   }
 };
 
+// Extract IKEA registry share ID from URL
+const extractIKEARegistryShareId = (url: string): string | null => {
+  try {
+    const urlObj = new URL(url);
+    // Pattern: /gift-registry/guest/?id=<shareId>
+    const shareId = urlObj.searchParams.get("id");
+    if (shareId) return shareId;
+    return null;
+  } catch (e) {
+    console.error("Failed to extract IKEA registry share ID:", e);
+    return null;
+  }
+};
+
+// IKEA GraphQL-based registry fetcher
+interface IKEARegistryItem {
+  product: {
+    productName?: string;
+    productId?: string;
+    images?: Array<{ url?: string }>;
+    price?: {
+      price?: number;
+      priceNumeral?: number;
+      currency?: string;
+      formatted?: string;
+    };
+    url?: string;
+  };
+  quantity?: {
+    total?: number;
+    purchased?: number;
+    reserved?: number;
+    available?: number;
+  };
+}
+
+interface IKEARegistryResponse {
+  data?: {
+    sharedRegistry?: {
+      registry?: {
+        wishlist?: IKEARegistryItem[];
+      };
+    };
+  };
+  errors?: Array<{ message: string }>;
+}
+
+async function fetchIKEARegistryViaGraphQL(
+  shareId: string,
+  originalUrl: string
+): Promise<{ success: boolean; items: ScrapedItem[]; error?: string }> {
+  console.log(`[IKEA_API] ========== Starting IKEA GraphQL Request ==========`);
+  console.log(`[IKEA_API] Share ID: ${shareId}`);
+  console.log(`[IKEA_API] Original URL: ${originalUrl}`);
+  
+  // IKEA GraphQL endpoint
+  const graphqlUrl = "https://igift.ingka.com/graphql";
+  
+  // Default zip and store for availability (US defaults)
+  const defaultZip = "90210";
+  const defaultStoreId = "204";
+  
+  // GraphQL query for shared registry
+  const graphqlQuery = `
+    query sharedRegistry($shareId: String!, $availability: AvailabilityInput, $languageCode: String) {
+      sharedRegistry(shareId: $shareId) {
+        registry {
+          wishlist {
+            product(availability: $availability, languageCode: $languageCode) {
+              productName
+              productId
+              images {
+                url
+              }
+              price {
+                price
+                priceNumeral
+                currency
+                formatted
+              }
+              url
+            }
+            quantity {
+              total
+              purchased
+              reserved
+              available
+            }
+          }
+        }
+      }
+    }
+  `;
+  
+  const requestBody = {
+    operationName: "sharedRegistry",
+    variables: {
+      shareId: shareId,
+      availability: {
+        zip: defaultZip,
+        storeId: defaultStoreId,
+      },
+      languageCode: "en",
+    },
+    query: graphqlQuery,
+  };
+  
+  console.log(`[IKEA_API] GraphQL URL: ${graphqlUrl}`);
+  console.log(`[IKEA_API] Request variables: ${JSON.stringify(requestBody.variables)}`);
+  
+  try {
+    console.log(`[IKEA_API] Sending POST request...`);
+    const response = await fetch(graphqlUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+        "Origin": "https://www.ikea.com",
+        "Referer": originalUrl,
+      },
+      body: JSON.stringify(requestBody),
+    });
+    
+    console.log(`[IKEA_API] Response status: ${response.status} ${response.statusText}`);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log(`[IKEA_API] ERROR: Non-OK response status ${response.status}`);
+      console.log(`[IKEA_API] Error response body (first 1000 chars): ${errorText.substring(0, 1000)}`);
+      return {
+        success: false,
+        items: [],
+        error: `IKEA GraphQL API returned status ${response.status}: ${errorText.substring(0, 200)}`,
+      };
+    }
+    
+    const responseText = await response.text();
+    console.log(`[IKEA_API] Raw response length: ${responseText.length} chars`);
+    console.log(`[IKEA_API] Raw response (first 2000 chars): ${responseText.substring(0, 2000)}`);
+    
+    let data: IKEARegistryResponse;
+    try {
+      data = JSON.parse(responseText);
+      console.log(`[IKEA_API] Response parsed as JSON successfully`);
+    } catch (parseError: any) {
+      console.log(`[IKEA_API] ERROR: Failed to parse response as JSON: ${parseError.message}`);
+      return {
+        success: false,
+        items: [],
+        error: `IKEA API returned invalid JSON: ${parseError.message}`,
+      };
+    }
+    
+    // Check for GraphQL errors
+    if (data.errors && data.errors.length > 0) {
+      const errorMessages = data.errors.map(e => e.message).join(", ");
+      console.log(`[IKEA_API] GraphQL errors: ${errorMessages}`);
+      return {
+        success: false,
+        items: [],
+        error: `IKEA API error: ${errorMessages}`,
+      };
+    }
+    
+    // Extract wishlist items
+    const rawItems = data.data?.sharedRegistry?.registry?.wishlist || [];
+    console.log(`[IKEA_API] Found ${rawItems.length} raw items in response`);
+    
+    if (rawItems.length === 0) {
+      console.log(`[IKEA_API] WARNING: Zero items found!`);
+      console.log(`[IKEA_API] Full response: ${JSON.stringify(data)}`);
+      return {
+        success: false,
+        items: [],
+        error: "No items found in IKEA registry. The registry may be empty, private, or requires authentication.",
+      };
+    }
+    
+    // Map to ScrapedItem format
+    const items: ScrapedItem[] = rawItems.map((item: IKEARegistryItem) => {
+      const product = item.product || {};
+      const quantity = item.quantity || {};
+      
+      // Get first image URL
+      const imageUrl = product.images && product.images.length > 0 
+        ? product.images[0].url 
+        : undefined;
+      
+      // Format price
+      const priceStr = product.price?.formatted || 
+        (product.price?.price ? `$${product.price.price.toFixed(2)}` : undefined);
+      
+      // Build IKEA product URL if product ID available
+      const productUrl = product.url || (product.productId 
+        ? `https://www.ikea.com/us/en/p/${product.productId}/`
+        : undefined);
+      
+      return {
+        name: product.productName || "Unknown IKEA Product",
+        price: priceStr,
+        image: imageUrl,
+        link: productUrl,
+        links: productUrl ? [productUrl] : [],
+        attributes: {
+          custom: {
+            image: imageUrl,
+            price: priceStr,
+            availability: quantity.available !== undefined 
+              ? `${quantity.available} available (${quantity.total || 0} total, ${quantity.purchased || 0} purchased, ${quantity.reserved || 0} reserved)`
+              : undefined,
+          },
+        },
+      };
+    });
+    
+    console.log(`[IKEA_API] Successfully extracted ${items.length} items`);
+    console.log(`[IKEA_API] ========== IKEA GraphQL Request Complete ==========`);
+    return { success: true, items };
+    
+  } catch (e: any) {
+    console.error(`[IKEA_API] ========== FETCH ERROR ==========`);
+    console.error(`[IKEA_API] Error type: ${e.constructor?.name || 'Unknown'}`);
+    console.error(`[IKEA_API] Error message: ${e.message}`);
+    console.error(`[IKEA_API] Error stack: ${e.stack || 'No stack trace'}`);
+    return {
+      success: false,
+      items: [],
+      error: `IKEA API fetch failed: ${e.message}`,
+    };
+  }
+}
+
 // Target API-based registry fetcher
 interface TargetRegistryApiItem {
   tcin?: string;
   title?: string;
+  product_description?: {
+    title?: string;
+    [key: string]: any;
+  };
   product_title?: string;
   name?: string;
   description?: string;
   images?: Array<{ base_url?: string; primary?: string }>;
   primary_image_url?: string;
   image_url?: string;
+  enrichment?: {
+    buy_url?: string;
+    images?: {
+      primary_image_url?: string;
+      [key: string]: any;
+    };
+    [key: string]: any;
+  };
   price?: {
     current_retail?: number;
     formatted_current_price?: string;
@@ -153,16 +402,22 @@ interface TargetRegistryApiItem {
     purchased_quantity?: number;
     is_unavailable?: boolean;
   };
+  requested_quantity?: number;
+  purchased_quantity?: number;
   availability?: {
     is_unavailable?: boolean;
   };
 }
 
 interface TargetRegistryApiResponse {
-  registry_items?: TargetRegistryApiItem[];
+  registry_items?: {
+    target_items?: TargetRegistryApiItem[];
+  } | TargetRegistryApiItem[];
   items?: TargetRegistryApiItem[];
   data?: {
-    registry_items?: TargetRegistryApiItem[];
+    registry_items?: {
+      target_items?: TargetRegistryApiItem[];
+    } | TargetRegistryApiItem[];
     items?: TargetRegistryApiItem[];
   };
 }
@@ -195,7 +450,8 @@ async function fetchTargetRegistryViaApi(
   const fullApiUrl = `${apiUrl}?${queryParams.toString()}`;
   console.log(`[TARGET_API] Full API URL: ${fullApiUrl}`);
   
-  // Request body
+  // Request body - no filters to fetch ALL items regardless of purchase status
+  // Previously had filters: { types: ["TARGET_ITEMS"] } but removing to get all items
   const requestBody = {
     registry_id: registryId,
     channel: "WEB",
@@ -203,10 +459,7 @@ async function fetchTargetRegistryViaApi(
     location_id: "1904",
     pricing_context: "DIGITAL",
     contents_field_group: "REGISTRY_ITEMS",
-    filters: {
-      types: ["TARGET_ITEMS"],
-      // Can add sub_types: ["YET_TO_PURCHASE"] to filter only unpurchased items
-    },
+    // NOTE: filters removed to fetch all items (purchased, unpurchased, all types)
     sort: {
       field: "PRICE",
       order: "ASCENDING",
@@ -276,21 +529,52 @@ async function fetchTargetRegistryViaApi(
       if ((data as any).message) console.log(`[TARGET_API]   message: ${(data as any).message}`);
     }
     
-    // Find items array in response
+    // Find items array in response - prioritize registry_items.target_items structure
     let rawItems: TargetRegistryApiItem[] = [];
-    if (data.registry_items && Array.isArray(data.registry_items)) {
-      rawItems = data.registry_items;
-      console.log(`[TARGET_API] Found items in data.registry_items`);
-    } else if (data.items && Array.isArray(data.items)) {
+    
+    // Check for registry_items.target_items (primary expected structure)
+    if (data.registry_items && typeof data.registry_items === 'object' && !Array.isArray(data.registry_items)) {
+      const registryItemsObj = data.registry_items as { target_items?: TargetRegistryApiItem[] };
+      if (registryItemsObj.target_items && Array.isArray(registryItemsObj.target_items)) {
+        rawItems = registryItemsObj.target_items;
+        console.log(`[TARGET_API] Found items in data.registry_items.target_items`);
+      }
+    }
+    
+    // Fallback: check if registry_items is directly an array
+    if (rawItems.length === 0 && data.registry_items && Array.isArray(data.registry_items)) {
+      rawItems = data.registry_items as TargetRegistryApiItem[];
+      console.log(`[TARGET_API] Found items in data.registry_items (array)`);
+    }
+    
+    // Fallback: check data.items
+    if (rawItems.length === 0 && data.items && Array.isArray(data.items)) {
       rawItems = data.items;
       console.log(`[TARGET_API] Found items in data.items`);
-    } else if (data.data?.registry_items && Array.isArray(data.data.registry_items)) {
-      rawItems = data.data.registry_items;
-      console.log(`[TARGET_API] Found items in data.data.registry_items`);
-    } else if (data.data?.items && Array.isArray(data.data.items)) {
+    }
+    
+    // Fallback: check data.data.registry_items.target_items
+    if (rawItems.length === 0 && data.data?.registry_items && typeof data.data.registry_items === 'object' && !Array.isArray(data.data.registry_items)) {
+      const nestedRegistryItems = data.data.registry_items as { target_items?: TargetRegistryApiItem[] };
+      if (nestedRegistryItems.target_items && Array.isArray(nestedRegistryItems.target_items)) {
+        rawItems = nestedRegistryItems.target_items;
+        console.log(`[TARGET_API] Found items in data.data.registry_items.target_items`);
+      }
+    }
+    
+    // Fallback: check data.data.registry_items (array)
+    if (rawItems.length === 0 && data.data?.registry_items && Array.isArray(data.data.registry_items)) {
+      rawItems = data.data.registry_items as TargetRegistryApiItem[];
+      console.log(`[TARGET_API] Found items in data.data.registry_items (array)`);
+    }
+    
+    // Fallback: check data.data.items
+    if (rawItems.length === 0 && data.data?.items && Array.isArray(data.data.items)) {
       rawItems = data.data.items;
       console.log(`[TARGET_API] Found items in data.data.items`);
-    } else {
+    }
+    
+    if (rawItems.length === 0) {
       console.log(`[TARGET_API] WARNING: Could not find items array in any expected location`);
     }
     
@@ -300,6 +584,9 @@ async function fetchTargetRegistryViaApi(
       // Log detailed response structure for debugging
       console.log(`[TARGET_API] WARNING: Zero items found!`);
       console.log(`[TARGET_API] Response keys: ${Object.keys(data).join(", ")}`);
+      if (data.registry_items && typeof data.registry_items === 'object') {
+        console.log(`[TARGET_API] registry_items keys: ${Object.keys(data.registry_items).join(", ")}`);
+      }
       if (data.data) {
         console.log(`[TARGET_API] data.data keys: ${Object.keys(data.data).join(", ")}`);
       }
@@ -322,16 +609,18 @@ async function fetchTargetRegistryViaApi(
     
     for (const rawItem of rawItems) {
       try {
-        // Extract name
-        const name = rawItem.title || rawItem.product_title || rawItem.name || rawItem.description;
+        // Extract name: title or fallback to product_description.title
+        const name = rawItem.title || rawItem.product_description?.title || rawItem.product_title || rawItem.name || rawItem.description;
         if (!name) {
           if (DEBUG) console.log(`[TARGET_API] Skipping item without name`);
           continue;
         }
         
-        // Extract image
+        // Extract image: prioritize enrichment.images.primary_image_url
         let image: string | undefined;
-        if (rawItem.images && rawItem.images.length > 0) {
+        if (rawItem.enrichment?.images?.primary_image_url) {
+          image = rawItem.enrichment.images.primary_image_url;
+        } else if (rawItem.images && rawItem.images.length > 0) {
           const primaryImage = rawItem.images.find(img => img.primary) || rawItem.images[0];
           image = primaryImage?.base_url;
         }
@@ -339,7 +628,7 @@ async function fetchTargetRegistryViaApi(
           image = rawItem.primary_image_url || rawItem.image_url;
         }
         
-        // Extract price
+        // Extract price: prioritize price.formatted_current_price
         let price: string | undefined;
         if (rawItem.price) {
           price = rawItem.price.formatted_current_price || 
@@ -356,13 +645,26 @@ async function fetchTargetRegistryViaApi(
         const tcin = rawItem.tcin;
         let link: string | undefined;
         let links: string[] = [];
-        if (tcin) {
+        
+        // Prioritize enrichment.buy_url if present
+        if (rawItem.enrichment?.buy_url) {
+          link = rawItem.enrichment.buy_url;
+          links = [link];
+        } else if (tcin) {
           link = `https://www.target.com/p/-/A-${tcin}`;
           links = [link];
         }
         
-        // Extract registry metadata
+        // Ensure links is never null
+        if (!links) {
+          links = [];
+        }
+        
+        // Extract registry metadata from both registry_info and root-level fields
         const registryInfo = rawItem.registry_info;
+        const requestedQty = registryInfo?.requested_quantity ?? rawItem.requested_quantity;
+        const purchasedQty = registryInfo?.purchased_quantity ?? rawItem.purchased_quantity;
+        const neededQty = registryInfo?.needed_quantity;
         const isUnavailable = registryInfo?.is_unavailable || rawItem.availability?.is_unavailable;
         
         const scrapedItem: ScrapedItem = {
@@ -376,29 +678,29 @@ async function fetchTargetRegistryViaApi(
               image,
               price,
               tcin,
-              requested_quantity: registryInfo?.requested_quantity,
-              needed_quantity: registryInfo?.needed_quantity,
-              purchased_quantity: registryInfo?.purchased_quantity,
+              requested_quantity: requestedQty,
+              needed_quantity: neededQty,
+              purchased_quantity: purchasedQty,
               is_unavailable: isUnavailable,
             },
-            registry: registryInfo ? {
-              requested: registryInfo.requested_quantity,
-              needed: registryInfo.needed_quantity,
-              purchased: registryInfo.purchased_quantity,
-            } : undefined,
+            registry: {
+              requested: requestedQty,
+              needed: neededQty,
+              purchased: purchasedQty,
+            },
           },
         };
         
         items.push(scrapedItem);
-        if (DEBUG) console.log(`[TARGET_API] Item: "${name}" | tcin: ${tcin || 'N/A'} | price: ${price || 'N/A'}`);
+        if (DEBUG) console.log(`[TARGET_API] Item: "${name}" | tcin: ${tcin || 'N/A'} | price: ${price || 'N/A'} | requested: ${requestedQty || 'N/A'} | purchased: ${purchasedQty || 'N/A'}`);
       } catch (e: any) {
         if (DEBUG) console.log(`[TARGET_API] Error processing item: ${e.message}`);
       }
     }
     
-    console.log(`[TARGET_API] Successfully extracted ${items.length} items`);
+    console.log(`[TARGET_API] Successfully extracted ${items.length} items (includes all purchase statuses)`);
     console.log(`[TARGET_API] ========== Target API Request Complete ==========`);
-    return { success: true, items };
+    return { success: true, items, message: "Imported items may include already purchased items." };
     
   } catch (e: any) {
     console.error(`[TARGET_API] ========== FETCH ERROR ==========`);
@@ -2517,6 +2819,60 @@ Deno.serve(async (req) => {
           items: targetApiResult.items,
           retailer: "Target",
           source: `target:${url}`,
+          message: "Imported items may include already purchased items.",
+        }),
+        {
+          headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        }
+      );
+    }
+    
+    // Handle IKEA via GraphQL API (no HTML scraping)
+    if (retailer === "IKEARegistry") {
+      const shareId = extractIKEARegistryShareId(url);
+      if (!shareId) {
+        console.log(`[SCRAPE_ERROR] Could not extract IKEA registry share ID from URL: ${url}`);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            items: [],
+            message: "Invalid IKEA registry URL. Please ensure the URL is in the format: https://www.ikea.com/us/en/gift-registry/guest/?id=<shareId>",
+          }),
+          {
+            headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" },
+            status: 200,
+          }
+        );
+      }
+      
+      // Use GraphQL API for IKEA
+      const ikeaApiResult = await fetchIKEARegistryViaGraphQL(shareId, url);
+      
+      if (!ikeaApiResult.success || ikeaApiResult.items.length === 0) {
+        console.log(`[SCRAPE_RESULT] IKEA GraphQL import failed | error=${ikeaApiResult.error || "No items found"}`);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            items: [],
+            message: ikeaApiResult.error || "We couldn't retrieve items from this IKEA registry. The registry may be empty, private, or the API structure has changed.",
+          }),
+          {
+            headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" },
+            status: 200,
+          }
+        );
+      }
+      
+      // Essential: Final result line
+      console.log(`[SCRAPE_RESULT] success=true | items=${ikeaApiResult.items.length} | retailer=IKEA | source=ikea:${url}`);
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          items: ikeaApiResult.items,
+          retailer: "IKEA",
+          source: `ikea:${url}`,
         }),
         {
           headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" },
