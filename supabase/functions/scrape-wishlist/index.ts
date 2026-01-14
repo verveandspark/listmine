@@ -721,9 +721,55 @@ async function fetchTargetRegistryViaApi(
       };
     }
     
-    // Log first raw item for debugging
+    // Log first raw item for debugging - FULL STRUCTURE to find image path
     if (rawItems.length > 0) {
-      console.log(`[TARGET_API] First raw item sample: ${JSON.stringify(rawItems[0]).substring(0, 1000)}`);
+      console.log(`[TARGET_API_FULL_ITEM] First raw item FULL JSON (for image path discovery):`);
+      console.log(JSON.stringify(rawItems[0], null, 2));
+      console.log(`[TARGET_API_FULL_ITEM] End of first raw item`);
+      
+      // Also log all top-level keys of the raw item
+      console.log(`[TARGET_API_KEYS] First item top-level keys: ${Object.keys(rawItems[0]).join(', ')}`);
+      
+      // Check for any key containing 'image' or 'img'
+      const imageKeys = Object.keys(rawItems[0]).filter(k => k.toLowerCase().includes('image') || k.toLowerCase().includes('img'));
+      console.log(`[TARGET_API_IMAGE_KEYS] Keys containing 'image/img': ${imageKeys.length > 0 ? imageKeys.join(', ') : 'NONE'}`);
+      
+      // Check nested objects for image fields
+      for (const key of Object.keys(rawItems[0])) {
+        const val = (rawItems[0] as any)[key];
+        if (val && typeof val === 'object') {
+          const nestedKeys = Object.keys(val);
+          const nestedImageKeys = nestedKeys.filter(k => k.toLowerCase().includes('image') || k.toLowerCase().includes('img') || k.toLowerCase().includes('url'));
+          if (nestedImageKeys.length > 0) {
+            console.log(`[TARGET_API_NESTED] ${key} has image/url keys: ${nestedImageKeys.join(', ')} | values: ${nestedImageKeys.map(k => val[k]).join(', ')}`);
+          }
+        }
+      }
+      
+      // NEW: Log nested 'item' and 'product_details' sub-objects to find image path
+      const firstItem = rawItems[0] as any;
+      if (firstItem.item) {
+        console.log(`[TARGET_API_NESTED_ITEM] rawItem.item FULL JSON:`);
+        console.log(JSON.stringify(firstItem.item, null, 2));
+        console.log(`[TARGET_API_NESTED_ITEM] End of rawItem.item`);
+      } else {
+        console.log(`[TARGET_API_NESTED_ITEM] rawItem.item does NOT exist`);
+      }
+      
+      if (firstItem.product_details) {
+        console.log(`[TARGET_API_NESTED_PRODUCT_DETAILS] rawItem.product_details FULL JSON:`);
+        console.log(JSON.stringify(firstItem.product_details, null, 2));
+        console.log(`[TARGET_API_NESTED_PRODUCT_DETAILS] End of rawItem.product_details`);
+      } else {
+        console.log(`[TARGET_API_NESTED_PRODUCT_DETAILS] rawItem.product_details does NOT exist`);
+      }
+      
+      // Also check for 'product' nested object
+      if (firstItem.product) {
+        console.log(`[TARGET_API_NESTED_PRODUCT] rawItem.product FULL JSON:`);
+        console.log(JSON.stringify(firstItem.product, null, 2));
+        console.log(`[TARGET_API_NESTED_PRODUCT] End of rawItem.product`);
+      }
     }
     
     // Transform to ScrapedItem format
@@ -738,20 +784,31 @@ async function fetchTargetRegistryViaApi(
           continue;
         }
         
-        // Extract image: prioritize enrichment.images.primary_image_url (full URL with query params)
+        // Debug: Log raw item structure to understand image paths
+        console.log(`[TARGET_API_RAW] Item "${name?.substring(0, 30)}" has item.enrichment: ${!!rawItem.item?.enrichment} | item.enrichment.images: ${!!rawItem.item?.enrichment?.images} | item.enrichment.images.primary_image_url: ${rawItem.item?.enrichment?.images?.primary_image_url || 'N/A'}`);
+        
+        // Extract image: CORRECT PATH is rawItem.item.enrichment.images.primary_image_url
         let image: string | undefined;
-        if (rawItem.enrichment?.images?.primary_image_url) {
+        if (rawItem.item?.enrichment?.images?.primary_image_url) {
           // Use the full URL as-is (including query params like ?qlt=65&fmt=webp)
+          image = rawItem.item.enrichment.images.primary_image_url;
+          console.log(`[TARGET_API_IMAGE] Found item.enrichment.images.primary_image_url: ${image?.substring(0, 150)}`);
+        } else if (rawItem.enrichment?.images?.primary_image_url) {
+          // Fallback to old path just in case
           image = rawItem.enrichment.images.primary_image_url;
-          if (DEBUG) console.log(`[TARGET_API] Image from enrichment.images.primary_image_url: ${image?.substring(0, 100)}`);
+          console.log(`[TARGET_API_IMAGE] Found enrichment.images.primary_image_url (fallback): ${image?.substring(0, 150)}`);
         } else if (rawItem.images && rawItem.images.length > 0) {
-          const primaryImage = rawItem.images.find(img => img.primary) || rawItem.images[0];
+          const primaryImage = rawItem.images.find((img: any) => img.primary) || rawItem.images[0];
           image = primaryImage?.base_url;
-          if (DEBUG && image) console.log(`[TARGET_API] Image from images array: ${image.substring(0, 100)}`);
+          console.log(`[TARGET_API_IMAGE] Found images array base_url: ${image?.substring(0, 150) || 'N/A'}`);
+        } else if (rawItem.item?.images && rawItem.item.images.length > 0) {
+          const primaryImage = rawItem.item.images.find((img: any) => img.primary) || rawItem.item.images[0];
+          image = primaryImage?.base_url;
+          console.log(`[TARGET_API_IMAGE] Found item.images array base_url: ${image?.substring(0, 150) || 'N/A'}`);
         }
         if (!image) {
-          image = rawItem.primary_image_url || rawItem.image_url;
-          if (DEBUG && image) console.log(`[TARGET_API] Image from fallback fields: ${image.substring(0, 100)}`);
+          image = rawItem.primary_image_url || rawItem.image_url || rawItem.item?.primary_image_url || rawItem.item?.image_url;
+          console.log(`[TARGET_API_IMAGE] Fallback to primary_image_url/image_url: ${image?.substring(0, 150) || 'STILL_MISSING'}`);
         }
         
         // Normalize protocol-relative URLs (//target.scene7.com/... to https://target.scene7.com/...)
@@ -805,15 +862,18 @@ async function fetchTargetRegistryViaApi(
         const neededQty = registryInfo?.needed_quantity;
         const isUnavailable = registryInfo?.is_unavailable || rawItem.availability?.is_unavailable;
         
+        // Explicitly assign image to both root and attributes.custom.image
+        const finalImage = image || undefined;
+        
         const scrapedItem: ScrapedItem = {
           name,
           link,
           links,
-          image,
+          image: finalImage,
           price,
           attributes: {
             custom: {
-              image,
+              image: finalImage,
               price,
               tcin,
               requested_quantity: requestedQty,
@@ -830,8 +890,8 @@ async function fetchTargetRegistryViaApi(
         };
         
         items.push(scrapedItem);
-        // Always log image info for Target items
-        console.log(`[TARGET_API] Item: "${name?.substring(0, 40)}" | image: ${image || 'MISSING'} | attrs.custom.image: ${scrapedItem.attributes?.custom?.image || 'MISSING'}`);
+        // Always log image info for Target items - with explicit confirmation
+        console.log(`[TARGET_API_FINAL] Item: "${name?.substring(0, 40)}" | root.image: ${scrapedItem.image || 'MISSING'} | attrs.custom.image: ${scrapedItem.attributes?.custom?.image || 'MISSING'} | tcin: ${tcin || 'N/A'}`);
       } catch (e: any) {
         if (DEBUG) console.log(`[TARGET_API] Error processing item: ${e.message}`);
       }
@@ -2951,6 +3011,12 @@ Deno.serve(async (req) => {
       
       // Essential: Final result line
       console.log(`[SCRAPE_RESULT] success=true | items=${targetApiResult.items.length} | retailer=Target | source=target:${url}`);
+      
+      // Debug: Log first item's full structure to verify attributes.custom.image is present
+      if (targetApiResult.items.length > 0) {
+        const sampleItem = targetApiResult.items[0];
+        console.log(`[TARGET_RESPONSE_DEBUG] First item sample: name="${sampleItem.name?.substring(0, 40)}" | root.image=${sampleItem.image || 'MISSING'} | attrs.custom.image=${sampleItem.attributes?.custom?.image || 'MISSING'} | Full item: ${JSON.stringify(sampleItem).substring(0, 500)}`);
+      }
       
       return new Response(
         JSON.stringify({

@@ -3019,7 +3019,11 @@ export function ListProvider({ children }: { children: ReactNode }) {
         },
       }));
 
-      // Debug log for first 3 items (temporary)
+      // Debug log for first 3 items - FULL image path verification
+      console.log("[IMPORT_DEBUG] Items being saved to database:");
+      itemsToInsert.slice(0, 3).forEach((item, idx) => {
+        console.log(`[IMPORT_DEBUG] Item ${idx + 1}: "${item.text?.substring(0, 40)}" | custom.image: ${item.attributes?.custom?.image || 'MISSING'} | root.image: ${items[idx]?.image || 'MISSING'} | incoming.attrs.custom.image: ${items[idx]?.attributes?.custom?.image || 'MISSING'}`);
+      });
       console.log("[IMPORT_ITEM_LINKS_SAMPLE]", JSON.stringify(itemsToInsert.slice(0, 3).map(i => ({ 
         text: i.text, 
         links: i.links, 

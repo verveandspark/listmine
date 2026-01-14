@@ -427,6 +427,12 @@ export default function ImportExport() {
         selected: true,
       }));
 
+      // Debug: Log image data from edge function response
+      console.log("[IMPORT_IMAGE_DEBUG] First 3 items from edge function:");
+      data.items.slice(0, 3).forEach((item: any, idx: number) => {
+        console.log(`[IMPORT_IMAGE_DEBUG] Item ${idx + 1}: "${item.name?.substring(0, 40)}" | root.image: ${item.image || 'MISSING'} | attrs.custom.image: ${item.attributes?.custom?.image || 'MISSING'}`);
+      });
+
       setScrapedItems(itemsWithSelection);
       setRetailer(data.retailer);
       setWishlistName(`${data.retailer} Wishlist`);
@@ -475,6 +481,12 @@ export default function ImportExport() {
     }
 
     try {
+      // Debug: Log items being sent to importFromWishlist
+      console.log("[IMPORT_TO_LIST_DEBUG] Items being sent to importFromWishlist:");
+      selectedItems.slice(0, 3).forEach((item, idx) => {
+        console.log(`[IMPORT_TO_LIST_DEBUG] Item ${idx + 1}: "${item.name?.substring(0, 40)}" | root.image: ${item.image || 'MISSING'} | attrs.custom.image: ${item.attributes?.custom?.image || 'MISSING'} | has attributes: ${!!item.attributes}`);
+      });
+      
       // Normalize the pasted URL and pass it through for ALL retailers
       const normalizedUrl = wishlistUrl.trim().startsWith('https://') || wishlistUrl.trim().startsWith('http://') 
         ? wishlistUrl.trim() 

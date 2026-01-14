@@ -4254,6 +4254,8 @@ export default function ListDetail() {
                                 e.stopPropagation();
                                 e.preventDefault();
                                 if (import.meta.env.DEV) console.log('[DEV] VIEW 1 Edit button clicked for item:', item.id, item.text);
+                                // Debug logging for image data when opening edit modal
+                                console.log(`[EDIT_MODAL_DEBUG] Opening edit for "${item.text?.substring(0, 40)}" | custom.image: ${item.attributes?.custom?.image || 'MISSING'} | customLinkImage: ${item.attributes?.customLinkImage || 'MISSING'} | Full attributes:`, JSON.stringify(item.attributes, null, 2));
                                 setEditingItem(item);
                                 // Store original links and reset touched state
                                 setOriginalItemLinks(item.links ?? null);
@@ -4492,6 +4494,8 @@ export default function ListDetail() {
                                 e.stopPropagation();
                                 e.preventDefault();
                                 if (import.meta.env.DEV) console.log('[DEV] VIEW 2 Edit button clicked for item:', item.id, item.text);
+                                // Debug logging for image data when opening edit modal
+                                console.log(`[EDIT_MODAL_DEBUG] Opening edit for "${item.text?.substring(0, 40)}" | custom.image: ${item.attributes?.custom?.image || 'MISSING'} | customLinkImage: ${item.attributes?.customLinkImage || 'MISSING'} | Full attributes:`, JSON.stringify(item.attributes, null, 2));
                                 setEditingItem(item);
                                 // Store original links and reset touched state
                                 setOriginalItemLinks(item.links ?? null);
@@ -4681,15 +4685,33 @@ export default function ListDetail() {
                           }
                           className={`mt-1 h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform ${item.completed ? "animate-check-bounce" : ""}`}
                         />
-                        {item.attributes?.custom?.image && (
-                          <img
-                            src={item.attributes.custom.image}
-                            alt={item.text}
-                            className="h-10 w-10 rounded object-cover flex-shrink-0 mr-3"
-                            loading="lazy"
-                            referrerPolicy="no-referrer"
-                          />
-                        )}
+                        {(() => {
+                          // Debug logging for Target item images
+                          const customImage = item.attributes?.custom?.image;
+                          const customLinkImage = item.attributes?.customLinkImage;
+                          const imageUrl = customImage || customLinkImage;
+                          
+                          if (imageUrl || item.attributes?.custom?.tcin) {
+                            console.log(`[IMAGE_DEBUG] Item "${item.text?.substring(0, 40)}" | custom.image: ${customImage || 'MISSING'} | customLinkImage: ${customLinkImage || 'MISSING'} | tcin: ${item.attributes?.custom?.tcin || 'N/A'}`);
+                          }
+                          
+                          return imageUrl ? (
+                            <img
+                              src={imageUrl}
+                              alt={item.text}
+                              className="h-10 w-10 rounded object-cover flex-shrink-0 mr-3"
+                              loading="lazy"
+                              referrerPolicy="no-referrer"
+                              onError={(e) => {
+                                console.error(`[IMAGE_ERROR] Failed to load image for "${item.text?.substring(0, 40)}" | URL: ${imageUrl}`);
+                                e.currentTarget.style.display = 'none';
+                              }}
+                              onLoad={() => {
+                                console.log(`[IMAGE_LOADED] Successfully loaded image for "${item.text?.substring(0, 40)}"`);
+                              }}
+                            />
+                          ) : null;
+                        })()}
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-col gap-1 min-w-0 w-full">
                             <p
@@ -4856,6 +4878,8 @@ export default function ListDetail() {
                                 e.stopPropagation();
                                 e.preventDefault();
                                 if (import.meta.env.DEV) console.log('[DEV] VIEW 3 Edit button clicked for item:', item.id, item.text);
+                                // Debug logging for image data when opening edit modal
+                                console.log(`[EDIT_MODAL_DEBUG] Opening edit for "${item.text?.substring(0, 40)}" | custom.image: ${item.attributes?.custom?.image || 'MISSING'} | customLinkImage: ${item.attributes?.customLinkImage || 'MISSING'} | Full attributes:`, JSON.stringify(item.attributes, null, 2));
                                 setEditingItem(item);
                                 // Store original links and reset touched state
                                 setOriginalItemLinks(item.links ?? null);
