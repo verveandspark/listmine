@@ -180,6 +180,100 @@ interface IKEARegistryResponse {
   errors?: Array<{ message: string }>;
 }
 
+// Fetch IKEA Bearer token from session bootstrap endpoint
+async function fetchIKEABearerToken(originalUrl: string): Promise<{ success: boolean; token?: string; error?: string }> {
+  console.log(`[IKEA_AUTH] ========== Fetching IKEA Bearer Token ==========`);
+  
+  // IKEA uses an OAuth/session init endpoint to get bearer tokens
+  // The token is obtained by calling the igift init endpoint
+  const initUrl = "https://igift.ingka.com/init";
+  
+  try {
+    console.log(`[IKEA_AUTH] Calling init endpoint: ${initUrl}`);
+    const response = await fetch(initUrl, {
+      method: "GET",
+      headers: {
+        "Accept": "application/json",
+        "Preferred-Locale": "en-US",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+        "Origin": "https://www.ikea.com",
+        "Referer": originalUrl,
+      },
+    });
+    
+    console.log(`[IKEA_AUTH] Init response status: ${response.status}`);
+    
+    if (!response.ok) {
+      // Try alternative auth endpoint
+      console.log(`[IKEA_AUTH] Init failed, trying alternative auth endpoint`);
+      const authUrl = "https://igift.ingka.com/oauth/token";
+      const authResponse = await fetch(authUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Accept": "application/json",
+          "Preferred-Locale": "en-US",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+          "Origin": "https://www.ikea.com",
+          "Referer": originalUrl,
+        },
+        body: "grant_type=client_credentials",
+      });
+      
+      console.log(`[IKEA_AUTH] OAuth response status: ${authResponse.status}`);
+      
+      if (!authResponse.ok) {
+        const errorText = await authResponse.text();
+        console.log(`[IKEA_AUTH] OAuth error: ${errorText.substring(0, 500)}`);
+        // Return success without token - will try GraphQL without auth
+        return { success: true, token: undefined };
+      }
+      
+      const authData = await authResponse.json();
+      if (authData.access_token) {
+        console.log(`[IKEA_AUTH] Got token from OAuth endpoint`);
+        return { success: true, token: authData.access_token };
+      }
+      if (authData.token) {
+        console.log(`[IKEA_AUTH] Got token field from OAuth endpoint`);
+        return { success: true, token: authData.token };
+      }
+      
+      return { success: true, token: undefined };
+    }
+    
+    const data = await response.json();
+    console.log(`[IKEA_AUTH] Init response keys: ${Object.keys(data).join(", ")}`);
+    
+    // Look for token in various possible fields
+    if (data.accessToken) {
+      console.log(`[IKEA_AUTH] Got accessToken from init`);
+      return { success: true, token: data.accessToken };
+    }
+    if (data.access_token) {
+      console.log(`[IKEA_AUTH] Got access_token from init`);
+      return { success: true, token: data.access_token };
+    }
+    if (data.token) {
+      console.log(`[IKEA_AUTH] Got token from init`);
+      return { success: true, token: data.token };
+    }
+    if (data.auth?.token) {
+      console.log(`[IKEA_AUTH] Got auth.token from init`);
+      return { success: true, token: data.auth.token };
+    }
+    
+    console.log(`[IKEA_AUTH] No token found in init response, proceeding without auth`);
+    console.log(`[IKEA_AUTH] Init response: ${JSON.stringify(data).substring(0, 500)}`);
+    return { success: true, token: undefined };
+    
+  } catch (e: any) {
+    console.error(`[IKEA_AUTH] Error fetching token: ${e.message}`);
+    // Return success without token - will try GraphQL without auth
+    return { success: true, token: undefined };
+  }
+}
+
 async function fetchIKEARegistryViaGraphQL(
   shareId: string,
   originalUrl: string
@@ -187,6 +281,15 @@ async function fetchIKEARegistryViaGraphQL(
   console.log(`[IKEA_API] ========== Starting IKEA GraphQL Request ==========`);
   console.log(`[IKEA_API] Share ID: ${shareId}`);
   console.log(`[IKEA_API] Original URL: ${originalUrl}`);
+  
+  // Step 1: Bootstrap bearer token
+  const tokenResult = await fetchIKEABearerToken(originalUrl);
+  const bearerToken = tokenResult.token;
+  if (bearerToken) {
+    console.log(`[IKEA_API] Bearer token obtained successfully`);
+  } else {
+    console.log(`[IKEA_API] No bearer token available, proceeding without Authorization header`);
+  }
   
   // IKEA GraphQL endpoint
   const graphqlUrl = "https://igift.ingka.com/graphql";
@@ -243,18 +346,26 @@ async function fetchIKEARegistryViaGraphQL(
   console.log(`[IKEA_API] GraphQL URL: ${graphqlUrl}`);
   console.log(`[IKEA_API] Request variables: ${JSON.stringify(requestBody.variables)}`);
   
+  // Build headers with optional Authorization
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "Preferred-Locale": "en-US",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+    "Origin": "https://www.ikea.com",
+    "Referer": originalUrl,
+  };
+  
+  if (bearerToken) {
+    headers["Authorization"] = `Bearer ${bearerToken}`;
+    console.log(`[IKEA_API] Authorization header added`);
+  }
+  
   try {
     console.log(`[IKEA_API] Sending POST request...`);
     const response = await fetch(graphqlUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "Preferred-Locale": "en-US",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-        "Origin": "https://www.ikea.com",
-        "Referer": originalUrl,
-      },
+      headers,
       body: JSON.stringify(requestBody),
     });
     
@@ -627,6 +738,11 @@ async function fetchTargetRegistryViaApi(
         }
         if (!image) {
           image = rawItem.primary_image_url || rawItem.image_url;
+        }
+        
+        // Normalize protocol-relative URLs (// to https://)
+        if (image && image.startsWith('//')) {
+          image = `https:${image}`;
         }
         
         // Extract price: prioritize price.formatted_current_price
