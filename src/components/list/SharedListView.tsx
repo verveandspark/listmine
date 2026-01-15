@@ -355,6 +355,16 @@ export default function SharedListView() {
     return normalized === "Registry" || normalized === "Wishlist";
   };
 
+  const isShoppingOrGrocery = (listType: string | undefined): boolean => {
+    const normalized = normalizeListTypeLocal(listType);
+    return normalized === "Shopping List";
+  };
+
+  // Check if this is a list type that should show product-style display (image, price, quantity)
+  const isProductListType = (listType: string | undefined): boolean => {
+    return isRegistryOrWishlist(listType) || isShoppingOrGrocery(listType);
+  };
+
   const canImport = shareMode === 'importable';
   const canPurchase = shareMode === 'registry_buyer';
 
@@ -668,38 +678,97 @@ export default function SharedListView() {
                     disabled
                     className="mt-1 h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0"
                   />
+                  {/* Product Image Thumbnail for shopping/registry/wishlist types */}
+                  {isProductListType(list.listType) && (() => {
+                    const customImage = item.attributes?.custom?.image;
+                    const customLinkImage = item.attributes?.customLinkImage;
+                    const imageUrl = customImage || customLinkImage;
+                    
+                    return imageUrl ? (
+                      <img
+                        src={imageUrl}
+                        alt={item.text}
+                        className="h-10 w-10 rounded object-cover flex-shrink-0 mr-3"
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    ) : null;
+                  })()}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex flex-col gap-1 min-w-0 w-full">
                       <p
                         className={`text-sm sm:text-base text-gray-900 transition-all duration-200 ${
                           item.completed || isPurchased ? "line-through opacity-60" : ""
-                        } break-words`}
+                        } break-words overflow-hidden w-full`}
+                        style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
                       >
-                        {item.quantity && (
-                          <span className="font-semibold text-primary">
-                            {item.quantity}× {" "}
-                          </span>
-                        )}
+                        {/* Quantity prefix for shopping/registry/wishlist/grocery types when > 1 */}
+                        {(() => {
+                          const qty = item.quantity || item.attributes?.quantityNeeded;
+                          const showQtyTypes = isProductListType(list.listType);
+                          if (showQtyTypes && qty && qty > 1) {
+                            return (
+                              <span className="font-semibold text-primary">
+                                {qty}× {" "}
+                              </span>
+                            );
+                          }
+                          return null;
+                        })()}
                         {item.text}
                       </p>
-                      {item.dueDate && (
-                        <Badge
-                          variant="outline"
-                          className={`${getDueDateColor(item.dueDate)} flex items-center gap-1 text-xs`}
-                        >
-                          <Calendar className="w-3 h-3" />
-                          {format(new Date(item.dueDate), "MMM d")}
-                        </Badge>
+                      {item.notes && !item.completed && (
+                        <p className="text-xs text-gray-500 -mt-0.5 break-words italic">
+                          {item.notes}
+                        </p>
                       )}
-                      {item.assignedTo && (
-                        <Badge variant="outline" className="text-xs">
-                          <UserIcon className="w-3 h-3 mr-1" />
-                          {item.assignedTo}
-                        </Badge>
-                      )}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {isPurchased && (
+                          <Badge className="bg-accent/10 text-accent border-accent/20">
+                            ✓ Purchased
+                          </Badge>
+                        )}
+                        {/* Price display - matching owner's view */}
+                        {(item.attributes?.price || item.attributes?.custom?.price) && (
+                          <span className="text-sm font-medium text-gray-700">
+                            {(() => {
+                              const priceVal = String(item.attributes?.price || item.attributes?.custom?.price || '');
+                              return priceVal.startsWith('$') ? priceVal : `$${priceVal}`;
+                            })()}
+                          </span>
+                        )}
+                        {item.dueDate && (
+                          <Badge
+                            variant="outline"
+                            className={`${getDueDateColor(item.dueDate)} flex items-center gap-1 text-xs`}
+                          >
+                            <Calendar className="w-3 h-3" />
+                            {format(new Date(item.dueDate), "MMM d")}
+                          </Badge>
+                        )}
+                        {item.assignedTo && (
+                          <Badge variant="outline" className="text-xs">
+                            <UserIcon className="w-3 h-3 mr-1" />
+                            {item.assignedTo}
+                          </Badge>
+                        )}
+                        {/* Note indicator only shows when notes exist but are hidden (item completed) */}
+                        {item.notes && item.completed && 
+                          !item.text.match(/^(Main idea|Supporting details|Action items|Follow-up needed|Resources\/links|Breakfast|Lunch|Dinner|Snack|Notes)$/) &&
+                          !item.notes.match(/^(Add meal|Add snack|Add idea|Add item|Ideas for next week)/) && (
+                          <Badge variant="outline" className="text-xs">
+                            <StickyNote className="w-3 h-3 mr-1" />
+                            Note
+                          </Badge>
+                        )}
+                      </div>
                     </div>
 
-                    {item.attributes && (
+                    {/* Attribute Tags - for non-product lists or additional attributes */}
+                    {item.attributes && !isProductListType(list.listType) && (
                       <div className="flex items-center gap-2 mt-2 flex-wrap">
                         {item.attributes.color && (
                           <Badge
@@ -754,15 +823,23 @@ export default function SharedListView() {
                           {item.priority}
                         </Badge>
                       )}
-                      {item.notes && 
-                        !item.text.match(/^(Main idea|Supporting details|Action items|Follow-up needed|Resources\/links|Breakfast|Lunch|Dinner|Snack|Notes)$/) &&
-                        !item.notes.match(/^(Add meal|Add snack|Add idea|Add item|Ideas for next week)/) && (
-                        <Badge variant="outline" className="text-xs">
-                          <StickyNote className="w-3 h-3 mr-1" />
-                          Note
-                        </Badge>
+                      {/* Product Link badge for product-style lists */}
+                      {isProductListType(list.listType) && (item.attributes?.productLink || item.links?.[0]) && (
+                        <a
+                          href={item.attributes?.productLink || item.links?.[0]}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Badge variant="outline" className="text-xs bg-primary/10 border-primary/20 cursor-pointer hover:bg-primary/20">
+                            <ExternalLink className="w-3 h-3 mr-1 text-primary" />
+                            <span className="text-primary">View item</span>
+                          </Badge>
+                        </a>
                       )}
-                      {item.links && item.links.length > 0 && (
+                      {/* For non-product lists, show links badge */}
+                      {!isProductListType(list.listType) && item.links && item.links.length > 0 && (
                         <Badge variant="outline" className="text-xs">
                           <LinkIcon className="w-3 h-3 mr-1" />
                           {item.links.length} link
@@ -771,15 +848,8 @@ export default function SharedListView() {
                       )}
                     </div>
 
-
-
-                    {item.notes && !item.completed && (
-                      <p className="text-xs sm:text-sm text-gray-600 mt-2 break-words">
-                        {item.notes}
-                      </p>
-                    )}
-
-                    {item.links && item.links.length > 0 && (
+                    {/* Links display for non-product lists */}
+                    {!isProductListType(list.listType) && item.links && item.links.length > 0 && (
                       <div className="mt-2 space-y-1">
                         {item.links.map((link: string, idx: number) => (
                           <a
@@ -796,8 +866,8 @@ export default function SharedListView() {
                       </div>
                     )}
 
-                    {/* Link Preview for registry/wishlist items */}
-                    {isRegistryOrWishlist(list.listType) && item.attributes?.productLink && (
+                    {/* Link Preview Card for non-product lists with product links */}
+                    {!isProductListType(list.listType) && item.attributes?.productLink && (
                       <div className="mt-3">
                         <a
                           href={item.attributes.productLink}
