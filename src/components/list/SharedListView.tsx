@@ -31,6 +31,7 @@ import {
   Download,
   Copy,
   Info,
+  Search,
 } from "lucide-react";
 import { format } from "date-fns";
 import { isToday, isPast } from "date-fns";
@@ -363,6 +364,152 @@ export default function SharedListView() {
   // Check if this is a list type that should show product-style display (image, price, quantity)
   const isProductListType = (listType: string | undefined): boolean => {
     return isRegistryOrWishlist(listType) || isShoppingOrGrocery(listType);
+  };
+
+  // Helper function to compute the primary outbound URL for an item (matches ListDetail.tsx)
+  const getPrimaryItemUrl = (item: any, listSource?: string): { url: string | null; isFallback: boolean; isTheKnot: boolean } => {
+    const isTheKnot = !!listSource?.startsWith('theknot:');
+    const isMyRegistry = !!listSource?.startsWith('myregistry:');
+    const isBBB = !!listSource?.startsWith('bbb:');
+    const isAmazon = !!listSource?.startsWith('amazon:');
+    const isTarget = !!listSource?.startsWith('target:');
+    
+    // For The Knot lists: ALWAYS use registry URL, treat item links as unreliable
+    if (isTheKnot) {
+      return { url: listSource!.replace(/^theknot:/, ''), isFallback: true, isTheKnot: true };
+    }
+    
+    // For other lists: use item's direct link if available
+    if (item.links?.[0] && item.links[0].trim() !== '') {
+      return { url: item.links[0], isFallback: false, isTheKnot: false };
+    }
+    
+    // Check for productLink in attributes
+    if (item.attributes?.productLink && item.attributes.productLink.trim() !== '') {
+      return { url: item.attributes.productLink, isFallback: false, isTheKnot: false };
+    }
+    
+    // Fallback to registry source URL for known registry types
+    if (isMyRegistry) {
+      return { url: listSource!.replace(/^myregistry:/, ''), isFallback: true, isTheKnot: false };
+    }
+    if (isBBB) {
+      return { url: listSource!.replace(/^bbb:/, ''), isFallback: true, isTheKnot: false };
+    }
+    if (isAmazon) {
+      return { url: listSource!.replace(/^amazon:/, ''), isFallback: true, isTheKnot: false };
+    }
+    if (isTarget) {
+      return { url: listSource!.replace(/^target:/, ''), isFallback: true, isTheKnot: false };
+    }
+    
+    // Generic fallback: try to extract URL from any source format (prefix:url)
+    if (listSource && listSource.includes(':')) {
+      const colonIndex = listSource.indexOf(':');
+      const possibleUrl = listSource.substring(colonIndex + 1);
+      if (possibleUrl.startsWith('http')) {
+        return { url: possibleUrl, isFallback: true, isTheKnot: false };
+      }
+    }
+    
+    return { url: null, isFallback: false, isTheKnot: false };
+  };
+
+  // Helper to check if item link actions should be shown
+  const shouldShowItemLinks = (item: any): boolean => {
+    const isTheKnot = (list?.source ?? "").startsWith("theknot:");
+    const hasDirectLink = !isTheKnot && !!item.links?.[0];
+    const hasProductLink = !!item.attributes?.productLink;
+    const hasRegistryFallback = isTheKnot || 
+      (list?.source ?? "").startsWith("myregistry:") ||
+      (list?.source ?? "").startsWith("bbb:") ||
+      (list?.source ?? "").startsWith("amazon:") ||
+      (list?.source ?? "").startsWith("target:") ||
+      ((list?.source ?? "").includes(':') && (list?.source ?? "").split(':')[1]?.startsWith('http'));
+    return hasDirectLink || hasProductLink || hasRegistryFallback;
+  };
+
+  // Item Link Actions component (matches ListDetail.tsx)
+  const ItemLinkActions = ({ item }: { item: any }) => {
+    const { url: primaryUrl, isFallback, isTheKnot } = getPrimaryItemUrl(item, list?.source);
+    
+    // For copy link: only copy real non-Knot links
+    const hasRealLink = !isTheKnot && item.links?.[0] && item.links[0].trim() !== '';
+    const copyableUrl = hasRealLink ? item.links![0] : (item.attributes?.productLink || null);
+    
+    const handleCopyLink = async (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!copyableUrl) return;
+      try {
+        await navigator.clipboard.writeText(copyableUrl);
+        toast({
+          title: "Copied!",
+          description: "Link copied to clipboard",
+        });
+      } catch {
+        toast({
+          title: "Copy failed",
+          description: "Could not copy link",
+          variant: "destructive",
+        });
+      }
+    };
+
+    // Don't render anything if no URL
+    if (!primaryUrl) {
+      return null;
+    }
+
+    const searchUrl = `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(item.text + " buy")}`;
+
+    return (
+      <div className="relative inline-flex items-center gap-2 flex-wrap">
+        <a
+          href={primaryUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs sm:text-sm text-primary hover:text-primary/80 underline flex items-center gap-1"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <ExternalLink className="w-3 h-3 flex-shrink-0" />
+          View item
+        </a>
+        {/* The Knot tooltip - always show for Knot lists */}
+        {isTheKnot && (
+          <span title="The Knot doesn't provide reliable per-item product links. View item opens the registry.">
+            <Info className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground cursor-help" />
+          </span>
+        )}
+        {/* Non-Knot fallback tooltip */}
+        {isFallback && !isTheKnot && (
+          <span title="This item opens in the source registry (no direct product link available).">
+            <Info className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground cursor-help" />
+          </span>
+        )}
+        {/* Copy link - only show if there's a real link */}
+        {copyableUrl && (
+          <button
+            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+            onClick={handleCopyLink}
+          >
+            <Copy className="w-3 h-3" />
+            Copy link
+          </button>
+        )}
+        {/* Search - always available */}
+        <a
+          href={searchUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Search className="w-3 h-3" />
+          Search
+        </a>
+      </div>
+    );
   };
 
   const canImport = shareMode === 'importable';
@@ -823,21 +970,6 @@ export default function SharedListView() {
                           {item.priority}
                         </Badge>
                       )}
-                      {/* Product Link badge for product-style lists */}
-                      {isProductListType(list.listType) && (item.attributes?.productLink || item.links?.[0]) && (
-                        <a
-                          href={item.attributes?.productLink || item.links?.[0]}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Badge variant="outline" className="text-xs bg-primary/10 border-primary/20 cursor-pointer hover:bg-primary/20">
-                            <ExternalLink className="w-3 h-3 mr-1 text-primary" />
-                            <span className="text-primary">View item</span>
-                          </Badge>
-                        </a>
-                      )}
                       {/* For non-product lists, show links badge */}
                       {!isProductListType(list.listType) && item.links && item.links.length > 0 && (
                         <Badge variant="outline" className="text-xs">
@@ -902,6 +1034,13 @@ export default function SharedListView() {
                             </p>
                           </div>
                         </a>
+                      </div>
+                    )}
+
+                    {/* Universal item link actions for registry/wishlist/shopping items */}
+                    {isProductListType(list.listType) && shouldShowItemLinks(item) && (
+                      <div className="mt-2">
+                        <ItemLinkActions item={item} />
                       </div>
                     )}
 
