@@ -1905,17 +1905,14 @@ export default function ListDetail() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Qty Needed</Label>
+                      <Label>Quantity</Label>
                       <Input
                         type="number"
-                        value={editingItem.attributes?.quantityNeeded || ""}
+                        value={editingItem.quantity || ""}
                         onChange={(e) =>
                           setEditingItem({
                             ...editingItem,
-                            attributes: {
-                              ...editingItem.attributes,
-                              quantityNeeded: e.target.value ? parseInt(e.target.value) : undefined,
-                            },
+                            quantity: e.target.value ? parseInt(e.target.value) : undefined,
                           })
                         }
                       />
@@ -3617,13 +3614,13 @@ export default function ListDetail() {
                             />
                           </div>
                           <div>
-                            <Label className="text-xs mb-2">Qty Needed</Label>
+                            <Label className="text-xs mb-2">Quantity</Label>
                             <Input
                               type="number"
                               placeholder="1"
-                              value={newItemQuantityNeeded || ""}
+                              value={newItemQuantity || ""}
                               onChange={(e) =>
-                                setNewItemQuantityNeeded(e.target.value ? parseInt(e.target.value) : undefined)
+                                setNewItemQuantity(e.target.value ? parseInt(e.target.value) : undefined)
                               }
                               className="min-h-[44px]"
                               min="1"
@@ -3739,6 +3736,21 @@ export default function ListDetail() {
                             />
                           </div>
                           <div>
+                            <Label className="text-xs mb-2">Quantity</Label>
+                            <Input
+                              type="number"
+                              placeholder="1"
+                              value={newItemQuantity || ""}
+                              onChange={(e) =>
+                                setNewItemQuantity(e.target.value ? parseInt(e.target.value) : undefined)
+                              }
+                              className="min-h-[44px]"
+                              min="1"
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
                             <Label className="text-xs mb-2">Link Title (optional)</Label>
                             <Input
                               type="text"
@@ -3748,15 +3760,15 @@ export default function ListDetail() {
                               className="min-h-[44px]"
                             />
                           </div>
-                        </div>
-                        <div>
-                          <Label className="text-xs mb-2">Link Description (optional)</Label>
-                          <Textarea
-                            placeholder="e.g., Noise-canceling over-ear headphones"
-                            value={newItemLinkDescription}
-                            onChange={(e) => setNewItemLinkDescription(e.target.value)}
-                            className="min-h-[60px]"
-                          />
+                          <div>
+                            <Label className="text-xs mb-2">Link Description (optional)</Label>
+                            <Textarea
+                              placeholder="e.g., Noise-canceling over-ear headphones"
+                              value={newItemLinkDescription}
+                              onChange={(e) => setNewItemLinkDescription(e.target.value)}
+                              className="min-h-[60px]"
+                            />
+                          </div>
                         </div>
                         <div>
                           <Label className="text-xs mb-2">Link Image URL (optional)</Label>
@@ -4128,11 +4140,19 @@ export default function ListDetail() {
                               className={`text-sm sm:text-base text-gray-900 transition-all duration-200 ${item.completed ? "line-through opacity-50" : ""} break-words overflow-hidden w-full`}
                                               style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
                             >
-                              {item.quantity && (
-                                <span className="font-semibold text-primary">
-                                  {item.quantity}× {" "}
-                                </span>
-                              )}
+                              {(() => {
+                                // For shopping, registry, wishlist, and grocery types, show quantity prefix when > 1
+                                const qty = item.quantity || item.attributes?.quantityNeeded;
+                                const showQtyTypes = isShoppingList || isRegistryOrWishlistType || isGrocery;
+                                if (showQtyTypes && qty && qty > 1) {
+                                  return (
+                                    <span className="font-semibold text-primary">
+                                      {qty}× {" "}
+                                    </span>
+                                  );
+                                }
+                                return null;
+                              })()}
                               {item.text}
                             </p>
                             {item.notes && !item.completed && (
@@ -4421,11 +4441,19 @@ export default function ListDetail() {
                               className={`text-sm sm:text-base text-gray-900 transition-all duration-200 ${item.completed ? "line-through opacity-50" : ""} break-words overflow-hidden w-full`}
                                               style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
                             >
-                              {item.quantity && (
-                                <span className="font-semibold text-primary">
-                                  {item.quantity}× {" "}
-                                </span>
-                              )}
+                              {(() => {
+                                // For shopping, registry, wishlist, and grocery types, show quantity prefix when > 1
+                                const qty = item.quantity || item.attributes?.quantityNeeded;
+                                const showQtyTypes = isShoppingList || isRegistryOrWishlistType || isGrocery;
+                                if (showQtyTypes && qty && qty > 1) {
+                                  return (
+                                    <span className="font-semibold text-primary">
+                                      {qty}× {" "}
+                                    </span>
+                                  );
+                                }
+                                return null;
+                              })()}
                               {item.text}
                             </p>
                             {item.notes && !item.completed && (
