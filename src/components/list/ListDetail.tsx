@@ -423,12 +423,30 @@ export default function ListDetail() {
   // Help modal state
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   
-  // Section management state (for template-based lists)
+  // Section management state (for template-based lists) - list-specific
   const [customSections, setCustomSections] = useState<string[]>([]);
   const [editingSectionName, setEditingSectionName] = useState<string | null>(null);
   const [editedSectionValue, setEditedSectionValue] = useState<string>("");
   const [isAddingSectionOpen, setIsAddingSectionOpen] = useState(false);
   const [newSectionName, setNewSectionName] = useState<string>("");
+  
+  // Load custom sections from localStorage when list changes (list-specific)
+  useEffect(() => {
+    if (list?.id) {
+      const savedSections = localStorage.getItem(`listmine:customSections:${list.id}`);
+      if (savedSections) {
+        try {
+          setCustomSections(JSON.parse(savedSections));
+        } catch {
+          setCustomSections([]);
+        }
+      } else {
+        setCustomSections([]);
+      }
+    } else {
+      setCustomSections([]);
+    }
+  }, [list?.id]);
   
   // Section state for sectioned lists (todo/idea)
   const [newItemSection, setNewItemSection] = useState<string>("");
@@ -953,10 +971,12 @@ export default function ListDetail() {
         });
       }
 
-      // Also update custom sections state if it was a custom section
-      setCustomSections(prev => 
-        prev.map(s => s === editingSectionName ? trimmedNewName : s)
-      );
+      // Also update custom sections state if it was a custom section and persist to localStorage
+      if (customSections.includes(editingSectionName)) {
+        const newCustomSections = customSections.map(s => s === editingSectionName ? trimmedNewName : s);
+        setCustomSections(newCustomSections);
+        localStorage.setItem(`listmine:customSections:${list.id}`, JSON.stringify(newCustomSections));
+      }
 
       toast({
         title: "Section renamed",
@@ -998,8 +1018,12 @@ export default function ListDetail() {
       return;
     }
 
-    // Add to custom sections
-    setCustomSections(prev => [...prev, trimmedName]);
+    // Add to custom sections and persist to localStorage
+    const newCustomSections = [...customSections, trimmedName];
+    setCustomSections(newCustomSections);
+    if (list?.id) {
+      localStorage.setItem(`listmine:customSections:${list.id}`, JSON.stringify(newCustomSections));
+    }
     
     // Auto-select the new section for adding items
     setNewItemSection(trimmedName);
