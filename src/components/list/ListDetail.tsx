@@ -751,6 +751,10 @@ export default function ListDetail() {
       } else if (isShoppingList && !isGrocery) {
         if (newItemPrice) attributes.price = newItemPrice;
         if (newItemStatus) attributes.purchaseStatus = newItemStatus;
+        // Add section for sectioned shopping lists (Gift Tracker, etc.)
+        if (isSectioned && newItemSection) {
+          attributes.section = newItemSection;
+        }
         if (newItemProductLink) {
           attributes.productLink = newItemProductLink;
           // Save manual link preview data
@@ -3899,6 +3903,27 @@ export default function ListDetail() {
                 {/* SHOPPING LIST - Shopping fields (NO purchaser UI, simpler than registry) */}
                 {isShoppingList && !isGrocery && (
                   <>
+                    {/* Section dropdown for sectioned shopping lists (Gift Tracker, etc.) */}
+                    {isSectioned && (
+                      <div className="mb-2">
+                        <Label className="text-xs mb-2">Section</Label>
+                        <Select
+                          value={newItemSection || allAvailableSections[0] || "OTHER"}
+                          onValueChange={handleSectionChange}
+                        >
+                          <SelectTrigger className="min-h-[44px]">
+                            <SelectValue placeholder="Select section" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {allAvailableSections.map((section) => (
+                              <SelectItem key={section} value={section}>
+                                {(section ?? 'OTHER').trim().toUpperCase()}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                     {!detailedMode && (
                       <div className="space-y-2">
                         <Input
