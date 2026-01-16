@@ -452,15 +452,15 @@ export default function ListDetail() {
   // Help modal state
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   
-  // Section state for sectioned lists (todo/idea)
-  const [newItemSection, setNewItemSection] = useState<string>("");
-  
-  // Section management state (for template-based lists)
+  // Section management state (for template-based lists) - MUST be declared before useMemo
+  const [customSections, setCustomSections] = useState<string[]>([]);
   const [editingSectionName, setEditingSectionName] = useState<string | null>(null);
   const [editedSectionValue, setEditedSectionValue] = useState<string>("");
   const [isAddingSectionOpen, setIsAddingSectionOpen] = useState(false);
   const [newSectionName, setNewSectionName] = useState<string>("");
-  const [customSections, setCustomSections] = useState<string[]>([]);
+  
+  // Section state for sectioned lists (todo/idea)
+  const [newItemSection, setNewItemSection] = useState<string>("");
   
   // Category state for grocery lists
   const [newItemGroceryCategory, setNewItemGroceryCategory] = useState<string>("");

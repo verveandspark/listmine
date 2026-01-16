@@ -55,7 +55,8 @@ export interface ListItemAttributes {
   customLinkTitle?: string;
   customLinkDescription?: string;
   customLinkImage?: string;
-  custom?: Record<string, string>;
+  section?: string;
+  custom?: Record<string, string | boolean>;
   [key: string]: any;
 }
 
