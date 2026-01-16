@@ -138,6 +138,7 @@ export default function SharedListView() {
           title: listData.title,
           category: listData.category,
           listType: listData.list_type,
+          source: listData.source,
           items: (itemsData || []).map((item: any) => ({
             id: item.id,
             text: item.text,
