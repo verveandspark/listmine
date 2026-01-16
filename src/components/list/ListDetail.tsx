@@ -3543,7 +3543,18 @@ export default function ListDetail() {
                     {/* Section dropdown for sectioned custom lists (Recipe, Vacation Packing, etc.) */}
                     {isSectioned && (
                       <div className="mb-2">
-                        <Label className="text-xs mb-2">Section</Label>
+                        <div className="flex items-center justify-between mb-2">
+                          <Label className="text-xs">Section</Label>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setIsAddingSectionOpen(true)}
+                            className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                          >
+                            <Plus className="w-3 h-3 mr-1" />
+                            Add Section
+                          </Button>
+                        </div>
                         <Select
                           value={newItemSection || allAvailableSections[0] || "OTHER"}
                           onValueChange={handleSectionChange}
@@ -3602,7 +3613,18 @@ export default function ListDetail() {
                     {/* Section dropdown for sectioned todo lists */}
                     {isSectioned && (
                       <div className="mb-2">
-                        <Label className="text-xs mb-2">Section</Label>
+                        <div className="flex items-center justify-between mb-2">
+                          <Label className="text-xs">Section</Label>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setIsAddingSectionOpen(true)}
+                            className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                          >
+                            <Plus className="w-3 h-3 mr-1" />
+                            Add Section
+                          </Button>
+                        </div>
                         <Select
                           value={newItemSection || "OTHER"}
                           onValueChange={handleSectionChange}
@@ -3847,7 +3869,18 @@ export default function ListDetail() {
                     {/* Section dropdown for sectioned registry lists */}
                     {isSectioned && (
                       <div className="mb-2">
-                        <Label className="text-xs mb-2">Section</Label>
+                        <div className="flex items-center justify-between mb-2">
+                          <Label className="text-xs">Section</Label>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setIsAddingSectionOpen(true)}
+                            className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                          >
+                            <Plus className="w-3 h-3 mr-1" />
+                            Add Section
+                          </Button>
+                        </div>
                         <Select
                           value={newItemSection || "OTHER"}
                           onValueChange={(value) => {
@@ -3995,7 +4028,18 @@ export default function ListDetail() {
                     {/* Section dropdown for sectioned shopping lists (Gift Tracker, etc.) */}
                     {isSectioned && (
                       <div className="mb-2">
-                        <Label className="text-xs mb-2">Section</Label>
+                        <div className="flex items-center justify-between mb-2">
+                          <Label className="text-xs">Section</Label>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setIsAddingSectionOpen(true)}
+                            className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                          >
+                            <Plus className="w-3 h-3 mr-1" />
+                            Add Section
+                          </Button>
+                        </div>
                         <Select
                           value={newItemSection || allAvailableSections[0] || "OTHER"}
                           onValueChange={handleSectionChange}
@@ -4140,7 +4184,18 @@ export default function ListDetail() {
                     {/* Section dropdown for sectioned idea lists */}
                     {isSectioned && (
                       <div className="mb-2">
-                        <Label className="text-xs mb-2">Section</Label>
+                        <div className="flex items-center justify-between mb-2">
+                          <Label className="text-xs">Section</Label>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setIsAddingSectionOpen(true)}
+                            className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                          >
+                            <Plus className="w-3 h-3 mr-1" />
+                            Add Section
+                          </Button>
+                        </div>
                         <Select
                           value={newItemSection || "OTHER"}
                           onValueChange={handleSectionChange}
@@ -5189,59 +5244,6 @@ export default function ListDetail() {
                     })}
                   </div>
                 ))}
-                {/* Add Section Button */}
-                {canEditListItems && (
-                  <div className="mt-4">
-                    {isAddingSectionOpen ? (
-                      <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
-                        <Input
-                          value={newSectionName}
-                          onChange={(e) => setNewSectionName(e.target.value)}
-                          placeholder="New section name"
-                          className="h-9"
-                          autoFocus
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              handleAddNewSection();
-                            } else if (e.key === "Escape") {
-                              setIsAddingSectionOpen(false);
-                              setNewSectionName("");
-                            }
-                          }}
-                        />
-                        <Button
-                          size="sm"
-                          onClick={handleAddNewSection}
-                          className="h-9"
-                        >
-                          <Check className="w-4 h-4 mr-1" />
-                          Add
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-9"
-                          onClick={() => {
-                            setIsAddingSectionOpen(false);
-                            setNewSectionName("");
-                          }}
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setIsAddingSectionOpen(true)}
-                        className="text-muted-foreground hover:text-foreground"
-                      >
-                        <Plus className="w-4 h-4 mr-1" />
-                        Add Section
-                      </Button>
-                    )}
-                  </div>
-                )}
               </>
             ) : (
               // Regular display for non-grocery lists (no sections)
