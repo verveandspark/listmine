@@ -5876,11 +5876,16 @@ export default function ListDetail() {
             
             <div>
               <RadioGroup value={newSectionMode} onValueChange={(value: "empty" | "copy") => setNewSectionMode(value)}>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="empty" id="empty" />
-                  <Label htmlFor="empty" className="font-normal cursor-pointer">Empty section</Label>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="empty" id="empty" />
+                    <Label htmlFor="empty" className="font-normal cursor-pointer">Empty section</Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground ml-6 mt-1">
+                    Section will appear in the list once you add items to it
+                  </p>
                 </div>
-                <div className="flex items-center space-x-2 mt-2">
+                <div className="flex items-center space-x-2 mt-3">
                   <RadioGroupItem value="copy" id="copy" />
                   <Label htmlFor="copy" className="font-normal cursor-pointer">Copy items from:</Label>
                 </div>
