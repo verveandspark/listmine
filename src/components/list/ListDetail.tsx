@@ -148,8 +148,6 @@ const isRegistryOrWishlist = (listType: string | undefined): boolean => {
 
 // Helper function to check if an item is unavailable
 const isItemUnavailable = (item: ListItemType): boolean => {
-  console.log('[isItemUnavailable]', item.text, item.attributes, (item as any).is_unavailable);
-  
   // Check for new is_unavailable column (boolean)
   if ((item as any).is_unavailable === true) return true;
   
