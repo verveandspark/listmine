@@ -440,6 +440,8 @@ export default function ListDetail() {
   const [editedSectionValue, setEditedSectionValue] = useState<string>("");
   const [isAddingSectionOpen, setIsAddingSectionOpen] = useState(false);
   const [newSectionName, setNewSectionName] = useState<string>("");
+  const [deletingSectionName, setDeletingSectionName] = useState<string | null>(null);
+  const [showDeleteSectionDialog, setShowDeleteSectionDialog] = useState(false);
   
   // Load custom sections from localStorage when list changes (list-specific)
   useEffect(() => {
@@ -1093,6 +1095,42 @@ export default function ListDetail() {
     if (list?.id) {
       localStorage.setItem(`listmine:lastSection:${list.id}`, trimmedName);
     }
+  };
+
+  // Delete section handler
+  const handleDeleteSection = async () => {
+    if (!list?.id || !deletingSectionName) {
+      setShowDeleteSectionDialog(false);
+      setDeletingSectionName(null);
+      return;
+    }
+
+    const sectionName = deletingSectionName;
+    
+    // Get all items in this section
+    const itemsInSection = list.items.filter(
+      item => (item.attributes?.section?.toUpperCase() || 'UNCATEGORIZED') === sectionName.toUpperCase()
+    );
+
+    // Delete all items in the section
+    for (const item of itemsInSection) {
+      await deleteListItem(list.id, item.id);
+    }
+
+    // Remove from customSections if it was user-added
+    if (customSections.includes(sectionName)) {
+      const newCustomSections = customSections.filter(s => s !== sectionName);
+      setCustomSections(newCustomSections);
+      localStorage.setItem(`listmine:customSections:${list.id}`, JSON.stringify(newCustomSections));
+    }
+
+    toast({
+      title: "Section deleted",
+      description: `"${sectionName}" and ${itemsInSection.length} item${itemsInSection.length !== 1 ? 's' : ''} deleted`,
+    });
+
+    setShowDeleteSectionDialog(false);
+    setDeletingSectionName(null);
   };
 
   const handleDeleteList = async () => {
@@ -4953,14 +4991,30 @@ export default function ListDetail() {
                             {sectionName}
                           </h3>
                           {canEditListItems && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0 opacity-50 hover:opacity-100"
-                              onClick={() => handleStartEditSection(sectionName)}
-                            >
-                              <Pencil className="w-3 h-3" />
-                            </Button>
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 opacity-50 hover:opacity-100"
+                                onClick={() => handleStartEditSection(sectionName)}
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </Button>
+                              {/* Only show delete if there's more than one section */}
+                              {Object.keys(getGroupedSectionItems).length > 1 && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 opacity-50 hover:opacity-100 hover:text-red-600"
+                                  onClick={() => {
+                                    setDeletingSectionName(sectionName);
+                                    setShowDeleteSectionDialog(true);
+                                  }}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              )}
+                            </>
                           )}
                         </>
                       )}
@@ -5760,6 +5814,41 @@ export default function ListDetail() {
           refreshLists();
         }}
       />
+
+      {/* Delete Section Confirmation Dialog */}
+      <AlertDialog open={showDeleteSectionDialog} onOpenChange={setShowDeleteSectionDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Section?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{deletingSectionName}" and all{" "}
+              {list?.items?.filter(
+                item => (item.attributes?.section?.toUpperCase() || 'UNCATEGORIZED') === deletingSectionName?.toUpperCase()
+              ).length || 0}{" "}
+              item{(list?.items?.filter(
+                item => (item.attributes?.section?.toUpperCase() || 'UNCATEGORIZED') === deletingSectionName?.toUpperCase()
+              ).length || 0) !== 1 ? 's' : ''} in it? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              className="bg-muted hover:bg-primary/10"
+              onClick={() => {
+                setShowDeleteSectionDialog(false);
+                setDeletingSectionName(null);
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteSection}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete Section
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Help Modal */}
       <Dialog open={isHelpModalOpen} onOpenChange={setIsHelpModalOpen}>
