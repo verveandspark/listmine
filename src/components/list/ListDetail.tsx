@@ -87,6 +87,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -440,6 +441,8 @@ export default function ListDetail() {
   const [editedSectionValue, setEditedSectionValue] = useState<string>("");
   const [isAddingSectionOpen, setIsAddingSectionOpen] = useState(false);
   const [newSectionName, setNewSectionName] = useState<string>("");
+  const [newSectionMode, setNewSectionMode] = useState<"empty" | "copy">("empty");
+  const [copySectionSource, setCopySectionSource] = useState<string>("");
   const [deletingSectionName, setDeletingSectionName] = useState<string | null>(null);
   const [showDeleteSectionDialog, setShowDeleteSectionDialog] = useState(false);
   
@@ -1020,6 +1023,8 @@ export default function ListDetail() {
     if (!newSectionName.trim()) {
       setIsAddingSectionOpen(false);
       setNewSectionName("");
+      setNewSectionMode("empty");
+      setCopySectionSource("");
       return;
     }
 
@@ -1027,7 +1032,11 @@ export default function ListDetail() {
     
     // Clear the input state IMMEDIATELY to prevent double-calls
     // (e.g., user presses Enter and clicks Add button, or React Strict Mode)
+    const mode = newSectionMode;
+    const sourceSection = copySectionSource;
     setNewSectionName("");
+    setNewSectionMode("empty");
+    setCopySectionSource("");
     setIsAddingSectionOpen(false);
     
     // Check if section already exists (use current allAvailableSections, not after state update)
@@ -1048,19 +1057,14 @@ export default function ListDetail() {
       localStorage.setItem(`listmine:customSections:${list.id}`, JSON.stringify(newCustomSections));
     }
     
-    // Auto-populate with template's prototype section items (for template-based lists)
-    if (isTemplateBasedList && list?.id && list?.items) {
-      // Find the first/prototype section (the one with the most items, or alphabetically first)
+    // If user chose to copy items from another section
+    if (mode === "copy" && sourceSection && list?.id && list?.items) {
       const sectionGroups = getGroupedSectionItems;
-      const sectionNames = Object.keys(sectionGroups).filter(s => s !== 'Uncategorized');
+      const sourceItems = sectionGroups[sourceSection] || [];
       
-      if (sectionNames.length > 0) {
-        // Use the first section alphabetically as the prototype
-        const prototypeSection = sectionNames.sort()[0];
-        const prototypeItems = sectionGroups[prototypeSection] || [];
-        
-        // Create copies of prototype items with the new section name
-        for (const item of prototypeItems) {
+      if (sourceItems.length > 0) {
+        // Create copies of source items with the new section name
+        for (const item of sourceItems) {
           await addItemToList(list.id, {
             text: item.text || "",
             completed: false,
@@ -1075,7 +1079,7 @@ export default function ListDetail() {
         
         toast({
           title: "Section added",
-          description: `"${trimmedName}" section created with ${prototypeItems.length} starter items`,
+          description: `"${trimmedName}" section created with ${sourceItems.length} copied items`,
         });
       } else {
         toast({
@@ -1084,6 +1088,7 @@ export default function ListDetail() {
         });
       }
     } else {
+      // Empty section
       toast({
         title: "Section added",
         description: `"${trimmedName}" section is now available`,
@@ -3542,9 +3547,7 @@ export default function ListDetail() {
                   <>
                     {/* Section dropdown for sectioned custom lists (Recipe, Vacation Packing, etc.) */}
                     {isSectioned && (
-                      <div className="mb-2">
-                        <Label className="text-xs mb-2 block">Section</Label>
-                        <div className="flex items-center gap-2">
+                      <div className="mb-2 flex items-center gap-2">
                           <Select
                             value={newItemSection || allAvailableSections[0] || "OTHER"}
                             onValueChange={handleSectionChange}
@@ -3561,16 +3564,15 @@ export default function ListDetail() {
                           </SelectContent>
                         </Select>
                         <Button
-                          variant="ghost"
-                          size="sm"
+                          variant="outline"
+                          size="default"
                           onClick={() => setIsAddingSectionOpen(true)}
-                          className="h-11 px-3 text-xs text-muted-foreground hover:text-foreground"
+                          className="h-[44px] px-4 text-sm whitespace-nowrap"
                         >
-                          <Plus className="w-3 h-3 mr-1" />
+                          <Plus className="w-4 h-4 mr-1" />
                           Add Section
                         </Button>
                         </div>
-                      </div>
                     )}
                     {!detailedMode && (
                       <div className="space-y-2">
@@ -3612,9 +3614,7 @@ export default function ListDetail() {
                   <>
                     {/* Section dropdown for sectioned todo lists */}
                     {isSectioned && (
-                      <div className="mb-2">
-                        <Label className="text-xs mb-2 block">Section</Label>
-                        <div className="flex items-center gap-2">
+                      <div className="mb-2 flex items-center gap-2">
                           <Select
                             value={newItemSection || "OTHER"}
                             onValueChange={handleSectionChange}
@@ -3631,16 +3631,15 @@ export default function ListDetail() {
                           </SelectContent>
                         </Select>
                         <Button
-                          variant="ghost"
-                          size="sm"
+                          variant="outline"
+                          size="default"
                           onClick={() => setIsAddingSectionOpen(true)}
-                          className="h-11 px-3 text-xs text-muted-foreground hover:text-foreground"
+                          className="h-[44px] px-4 text-sm whitespace-nowrap"
                         >
-                          <Plus className="w-3 h-3 mr-1" />
+                          <Plus className="w-4 h-4 mr-1" />
                           Add Section
                         </Button>
                         </div>
-                      </div>
                     )}
                     {!detailedMode && (
                       <div className="space-y-2">
@@ -3868,9 +3867,7 @@ export default function ListDetail() {
                   <>
                     {/* Section dropdown for sectioned registry lists */}
                     {isSectioned && (
-                      <div className="mb-2">
-                        <Label className="text-xs mb-2 block">Section</Label>
-                        <div className="flex items-center gap-2">
+                      <div className="mb-2 flex items-center gap-2">
                           <Select
                             value={newItemSection || "OTHER"}
                             onValueChange={(value) => {
@@ -3892,16 +3889,15 @@ export default function ListDetail() {
                           </SelectContent>
                         </Select>
                         <Button
-                          variant="ghost"
-                          size="sm"
+                          variant="outline"
+                          size="default"
                           onClick={() => setIsAddingSectionOpen(true)}
-                          className="h-11 px-3 text-xs text-muted-foreground hover:text-foreground"
+                          className="h-[44px] px-4 text-sm whitespace-nowrap"
                         >
-                          <Plus className="w-3 h-3 mr-1" />
+                          <Plus className="w-4 h-4 mr-1" />
                           Add Section
                         </Button>
                         </div>
-                      </div>
                     )}
                     {!detailedMode && (
                       <div className="space-y-2">
@@ -4027,9 +4023,7 @@ export default function ListDetail() {
                   <>
                     {/* Section dropdown for sectioned shopping lists (Gift Tracker, etc.) */}
                     {isSectioned && (
-                      <div className="mb-2">
-                        <Label className="text-xs mb-2 block">Section</Label>
-                        <div className="flex items-center gap-2">
+                      <div className="mb-2 flex items-center gap-2">
                           <Select
                             value={newItemSection || allAvailableSections[0] || "OTHER"}
                             onValueChange={handleSectionChange}
@@ -4046,16 +4040,15 @@ export default function ListDetail() {
                           </SelectContent>
                         </Select>
                         <Button
-                          variant="ghost"
-                          size="sm"
+                          variant="outline"
+                          size="default"
                           onClick={() => setIsAddingSectionOpen(true)}
-                          className="h-11 px-3 text-xs text-muted-foreground hover:text-foreground"
+                          className="h-[44px] px-4 text-sm whitespace-nowrap"
                         >
-                          <Plus className="w-3 h-3 mr-1" />
+                          <Plus className="w-4 h-4 mr-1" />
                           Add Section
                         </Button>
                         </div>
-                      </div>
                     )}
                     {!detailedMode && (
                       <div className="space-y-2">
@@ -4183,9 +4176,7 @@ export default function ListDetail() {
                   <>
                     {/* Section dropdown for sectioned idea lists */}
                     {isSectioned && (
-                      <div className="mb-2">
-                        <Label className="text-xs mb-2 block">Section</Label>
-                        <div className="flex items-center gap-2">
+                      <div className="mb-2 flex items-center gap-2">
                           <Select
                             value={newItemSection || "OTHER"}
                             onValueChange={handleSectionChange}
@@ -4202,16 +4193,15 @@ export default function ListDetail() {
                           </SelectContent>
                         </Select>
                         <Button
-                          variant="ghost"
-                          size="sm"
+                          variant="outline"
+                          size="default"
                           onClick={() => setIsAddingSectionOpen(true)}
-                          className="h-11 px-3 text-xs text-muted-foreground hover:text-foreground"
+                          className="h-[44px] px-4 text-sm whitespace-nowrap"
                         >
-                          <Plus className="w-3 h-3 mr-1" />
+                          <Plus className="w-4 h-4 mr-1" />
                           Add Section
                         </Button>
                         </div>
-                      </div>
                     )}
                     {!detailedMode && (
                       <div className="space-y-2">
@@ -5861,25 +5851,72 @@ export default function ListDetail() {
               Create a new section to organize your list items.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex items-center gap-2 py-4">
-            <Input
-              value={newSectionName}
-              onChange={(e) => setNewSectionName(e.target.value)}
-              placeholder="Section name"
-              className="flex-1"
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleAddNewSection();
-                } else if (e.key === "Escape") {
-                  setIsAddingSectionOpen(false);
-                  setNewSectionName("");
-                }
+          <div className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="section-name">Section name</Label>
+              <Input
+                id="section-name"
+                value={newSectionName}
+                onChange={(e) => setNewSectionName(e.target.value)}
+                placeholder="e.g., Appetizers"
+                className="mt-1.5"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleAddNewSection();
+                  } else if (e.key === "Escape") {
+                    setIsAddingSectionOpen(false);
+                    setNewSectionName("");
+                    setNewSectionMode("empty");
+                    setCopySectionSource("");
+                  }
+                }}
+              />
+            </div>
+            
+            <div>
+              <RadioGroup value={newSectionMode} onValueChange={(value: "empty" | "copy") => setNewSectionMode(value)}>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="empty" id="empty" />
+                  <Label htmlFor="empty" className="font-normal cursor-pointer">Empty section</Label>
+                </div>
+                <div className="flex items-center space-x-2 mt-2">
+                  <RadioGroupItem value="copy" id="copy" />
+                  <Label htmlFor="copy" className="font-normal cursor-pointer">Copy items from:</Label>
+                </div>
+              </RadioGroup>
+              
+              {newSectionMode === "copy" && (
+                <Select value={copySectionSource} onValueChange={setCopySectionSource}>
+                  <SelectTrigger className="mt-2">
+                    <SelectValue placeholder="Select section to copy from" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allAvailableSections.filter(s => s !== 'Uncategorized').map((section) => (
+                      <SelectItem key={section} value={section}>
+                        {section}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsAddingSectionOpen(false);
+                setNewSectionName("");
+                setNewSectionMode("empty");
+                setCopySectionSource("");
               }}
-            />
+            >
+              Cancel
+            </Button>
             <Button
               onClick={handleAddNewSection}
-              disabled={!newSectionName.trim()}
+              disabled={!newSectionName.trim() || (newSectionMode === "copy" && !copySectionSource)}
             >
               <Check className="w-4 h-4 mr-1" />
               Add
