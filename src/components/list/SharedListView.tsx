@@ -366,75 +366,81 @@ export default function SharedListView() {
     return isRegistryOrWishlist(listType) || isShoppingOrGrocery(listType);
   };
 
+  // Helper to extract registry URL from source field (format: "prefix:https://...")
+  const extractRegistryUrl = (source: string | undefined): string | null => {
+    if (!source) return null;
+    const colonIndex = source.indexOf(':');
+    if (colonIndex === -1) return null;
+    const possibleUrl = source.substring(colonIndex + 1);
+    return possibleUrl.startsWith('http') ? possibleUrl : null;
+  };
+
   // Helper function to compute the primary outbound URL for an item (matches ListDetail.tsx)
-  const getPrimaryItemUrl = (item: any, listSource?: string): { url: string | null; isFallback: boolean; isTheKnot: boolean } => {
+  const getPrimaryItemUrl = (item: any, listSource?: string): { url: string | null; isFallback: boolean; isTheKnot: boolean; isMyRegistry: boolean } => {
     const isTheKnot = !!listSource?.startsWith('theknot:');
     const isMyRegistry = !!listSource?.startsWith('myregistry:');
-    const isBBB = !!listSource?.startsWith('bbb:');
-    const isAmazon = !!listSource?.startsWith('amazon:');
-    const isTarget = !!listSource?.startsWith('target:');
+    const registryUrl = extractRegistryUrl(listSource);
     
     // For The Knot lists: ALWAYS use registry URL, treat item links as unreliable
-    if (isTheKnot) {
-      return { url: listSource!.replace(/^theknot:/, ''), isFallback: true, isTheKnot: true };
+    if (isTheKnot && registryUrl) {
+      return { url: registryUrl, isFallback: true, isTheKnot: true, isMyRegistry: false };
+    }
+    
+    // For MyRegistry/BB&B lists: items typically have NO links, so use registry URL
+    // Only use item links if they actually exist and are not empty
+    if (isMyRegistry) {
+      // Check if item has actual links
+      const hasItemLink = item.links?.[0] && item.links[0].trim() !== '';
+      const hasProductLink = item.attributes?.productLink && item.attributes.productLink.trim() !== '';
+      
+      if (hasItemLink) {
+        return { url: item.links[0], isFallback: false, isTheKnot: false, isMyRegistry: true };
+      }
+      if (hasProductLink) {
+        return { url: item.attributes.productLink, isFallback: false, isTheKnot: false, isMyRegistry: true };
+      }
+      // No item link - use registry URL as fallback
+      if (registryUrl) {
+        return { url: registryUrl, isFallback: true, isTheKnot: false, isMyRegistry: true };
+      }
     }
     
     // For other lists: use item's direct link if available
     if (item.links?.[0] && item.links[0].trim() !== '') {
-      return { url: item.links[0], isFallback: false, isTheKnot: false };
+      return { url: item.links[0], isFallback: false, isTheKnot: false, isMyRegistry: false };
     }
     
     // Check for productLink in attributes
     if (item.attributes?.productLink && item.attributes.productLink.trim() !== '') {
-      return { url: item.attributes.productLink, isFallback: false, isTheKnot: false };
+      return { url: item.attributes.productLink, isFallback: false, isTheKnot: false, isMyRegistry: false };
     }
     
-    // Fallback to registry source URL for known registry types
-    if (isMyRegistry) {
-      return { url: listSource!.replace(/^myregistry:/, ''), isFallback: true, isTheKnot: false };
-    }
-    if (isBBB) {
-      return { url: listSource!.replace(/^bbb:/, ''), isFallback: true, isTheKnot: false };
-    }
-    if (isAmazon) {
-      return { url: listSource!.replace(/^amazon:/, ''), isFallback: true, isTheKnot: false };
-    }
-    if (isTarget) {
-      return { url: listSource!.replace(/^target:/, ''), isFallback: true, isTheKnot: false };
+    // Fallback to registry source URL if available (generic handling for any prefix:url format)
+    if (registryUrl) {
+      return { url: registryUrl, isFallback: true, isTheKnot: false, isMyRegistry: false };
     }
     
-    // Generic fallback: try to extract URL from any source format (prefix:url)
-    if (listSource && listSource.includes(':')) {
-      const colonIndex = listSource.indexOf(':');
-      const possibleUrl = listSource.substring(colonIndex + 1);
-      if (possibleUrl.startsWith('http')) {
-        return { url: possibleUrl, isFallback: true, isTheKnot: false };
-      }
-    }
-    
-    return { url: null, isFallback: false, isTheKnot: false };
+    return { url: null, isFallback: false, isTheKnot: false, isMyRegistry: false };
   };
 
   // Helper to check if item link actions should be shown
   const shouldShowItemLinks = (item: any): boolean => {
-    const isTheKnot = (list?.source ?? "").startsWith("theknot:");
-    const hasDirectLink = !isTheKnot && !!item.links?.[0];
-    const hasProductLink = !!item.attributes?.productLink;
-    const hasRegistryFallback = isTheKnot || 
-      (list?.source ?? "").startsWith("myregistry:") ||
-      (list?.source ?? "").startsWith("bbb:") ||
-      (list?.source ?? "").startsWith("amazon:") ||
-      (list?.source ?? "").startsWith("target:") ||
-      ((list?.source ?? "").includes(':') && (list?.source ?? "").split(':')[1]?.startsWith('http'));
+    // Show links if item has direct links
+    const hasDirectLink = item.links?.[0] && item.links[0].trim() !== '';
+    // Show links if item has productLink in attributes
+    const hasProductLink = item.attributes?.productLink && item.attributes.productLink.trim() !== '';
+    // Show links if there's a registry source URL (fallback available)
+    const hasRegistryFallback = !!extractRegistryUrl(list?.source);
+    
     return hasDirectLink || hasProductLink || hasRegistryFallback;
   };
 
   // Item Link Actions component (matches ListDetail.tsx)
   const ItemLinkActions = ({ item }: { item: any }) => {
-    const { url: primaryUrl, isFallback, isTheKnot } = getPrimaryItemUrl(item, list?.source);
+    const { url: primaryUrl, isFallback, isTheKnot, isMyRegistry } = getPrimaryItemUrl(item, list?.source);
     
-    // For copy link: only copy real non-Knot links
-    const hasRealLink = !isTheKnot && item.links?.[0] && item.links[0].trim() !== '';
+    // For copy link: only copy real non-fallback links
+    const hasRealLink = !isTheKnot && !isFallback && item.links?.[0] && item.links[0].trim() !== '';
     const copyableUrl = hasRealLink ? item.links![0] : (item.attributes?.productLink || null);
     
     const handleCopyLink = async (e: React.MouseEvent) => {
@@ -481,8 +487,14 @@ export default function SharedListView() {
             <Info className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground cursor-help" />
           </span>
         )}
-        {/* Non-Knot fallback tooltip */}
-        {isFallback && !isTheKnot && (
+        {/* MyRegistry/BB&B fallback tooltip */}
+        {isMyRegistry && isFallback && (
+          <span title="This item opens in the source registry (BB&B/MyRegistry items don't have direct product links).">
+            <Info className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground cursor-help" />
+          </span>
+        )}
+        {/* Other fallback tooltip */}
+        {isFallback && !isTheKnot && !isMyRegistry && (
           <span title="This item opens in the source registry (no direct product link available).">
             <Info className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground cursor-help" />
           </span>
