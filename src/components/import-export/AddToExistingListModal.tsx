@@ -36,6 +36,7 @@ interface ImportItem {
   dueDate?: Date;
   quantity?: number;
   completed?: boolean;
+  attributes?: Record<string, any>;
 }
 
 interface CompareResult {

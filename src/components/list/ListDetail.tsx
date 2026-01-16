@@ -153,8 +153,9 @@ const isItemUnavailable = (item: ListItemType): boolean => {
   // Check for new is_unavailable column (boolean)
   if ((item as any).is_unavailable === true) return true;
   
-  // Check Target format: attributes.custom.is_unavailable (boolean)
-  if (item.attributes?.custom?.is_unavailable === true) return true;
+  // Check Target format: attributes.custom.is_unavailable (boolean or string "true")
+  const customUnavailable = (item.attributes?.custom as any)?.is_unavailable;
+  if (customUnavailable === true || customUnavailable === 'true') return true;
   
   // Check MyRegistry/BB&B format: attributes.custom.availability (string)
   if (item.attributes?.custom?.availability === 'unavailable') return true;
@@ -306,38 +307,6 @@ export default function ListDetail() {
     return Array.from(sectionsSet).sort();
   }, [list?.items]);
   
-  // Combined sections including custom sections (for dropdown)
-  const allAvailableSections = useMemo(() => {
-    const combined = new Set([...availableSections, ...customSections]);
-    return Array.from(combined).sort();
-  }, [availableSections, customSections]);
-  
-  // Check if this is a template-based list
-  const isTemplateBasedList = useMemo(() => {
-    return list?.source === 'template' || !!list?.templateId;
-  }, [list?.source, list?.templateId]);
-  
-  // Get items grouped by section for template-based lists
-  const getGroupedSectionItems = useMemo(() => {
-    if (!list?.items) return {};
-    const grouped: { [key: string]: typeof list.items } = {};
-    
-    list.items.forEach(item => {
-      const section = item.attributes?.section?.trim() || 'Uncategorized';
-      if (!grouped[section]) {
-        grouped[section] = [];
-      }
-      grouped[section].push(item);
-    });
-    
-    // Sort items within each section by order
-    Object.keys(grouped).forEach(section => {
-      grouped[section].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-    });
-    
-    return grouped;
-  }, [list?.items]);
-  
   // Get available categories for grocery lists (use category, fallback to section for older rows)
   const availableCategories = useMemo(() => {
     if (!list?.items) return ['Other'];
@@ -452,7 +421,7 @@ export default function ListDetail() {
   // Help modal state
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   
-  // Section management state (for template-based lists) - MUST be declared before useMemo
+  // Section management state (for template-based lists)
   const [customSections, setCustomSections] = useState<string[]>([]);
   const [editingSectionName, setEditingSectionName] = useState<string | null>(null);
   const [editedSectionValue, setEditedSectionValue] = useState<string>("");
@@ -461,6 +430,38 @@ export default function ListDetail() {
   
   // Section state for sectioned lists (todo/idea)
   const [newItemSection, setNewItemSection] = useState<string>("");
+  
+  // Combined sections including custom sections (for dropdown) - AFTER customSections useState
+  const allAvailableSections = useMemo(() => {
+    const combined = new Set([...availableSections, ...customSections]);
+    return Array.from(combined).sort();
+  }, [availableSections, customSections]);
+  
+  // Check if this is a template-based list
+  const isTemplateBasedList = useMemo(() => {
+    return list?.source === 'template' || !!list?.templateId;
+  }, [list?.source, list?.templateId]);
+  
+  // Get items grouped by section for template-based lists
+  const getGroupedSectionItems = useMemo(() => {
+    if (!list?.items) return {};
+    const grouped: { [key: string]: typeof list.items } = {};
+    
+    list.items.forEach(item => {
+      const section = item.attributes?.section?.trim() || 'Uncategorized';
+      if (!grouped[section]) {
+        grouped[section] = [];
+      }
+      grouped[section].push(item);
+    });
+    
+    // Sort items within each section by order
+    Object.keys(grouped).forEach(section => {
+      grouped[section].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    });
+    
+    return grouped;
+  }, [list?.items]);
   
   // Category state for grocery lists
   const [newItemGroceryCategory, setNewItemGroceryCategory] = useState<string>("");

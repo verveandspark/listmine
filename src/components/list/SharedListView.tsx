@@ -138,7 +138,7 @@ export default function SharedListView() {
           title: listData.title,
           category: listData.category,
           listType: listData.list_type,
-          source: listData.source || 'standard',
+          source: (listData as any).source || 'standard',
           items: (itemsData || []).map((item: any) => ({
             id: item.id,
             text: item.text,
@@ -155,7 +155,7 @@ export default function SharedListView() {
           tags: listData.tags || [],
           lastEditedAt: listData.last_edited_at || listData.updated_at,
           lastEditedByEmail: listData.last_edited_by_email,
-        } as any);
+        });
         setIsLoading(false);
         console.log("SharedListView: Successfully loaded list with", itemsData?.length || 0, "items");
       } catch (err: any) {
