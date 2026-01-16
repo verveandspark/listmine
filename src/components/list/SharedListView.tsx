@@ -886,11 +886,6 @@ export default function SharedListView() {
                         </p>
                       )}
                       <div className="flex items-center gap-2 flex-wrap">
-                        {isPurchased && (
-                          <Badge className="bg-accent/10 text-accent border-accent/20">
-                            ✓ Purchased
-                          </Badge>
-                        )}
                         {/* Price display - matching owner's view */}
                         {(item.attributes?.price || item.attributes?.custom?.price) && (
                           <span className="text-sm font-medium text-gray-700">
