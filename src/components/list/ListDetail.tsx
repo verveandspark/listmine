@@ -4790,6 +4790,11 @@ export default function ListDetail() {
                                 ✓ Purchased
                               </Badge>
                             )}
+                            {isItemUnavailable(item) && (
+                              <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-300">
+                                Unavailable
+                              </Badge>
+                            )}
                             {/* Price display - attributes.price or custom.price (registry imports) */}
                             {(item.attributes?.price || item.attributes?.custom?.price) && (
                               <span className="text-sm font-medium text-gray-700">
