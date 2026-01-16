@@ -69,6 +69,8 @@ import {
   ArchiveRestore,
   Copy,
   Info,
+  Pencil,
+  Check,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -304,6 +306,38 @@ export default function ListDetail() {
     return Array.from(sectionsSet).sort();
   }, [list?.items]);
   
+  // Combined sections including custom sections (for dropdown)
+  const allAvailableSections = useMemo(() => {
+    const combined = new Set([...availableSections, ...customSections]);
+    return Array.from(combined).sort();
+  }, [availableSections, customSections]);
+  
+  // Check if this is a template-based list
+  const isTemplateBasedList = useMemo(() => {
+    return list?.source === 'template' || !!list?.templateId;
+  }, [list?.source, list?.templateId]);
+  
+  // Get items grouped by section for template-based lists
+  const getGroupedSectionItems = useMemo(() => {
+    if (!list?.items) return {};
+    const grouped: { [key: string]: typeof list.items } = {};
+    
+    list.items.forEach(item => {
+      const section = item.attributes?.section?.trim() || 'Uncategorized';
+      if (!grouped[section]) {
+        grouped[section] = [];
+      }
+      grouped[section].push(item);
+    });
+    
+    // Sort items within each section by order
+    Object.keys(grouped).forEach(section => {
+      grouped[section].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    });
+    
+    return grouped;
+  }, [list?.items]);
+  
   // Get available categories for grocery lists (use category, fallback to section for older rows)
   const availableCategories = useMemo(() => {
     if (!list?.items) return ['Other'];
@@ -420,6 +454,13 @@ export default function ListDetail() {
   
   // Section state for sectioned lists (todo/idea)
   const [newItemSection, setNewItemSection] = useState<string>("");
+  
+  // Section management state (for template-based lists)
+  const [editingSectionName, setEditingSectionName] = useState<string | null>(null);
+  const [editedSectionValue, setEditedSectionValue] = useState<string>("");
+  const [isAddingSectionOpen, setIsAddingSectionOpen] = useState(false);
+  const [newSectionName, setNewSectionName] = useState<string>("");
+  const [customSections, setCustomSections] = useState<string[]>([]);
   
   // Category state for grocery lists
   const [newItemGroceryCategory, setNewItemGroceryCategory] = useState<string>("");
@@ -870,6 +911,106 @@ export default function ListDetail() {
     setDraggedItem(null);
     setDropTargetId(null);
     setDropPosition(null);
+  };
+
+  // Section management handlers (for template-based lists)
+  const handleStartEditSection = (sectionName: string) => {
+    setEditingSectionName(sectionName);
+    setEditedSectionValue(sectionName);
+  };
+
+  const handleSaveEditedSection = async () => {
+    if (!list || !editingSectionName || !editedSectionValue.trim()) {
+      setEditingSectionName(null);
+      setEditedSectionValue("");
+      return;
+    }
+
+    const trimmedNewName = editedSectionValue.trim();
+    
+    // Don't save if name hasn't changed
+    if (trimmedNewName === editingSectionName) {
+      setEditingSectionName(null);
+      setEditedSectionValue("");
+      return;
+    }
+
+    try {
+      // Update all items in this section to have the new section name
+      const itemsToUpdate = list.items.filter(
+        item => item.attributes?.section === editingSectionName
+      );
+
+      for (const item of itemsToUpdate) {
+        await updateListItem(list.id, item.id, {
+          attributes: {
+            ...item.attributes,
+            section: trimmedNewName,
+          },
+        });
+      }
+
+      // Also update custom sections state if it was a custom section
+      setCustomSections(prev => 
+        prev.map(s => s === editingSectionName ? trimmedNewName : s)
+      );
+
+      toast({
+        title: "Section renamed",
+        description: `Section renamed to "${trimmedNewName}"`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Failed to rename section",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+
+    setEditingSectionName(null);
+    setEditedSectionValue("");
+  };
+
+  const handleCancelEditSection = () => {
+    setEditingSectionName(null);
+    setEditedSectionValue("");
+  };
+
+  const handleAddNewSection = () => {
+    if (!newSectionName.trim()) {
+      setIsAddingSectionOpen(false);
+      setNewSectionName("");
+      return;
+    }
+
+    const trimmedName = newSectionName.trim();
+    
+    // Check if section already exists
+    if (allAvailableSections.includes(trimmedName)) {
+      toast({
+        title: "Section exists",
+        description: `A section named "${trimmedName}" already exists`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Add to custom sections
+    setCustomSections(prev => [...prev, trimmedName]);
+    
+    // Auto-select the new section for adding items
+    setNewItemSection(trimmedName);
+    if (list?.id) {
+      localStorage.setItem(`listmine:lastSection:${list.id}`, trimmedName);
+    }
+
+    toast({
+      title: "Section added",
+      description: `"${trimmedName}" section is now available`,
+    });
+
+    setIsAddingSectionOpen(false);
+    setNewSectionName("");
   };
 
   const handleDeleteList = async () => {
@@ -3279,14 +3420,14 @@ export default function ListDetail() {
                       <div className="mb-2">
                         <Label className="text-xs mb-2">Section</Label>
                         <Select
-                          value={newItemSection || availableSections[0] || "OTHER"}
+                          value={newItemSection || allAvailableSections[0] || "OTHER"}
                           onValueChange={handleSectionChange}
                         >
                           <SelectTrigger className="min-h-[44px]">
                             <SelectValue placeholder="Select section" />
                           </SelectTrigger>
                           <SelectContent>
-                            {availableSections.map((section) => (
+                            {allAvailableSections.map((section) => (
                               <SelectItem key={section} value={section}>
                                 {(section ?? 'OTHER').trim().toUpperCase()}
                               </SelectItem>
@@ -3345,7 +3486,7 @@ export default function ListDetail() {
                             <SelectValue placeholder="Select section" />
                           </SelectTrigger>
                           <SelectContent>
-                            {availableSections.map((section) => (
+                            {allAvailableSections.map((section) => (
                               <SelectItem key={section} value={section}>
                                 {(section ?? 'OTHER').trim().toUpperCase()}
                               </SelectItem>
@@ -4659,6 +4800,287 @@ export default function ListDetail() {
                   })}
                 </div>
               ))
+            ) : isSectioned && isTemplateBasedList ? (
+              // Sectioned display for template-based lists
+              <>
+                {Object.entries(getGroupedSectionItems).map(([sectionName, sectionItems]) => (
+                  <div key={sectionName} className="space-y-2 mb-4">
+                    {/* Section Header with edit functionality */}
+                    <div className="flex items-center gap-2 mt-4 mb-2">
+                      {editingSectionName === sectionName ? (
+                        <div className="flex items-center gap-2 flex-1">
+                          <Input
+                            value={editedSectionValue}
+                            onChange={(e) => setEditedSectionValue(e.target.value)}
+                            className="h-8 text-sm font-semibold uppercase tracking-wide"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                handleSaveEditedSection();
+                              } else if (e.key === "Escape") {
+                                handleCancelEditSection();
+                              }
+                            }}
+                          />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={handleSaveEditedSection}
+                          >
+                            <Check className="w-4 h-4 text-success" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={handleCancelEditSection}
+                          >
+                            <X className="w-4 h-4 text-gray-500" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <>
+                          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                            {sectionName}
+                          </h3>
+                          {canEditListItems && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 opacity-50 hover:opacity-100"
+                              onClick={() => handleStartEditSection(sectionName)}
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </Button>
+                          )}
+                        </>
+                      )}
+                      <div className="flex-1 h-px bg-border"></div>
+                      <Badge variant="outline" className="text-xs">
+                        {sectionItems.length}
+                      </Badge>
+                    </div>
+                    {/* Section Items */}
+                    {sectionItems.map((item, index) => {
+                      const isPurchased = isRegistryOrWishlistType && item.attributes?.purchaseStatus === "purchased";
+                      const isDropTarget = dropTargetId === item.id;
+                      
+                      return (
+                        <div key={item.id} className="relative">
+                          {/* Drop indicator - before */}
+                          {isDropTarget && dropPosition === "before" && itemSortBy === "manual" && (
+                            <div className="absolute -top-1 left-0 right-0 h-1 bg-primary rounded-full z-10 animate-pulse" />
+                          )}
+                          <Card
+                            className={`p-3 sm:p-4 hover:shadow-md transition-all relative ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${isPurchased ? "border-success/20 bg-success/5" : ""} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2 opacity-50" : ""} ${isDropTarget && itemSortBy === "manual" ? "ring-2 ring-primary/30" : ""}`}
+                            draggable={itemSortBy === "manual" && canEditListItems}
+                            onDragStart={(e) => {
+                              const target = e.target as HTMLElement | null;
+                              if (target?.closest("a")) return;
+                              itemSortBy === "manual" && canEditListItems && handleDragStart(e, item);
+                            }}
+                            onClick={(e) => {
+                              const target = e.target as HTMLElement | null;
+                              if (target?.closest("a")) return;
+                            }}
+                            onMouseDown={(e) => {
+                              const target = e.target as HTMLElement | null;
+                              if (target?.closest("a")) return;
+                            }}
+                            onDragOver={(e) =>
+                              itemSortBy === "manual" && handleDragOver(e, item)
+                            }
+                            onDragLeave={(e) =>
+                              itemSortBy === "manual" && handleDragLeave(e)
+                            }
+                            onDrop={(e) =>
+                              itemSortBy === "manual" && handleDrop(e, item)
+                            }
+                            onDragEnd={(e) =>
+                              itemSortBy === "manual" && handleDragEnd(e)
+                            }
+                          >
+                            <div className="flex items-start gap-2 sm:gap-3 w-full">
+                              {isSelectMode && (
+                                <Checkbox
+                                  checked={selectedItems.has(item.id)}
+                                  onCheckedChange={() => toggleItemSelection(item.id)}
+                                  className="mt-1 h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0"
+                                />
+                              )}
+                              {itemSortBy === "manual" && (
+                                <div className="cursor-grab active:cursor-grabbing mt-1 touch-none">
+                                  <GripVertical className="w-5 h-5 text-gray-400 hover:text-gray-600" />
+                                </div>
+                              )}
+                              <Checkbox
+                                checked={item.completed}
+                                onCheckedChange={(checked) =>
+                                  updateListItem(list.id, item.id, {
+                                    completed: checked as boolean,
+                                  })
+                                }
+                                className={`mt-1 h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform ${item.completed ? "animate-check-bounce" : ""}`}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between gap-2">
+                                  <span
+                                    className={`break-words ${item.completed ? "line-through text-gray-400" : ""}`}
+                                  >
+                                    {item.text}
+                                  </span>
+                                  {/* Edit & Delete buttons */}
+                                  {canEditListItems && (
+                                    <div className="flex items-center gap-1 flex-shrink-0">
+                                      <button
+                                        onClick={() => {
+                                          setEditingItem(item);
+                                          setOriginalItemLinks(item.links ?? null);
+                                          setLinkFieldTouched(false);
+                                          if (item.dueDate) {
+                                            const d = typeof item.dueDate === 'string' ? item.dueDate : new Date(item.dueDate).toISOString().split('T')[0];
+                                            setDueDateInput(d);
+                                          } else {
+                                            setDueDateInput('');
+                                          }
+                                          setIsEditModalOpen(true);
+                                        }}
+                                        className="p-1 text-gray-500 hover:text-primary transition-colors"
+                                      >
+                                        <Edit className="w-4 h-4" />
+                                      </button>
+                                      <AlertDialog
+                                        open={itemToDelete === item.id}
+                                        onOpenChange={(open) =>
+                                          !open && setItemToDelete(null)
+                                        }
+                                      >
+                                        <AlertDialogTrigger asChild>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => setItemToDelete(item.id)}
+                                          >
+                                            <Trash2 className="w-4 h-4 text-red-600" />
+                                          </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                              Are you sure you want to delete this item? You can
+                                              undo this action for a few seconds after deletion.
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel className="bg-muted hover:bg-primary/10">
+                                              Cancel
+                                            </AlertDialogCancel>
+                                            <AlertDialogAction
+                                              onClick={async () => {
+                                                const itemData = { ...item };
+                                                const itemText = item.text;
+                                                
+                                                await executeWithUndo(
+                                                  `delete-item-${item.id}`,
+                                                  itemData,
+                                                  async () => {
+                                                    await deleteListItem(list.id, item.id);
+                                                  },
+                                                  async (data) => {
+                                                    await restoreListItem(list.id, data);
+                                                  },
+                                                  {
+                                                    title: "Item deleted",
+                                                    description: `"${itemText}" removed from list`,
+                                                    undoDescription: `"${itemText}" has been restored`,
+                                                  }
+                                                );
+                                                setItemToDelete(null);
+                                              }}
+                                              className="bg-red-600 hover:bg-red-700"
+                                            >
+                                              Delete
+                                            </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
+                                    </div>
+                                  )}
+                                </div>
+                                {/* Notes */}
+                                {item.notes && !item.completed && (
+                                  <p className="text-xs text-gray-500 -mt-0.5 break-words italic">
+                                    {renderNotesWithLinks(item.notes)}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </Card>
+                          {/* Drop indicator - after */}
+                          {isDropTarget && dropPosition === "after" && itemSortBy === "manual" && (
+                            <div className="absolute -bottom-1 left-0 right-0 h-1 bg-primary rounded-full z-10 animate-pulse" />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+                {/* Add Section Button */}
+                {canEditListItems && (
+                  <div className="mt-4">
+                    {isAddingSectionOpen ? (
+                      <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
+                        <Input
+                          value={newSectionName}
+                          onChange={(e) => setNewSectionName(e.target.value)}
+                          placeholder="New section name"
+                          className="h-9"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              handleAddNewSection();
+                            } else if (e.key === "Escape") {
+                              setIsAddingSectionOpen(false);
+                              setNewSectionName("");
+                            }
+                          }}
+                        />
+                        <Button
+                          size="sm"
+                          onClick={handleAddNewSection}
+                          className="h-9"
+                        >
+                          <Check className="w-4 h-4 mr-1" />
+                          Add
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-9"
+                          onClick={() => {
+                            setIsAddingSectionOpen(false);
+                            setNewSectionName("");
+                          }}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsAddingSectionOpen(true)}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Add Section
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </>
             ) : (
               // Regular display for non-grocery lists (no sections)
               (() => {
