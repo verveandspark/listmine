@@ -437,6 +437,7 @@ export default function ListDetail() {
   
   // Section management state (for template-based lists) - list-specific
   const [customSections, setCustomSections] = useState<string[]>([]);
+  const [templateSectionsOrder, setTemplateSectionsOrder] = useState<string[]>([]);
   const [editingSectionName, setEditingSectionName] = useState<string | null>(null);
   const [editedSectionValue, setEditedSectionValue] = useState<string>("");
   const [isAddingSectionOpen, setIsAddingSectionOpen] = useState(false);
@@ -445,6 +446,14 @@ export default function ListDetail() {
   const [copySectionSource, setCopySectionSource] = useState<string>("");
   const [deletingSectionName, setDeletingSectionName] = useState<string | null>(null);
   const [showDeleteSectionDialog, setShowDeleteSectionDialog] = useState(false);
+  
+  // Section state for sectioned lists (todo/idea)
+  const [newItemSection, setNewItemSection] = useState<string>("");
+  
+  // Check if this is a template-based list
+  const isTemplateBasedList = useMemo(() => {
+    return list?.source === 'template' || !!list?.templateId;
+  }, [list?.source, list?.templateId]);
   
   // Load custom sections from localStorage when list changes (list-specific)
   useEffect(() => {
@@ -459,24 +468,55 @@ export default function ListDetail() {
       } else {
         setCustomSections([]);
       }
+      
+      // Load or initialize template sections order
+      const savedTemplateOrder = localStorage.getItem(`listmine:templateSectionsOrder:${list.id}`);
+      if (savedTemplateOrder) {
+        try {
+          setTemplateSectionsOrder(JSON.parse(savedTemplateOrder));
+        } catch {
+          // If parsing fails, derive from current items
+          deriveAndSaveTemplateSectionsOrder();
+        }
+      } else if (isTemplateBasedList && list.items && list.items.length > 0) {
+        // First time - derive from items order
+        deriveAndSaveTemplateSectionsOrder();
+      }
     } else {
       setCustomSections([]);
+      setTemplateSectionsOrder([]);
     }
-  }, [list?.id]);
-  
-  // Section state for sectioned lists (todo/idea)
-  const [newItemSection, setNewItemSection] = useState<string>("");
+    
+    function deriveAndSaveTemplateSectionsOrder() {
+      if (!list?.items || list.items.length === 0) return;
+      
+      // Get sections in the order they first appear in items
+      const seenSections = new Set<string>();
+      const orderedSections: string[] = [];
+      
+      // Sort items by order first
+      const sortedItems = [...list.items].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+      
+      sortedItems.forEach(item => {
+        const section = item.attributes?.section?.trim() || 'Uncategorized';
+        if (!seenSections.has(section)) {
+          seenSections.add(section);
+          orderedSections.push(section);
+        }
+      });
+      
+      setTemplateSectionsOrder(orderedSections);
+      if (list?.id) {
+        localStorage.setItem(`listmine:templateSectionsOrder:${list.id}`, JSON.stringify(orderedSections));
+      }
+    }
+  }, [list?.id, list?.items, isTemplateBasedList]);
   
   // Combined sections including custom sections (for dropdown) - AFTER customSections useState
   const allAvailableSections = useMemo(() => {
     const combined = new Set([...availableSections, ...customSections]);
     return Array.from(combined).sort();
   }, [availableSections, customSections]);
-  
-  // Check if this is a template-based list
-  const isTemplateBasedList = useMemo(() => {
-    return list?.source === 'template' || !!list?.templateId;
-  }, [list?.source, list?.templateId]);
   
   // Get items grouped by section for template-based lists
   const getGroupedSectionItems = useMemo(() => {
@@ -498,6 +538,40 @@ export default function ListDetail() {
     
     return grouped;
   }, [list?.items]);
+  
+  // Get sections in proper order: template sections first (in their original order), then user-added sections (alphabetically)
+  const getSortedSections = useMemo(() => {
+    const allSections = Object.keys(getGroupedSectionItems);
+    if (!isTemplateBasedList || templateSectionsOrder.length === 0) {
+      // If not template-based or no order stored, return sections as-is (could sort alphabetically if desired)
+      return allSections;
+    }
+    
+    // Separate template sections and user-added sections
+    const templateSections: string[] = [];
+    const userAddedSections: string[] = [];
+    
+    allSections.forEach(section => {
+      if (templateSectionsOrder.includes(section)) {
+        templateSections.push(section);
+      } else {
+        userAddedSections.push(section);
+      }
+    });
+    
+    // Sort template sections by their original order
+    templateSections.sort((a, b) => {
+      const indexA = templateSectionsOrder.indexOf(a);
+      const indexB = templateSectionsOrder.indexOf(b);
+      return indexA - indexB;
+    });
+    
+    // Sort user-added sections alphabetically
+    userAddedSections.sort();
+    
+    // Combine: template sections first, then user-added
+    return [...templateSections, ...userAddedSections];
+  }, [getGroupedSectionItems, isTemplateBasedList, templateSectionsOrder]);
   
   // Category state for grocery lists
   const [newItemGroceryCategory, setNewItemGroceryCategory] = useState<string>("");
@@ -4994,7 +5068,11 @@ export default function ListDetail() {
             ) : isSectioned && isTemplateBasedList ? (
               // Sectioned display for template-based lists
               <>
-                {Object.entries(getGroupedSectionItems).map(([sectionName, sectionItems]) => (
+                {getSortedSections.map((sectionName) => {
+                  const sectionItems = getGroupedSectionItems[sectionName];
+                  if (!sectionItems) return null;
+                  
+                  return (
                   <div key={sectionName} className="space-y-2 mb-4">
                     {/* Section Header with edit functionality */}
                     <div className="flex items-center gap-2 mt-4 mb-2">
@@ -5233,7 +5311,8 @@ export default function ListDetail() {
                       );
                     })}
                   </div>
-                ))}
+                  );
+                })}
               </>
             ) : (
               // Regular display for non-grocery lists (no sections)
