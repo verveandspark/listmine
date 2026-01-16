@@ -276,11 +276,13 @@ export default function ListDetail() {
   const canEditListItems = list ? canEditItems(list, user?.id) : false;
   const canShare = list ? canManageSharing(list, user?.id) : false;
   
-  // Check if list is sectioned (has items with section attribute)
+  // Check if list is sectioned (has items with section attribute OR is template-based)
   const isSectioned = useMemo(() => {
     if (!list?.items) return false;
+    // Template-based lists are always considered sectioned
+    if (list?.source === 'template' || !!(list as any)?.templateId) return true;
     return list.items.some(item => item.attributes?.section && item.attributes.section.trim() !== '');
-  }, [list?.items]);
+  }, [list?.items, list?.source, (list as any)?.templateId]);
   
   // Check if list is categorized (grocery lists use category attribute)
   const isCategorized = useMemo(() => {
@@ -1437,7 +1439,7 @@ export default function ListDetail() {
   const openEditListDialog = () => {
     if (!list) return;
     setEditListTitle(list.title);
-    setEditListCategory(list.category);
+    setEditListCategory(list?.category || '');
     setEditListType(list.listType);
     setIsEditListDialogOpen(true);
   };
@@ -1780,6 +1782,11 @@ export default function ListDetail() {
     const hasRegistryFallback = isTheKnot || (list.source ?? "").startsWith("myregistry:");
     return hasDirectLink || hasRegistryFallback;
   };
+
+  // Guard against incomplete list data
+  if (!list || !list.id) {
+    return <ListDetailSkeleton />;
+  }
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 animate-in fade-in duration-200 print:bg-white print:min-h-0">
@@ -2476,7 +2483,7 @@ export default function ListDetail() {
                 Dashboard
               </button>
               <ChevronRight className="w-4 h-4" />
-              <span className="text-gray-400">{list.category}</span>
+              <span className="text-gray-400">{list?.category || 'Uncategorized'}</span>
               <ChevronRight className="w-4 h-4" />
               <span className="font-semibold text-gray-900">{list.title}</span>
             </div>
@@ -2527,7 +2534,7 @@ export default function ListDetail() {
                     )}
                   </h1>
                   <p className="text-xs sm:text-sm text-muted-foreground">
-                    {list.category} · {Math.max(0, list.items?.length || 0)}/
+                    {list?.category || 'Uncategorized'} · {Math.max(0, list?.items?.length || 0)}/
                     {user?.itemsPerListLimit === -1 ? "∞" : user?.itemsPerListLimit} items
                     {list.lastEditedAt && (
                       <span className="ml-2">
