@@ -276,13 +276,24 @@ export default function ListDetail() {
   const canEditListItems = list ? canEditItems(list, user?.id) : false;
   const canShare = list ? canManageSharing(list, user?.id) : false;
   
-  // Check if list is sectioned (has items with section attribute OR is template-based)
+  // Check if list is sectioned (has items with MULTIPLE distinct sections)
+  // Only show section management for templates that were designed with multiple sections
   const isSectioned = useMemo(() => {
     if (!list?.items) return false;
-    // Template-based lists are always considered sectioned
-    if (list?.source === 'template' || !!(list as any)?.templateId) return true;
-    return list.items.some(item => item.attributes?.section && item.attributes.section.trim() !== '');
-  }, [list?.items, list?.source, (list as any)?.templateId]);
+    
+    // Get all unique non-empty sections from items (excluding empty, undefined, null, and "UNCATEGORIZED")
+    const uniqueSections = new Set<string>();
+    for (const item of list.items) {
+      const section = item.attributes?.section?.trim();
+      if (section && section !== '' && section.toUpperCase() !== 'UNCATEGORIZED') {
+        uniqueSections.add(section.toUpperCase());
+      }
+    }
+    
+    // Only consider it sectioned if there are 2+ distinct sections, or at least 1 meaningful section
+    // (i.e., the template was designed with sections, not just defaulting to UNCATEGORIZED)
+    return uniqueSections.size >= 1;
+  }, [list?.items]);
   
   // Check if list is categorized (grocery lists use category attribute)
   const isCategorized = useMemo(() => {
