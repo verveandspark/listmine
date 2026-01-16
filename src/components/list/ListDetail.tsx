@@ -146,6 +146,20 @@ const isRegistryOrWishlist = (listType: string | undefined): boolean => {
   return normalized === "registry" || normalized === "wishlist";
 };
 
+// Helper function to check if an item is unavailable
+const isItemUnavailable = (item: ListItemType): boolean => {
+  // Check for new is_unavailable column (boolean)
+  if ((item as any).is_unavailable === true) return true;
+  
+  // Check Target format: attributes.custom.is_unavailable (boolean)
+  if (item.attributes?.custom?.is_unavailable === true) return true;
+  
+  // Check MyRegistry/BB&B format: attributes.custom.availability (string)
+  if (item.attributes?.custom?.availability === 'unavailable') return true;
+  
+  return false;
+};
+
 export default function ListDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -4166,6 +4180,11 @@ export default function ListDetail() {
                                 ✓ Purchased
                               </Badge>
                             )}
+                            {isItemUnavailable(item) && (
+                              <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-300">
+                                Unavailable
+                              </Badge>
+                            )}
                             {/* Price display - attributes.price or custom.price (registry imports) */}
                             {(item.attributes?.price || item.attributes?.custom?.price) && (
                               <span className="text-sm font-medium text-gray-700">
@@ -4465,6 +4484,11 @@ export default function ListDetail() {
                             {isPurchased && (
                               <Badge className="bg-accent/10 text-accent border-accent/20">
                                 ✓ Purchased
+                              </Badge>
+                            )}
+                            {isItemUnavailable(item) && (
+                              <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-300">
+                                Unavailable
                               </Badge>
                             )}
                             {/* Price display - attributes.price or custom.price (registry imports) */}
