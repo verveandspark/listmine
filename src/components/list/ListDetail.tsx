@@ -160,6 +160,32 @@ const isItemUnavailable = (item: ListItemType): boolean => {
   return false;
 };
 
+// Helper function to render notes with clickable links
+const renderNotesWithLinks = (notes: string): React.ReactNode => {
+  // URL regex to match http, https, and www URLs
+  const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/gi;
+  const parts = notes.split(urlRegex);
+  
+  return parts.map((part, index) => {
+    if (part.match(urlRegex)) {
+      const href = part.startsWith('www.') ? `https://${part}` : part;
+      return (
+        <a
+          key={index}
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary hover:underline not-italic"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {part}
+        </a>
+      );
+    }
+    return part;
+  });
+};
+
 export default function ListDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -4170,8 +4196,8 @@ export default function ListDetail() {
                               {item.text}
                             </p>
                             {item.notes && !item.completed && (
-                              <p className="text-xs text-gray-500 -mt-0.5 break-words italic pointer-events-none">
-                                {item.notes}
+                              <p className="text-xs text-gray-500 -mt-0.5 break-words italic">
+                                {renderNotesWithLinks(item.notes)}
                               </p>
                             )}
                             <div className="flex items-center gap-2 flex-wrap">
@@ -4476,8 +4502,8 @@ export default function ListDetail() {
                               {item.text}
                             </p>
                             {item.notes && !item.completed && (
-                              <p className="text-xs text-gray-500 -mt-0.5 break-words italic pointer-events-none">
-                                {item.notes}
+                              <p className="text-xs text-gray-500 -mt-0.5 break-words italic">
+                                {renderNotesWithLinks(item.notes)}
                               </p>
                             )}
                             <div className="flex items-center gap-2 flex-wrap">
@@ -4778,8 +4804,8 @@ export default function ListDetail() {
                               {item.text}
                             </p>
                             {item.notes && !item.completed && (
-                              <p className="text-xs text-gray-500 -mt-0.5 break-words italic pointer-events-none">
-                                {item.notes}
+                              <p className="text-xs text-gray-500 -mt-0.5 break-words italic">
+                                {renderNotesWithLinks(item.notes)}
                               </p>
                             )}
                             <div className="flex items-center gap-2 flex-wrap">
