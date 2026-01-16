@@ -4555,8 +4555,8 @@ export default function ListDetail() {
                   })}
                 </div>
               ))
-            ) : hasItemsWithSections() ? (
-              // Grouped display by section (for templates with sections)
+            ) : hasItemsWithSections() && !isTemplateBasedList ? (
+              // Grouped display by section (for NON-template lists with sections - template lists use the section management view below)
               Object.entries(getGroupedItemsBySection()).map(([section, sectionItems]) => (
                 <div key={section} className="space-y-2">
                   <div className="flex items-center gap-2 mt-4 mb-2">
