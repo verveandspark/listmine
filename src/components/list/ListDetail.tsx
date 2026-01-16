@@ -1023,8 +1023,14 @@ export default function ListDetail() {
 
     const trimmedName = newSectionName.trim();
     
-    // Check if section already exists
-    if (allAvailableSections.includes(trimmedName)) {
+    // Clear the input state IMMEDIATELY to prevent double-calls
+    // (e.g., user presses Enter and clicks Add button, or React Strict Mode)
+    setNewSectionName("");
+    setIsAddingSectionOpen(false);
+    
+    // Check if section already exists (use current allAvailableSections, not after state update)
+    // Also check customSections directly to catch recently added sections
+    if (allAvailableSections.includes(trimmedName) || customSections.includes(trimmedName)) {
       toast({
         title: "Section exists",
         description: `A section named "${trimmedName}" already exists`,
@@ -1087,9 +1093,6 @@ export default function ListDetail() {
     if (list?.id) {
       localStorage.setItem(`listmine:lastSection:${list.id}`, trimmedName);
     }
-
-    setIsAddingSectionOpen(false);
-    setNewSectionName("");
   };
 
   const handleDeleteList = async () => {
