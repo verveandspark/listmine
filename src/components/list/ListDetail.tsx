@@ -3543,23 +3543,13 @@ export default function ListDetail() {
                     {/* Section dropdown for sectioned custom lists (Recipe, Vacation Packing, etc.) */}
                     {isSectioned && (
                       <div className="mb-2">
-                        <div className="flex items-center justify-between mb-2">
-                          <Label className="text-xs">Section</Label>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setIsAddingSectionOpen(true)}
-                            className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                        <Label className="text-xs mb-2 block">Section</Label>
+                        <div className="flex items-center gap-2">
+                          <Select
+                            value={newItemSection || allAvailableSections[0] || "OTHER"}
+                            onValueChange={handleSectionChange}
                           >
-                            <Plus className="w-3 h-3 mr-1" />
-                            Add Section
-                          </Button>
-                        </div>
-                        <Select
-                          value={newItemSection || allAvailableSections[0] || "OTHER"}
-                          onValueChange={handleSectionChange}
-                        >
-                          <SelectTrigger className="min-h-[44px]">
+                            <SelectTrigger className="min-h-[44px] flex-1">
                             <SelectValue placeholder="Select section" />
                           </SelectTrigger>
                           <SelectContent>
@@ -3570,6 +3560,16 @@ export default function ListDetail() {
                             ))}
                           </SelectContent>
                         </Select>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setIsAddingSectionOpen(true)}
+                          className="h-11 px-3 text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          <Plus className="w-3 h-3 mr-1" />
+                          Add Section
+                        </Button>
+                        </div>
                       </div>
                     )}
                     {!detailedMode && (
@@ -3613,23 +3613,13 @@ export default function ListDetail() {
                     {/* Section dropdown for sectioned todo lists */}
                     {isSectioned && (
                       <div className="mb-2">
-                        <div className="flex items-center justify-between mb-2">
-                          <Label className="text-xs">Section</Label>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setIsAddingSectionOpen(true)}
-                            className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                        <Label className="text-xs mb-2 block">Section</Label>
+                        <div className="flex items-center gap-2">
+                          <Select
+                            value={newItemSection || "OTHER"}
+                            onValueChange={handleSectionChange}
                           >
-                            <Plus className="w-3 h-3 mr-1" />
-                            Add Section
-                          </Button>
-                        </div>
-                        <Select
-                          value={newItemSection || "OTHER"}
-                          onValueChange={handleSectionChange}
-                        >
-                          <SelectTrigger className="min-h-[44px]">
+                            <SelectTrigger className="min-h-[44px] flex-1">
                             <SelectValue placeholder="Select section" />
                           </SelectTrigger>
                           <SelectContent>
@@ -3640,6 +3630,16 @@ export default function ListDetail() {
                             ))}
                           </SelectContent>
                         </Select>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setIsAddingSectionOpen(true)}
+                          className="h-11 px-3 text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          <Plus className="w-3 h-3 mr-1" />
+                          Add Section
+                        </Button>
+                        </div>
                       </div>
                     )}
                     {!detailedMode && (
@@ -3869,28 +3869,18 @@ export default function ListDetail() {
                     {/* Section dropdown for sectioned registry lists */}
                     {isSectioned && (
                       <div className="mb-2">
-                        <div className="flex items-center justify-between mb-2">
-                          <Label className="text-xs">Section</Label>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setIsAddingSectionOpen(true)}
-                            className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
-                          >
-                            <Plus className="w-3 h-3 mr-1" />
-                            Add Section
-                          </Button>
-                        </div>
-                        <Select
-                          value={newItemSection || "OTHER"}
-                          onValueChange={(value) => {
-                            setNewItemSection(value);
-                            if (list?.id) {
+                        <Label className="text-xs mb-2 block">Section</Label>
+                        <div className="flex items-center gap-2">
+                          <Select
+                            value={newItemSection || "OTHER"}
+                            onValueChange={(value) => {
+                              setNewItemSection(value);
+                              if (list?.id) {
                               localStorage.setItem(`listmine:lastSection:${list.id}`, value);
                             }
                           }}
                         >
-                          <SelectTrigger className="min-h-[44px]">
+                          <SelectTrigger className="min-h-[44px] flex-1">
                             <SelectValue placeholder="Select section" />
                           </SelectTrigger>
                           <SelectContent>
@@ -3901,6 +3891,16 @@ export default function ListDetail() {
                             ))}
                           </SelectContent>
                         </Select>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setIsAddingSectionOpen(true)}
+                          className="h-11 px-3 text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          <Plus className="w-3 h-3 mr-1" />
+                          Add Section
+                        </Button>
+                        </div>
                       </div>
                     )}
                     {!detailedMode && (
@@ -4028,23 +4028,13 @@ export default function ListDetail() {
                     {/* Section dropdown for sectioned shopping lists (Gift Tracker, etc.) */}
                     {isSectioned && (
                       <div className="mb-2">
-                        <div className="flex items-center justify-between mb-2">
-                          <Label className="text-xs">Section</Label>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setIsAddingSectionOpen(true)}
-                            className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                        <Label className="text-xs mb-2 block">Section</Label>
+                        <div className="flex items-center gap-2">
+                          <Select
+                            value={newItemSection || allAvailableSections[0] || "OTHER"}
+                            onValueChange={handleSectionChange}
                           >
-                            <Plus className="w-3 h-3 mr-1" />
-                            Add Section
-                          </Button>
-                        </div>
-                        <Select
-                          value={newItemSection || allAvailableSections[0] || "OTHER"}
-                          onValueChange={handleSectionChange}
-                        >
-                          <SelectTrigger className="min-h-[44px]">
+                            <SelectTrigger className="min-h-[44px] flex-1">
                             <SelectValue placeholder="Select section" />
                           </SelectTrigger>
                           <SelectContent>
@@ -4055,6 +4045,16 @@ export default function ListDetail() {
                             ))}
                           </SelectContent>
                         </Select>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setIsAddingSectionOpen(true)}
+                          className="h-11 px-3 text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          <Plus className="w-3 h-3 mr-1" />
+                          Add Section
+                        </Button>
+                        </div>
                       </div>
                     )}
                     {!detailedMode && (
@@ -4184,23 +4184,13 @@ export default function ListDetail() {
                     {/* Section dropdown for sectioned idea lists */}
                     {isSectioned && (
                       <div className="mb-2">
-                        <div className="flex items-center justify-between mb-2">
-                          <Label className="text-xs">Section</Label>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setIsAddingSectionOpen(true)}
-                            className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                        <Label className="text-xs mb-2 block">Section</Label>
+                        <div className="flex items-center gap-2">
+                          <Select
+                            value={newItemSection || "OTHER"}
+                            onValueChange={handleSectionChange}
                           >
-                            <Plus className="w-3 h-3 mr-1" />
-                            Add Section
-                          </Button>
-                        </div>
-                        <Select
-                          value={newItemSection || "OTHER"}
-                          onValueChange={handleSectionChange}
-                        >
-                          <SelectTrigger className="min-h-[44px]">
+                            <SelectTrigger className="min-h-[44px] flex-1">
                             <SelectValue placeholder="Select section" />
                           </SelectTrigger>
                           <SelectContent>
@@ -4211,6 +4201,16 @@ export default function ListDetail() {
                             ))}
                           </SelectContent>
                         </Select>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setIsAddingSectionOpen(true)}
+                          className="h-11 px-3 text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          <Plus className="w-3 h-3 mr-1" />
+                          Add Section
+                        </Button>
+                        </div>
                       </div>
                     )}
                     {!detailedMode && (
@@ -5851,6 +5851,42 @@ export default function ListDetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Add Section Dialog */}
+      <Dialog open={isAddingSectionOpen} onOpenChange={setIsAddingSectionOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New Section</DialogTitle>
+            <DialogDescription>
+              Create a new section to organize your list items.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center gap-2 py-4">
+            <Input
+              value={newSectionName}
+              onChange={(e) => setNewSectionName(e.target.value)}
+              placeholder="Section name"
+              className="flex-1"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleAddNewSection();
+                } else if (e.key === "Escape") {
+                  setIsAddingSectionOpen(false);
+                  setNewSectionName("");
+                }
+              }}
+            />
+            <Button
+              onClick={handleAddNewSection}
+              disabled={!newSectionName.trim()}
+            >
+              <Check className="w-4 h-4 mr-1" />
+              Add
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Help Modal */}
       <Dialog open={isHelpModalOpen} onOpenChange={setIsHelpModalOpen}>
