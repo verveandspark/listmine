@@ -1014,7 +1014,7 @@ export default function ListDetail() {
     setEditedSectionValue("");
   };
 
-  const handleAddNewSection = () => {
+  const handleAddNewSection = async () => {
     if (!newSectionName.trim()) {
       setIsAddingSectionOpen(false);
       setNewSectionName("");
@@ -1040,16 +1040,53 @@ export default function ListDetail() {
       localStorage.setItem(`listmine:customSections:${list.id}`, JSON.stringify(newCustomSections));
     }
     
+    // Auto-populate with template's prototype section items (for template-based lists)
+    if (isTemplateBasedList && list?.id && list?.items) {
+      // Find the first/prototype section (the one with the most items, or alphabetically first)
+      const sectionGroups = getGroupedSectionItems;
+      const sectionNames = Object.keys(sectionGroups).filter(s => s !== 'Uncategorized');
+      
+      if (sectionNames.length > 0) {
+        // Use the first section alphabetically as the prototype
+        const prototypeSection = sectionNames.sort()[0];
+        const prototypeItems = sectionGroups[prototypeSection] || [];
+        
+        // Create copies of prototype items with the new section name
+        for (const item of prototypeItems) {
+          await addItemToList(list.id, {
+            text: item.text || "",
+            completed: false,
+            quantity: item.quantity,
+            priority: item.priority,
+            attributes: {
+              ...item.attributes,
+              section: trimmedName,
+            },
+          });
+        }
+        
+        toast({
+          title: "Section added",
+          description: `"${trimmedName}" section created with ${prototypeItems.length} starter items`,
+        });
+      } else {
+        toast({
+          title: "Section added",
+          description: `"${trimmedName}" section is now available`,
+        });
+      }
+    } else {
+      toast({
+        title: "Section added",
+        description: `"${trimmedName}" section is now available`,
+      });
+    }
+    
     // Auto-select the new section for adding items
     setNewItemSection(trimmedName);
     if (list?.id) {
       localStorage.setItem(`listmine:lastSection:${list.id}`, trimmedName);
     }
-
-    toast({
-      title: "Section added",
-      description: `"${trimmedName}" section is now available`,
-    });
 
     setIsAddingSectionOpen(false);
     setNewSectionName("");
