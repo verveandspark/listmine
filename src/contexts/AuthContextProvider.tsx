@@ -476,8 +476,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     // Cache the tier and user ID
+    const previousCachedTier = cachedTierRef.current;
     cachedTierRef.current = tier;
     userIdRef.current = supabaseUser.id;
+    
+    // Log tier changes for debugging
+    if (previousCachedTier && previousCachedTier !== tier) {
+      console.warn('[Auth Debug] ⚠️ TIER CHANGE DETECTED in setUserFromAuth:', {
+        previousTier: previousCachedTier,
+        newTier: tier,
+        userId: supabaseUser.id,
+        timestamp: new Date().toISOString(),
+        stack: new Error().stack
+      });
+    }
     
     // Also save to localStorage for persistence
     saveTierToStorage(supabaseUser.id, tier);
@@ -563,8 +575,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const tierLimits = getTierLimits("free");
 
       // Use SECURITY DEFINER RPC to create user profile
+      // NOTE: Parameter is p_user_id (not p_id) as defined in migration 20260101120000
       const { error: profileError } = await supabase.rpc('upsert_user_profile', {
-        p_id: data.user.id,
+        p_user_id: data.user.id,
         p_email: email,
         p_name: name,
         p_tier: "free",

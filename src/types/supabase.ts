@@ -374,6 +374,7 @@ export type Database = {
           created_at: string | null
           due_date: string | null
           id: string
+          is_unavailable: boolean | null
           item_order: number
           last_edited_at: string | null
           last_edited_by_email: string | null
@@ -393,6 +394,7 @@ export type Database = {
           created_at?: string | null
           due_date?: string | null
           id?: string
+          is_unavailable?: boolean | null
           item_order?: number
           last_edited_at?: string | null
           last_edited_by_email?: string | null
@@ -412,6 +414,7 @@ export type Database = {
           created_at?: string | null
           due_date?: string | null
           id?: string
+          is_unavailable?: boolean | null
           item_order?: number
           last_edited_at?: string | null
           last_edited_by_email?: string | null
@@ -1342,7 +1345,6 @@ export type Database = {
         Args: { p_share_link: string }
         Returns: {
           category: string
-          collaborators: string[]
           created_at: string
           id: string
           is_archived: boolean
@@ -1356,6 +1358,7 @@ export type Database = {
           share_link: string
           share_mode: string
           show_purchaser_info: boolean
+          source: string
           tags: string[]
           title: string
           updated_at: string
@@ -1476,11 +1479,11 @@ export type Database = {
       upsert_user_profile: {
         Args: {
           p_email: string
-          p_id: string
-          p_items_per_list_limit: number
-          p_list_limit: number
-          p_name: string
-          p_tier: string
+          p_items_per_list_limit?: number
+          p_list_limit?: number
+          p_name?: string
+          p_tier?: string
+          p_user_id: string
         }
         Returns: {
           avatar_url: string | null
