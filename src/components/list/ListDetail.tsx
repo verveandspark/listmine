@@ -398,6 +398,11 @@ export default function ListDetail() {
   const [draggedItem, setDraggedItem] = useState<ListItemType | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [dropPosition, setDropPosition] = useState<"before" | "after" | null>(null);
+  
+  // Section drag state
+  const [draggedSection, setDraggedSection] = useState<string | null>(null);
+  const [dropTargetSection, setDropTargetSection] = useState<string | null>(null);
+  const [sectionDropPosition, setSectionDropPosition] = useState<"before" | "after" | null>(null);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [collaboratorEmail, setCollaboratorEmail] = useState("");
@@ -1026,6 +1031,105 @@ export default function ListDetail() {
     setDraggedItem(null);
     setDropTargetId(null);
     setDropPosition(null);
+  };
+
+  // Section drag handlers (for reordering sections)
+  const handleSectionDragStart = (e: React.DragEvent, sectionName: string) => {
+    e.stopPropagation();
+    setDraggedSection(sectionName);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", `section:${sectionName}`);
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = "0.5";
+    }
+  };
+
+  const handleSectionDragOver = (e: React.DragEvent, targetSection: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = "move";
+    
+    if (!draggedSection || draggedSection === targetSection) {
+      setDropTargetSection(null);
+      setSectionDropPosition(null);
+      return;
+    }
+    
+    const rect = e.currentTarget.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const position = y < rect.height / 2 ? "before" : "after";
+    
+    setDropTargetSection(targetSection);
+    setSectionDropPosition(position);
+  };
+
+  const handleSectionDragLeave = (e: React.DragEvent) => {
+    e.stopPropagation();
+    const relatedTarget = e.relatedTarget as HTMLElement;
+    if (!e.currentTarget.contains(relatedTarget)) {
+      setDropTargetSection(null);
+      setSectionDropPosition(null);
+    }
+  };
+
+  const handleSectionDrop = (e: React.DragEvent, targetSection: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!draggedSection || draggedSection === targetSection || !list?.id) {
+      setDraggedSection(null);
+      setDropTargetSection(null);
+      setSectionDropPosition(null);
+      return;
+    }
+    
+    // Get current section order
+    const currentOrder = [...getSortedSections];
+    const draggedIndex = currentOrder.indexOf(draggedSection);
+    const targetIndex = currentOrder.indexOf(targetSection);
+    
+    if (draggedIndex === -1 || targetIndex === -1) {
+      setDraggedSection(null);
+      setDropTargetSection(null);
+      setSectionDropPosition(null);
+      return;
+    }
+    
+    // Remove dragged section
+    currentOrder.splice(draggedIndex, 1);
+    
+    // Calculate new index based on drop position
+    let newIndex = targetIndex;
+    if (draggedIndex < targetIndex) {
+      newIndex = sectionDropPosition === "after" ? targetIndex : targetIndex - 1;
+    } else {
+      newIndex = sectionDropPosition === "after" ? targetIndex + 1 : targetIndex;
+    }
+    
+    currentOrder.splice(newIndex, 0, draggedSection);
+    
+    // Save the new custom section order
+    setTemplateSectionsOrder(currentOrder);
+    localStorage.setItem(`listmine:templateSectionsOrder:${list.id}`, JSON.stringify(currentOrder));
+    
+    toast({
+      title: "Sections reordered",
+      description: "Section order has been updated",
+    });
+    
+    setDraggedSection(null);
+    setDropTargetSection(null);
+    setSectionDropPosition(null);
+  };
+
+  const handleSectionDragEnd = (e: React.DragEvent) => {
+    e.stopPropagation();
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = "1";
+    }
+    setDraggedSection(null);
+    setDropTargetSection(null);
+    setSectionDropPosition(null);
   };
 
   // Section management handlers (for template-based lists)
@@ -5072,10 +5176,24 @@ export default function ListDetail() {
                   const sectionItems = getGroupedSectionItems[sectionName];
                   if (!sectionItems) return null;
                   
+                  const isSectionDropTarget = dropTargetSection === sectionName;
+                  
                   return (
-                  <div key={sectionName} className="space-y-2 mb-4">
+                  <div key={sectionName} className="space-y-2 mb-4 relative">
+                    {/* Section drop indicator - before */}
+                    {isSectionDropTarget && sectionDropPosition === "before" && (
+                      <div className="absolute -top-2 left-0 right-0 h-1 bg-primary rounded-full z-10 animate-pulse" />
+                    )}
                     {/* Section Header with edit functionality */}
-                    <div className="flex items-center gap-2 mt-4 mb-2">
+                    <div 
+                      className={`flex items-center gap-2 mt-4 mb-2 ${draggedSection === sectionName ? "opacity-50" : ""} ${isSectionDropTarget ? "ring-2 ring-primary/30 rounded-md p-1 -m-1" : ""}`}
+                      draggable={canEditListItems && editingSectionName !== sectionName}
+                      onDragStart={(e) => canEditListItems && handleSectionDragStart(e, sectionName)}
+                      onDragOver={(e) => canEditListItems && handleSectionDragOver(e, sectionName)}
+                      onDragLeave={(e) => canEditListItems && handleSectionDragLeave(e)}
+                      onDrop={(e) => canEditListItems && handleSectionDrop(e, sectionName)}
+                      onDragEnd={(e) => canEditListItems && handleSectionDragEnd(e)}
+                    >
                       {editingSectionName === sectionName ? (
                         <div className="flex items-center gap-2 flex-1">
                           <Input
@@ -5110,6 +5228,14 @@ export default function ListDetail() {
                         </div>
                       ) : (
                         <>
+                          {canEditListItems && (
+                            <div 
+                              className="cursor-grab active:cursor-grabbing touch-none"
+                              title="Drag to reorder sections"
+                            >
+                              <GripVertical className="w-4 h-4 text-gray-400 hover:text-gray-600" />
+                            </div>
+                          )}
                           <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
                             {sectionName}
                           </h3>
@@ -5146,6 +5272,10 @@ export default function ListDetail() {
                         {sectionItems.length}
                       </Badge>
                     </div>
+                    {/* Section drop indicator - after */}
+                    {isSectionDropTarget && sectionDropPosition === "after" && (
+                      <div className="absolute -bottom-2 left-0 right-0 h-1 bg-primary rounded-full z-10 animate-pulse" />
+                    )}
                     {/* Section Items */}
                     {sectionItems.map((item, index) => {
                       const isPurchased = isRegistryOrWishlistType && item.attributes?.purchaseStatus === "purchased";
