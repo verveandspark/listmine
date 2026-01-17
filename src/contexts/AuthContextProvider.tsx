@@ -272,14 +272,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           async (payload) => {
             // User record updated - check if tier changed
             const newData = payload.new as any;
+            const oldData = payload.old as any;
             console.log('[Auth Realtime] ====== TIER UPDATE EVENT RECEIVED ======');
             console.log('[Auth Realtime] Payload:', {
               userId: newData?.id,
               newTier: newData?.tier,
-              oldTier: (payload.old as any)?.tier,
+              oldTier: oldData?.tier,
+              cachedTier: cachedTierRef.current,
               isMounted,
               timestamp: new Date().toISOString()
             });
+            console.log('[Auth Realtime] Full payload.old:', JSON.stringify(oldData));
+            console.log('[Auth Realtime] Full payload.new:', JSON.stringify(newData));
+            
+            // Stack trace to identify what triggered this update
+            console.log('[Auth Realtime] Stack trace:', new Error().stack);
             
             if (newData && newData.tier && isMounted) {
               const newTier = newData.tier as 'free' | 'good' | 'even_better' | 'lots_more';

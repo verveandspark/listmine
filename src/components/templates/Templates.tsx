@@ -119,14 +119,6 @@ export default function Templates() {
   // Only use effectiveTier (which includes team tier) when explicitly in team context
   const personalTier = (user?.tier || 'free') as UserTier;
   const userTier = isTeamContext ? effectiveTier : personalTier;
-  
-  console.log('[Templates] User Tier Context:', {
-    personalTier,
-    effectiveTier,
-    isTeamContext,
-    userTier,
-    rawUserTier: user?.tier
-  });
 
   useEffect(() => {
     loadTemplatesAndEntitlements();
@@ -181,19 +173,7 @@ export default function Templates() {
     if (!requiredTier) return true;
     const userLevel = tierHierarchy[userTier] ?? 0;
     const requiredLevel = tierHierarchy[requiredTier] ?? 0;
-    const meetsRequirement = userLevel >= requiredLevel;
-    
-    // Debug logging for tier checking
-    console.log('[Templates] Tier Check:', {
-      userTier,
-      requiredTier,
-      userLevel,
-      requiredLevel,
-      meetsRequirement,
-      tierHierarchy
-    });
-    
-    return meetsRequirement;
+    return userLevel >= requiredLevel;
   };
 
   // Helper to check if a template is available (included or unlocked) for current user

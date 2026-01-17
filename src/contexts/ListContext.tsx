@@ -321,10 +321,6 @@ export function ListProvider({ children }: { children: ReactNode }) {
     console.log('[ListContext TierChange] Registering tier change callback');
     
     const unsubscribe = onTierChange(async (newTier, prevTier) => {
-      console.log('[ListContext TierChange] ====== TIER CHANGE CALLBACK FIRED ======');
-      console.log('[ListContext TierChange] Tier changed from', prevTier, 'to', newTier);
-      console.log('[ListContext TierChange] Current user ID:', currentUserIdRef.current);
-      console.log('[ListContext TierChange] Timestamp:', new Date().toISOString());
       
       // Set guard to prevent stale UI
       tierChangeInProgressRef.current = true;
@@ -1066,26 +1062,10 @@ export function ListProvider({ children }: { children: ReactNode }) {
         insertPayload.account_id = accountId;
       }
       
-      // Ensure user profile exists in public.users table via SECURITY DEFINER RPC (non-fatal)
-      // This is best-effort - list creation proceeds even if profile upsert fails
-      try {
-        const { error: upsertError } = await supabase.rpc('upsert_user_profile', {
-          p_id: insertUserId,
-          p_email: authUser.email || "",
-          p_name: authUser.email?.split("@")[0] || "User",
-          p_tier: "free",
-          p_list_limit: 5,
-          p_items_per_list_limit: 20,
-        });
-        
-        if (upsertError) {
-          // Log but don't abort - profile may already exist or have different values
-          console.warn("[ListContext] User profile upsert warning (non-fatal):", upsertError);
-        }
-      } catch (profileError) {
-        // Non-fatal - proceed with list creation anyway
-        console.warn("[ListContext] User profile ensure failed (non-fatal):", profileError);
-      }
+      // CRITICAL BUG FIX: Removed upsert_user_profile call that was resetting tier to 'free'
+      // User profile is created during registration in AuthContextProvider
+      // List creation should NEVER modify user tier or overwrite profile with defaults
+      // The hardcoded p_tier: "free" was causing tier reset for users with paid tiers
       
       const { data: newList, error } = await supabase
         .from("lists")
