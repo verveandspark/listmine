@@ -114,7 +114,11 @@ export default function Templates() {
   const locationIsTeamContext = !!location.state?.isTeamContext || new URLSearchParams(location.search).get("ctx") === "team";
   const isTeamContext = globalIsTeamContext || locationIsTeamContext;
   const teamAccountId = (location.state?.teamAccountId as string | null) || (currentAccount?.type === 'team' ? currentAccount.id : null);
-  const userTier = effectiveTier;
+  
+  // Use the user's personal tier for template access when in personal context
+  // Only use effectiveTier (which includes team tier) when explicitly in team context
+  const personalTier = (user?.tier || 'free') as UserTier;
+  const userTier = isTeamContext ? effectiveTier : personalTier;
 
   useEffect(() => {
     loadTemplatesAndEntitlements();
