@@ -4569,16 +4569,29 @@ export default function ListDetail() {
                 </PopoverContent>
               </Popover>
 
-              {/* Sort Dropdown */}
+              {/* Sort Dropdown - options vary based on list type and sections */}
               <Select value={itemSortBy} onValueChange={handleItemSortChange}>
                 <SelectTrigger className="w-full sm:w-[220px] h-[40px] flex-shrink-0">
                   <SelectValue placeholder="Sort items by" />
                 </SelectTrigger>
                 <SelectContent>
+                  {/* Always show Manual */}
                   <SelectItem value="manual">Manual (drag to reorder)</SelectItem>
-                  <SelectItem value="priority">Priority</SelectItem>
-                  <SelectItem value="dueDate">Due Date</SelectItem>
-                  <SelectItem value="alphabetical">Alphabetical</SelectItem>
+                  
+                  {/* Only show other options for non-sectioned lists */}
+                  {!(isSectioned && isTemplateBasedList) && (
+                    <>
+                      <SelectItem value="alphabetical">Alphabetical</SelectItem>
+                      
+                      {/* Priority and Due Date only for todo/task lists */}
+                      {isTodo && (
+                        <>
+                          <SelectItem value="priority">Priority</SelectItem>
+                          <SelectItem value="dueDate">Due Date</SelectItem>
+                        </>
+                      )}
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             </div>
