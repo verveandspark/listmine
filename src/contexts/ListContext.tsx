@@ -1272,69 +1272,73 @@ export function ListProvider({ children }: { children: ReactNode }) {
       // For team lists, we need to preserve the original user_id (team owner)
       const insertUserId = accountId ? userId : (user?.id || userId);
       
-      // First restore the list
-      // ONLY insert columns that exist in the lists table:
-      // id, user_id, title, category, list_type, is_archived, is_pinned, created_at, updated_at,
-      // is_shared, share_link, tags, description, is_public, public_link, show_purchaser_info,
-      // share_mode, account_id, last_edited_by_user_id, last_edited_by_email, last_edited_at
-      const { data: restoredList, error: listError } = await supabase
-        .from("lists")
-        .insert({
-          id: listData.id,
-          user_id: insertUserId,
-          title: listData.title,
-          category: listData.category,
-          list_type: listType,
-          is_archived: isArchived,
-          is_pinned: isPinned,
-          is_shared: isShared,
-          share_link: shareLink,
-          tags: listData.tags || [],
-          description: description,
-          is_public: isPublic,
-          public_link: publicLink,
-          show_purchaser_info: showPurchaserInfo,
-          share_mode: shareMode,
-          account_id: accountId,
-          created_at: createdAt,
-          updated_at: new Date().toISOString(),
-          last_edited_by_user_id: user?.id || null,
-          last_edited_by_email: user?.email || null,
-          last_edited_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
+      // Verify auth before making the RPC call
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+      if (authError || !authUser) {
+        console.error("[ListContext] restoreList: Not authenticated", { authError });
+        throw new Error("You must be logged in to restore a list.");
+      }
+      
+      console.log("[ListContext] restoreList: Calling RPC with", {
+        listId: listData.id,
+        insertUserId,
+        accountId,
+        authUserId: authUser.id,
+      });
+      
+      // Use SECURITY DEFINER RPC to bypass RLS
+      const { data: restoredList, error: listError } = await supabase.rpc('restore_list_for_user', {
+        p_list_id: listData.id,
+        p_user_id: insertUserId,
+        p_title: listData.title,
+        p_category: listData.category,
+        p_list_type: listType || 'standard',
+        p_is_archived: isArchived,
+        p_is_pinned: isPinned,
+        p_is_shared: isShared,
+        p_share_link: shareLink,
+        p_tags: listData.tags || [],
+        p_description: description,
+        p_is_public: isPublic,
+        p_public_link: publicLink,
+        p_show_purchaser_info: showPurchaserInfo,
+        p_share_mode: shareMode,
+        p_account_id: accountId,
+        p_created_at: createdAt,
+      });
 
-      if (listError) throw listError;
+      if (listError) {
+        console.error("[ListContext] restoreList RPC failed:", listError);
+        throw listError;
+      }
 
-      // Then restore all items if any
+      // Then restore all items if any using RPC
       // Handle both camelCase (from List/ListItem types) and snake_case (from raw DB)
       if (listData.items && listData.items.length > 0) {
         const itemsToInsert = listData.items.map((item: any) => ({
           id: item.id,
-          list_id: listData.id,
           text: item.text,
-          quantity: item.quantity,
-          priority: item.priority,
+          quantity: item.quantity || 1,
+          priority: item.priority || null,
           due_date: item.dueDate || item.due_date || null,
-          notes: item.notes,
+          notes: item.notes || null,
           assigned_to: item.assignedTo || item.assigned_to || null,
           completed: item.completed ?? false,
           links: item.links || [],
           attributes: item.attributes || {},
           item_order: item.order ?? item.item_order ?? 0,
           created_at: item.createdAt || item.created_at || new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          last_edited_by_user_id: user?.id || null,
-          last_edited_by_email: user?.email || null,
-          last_edited_at: new Date().toISOString(),
         }));
 
-        const { error: itemsError } = await supabase
-          .from("list_items")
-          .insert(itemsToInsert);
+        const { error: itemsError } = await supabase.rpc('restore_list_items_for_user', {
+          p_list_id: listData.id,
+          p_items: itemsToInsert,
+        });
 
-        if (itemsError) throw itemsError;
+        if (itemsError) {
+          console.error("[ListContext] restoreList items RPC failed:", itemsError);
+          throw itemsError;
+        }
       }
 
       await loadLists();

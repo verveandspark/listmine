@@ -1428,6 +1428,65 @@ export type Database = {
         Returns: string
       }
       redeem_template_code: { Args: { p_code: string }; Returns: Json }
+      restore_list_for_user: {
+        Args: {
+          p_account_id?: string
+          p_category: string
+          p_created_at?: string
+          p_description?: string
+          p_is_archived?: boolean
+          p_is_pinned?: boolean
+          p_is_public?: boolean
+          p_is_shared?: boolean
+          p_list_id: string
+          p_list_type?: string
+          p_public_link?: string
+          p_share_link?: string
+          p_share_mode?: string
+          p_show_purchaser_info?: boolean
+          p_tags?: string[]
+          p_title: string
+          p_user_id: string
+        }
+        Returns: {
+          account_id: string | null
+          category: string
+          created_at: string | null
+          description: string | null
+          favorited: boolean | null
+          id: string
+          is_archived: boolean | null
+          is_deleted: boolean | null
+          is_favorite: boolean | null
+          is_pinned: boolean | null
+          is_public: boolean | null
+          is_shared: boolean | null
+          last_edited_at: string | null
+          last_edited_by_email: string | null
+          last_edited_by_user_id: string | null
+          list_type: string
+          public_link: string | null
+          share_link: string | null
+          share_mode: string | null
+          show_purchaser_info: boolean | null
+          source: string
+          tags: string[] | null
+          template_id: string | null
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "lists"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      restore_list_items_for_user: {
+        Args: { p_items: Json; p_list_id: string }
+        Returns: undefined
+      }
       toggle_user_favorite: { Args: { p_list_id: string }; Returns: Json }
       update_user_avatar: {
         Args: { new_avatar_url: string; user_id: string }
