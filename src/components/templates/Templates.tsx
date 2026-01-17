@@ -589,7 +589,7 @@ export default function Templates() {
                                     className="border-primary text-primary hover:bg-primary/10"
                                   >
                                     <ExternalLink className="w-4 h-4 mr-2" />
-                                    Browse Templates
+                                    Buy Template
                                   </Button>
                                 )}
                               </div>
@@ -614,7 +614,7 @@ export default function Templates() {
               className="border-primary text-primary hover:bg-primary/10"
             >
               <ExternalLink className="w-4 h-4 mr-2" />
-              Browse More Templates
+              Browse All Templates
             </Button>
           </div>
         )}
