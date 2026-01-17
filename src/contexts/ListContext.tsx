@@ -1258,15 +1258,25 @@ export function ListProvider({ children }: { children: ReactNode }) {
       const listType = listData.listType || listData.list_type;
       const isPinned = listData.isPinned ?? listData.is_pinned ?? false;
       const showPurchaserInfo = listData.showPurchaserInfo ?? listData.show_purchaser_info ?? false;
-      const shareId = listData.shareId || listData.share_id || null;
       const createdAt = listData.createdAt || listData.created_at;
       const accountId = listData.accountId || listData.account_id || null;
+      const isShared = listData.isShared ?? listData.is_shared ?? false;
+      const shareLink = listData.shareLink || listData.share_link || null;
+      const shareMode = listData.shareMode || listData.share_mode || null;
+      const isArchived = listData.isArchived ?? listData.is_archived ?? false;
+      const description = listData.description || null;
+      const isPublic = listData.isPublic ?? listData.is_public ?? false;
+      const publicLink = listData.publicLink || listData.public_link || null;
       
       // For RLS policy compliance, use the current user's ID for personal lists
       // For team lists, we need to preserve the original user_id (team owner)
       const insertUserId = accountId ? userId : (user?.id || userId);
       
       // First restore the list
+      // ONLY insert columns that exist in the lists table:
+      // id, user_id, title, category, list_type, is_archived, is_pinned, created_at, updated_at,
+      // is_shared, share_link, tags, description, is_public, public_link, show_purchaser_info,
+      // share_mode, account_id, last_edited_by_user_id, last_edited_by_email, last_edited_at
       const { data: restoredList, error: listError } = await supabase
         .from("lists")
         .insert({
@@ -1275,10 +1285,16 @@ export function ListProvider({ children }: { children: ReactNode }) {
           title: listData.title,
           category: listData.category,
           list_type: listType,
+          is_archived: isArchived,
           is_pinned: isPinned,
+          is_shared: isShared,
+          share_link: shareLink,
           tags: listData.tags || [],
-          share_id: shareId,
+          description: description,
+          is_public: isPublic,
+          public_link: publicLink,
           show_purchaser_info: showPurchaserInfo,
+          share_mode: shareMode,
           account_id: accountId,
           created_at: createdAt,
           updated_at: new Date().toISOString(),
