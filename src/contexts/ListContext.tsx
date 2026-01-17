@@ -1251,20 +1251,36 @@ export function ListProvider({ children }: { children: ReactNode }) {
   // Restore a deleted list with all its items
   const restoreList = async (listData: any) => {
     try {
+      // The listData comes from the List interface which uses camelCase (userId, listType, etc.)
+      // We need to map it to snake_case for the database insert
+      // Also handle both camelCase (from List type) and snake_case (from raw DB) for safety
+      const userId = listData.userId || listData.user_id;
+      const listType = listData.listType || listData.list_type;
+      const isPinned = listData.isPinned ?? listData.is_pinned ?? false;
+      const showPurchaserInfo = listData.showPurchaserInfo ?? listData.show_purchaser_info ?? false;
+      const shareId = listData.shareId || listData.share_id || null;
+      const createdAt = listData.createdAt || listData.created_at;
+      const accountId = listData.accountId || listData.account_id || null;
+      
+      // For RLS policy compliance, use the current user's ID for personal lists
+      // For team lists, we need to preserve the original user_id (team owner)
+      const insertUserId = accountId ? userId : (user?.id || userId);
+      
       // First restore the list
       const { data: restoredList, error: listError } = await supabase
         .from("lists")
         .insert({
           id: listData.id,
-          user_id: listData.user_id,
+          user_id: insertUserId,
           title: listData.title,
           category: listData.category,
-          list_type: listData.list_type,
-          is_pinned: listData.is_pinned,
-          tags: listData.tags,
-          share_id: listData.share_id,
-          show_purchaser_info: listData.show_purchaser_info,
-          created_at: listData.created_at,
+          list_type: listType,
+          is_pinned: isPinned,
+          tags: listData.tags || [],
+          share_id: shareId,
+          show_purchaser_info: showPurchaserInfo,
+          account_id: accountId,
+          created_at: createdAt,
           updated_at: new Date().toISOString(),
           last_edited_by_user_id: user?.id || null,
           last_edited_by_email: user?.email || null,
@@ -1276,6 +1292,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
       if (listError) throw listError;
 
       // Then restore all items if any
+      // Handle both camelCase (from List/ListItem types) and snake_case (from raw DB)
       if (listData.items && listData.items.length > 0) {
         const itemsToInsert = listData.items.map((item: any) => ({
           id: item.id,
@@ -1283,14 +1300,14 @@ export function ListProvider({ children }: { children: ReactNode }) {
           text: item.text,
           quantity: item.quantity,
           priority: item.priority,
-          due_date: item.due_date,
+          due_date: item.dueDate || item.due_date || null,
           notes: item.notes,
-          assigned_to: item.assigned_to,
-          completed: item.completed,
-          links: item.links,
-          attributes: item.attributes,
-          item_order: item.item_order,
-          created_at: item.created_at,
+          assigned_to: item.assignedTo || item.assigned_to || null,
+          completed: item.completed ?? false,
+          links: item.links || [],
+          attributes: item.attributes || {},
+          item_order: item.order ?? item.item_order ?? 0,
+          created_at: item.createdAt || item.created_at || new Date().toISOString(),
           updated_at: new Date().toISOString(),
           last_edited_by_user_id: user?.id || null,
           last_edited_by_email: user?.email || null,
@@ -1306,6 +1323,14 @@ export function ListProvider({ children }: { children: ReactNode }) {
 
       await loadLists();
     } catch (error: any) {
+      console.error("[ListContext] restoreList failed:", {
+        error,
+        errorMessage: error?.message,
+        errorCode: error?.code,
+        listDataId: listData?.id,
+        listDataUserId: listData?.userId || listData?.user_id,
+        currentUserId: user?.id,
+      });
       logError("restoreList", error, user?.id);
       throw new Error("Couldn't restore list. Try again or contact support.");
     }
