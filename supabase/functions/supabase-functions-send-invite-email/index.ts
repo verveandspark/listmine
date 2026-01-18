@@ -101,21 +101,47 @@ serve(async (req) => {
 
     const baseUrl = 'https://app.listmine.com';
     
-    // Construct invite URL with type and ID - inviteId is required
-    if (!inviteId) {
+    console.log("[send-invite-email] About to check inviteId:", {
+      inviteId,
+      hasInviteId: !!inviteId,
+      inviteIdType: typeof inviteId,
+      isExistingUser,
+      context,
+    });
+    
+    // For existing users who are directly added (no pending invite), inviteId is optional
+    // They just get a notification email with a link to the dashboard
+    // For new users who need to sign up, inviteId is required for the invite acceptance flow
+    let actionUrl: string;
+    
+    if (inviteId) {
+      // Has invite ID - use invite acceptance flow
+      const inviteType = context === 'team' ? 'team' : 'guest';
+      actionUrl = `${baseUrl}/invite?type=${inviteType}&id=${inviteId}`;
+      console.log("[send-invite-email] Using invite acceptance URL:", actionUrl);
+    } else if (isExistingUser) {
+      // Existing user directly added - just link to dashboard
+      actionUrl = `${baseUrl}/dashboard`;
+      console.log("[send-invite-email] Existing user without inviteId - using dashboard URL:", actionUrl);
+    } else {
+      // New user needs inviteId for proper signup flow
+      console.error("[send-invite-email] ERROR: Missing inviteId for new user - returning 400");
       return new Response(
-        JSON.stringify({ error: 'Missing inviteId - required for invite emails' }),
+        JSON.stringify({ error: 'Missing inviteId - required for new user invite emails' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    const inviteType = context === 'team' ? 'team' : 'guest';
-    const actionUrl = `${baseUrl}/invite?type=${inviteType}&id=${inviteId}`;
-    
-    console.log("[send-invite-email] Generated actionUrl:", actionUrl);
+    console.log("[send-invite-email] About to check context:", {
+      context,
+      isTeam: context === 'team',
+    });
 
     // Team invite templates
     if (context === 'team') {
+      console.log("[send-invite-email] TEAM: *** ENTERING TEAM EMAIL BLOCK ***");
+      
+      try {
       const teamEmailHtml = isExistingUser ? `
         <!DOCTYPE html>
         <html>
@@ -189,12 +215,28 @@ serve(async (req) => {
         ? `You've been added to "${listName}" team on ListMine`
         : `You've Been Invited to Join "${listName}" Team`;
 
-      console.log('Sending team email:', { to: guestEmail, subject: teamSubject, isExistingUser });
+      const resendApiKeyForTeam = Deno.env.get('RESEND_API_KEY');
+      console.log('[send-invite-email] TEAM: Pre-send check:', {
+        to: guestEmail,
+        subject: teamSubject,
+        isExistingUser,
+        hasResendApiKey: !!resendApiKeyForTeam,
+        resendKeyPrefix: resendApiKeyForTeam ? resendApiKeyForTeam.substring(0, 10) + '...' : 'MISSING',
+      });
 
+      if (!resendApiKeyForTeam) {
+        console.error('[send-invite-email] TEAM: RESEND_API_KEY is missing!');
+        return new Response(
+          JSON.stringify({ error: 'Email service not configured', hint: 'RESEND_API_KEY secret is missing' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log('[send-invite-email] TEAM: Calling Resend API...');
       const emailResponse = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${Deno.env.get('RESEND_API_KEY')}`,
+          'Authorization': `Bearer ${resendApiKeyForTeam}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -205,22 +247,59 @@ serve(async (req) => {
         }),
       });
 
+      console.log('[send-invite-email] TEAM: Resend API response status:', {
+        status: emailResponse.status,
+        statusText: emailResponse.statusText,
+        ok: emailResponse.ok,
+      });
+
+      const responseText = await emailResponse.text();
+      console.log('[send-invite-email] TEAM: Resend API raw response:', responseText);
+
       if (!emailResponse.ok) {
-        const errorText = await emailResponse.text();
-        console.error('Resend API error:', errorText);
+        console.error('[send-invite-email] TEAM: Resend API error:', responseText);
         return new Response(
-          JSON.stringify({ error: 'Failed to send email', details: errorText }),
+          JSON.stringify({ error: 'Failed to send email', details: responseText }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      const emailData = await emailResponse.json();
-      console.log('Team email sent successfully:', { emailId: emailData.id, to: guestEmail });
+      let emailData;
+      try {
+        emailData = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('[send-invite-email] TEAM: Failed to parse Resend response:', parseError);
+        return new Response(
+          JSON.stringify({ error: 'Invalid response from email service', raw: responseText }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      console.log('[send-invite-email] TEAM: Email sent successfully!', { 
+        emailId: emailData.id, 
+        to: guestEmail,
+        resendResponse: emailData 
+      });
 
       return new Response(
         JSON.stringify({ success: true, emailId: emailData.id }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+      
+      } catch (teamError) {
+        console.error('[send-invite-email] TEAM: CAUGHT ERROR IN TEAM BLOCK:', teamError);
+        console.error('[send-invite-email] TEAM: Error name:', teamError?.name);
+        console.error('[send-invite-email] TEAM: Error message:', teamError?.message);
+        console.error('[send-invite-email] TEAM: Error stack:', teamError?.stack);
+        return new Response(
+          JSON.stringify({ 
+            error: 'Team email failed', 
+            details: teamError?.message || String(teamError),
+            errorName: teamError?.name,
+          }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     // Guest invite templates (original)
@@ -302,11 +381,14 @@ serve(async (req) => {
 
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
     
-    console.log('Environment check - RESEND_API_KEY exists:', !!resendApiKey);
-    console.log('Available env vars:', Object.keys(Deno.env.toObject()).filter(k => !k.includes('SECRET')));
+    console.log('[send-invite-email] GUEST: Pre-send check:', {
+      hasResendApiKey: !!resendApiKey,
+      resendKeyPrefix: resendApiKey ? resendApiKey.substring(0, 10) + '...' : 'MISSING',
+      availableEnvVars: Object.keys(Deno.env.toObject()).filter(k => !k.includes('SECRET') && !k.includes('KEY')),
+    });
     
     if (!resendApiKey) {
-      console.error('RESEND_API_KEY not configured. Please add it as a secret in Supabase Dashboard > Edge Functions > Secrets');
+      console.error('[send-invite-email] GUEST: RESEND_API_KEY not configured!');
       return new Response(
         JSON.stringify({ 
           error: 'Email service not configured',
@@ -320,7 +402,26 @@ serve(async (req) => {
       ? `You've been given access to "${listName}" on ListMine`
       : `You've Been Invited to Collaborate on "${listName}"`;
 
-    console.log('Sending email:', { to: guestEmail, subject, isExistingUser });
+    console.log('[send-invite-email] GUEST: Calling Resend API...', { 
+      to: guestEmail, 
+      subject, 
+      isExistingUser,
+      from: 'ListMine <invite@notifications.listmine.com>',
+    });
+
+    const requestBody = {
+      from: 'ListMine <invite@notifications.listmine.com>',
+      to: [guestEmail],
+      subject,
+      html: emailHtml,
+    };
+    
+    console.log('[send-invite-email] GUEST: Resend request body (without html):', {
+      from: requestBody.from,
+      to: requestBody.to,
+      subject: requestBody.subject,
+      htmlLength: requestBody.html.length,
+    });
 
     const emailResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -328,22 +429,36 @@ serve(async (req) => {
         'Authorization': `Bearer ${resendApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        from: 'ListMine <invite@notifications.listmine.com>',
-        to: [guestEmail],
-        subject,
-        html: emailHtml,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
+    console.log('[send-invite-email] GUEST: Resend API response status:', {
+      status: emailResponse.status,
+      statusText: emailResponse.statusText,
+      ok: emailResponse.ok,
+    });
+
+    const responseText = await emailResponse.text();
+    console.log('[send-invite-email] GUEST: Resend API raw response:', responseText);
+
     if (!emailResponse.ok) {
-      const errorData = await emailResponse.text();
-      console.error('Resend API error:', errorData);
-      throw new Error('Failed to send email');
+      console.error('[send-invite-email] GUEST: Resend API error:', responseText);
+      throw new Error(`Failed to send email: ${responseText}`);
     }
 
-    const emailData = await emailResponse.json();
-    console.log('Email sent successfully:', { emailId: emailData.id, to: guestEmail });
+    let emailData;
+    try {
+      emailData = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('[send-invite-email] GUEST: Failed to parse Resend response:', parseError);
+      throw new Error(`Invalid response from email service: ${responseText}`);
+    }
+    
+    console.log('[send-invite-email] GUEST: Email sent successfully!', { 
+      emailId: emailData.id, 
+      to: guestEmail,
+      resendResponse: emailData 
+    });
 
     return new Response(
       JSON.stringify({ success: true, emailId: emailData.id }),

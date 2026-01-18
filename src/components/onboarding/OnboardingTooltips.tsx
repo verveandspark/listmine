@@ -72,7 +72,7 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
     id: "create-list",
     title: "Create Your First List",
     description:
-      "Click the button to create your first list. Choose from templates like Tasks, Groceries, or create a custom list.",
+      "Click the button to create your first list. Choose from templates like Tasks, Shopping, or create a custom list.",
     icon: <ListPlus className="w-8 h-8 text-primary" />,
   },
   {
