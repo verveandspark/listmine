@@ -1250,8 +1250,8 @@ export default function Dashboard() {
                   Welcome to ListMine! 🎉
                 </h2>
                 <p className="text-foreground mb-3">
-                  You're all set with a <span className="font-semibold">Free account</span>. 
-                  Start organizing your life with up to 5 lists and 20 items per list!
+                  You're all set with a <span className="font-semibold">{getTierName(effectiveTier)} account</span>. 
+                  Start organizing your life by creating your first list!
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <Button
