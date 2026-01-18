@@ -693,9 +693,19 @@ export default function Dashboard() {
 
   // Count only owned active personal lists for limit calculations
   // Excludes: guest/shared-with-me lists, archived lists, team lists (with accountId)
-  const ownedActiveListsCount = lists.filter(
+  const ownedActivePersonalListsCount = lists.filter(
     (l) => l.userId === user?.id && !l.isGuestAccess && !l.isArchived && !l.title.startsWith("[Archived]") && !l.accountId
   ).length;
+
+  // Count lists for current context (personal or team)
+  const contextActiveListsCount = isTeamContext && currentAccountId
+    ? lists.filter(
+        (l) => l.accountId === currentAccountId && !l.isArchived && !l.title.startsWith("[Archived]")
+      ).length
+    : ownedActivePersonalListsCount;
+
+  // For backwards compatibility, keep ownedActiveListsCount pointing to the right count for limit checks
+  const ownedActiveListsCount = ownedActivePersonalListsCount;
 
   const getUsagePercentage = () => {
     if (!user || user.listLimit === -1) return 0;
@@ -1299,18 +1309,18 @@ export default function Dashboard() {
             <div className="flex items-center gap-2">
               <FileText className="w-5 h-5 text-primary" />
               <span className="text-sm text-muted-foreground">
-                Your Lists:{" "}
+                {isTeamContext ? "Team Lists:" : "Your Lists:"}{" "}
                 <span className="font-semibold text-foreground">
-                  {ownedActiveListsCount}
-                  {user?.listLimit !== -1 && (
+                  {contextActiveListsCount}
+                  {!isTeamContext && user?.listLimit !== -1 && (
                     <span className="text-muted-foreground"> / {user?.listLimit}</span>
                   )}
-                  {user?.listLimit === -1 && (
+                  {!isTeamContext && user?.listLimit === -1 && (
                     <span className="text-muted-foreground"> / Unlimited</span>
                   )}
                 </span>
               </span>
-              {user?.listLimit !== -1 && (
+              {!isTeamContext && user?.listLimit !== -1 && (
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -1318,9 +1328,9 @@ export default function Dashboard() {
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="max-w-xs">
-                        You're using {ownedActiveListsCount} of your{" "}
+                        You're using {contextActiveListsCount} of your{" "}
                         {user?.listLimit} lists on the{" "}
-                        {getTierName(effectiveTier)} tier{isTeamContext && " (Team)"}. Shared lists
+                        {getTierName(effectiveTier)} tier. Shared lists
                         and archived lists don't count toward your limit.
                       </p>
                     </TooltipContent>
@@ -1338,11 +1348,13 @@ export default function Dashboard() {
               <span className="text-sm text-muted-foreground">
                 Total Items:{" "}
                 <span className="font-semibold text-foreground">
-                  {Math.max(0, lists.reduce((sum, list) => sum + (list.items?.length || 0), 0))}
+                  {Math.max(0, accountFilteredLists.filter(l => !l.isArchived && !l.title.startsWith("[Archived]")).reduce((sum, list) => sum + (list.items?.length || 0), 0))}
                 </span>
-                <span className="text-muted-foreground">
-                  {" "}/ {user?.itemsPerListLimit === -1 ? "Unlimited" : `${user?.itemsPerListLimit} per list`}
-                </span>
+                {!isTeamContext && (
+                  <span className="text-muted-foreground">
+                    {" "}/ {user?.itemsPerListLimit === -1 ? "Unlimited" : `${user?.itemsPerListLimit} per list`}
+                  </span>
+                )}
               </span>
             </div>
 
