@@ -40,7 +40,7 @@ export default function Upgrade() {
     {
       id: "free",
       name: "Free",
-      subtitle: "Perfect for trying ListMine out",
+      subtitle: "Perfect for trying ListMine out.",
       monthlyPrice: 0,
       annualPrice: 0,
       listLimit: 5,
