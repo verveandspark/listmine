@@ -2695,7 +2695,7 @@ export default function Dashboard() {
                 How It Works
               </a>
               <a
-                href="mailto:support@listmine.com"
+                href="mailto:info@listmine.com"
                 className="text-muted-foreground hover:text-primary underline"
               >
                 Contact Support

@@ -48,16 +48,14 @@ export default function Upgrade() {
       features: [
         "5 lists",
         "20 items per list",
-        "Categorize your lists",
-        "Priority & due dates",
-        "Search & filter",
+        "List types: To-Do, Custom",
         "Print lists",
       ],
     },
     {
       id: "good",
       name: "Good",
-      subtitle: "Build lists from anywhere",
+      subtitle: "Perfect for personal organization.",
       monthlyPrice: 1.99,
       annualPrice: 20,
       listLimit: 50,
@@ -65,47 +63,49 @@ export default function Upgrade() {
       features: [
         "50 lists",
         "150 items per list",
-        "Everything from Free tier",
-        "Import lists (from link, text, or existing list)",
+        "List types: To-Do, Shopping, Idea, Custom",
+        "Categorize, search, and filter your lists",
+        "Import lists from multiple sources",
         "Share read-only links",
         "Export to CSV/TXT",
-        "Template Shop access (coming soon)",
+        "Template shop access",
       ],
     },
     {
       id: "even_better",
       name: "Even Better",
-      subtitle: "Perfect for registries and wish lists",
+      subtitle: "Great for events, registries, and collaboration.",
       monthlyPrice: 5.99,
       annualPrice: 60,
       listLimit: 100,
       itemLimit: 500,
       recommended: true,
       features: [
+        "Everything from Good, plus:",
         "100 lists",
         "500 items per list",
-        "Everything from Good tier",
-        "Registry mode (anonymous claim/purchase tracking)",
+        "2 additional list types: Registry, Wishlist",
+        "Anonymous claim/ Purchase tracking",
         "Real-time collaboration (invite up to 2 guests to edit lists)",
-        "Export to PDF, CSV, TXT",
-        "Pre-made templates included",
+        "Export to PDF",
+        "3 additional list templates included",
       ],
     },
     {
       id: "lots_more",
       name: "Lots More",
-      subtitle: "Everything you need for teams",
+      subtitle: "Best value. Everything you need in one.",
       monthlyPrice: 10.99,
       annualPrice: 100,
       listLimit: -1,
       itemLimit: -1,
       features: [
+        "Everything from Even Better, plus:",
         "Unlimited lists and items",
-        "Everything from Even Better tier",
-        "3 user accounts with admin access",
+        "3 user accounts with admin access for editing and managing your lists",
         "Unlimited guest collaborators",
-        "Advanced templates included (more templates, more complex)",
-        "Export to PDF, CSV, TXT",
+        "Over 20 additional templates included",
+        "Perfect for teams, families, and businesses",
       ],
     },
   ];
@@ -190,13 +190,13 @@ export default function Upgrade() {
                 key={tier.id}
                 className={`relative flex flex-col ${
                   tier.recommended
-                    ? "border-2 border-warning shadow-xl scale-105"
+                    ? "border-2 border-[#1F628E] shadow-xl"
                     : "border border-gray-200"
                 }`}
               >
                 {tier.recommended && (
-                  <div className="absolute -top-3 right-4 bg-warning text-warning-foreground px-3 py-1 text-xs font-bold rounded-full shadow-md">
-                    RECOMMENDED
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-[#1F628E] text-white px-4 py-1 text-xs font-bold rounded-full shadow-md uppercase">
+                    Most Popular
                   </div>
                 )}
 
@@ -233,17 +233,23 @@ export default function Upgrade() {
                     {tier.features.map((feature, index) => {
                       // Add tooltips for specific features
                       const getFeatureTooltip = (feature: string) => {
-                        if (feature.includes("Registry mode")) {
+                        if (feature.includes("Anonymous claim")) {
                           return "Let others claim items anonymously without revealing who purchased them";
                         }
-                        if (feature.includes("collaboration")) {
+                        if (feature.includes("Real-time collaboration")) {
                           return "Invite others to edit this list with you in real-time";
                         }
-                        if (feature.includes("Export")) {
-                          return "Download your list as CSV, TXT, or PDF";
+                        if (feature.includes("Export to PDF")) {
+                          return "Download your list as PDF";
                         }
-                        if (feature.includes("Template Shop")) {
+                        if (feature.includes("Export to CSV/TXT")) {
+                          return "Download your list as CSV or TXT";
+                        }
+                        if (feature.includes("Template shop access")) {
                           return "Access pre-made list templates for common use cases";
+                        }
+                        if (feature.includes("admin access")) {
+                          return "Multiple user accounts can manage and edit lists with full admin permissions";
                         }
                         return null;
                       };
@@ -285,12 +291,14 @@ export default function Upgrade() {
                     disabled={isCurrentTier}
                     className={`w-full font-bold py-6 transition-all ${
                       tier.recommended && !isCurrentTier
-                        ? "bg-primary hover:bg-primary/90 text-white shadow-lg hover:shadow-xl"
+                        ? "bg-[#1F628E] hover:bg-[#1F628E]/90 text-white shadow-lg hover:shadow-xl"
                         : ""
                     }`}
                     variant={isCurrentTier ? "outline" : "default"}
                   >
-                    {isCurrentTier ? "Current Plan" : "Upgrade Now"}
+                    {isCurrentTier 
+                      ? "Current Plan" 
+                      : `Choose the ${tier.name} Plan`}
                   </Button>
                 </CardContent>
               </Card>
