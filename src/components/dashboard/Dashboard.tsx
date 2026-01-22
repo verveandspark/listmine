@@ -2220,12 +2220,13 @@ export default function Dashboard() {
         )}
 
         {/* My Guest Access Lists Section - Lists where user has guest edit access */}
-        {!searchQuery.trim() && sharedLists.length > 0 && (
+        {!searchQuery.trim() && (
         <div className="mb-6 sm:mb-8">
           <h2 className="text-base sm:text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
             <Users className="w-5 h-5 text-secondary" />
             My Guest Access Lists
           </h2>
+          {sharedLists.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-2">
             {sharedLists.map((list, index) => {
               const Icon = categoryIcons[list.category] || ListChecks;
@@ -2324,6 +2325,11 @@ export default function Dashboard() {
               );
             })}
           </div>
+          ) : (
+            <p className="text-muted-foreground text-base">
+              No shared lists yet. Lists that others invite you to collaborate on will appear here.
+            </p>
+          )}
         </div>
         )}
 
@@ -2334,6 +2340,11 @@ export default function Dashboard() {
             <Layers className="w-5 h-5 text-primary" />
             Categories
           </h2>
+          {dynamicCategories.filter((category) => {
+            // Only show categories that have at least one list
+            const stats = getCategoryStats(category);
+            return stats.count > 0;
+          }).length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {dynamicCategories.filter((category) => {
               // Only show categories that have at least one list
@@ -2387,6 +2398,11 @@ export default function Dashboard() {
               );
             })}
           </div>
+          ) : (
+            <p className="text-muted-foreground text-base">
+              Categories will appear here once you create lists and assign them to categories.
+            </p>
+          )}
         </div>
         )}
       </div>
@@ -2668,7 +2684,7 @@ export default function Dashboard() {
                 className="h-6 w-6"
               />
               <p className="text-sm text-muted-foreground">
-                © 2025 ListMine. Organize your life, one list at a time.
+                © 2026 ListMine. Organize your life, one list at a time.
               </p>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-4 text-sm">
