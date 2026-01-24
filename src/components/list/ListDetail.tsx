@@ -2172,13 +2172,13 @@ export default function ListDetail() {
                     <div className="space-y-2">
                       <Label>Status</Label>
                       <Select
-                        value={editingItem.attributes?.status || ""}
+                        value={editingItem.attributes?.status || "none"}
                         onValueChange={(value) =>
                           setEditingItem({
                             ...editingItem,
                             attributes: {
                               ...editingItem.attributes,
-                              status: value,
+                              status: value === "none" ? undefined : value,
                             },
                           })
                         }
@@ -2187,6 +2187,7 @@ export default function ListDetail() {
                           <SelectValue placeholder="Select status" />
                         </SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
                           <SelectItem value="not-started">Not started</SelectItem>
                           <SelectItem value="in-progress">In progress</SelectItem>
                           <SelectItem value="completed">Completed</SelectItem>
@@ -2274,13 +2275,13 @@ export default function ListDetail() {
                   <div className="space-y-2">
                     <Label>Status</Label>
                     <Select
-                      value={editingItem.attributes?.status || ""}
+                      value={editingItem.attributes?.status || "none"}
                       onValueChange={(value) =>
                         setEditingItem({
                           ...editingItem,
                           attributes: {
                             ...editingItem.attributes,
-                            status: value,
+                            status: value === "none" ? undefined : value,
                           },
                         })
                       }
@@ -2289,6 +2290,7 @@ export default function ListDetail() {
                         <SelectValue placeholder="Select status" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
                         <SelectItem value="brainstorm">Brainstorm</SelectItem>
                         <SelectItem value="in-progress">In progress</SelectItem>
                         <SelectItem value="completed">Completed</SelectItem>
@@ -2410,7 +2412,7 @@ export default function ListDetail() {
                   <div className="space-y-2">
                     <Label>Purchase Status</Label>
                     <Select
-                      value={editingItem.attributes?.purchaseStatus || ""}
+                      value={editingItem.attributes?.purchaseStatus || "not-purchased"}
                       onValueChange={(value) =>
                         setEditingItem({
                           ...editingItem,
@@ -5682,6 +5684,31 @@ export default function ListDetail() {
                               >
                                 <Flag className="w-3 h-3 mr-1" />
                                 {item.priority}
+                              </Badge>
+                            )}
+                            {/* Status badge - show for todo/idea lists with status */}
+                            {(isTodo || isIdea) && item.attributes?.status && (
+                              <Badge
+                                variant="outline"
+                                className={`text-xs ${
+                                  item.attributes.status === 'completed' 
+                                    ? 'bg-success/10 text-success border-success/20'
+                                    : item.attributes.status === 'in-progress'
+                                    ? 'bg-warning/10 text-warning border-warning/20'
+                                    : item.attributes.status === 'brainstorm'
+                                    ? 'bg-purple-100 text-purple-700 border-purple-200'
+                                    : item.attributes.status === 'on-hold'
+                                    ? 'bg-gray-100 text-gray-600 border-gray-200'
+                                    : 'bg-primary/10 text-primary border-primary/20'
+                                }`}
+                              >
+                                <Clock className="w-3 h-3 mr-1" />
+                                {item.attributes.status === 'not-started' ? 'Not started' :
+                                 item.attributes.status === 'in-progress' ? 'In progress' :
+                                 item.attributes.status === 'completed' ? 'Completed' :
+                                 item.attributes.status === 'brainstorm' ? 'Brainstorm' :
+                                 item.attributes.status === 'on-hold' ? 'On hold' :
+                                 item.attributes.status}
                               </Badge>
                             )}
                             {/* Note indicator only shows when notes exist but are hidden (item completed) */}
