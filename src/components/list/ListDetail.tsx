@@ -5594,7 +5594,7 @@ export default function ListDetail() {
                           ) : null;
                         })()}
                         <div className="flex-1 min-w-0">
-                          <div className="flex flex-col gap-0.5 min-w-0 w-full">
+                          <div className="flex flex-col gap-0.5 min-w-0 w-full justify-center">
                             <p
                               className={`text-sm sm:text-base text-gray-900 transition-all duration-200 ${item.completed ? "line-through opacity-50" : ""} break-words overflow-hidden w-full`}
                                               style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
