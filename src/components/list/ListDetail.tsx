@@ -885,7 +885,7 @@ export default function ListDetail() {
 
       await addItemToList(list.id, {
         text: nameValidation.value!,
-        quantity: newItemQuantity,
+        quantity: newItemQuantity || 1,
         priority: newItemPriority,
         dueDate: newItemDueDate,
         notes: newItemNotes,
@@ -3711,6 +3711,23 @@ export default function ListDetail() {
                       <span className="text-xs text-muted-foreground">
                         Detailed
                       </span>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help ml-1" />
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" className="max-w-xs">
+                            <p className="font-medium text-xs mb-1">
+                              {detailedMode ? "Detailed Mode" : "Quick Mode"}
+                            </p>
+                            <p className="text-xs">
+                              {detailedMode 
+                                ? "Add more details like notes, links, price, etc."
+                                : "Fast entry - just the basics"}
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                   </div>
                 </div>
 
@@ -4234,7 +4251,25 @@ export default function ListDetail() {
                         </div>
                     )}
                     {!detailedMode && (
-                      <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <div className="w-20">
+                          <Input
+                            type="number"
+                            placeholder="Qty"
+                            value={newItemQuantity || ""}
+                            onChange={(e) =>
+                              setNewItemQuantity(e.target.value ? parseInt(e.target.value) : undefined)
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleAddItem();
+                              }
+                            }}
+                            className="min-h-[44px]"
+                            min="1"
+                          />
+                        </div>
                         <Input
                           placeholder="Item name"
                           value={newItemText}
@@ -4245,7 +4280,7 @@ export default function ListDetail() {
                               handleAddItem();
                             }
                           }}
-                          className="min-h-[44px]"
+                          className="min-h-[44px] flex-1"
                         />
                       </div>
                     )}
