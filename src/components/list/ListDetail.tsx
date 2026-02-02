@@ -4652,7 +4652,7 @@ export default function ListDetail() {
                         <div className="absolute -top-1 left-0 right-0 h-1 bg-primary rounded-full z-10 animate-pulse" />
                       )}
                     <Card
-                      className={`p-2 sm:p-3 hover:shadow-md transition-all relative ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2 opacity-50" : ""} ${isDropTarget && itemSortBy === "manual" ? "ring-2 ring-primary/30" : ""}`}
+                      className={`p-1.5 sm:p-2 hover:shadow-md transition-all relative ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2 opacity-50" : ""} ${isDropTarget && itemSortBy === "manual" ? "ring-2 ring-primary/30" : ""}`}
                       draggable={itemSortBy === "manual" && canEditListItems}
                       onDragStart={(e) => {
                         const target = e.target as HTMLElement | null;
@@ -4703,7 +4703,7 @@ export default function ListDetail() {
                           className={`mt-1 h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform border-gray-400 ${item.completed ? "animate-check-bounce bg-gray-700 border-gray-700" : ""}`}
                         />
                         <div className="flex-1 min-w-0">
-                          <div className="flex flex-col gap-1 min-w-0 w-full">
+                          <div className="flex flex-col gap-0.5 min-w-0 w-full">
                             <p
                               className={`text-sm sm:text-base text-gray-900 transition-all duration-200 ${item.completed ? "line-through opacity-50" : ""} break-words overflow-hidden w-full`}
                                               style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
@@ -4777,7 +4777,7 @@ export default function ListDetail() {
 
                           {/* Grocery-specific attributes - price excluded since it's shown above */}
                           {item.attributes && (
-                            <div className="flex items-center gap-2 mt-2 flex-wrap pointer-events-none">
+                            <div className="flex items-center gap-2 mt-1 flex-wrap pointer-events-none">
                               {item.attributes.unit && (
                                 <Badge
                                   variant="outline"
@@ -4791,7 +4791,7 @@ export default function ListDetail() {
 
                           {/* Link Preview Card for Registry/Wishlist/Idea items - VIEW 1 */}
                           {(item.attributes?.productLink || item.attributes?.inspirationLink) && (
-                            <div className="mt-3 pointer-events-none">
+                            <div className="mt-2 pointer-events-none">
                               <a
                                 href={item.attributes.productLink || item.attributes.inspirationLink}
                                 target="_blank"
@@ -4830,7 +4830,7 @@ export default function ListDetail() {
 
                           {/* Universal item link actions - only show for registry/wishlist with links */}
                           {shouldShowItemLinks(item) && (
-                            <div className="mt-2">
+                            <div className="mt-1">
                               <ItemLinkActions item={item} />
                             </div>
                           )}
@@ -4958,7 +4958,7 @@ export default function ListDetail() {
                         <div className="absolute -top-1 left-0 right-0 h-1 bg-primary rounded-full z-10 animate-pulse" />
                       )}
                     <Card
-                      className={`p-2 sm:p-3 hover:shadow-md transition-all relative ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2 opacity-50" : ""} ${isDropTarget && itemSortBy === "manual" ? "ring-2 ring-primary/30" : ""}`}
+                      className={`p-1.5 sm:p-2 hover:shadow-md transition-all relative ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2 opacity-50" : ""} ${isDropTarget && itemSortBy === "manual" ? "ring-2 ring-primary/30" : ""}`}
                       draggable={itemSortBy === "manual" && canEditListItems}
                       onDragStart={(e) => {
                         const target = e.target as HTMLElement | null;
@@ -5009,7 +5009,7 @@ export default function ListDetail() {
                           className={`mt-1 h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform border-gray-400 ${item.completed ? "animate-check-bounce bg-gray-700 border-gray-700" : ""}`}
                         />
                         <div className="flex-1 min-w-0">
-                          <div className="flex flex-col gap-1 min-w-0 w-full">
+                          <div className="flex flex-col gap-0.5 min-w-0 w-full">
                             <p
                               className={`text-sm sm:text-base text-gray-900 transition-all duration-200 ${item.completed ? "line-through opacity-50" : ""} break-words overflow-hidden w-full`}
                                               style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
@@ -5083,7 +5083,7 @@ export default function ListDetail() {
 
                           {/* Universal item link actions - only show for registry/wishlist with links */}
                           {shouldShowItemLinks(item) && (
-                            <div className="mt-2">
+                            <div className="mt-1">
                               <ItemLinkActions item={item} />
                             </div>
                           )}
@@ -5306,7 +5306,7 @@ export default function ListDetail() {
                             <div className="absolute -top-1 left-0 right-0 h-1 bg-primary rounded-full z-10 animate-pulse" />
                           )}
                           <Card
-                            className={`p-2 sm:p-3 hover:shadow-md transition-all relative ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${isPurchased ? "border-success/20 bg-success/5" : ""} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2 opacity-50" : ""} ${isDropTarget && itemSortBy === "manual" ? "ring-2 ring-primary/30" : ""}`}
+                            className={`p-1.5 sm:p-2 hover:shadow-md transition-all relative ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${isPurchased ? "border-success/20 bg-success/5" : ""} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2 opacity-50" : ""} ${isDropTarget && itemSortBy === "manual" ? "ring-2 ring-primary/30" : ""}`}
                             draggable={itemSortBy === "manual" && canEditListItems}
                             onDragStart={(e) => {
                               const target = e.target as HTMLElement | null;
@@ -5511,7 +5511,7 @@ export default function ListDetail() {
                     )}
                     
                     <Card
-                      className={`p-2 sm:p-3 hover:shadow-md transition-all relative ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${isPurchased ? "border-success/20 bg-success/5" : ""} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2 opacity-50" : ""} ${isDropTarget && itemSortBy === "manual" ? "ring-2 ring-primary/30" : ""}`}
+                      className={`p-1.5 sm:p-2 hover:shadow-md transition-all relative ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${isPurchased ? "border-success/20 bg-success/5" : ""} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2 opacity-50" : ""} ${isDropTarget && itemSortBy === "manual" ? "ring-2 ring-primary/30" : ""}`}
                       draggable={itemSortBy === "manual" && canEditListItems}
                       onDragStart={(e) => {
                         const target = e.target as HTMLElement | null;
@@ -5594,7 +5594,7 @@ export default function ListDetail() {
                           ) : null;
                         })()}
                         <div className="flex-1 min-w-0">
-                          <div className="flex flex-col gap-1 min-w-0 w-full">
+                          <div className="flex flex-col gap-0.5 min-w-0 w-full">
                             <p
                               className={`text-sm sm:text-base text-gray-900 transition-all duration-200 ${item.completed ? "line-through opacity-50" : ""} break-words overflow-hidden w-full`}
                                               style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
@@ -5772,7 +5772,7 @@ export default function ListDetail() {
 
                           {/* Universal item link actions - only show for registry/wishlist with links */}
                           {shouldShowItemLinks(item) && (
-                            <div className="mt-2">
+                            <div className="mt-1">
                               <ItemLinkActions item={item} />
                             </div>
                           )}
