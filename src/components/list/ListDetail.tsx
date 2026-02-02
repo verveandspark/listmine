@@ -4680,16 +4680,16 @@ export default function ListDetail() {
                         itemSortBy === "manual" && handleDragEnd(e)
                       }
                     >
-                      <div className="flex items-start gap-2 sm:gap-3 w-full">
+                      <div className="flex items-center gap-2 sm:gap-3 w-full">
                         {isSelectMode && (
                           <Checkbox
                             checked={selectedItems.has(item.id)}
                             onCheckedChange={() => toggleItemSelection(item.id)}
-                            className="mt-1 h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0"
+                            className="h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0"
                           />
                         )}
                         {itemSortBy === "manual" && (
-                          <div className="cursor-grab active:cursor-grabbing mt-1 touch-none">
+                          <div className="cursor-grab active:cursor-grabbing touch-none">
                             <GripVertical className="w-5 h-5 text-gray-400 hover:text-gray-600" />
                           </div>
                         )}
@@ -4700,7 +4700,7 @@ export default function ListDetail() {
                               completed: checked as boolean,
                             })
                           }
-                          className={`mt-1 h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform border-gray-400 ${item.completed ? "animate-check-bounce bg-gray-700 border-gray-700" : ""}`}
+                          className={`h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform border-gray-400 ${item.completed ? "animate-check-bounce bg-gray-700 border-gray-700" : ""}`}
                         />
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-col gap-0.5 min-w-0 w-full">
@@ -4986,16 +4986,16 @@ export default function ListDetail() {
                         itemSortBy === "manual" && handleDragEnd(e)
                       }
                     >
-                      <div className="flex items-start gap-2 sm:gap-3 w-full">
+                      <div className="flex items-center gap-2 sm:gap-3 w-full">
                         {isSelectMode && (
                           <Checkbox
                             checked={selectedItems.has(item.id)}
                             onCheckedChange={() => toggleItemSelection(item.id)}
-                            className="mt-1 h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0"
+                            className="h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0"
                           />
                         )}
                         {itemSortBy === "manual" && (
-                          <div className="cursor-grab active:cursor-grabbing mt-1 touch-none">
+                          <div className="cursor-grab active:cursor-grabbing touch-none">
                             <GripVertical className="w-5 h-5 text-gray-400 hover:text-gray-600" />
                           </div>
                         )}
@@ -5006,7 +5006,7 @@ export default function ListDetail() {
                               completed: checked as boolean,
                             })
                           }
-                          className={`mt-1 h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform border-gray-400 ${item.completed ? "animate-check-bounce bg-gray-700 border-gray-700" : ""}`}
+                          className={`h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform border-gray-400 ${item.completed ? "animate-check-bounce bg-gray-700 border-gray-700" : ""}`}
                         />
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-col gap-0.5 min-w-0 w-full">
@@ -5334,16 +5334,16 @@ export default function ListDetail() {
                               itemSortBy === "manual" && handleDragEnd(e)
                             }
                           >
-                            <div className="flex items-start gap-2 sm:gap-3 w-full">
+                            <div className="flex items-center gap-2 sm:gap-3 w-full">
                               {isSelectMode && (
                                 <Checkbox
                                   checked={selectedItems.has(item.id)}
                                   onCheckedChange={() => toggleItemSelection(item.id)}
-                                  className="mt-1 h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0"
+                                  className="h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0"
                                 />
                               )}
                               {itemSortBy === "manual" && (
-                                <div className="cursor-grab active:cursor-grabbing mt-1 touch-none">
+                                <div className="cursor-grab active:cursor-grabbing touch-none">
                                   <GripVertical className="w-5 h-5 text-gray-400 hover:text-gray-600" />
                                 </div>
                               )}
@@ -5539,16 +5539,16 @@ export default function ListDetail() {
                         itemSortBy === "manual" && handleDragEnd(e)
                       }
                     >
-                      <div className="flex items-start gap-2 sm:gap-3 w-full">
+                      <div className="flex items-center gap-2 sm:gap-3 w-full">
                         {isSelectMode && (
                           <Checkbox
                             checked={selectedItems.has(item.id)}
                             onCheckedChange={() => toggleItemSelection(item.id)}
-                            className="mt-1 h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0"
+                            className="h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0"
                           />
                         )}
                         {itemSortBy === "manual" && (
-                          <div className="cursor-grab active:cursor-grabbing mt-1 touch-none">
+                          <div className="cursor-grab active:cursor-grabbing touch-none">
                             <GripVertical className="w-5 h-5 text-gray-400 hover:text-gray-600" />
                           </div>
                         )}
