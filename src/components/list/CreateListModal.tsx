@@ -326,11 +326,11 @@ export default function CreateListModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl md:max-w-3xl bg-white animate-pop-in px-4 sm:px-6 max-h-[85vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-2xl md:max-w-3xl bg-white animate-pop-in px-4 sm:px-6 max-h-[85vh] flex flex-col overflow-hidden">
+        <DialogHeader className="shrink-0">
           <DialogTitle>Create New List</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4 py-4 overflow-y-auto pb-24">
+        <div className="grid gap-4 py-4 overflow-y-auto flex-1 min-h-0">
           {/* List Name */}
           <div className="grid gap-2">
             <Label htmlFor="list-name">List Name *</Label>
@@ -481,7 +481,7 @@ export default function CreateListModal({
             </div>
           )}
         </div>
-        <DialogFooter className="sticky bottom-0 bg-white border-t pt-4 mt-auto -mx-4 sm:-mx-6 px-4 sm:px-6 pb-4">
+        <DialogFooter className="shrink-0 border-t bg-white pt-4 -mx-4 sm:-mx-6 px-4 sm:px-6 pb-4">
           <Button
             variant="outline"
             onClick={handleCancel}
