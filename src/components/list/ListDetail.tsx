@@ -2022,7 +2022,7 @@ export default function ListDetail() {
     const searchUrl = `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(item.text + " buy")}`;
 
     return (
-      <div className="relative inline-flex items-center gap-2">
+      <div className="relative inline-flex flex-wrap items-center gap-2">
         <a
           href={primaryUrl}
           target="_blank"
@@ -2032,7 +2032,8 @@ export default function ListDetail() {
           onMouseDown={(e) => e.stopPropagation()}
         >
           <ExternalLink className="w-3 h-3 flex-shrink-0" />
-          View item
+          <span className="hidden sm:inline">View item</span>
+          <span className="sm:hidden">View</span>
         </a>
         {/* The Knot tooltip - always show for Knot lists */}
         {isTheKnot && (
@@ -2056,7 +2057,8 @@ export default function ListDetail() {
             onMouseDown={(e) => e.stopPropagation()}
           >
             <Copy className="w-3 h-3 mr-1" />
-            Copy link
+            <span className="hidden sm:inline">Copy link</span>
+            <span className="sm:hidden">Copy</span>
           </Button>
         )}
         {/* Search - always available */}
@@ -2069,7 +2071,8 @@ export default function ListDetail() {
           onMouseDown={(e) => e.stopPropagation()}
         >
           <Search className="w-3 h-3" />
-          Search
+          <span className="hidden sm:inline">Search</span>
+          <span className="sm:hidden sr-only">Search</span>
         </a>
       </div>
     );
