@@ -4504,7 +4504,7 @@ export default function ListDetail() {
               <h3 className="text-sm font-medium text-gray-700">Items</h3>
             </div>
             
-            <div className="flex flex-col sm:flex-row gap-2 min-w-0 w-full items-start sm:items-center">
+            <div className="flex flex-row gap-2 min-w-0 w-full items-start sm:items-center">
               {/* Tags Dropdown */}
               <Popover open={isTagsSectionOpen} onOpenChange={setIsTagsSectionOpen}>
                 <PopoverTrigger asChild>
