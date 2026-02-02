@@ -4576,7 +4576,7 @@ export default function ListDetail() {
 
               {/* Sort Dropdown - options vary based on list type and sections */}
               <Select value={itemSortBy} onValueChange={handleItemSortChange}>
-                <SelectTrigger className="w-full sm:w-[220px] h-[40px] flex-shrink-0">
+                <SelectTrigger className="w-auto sm:w-[220px] h-[40px] flex-shrink-0">
                   <SelectValue placeholder="Sort items by" />
                 </SelectTrigger>
                 <SelectContent>
