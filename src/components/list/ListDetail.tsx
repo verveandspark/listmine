@@ -3696,7 +3696,7 @@ export default function ListDetail() {
 
           {/* Add Item - Only show if user can edit items */}
           {canEditListItems ? (
-            <Card className="p-0 mb-4 sm:mb-6 print:hidden">
+            <Card className="p-0 mb-2 sm:mb-3 print:hidden">
               <div className="p-3 sm:p-4">
                 <div className="space-y-3">
                   {/* Mode Toggle */}
@@ -4497,7 +4497,7 @@ export default function ListDetail() {
           </div>
 
           {/* Scrollable Content Area */}
-          <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+          <div className="px-4 sm:px-6 lg:px-8 py-2 sm:py-3">
             {/* Items Header with Tags and Sort */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 print:hidden">
             <div className="flex items-center gap-2">
