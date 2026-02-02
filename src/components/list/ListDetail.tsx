@@ -5553,7 +5553,7 @@ export default function ListDetail() {
                           </div>
                         )}
                         {showNumbering && (
-                          <span className="text-sm font-semibold text-gray-500 mt-1 flex-shrink-0 min-w-[2rem]">
+                          <span className="text-sm font-semibold text-gray-500 flex-shrink-0 min-w-[2rem]">
                             {itemNumber}.
                           </span>
                         )}
@@ -5564,7 +5564,7 @@ export default function ListDetail() {
                               completed: checked as boolean,
                             })
                           }
-                          className={`mt-1 h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform ${item.completed ? "animate-check-bounce" : ""}`}
+                          className={`h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform ${item.completed ? "animate-check-bounce" : ""}`}
                         />
                         {(() => {
                           // Debug logging for Target item images
