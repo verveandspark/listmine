@@ -2022,7 +2022,7 @@ export default function ListDetail() {
     const searchUrl = `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(item.text + " buy")}`;
 
     return (
-      <div className="relative inline-flex flex-wrap items-center gap-2">
+      <div className="relative inline-flex items-center gap-2">
         <a
           href={primaryUrl}
           target="_blank"
