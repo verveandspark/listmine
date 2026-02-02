@@ -3608,7 +3608,7 @@ export default function ListDetail() {
           <div className="sticky top-0 z-10 bg-gradient-to-br from-primary/10 via-white to-secondary/10 px-4 sm:px-6 lg:px-8 pt-4 pb-2 print:hidden">
             {/* Bulk Actions Toolbar */}
           {isSelectMode && (
-            <Card className="p-3 sm:p-4 mb-4 bg-primary/10 border-primary/20 print:hidden">
+            <Card className="p-2 sm:p-3 mb-4 bg-primary/10 border-primary/20 print:hidden">
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                   <div className="flex items-center gap-2">
@@ -3697,7 +3697,7 @@ export default function ListDetail() {
           {/* Add Item - Only show if user can edit items */}
           {canEditListItems ? (
             <Card className="p-0 mb-2 sm:mb-3 print:hidden">
-              <div className="p-3 sm:p-4">
+              <div className="p-2 sm:p-3">
                 <div className="space-y-3">
                   {/* Mode Toggle */}
                   <div className="flex items-center justify-between">
@@ -4652,7 +4652,7 @@ export default function ListDetail() {
                         <div className="absolute -top-1 left-0 right-0 h-1 bg-primary rounded-full z-10 animate-pulse" />
                       )}
                     <Card
-                      className={`p-3 sm:p-4 hover:shadow-md transition-all relative ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2 opacity-50" : ""} ${isDropTarget && itemSortBy === "manual" ? "ring-2 ring-primary/30" : ""}`}
+                      className={`p-2 sm:p-3 hover:shadow-md transition-all relative ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2 opacity-50" : ""} ${isDropTarget && itemSortBy === "manual" ? "ring-2 ring-primary/30" : ""}`}
                       draggable={itemSortBy === "manual" && canEditListItems}
                       onDragStart={(e) => {
                         const target = e.target as HTMLElement | null;
@@ -4958,7 +4958,7 @@ export default function ListDetail() {
                         <div className="absolute -top-1 left-0 right-0 h-1 bg-primary rounded-full z-10 animate-pulse" />
                       )}
                     <Card
-                      className={`p-3 sm:p-4 hover:shadow-md transition-all relative ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2 opacity-50" : ""} ${isDropTarget && itemSortBy === "manual" ? "ring-2 ring-primary/30" : ""}`}
+                      className={`p-2 sm:p-3 hover:shadow-md transition-all relative ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2 opacity-50" : ""} ${isDropTarget && itemSortBy === "manual" ? "ring-2 ring-primary/30" : ""}`}
                       draggable={itemSortBy === "manual" && canEditListItems}
                       onDragStart={(e) => {
                         const target = e.target as HTMLElement | null;
@@ -5306,7 +5306,7 @@ export default function ListDetail() {
                             <div className="absolute -top-1 left-0 right-0 h-1 bg-primary rounded-full z-10 animate-pulse" />
                           )}
                           <Card
-                            className={`p-3 sm:p-4 hover:shadow-md transition-all relative ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${isPurchased ? "border-success/20 bg-success/5" : ""} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2 opacity-50" : ""} ${isDropTarget && itemSortBy === "manual" ? "ring-2 ring-primary/30" : ""}`}
+                            className={`p-2 sm:p-3 hover:shadow-md transition-all relative ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${isPurchased ? "border-success/20 bg-success/5" : ""} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2 opacity-50" : ""} ${isDropTarget && itemSortBy === "manual" ? "ring-2 ring-primary/30" : ""}`}
                             draggable={itemSortBy === "manual" && canEditListItems}
                             onDragStart={(e) => {
                               const target = e.target as HTMLElement | null;
@@ -5511,7 +5511,7 @@ export default function ListDetail() {
                     )}
                     
                     <Card
-                      className={`p-3 sm:p-4 hover:shadow-md transition-all relative ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${isPurchased ? "border-success/20 bg-success/5" : ""} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2 opacity-50" : ""} ${isDropTarget && itemSortBy === "manual" ? "ring-2 ring-primary/30" : ""}`}
+                      className={`p-2 sm:p-3 hover:shadow-md transition-all relative ${index % 2 === 1 ? "bg-gray-50" : "bg-white"} ${isPurchased ? "border-success/20 bg-success/5" : ""} ${draggedItem?.id === item.id ? "animate-drag-lift border-primary border-2 opacity-50" : ""} ${isDropTarget && itemSortBy === "manual" ? "ring-2 ring-primary/30" : ""}`}
                       draggable={itemSortBy === "manual" && canEditListItems}
                       onDragStart={(e) => {
                         const target = e.target as HTMLElement | null;
