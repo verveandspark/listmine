@@ -3717,13 +3717,9 @@ export default function ListDetail() {
                             <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help ml-1" />
                           </TooltipTrigger>
                           <TooltipContent side="bottom" className="max-w-xs">
-                            <p className="font-medium text-xs mb-1">
-                              {detailedMode ? "Detailed Mode" : "Quick Mode"}
-                            </p>
                             <p className="text-xs">
-                              {detailedMode 
-                                ? "Add more details like notes, links, price, etc."
-                                : "Fast entry - just the basics"}
+                              <span className="font-medium">Quick:</span> Fast entry - just the basics<br/>
+                              <span className="font-medium">Detailed:</span> Add notes, links, price, etc.
                             </p>
                           </TooltipContent>
                         </Tooltip>
