@@ -402,8 +402,8 @@ export function ListSidebar() {
                             localStorage.setItem("last_list_id", list.id);
                             
                             // Switch account context if needed before navigating
-                            if (list.account_id && list.account_id !== currentAccountId) {
-                              setCurrentAccountId(list.account_id);
+                            if (list.accountId && list.accountId !== currentAccountId) {
+                              setCurrentAccountId(list.accountId);
                             }
                             
                             navigate(`/list/${list.id}`);
