@@ -404,9 +404,10 @@ export function ListSidebar() {
                             // Switch account context if needed before navigating
                             if (list.accountId && list.accountId !== currentAccountId) {
                               setCurrentAccountId(list.accountId);
+                              setTimeout(() => navigate(`/list/${list.id}`), 50);
+                            } else {
+                              navigate(`/list/${list.id}`);
                             }
-                            
-                            navigate(`/list/${list.id}`);
                           }}
                         >
                           <div className="flex flex-col items-start gap-0.5 min-w-0 flex-1">
