@@ -1638,7 +1638,7 @@ export default function Dashboard() {
                 <SelectValue placeholder="Jump to list..." />
               </SelectTrigger>
               <SelectContent>
-                {lists.map((list) => (
+                {accountFilteredLists.map((list) => (
                   <SelectItem key={list.id} value={list.id}>
                     {list.title}
                   </SelectItem>
