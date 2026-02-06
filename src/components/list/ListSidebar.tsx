@@ -35,7 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ListCategory } from "@/types";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import CreateListModal from "./CreateListModal";
 import { useAuth } from "@/contexts/useAuthHook";
 import { useAccount } from "@/contexts/AccountContext";
@@ -76,6 +76,9 @@ export function ListSidebar() {
     // Will be populated by useEffect once lists are loaded
     return {};
   });
+
+  // Flag to skip context check when navigating from Jump to List
+  const skipContextCheck = useRef(false);
 
   // Update localStorage when expanded categories change
   useEffect(() => {
@@ -125,6 +128,11 @@ export function ListSidebar() {
 
   // Handle account switch navigation - if current list is not visible in new context, navigate away
   useEffect(() => {
+    if (skipContextCheck.current) {
+      skipContextCheck.current = false;
+      return;
+    }
+    
     if (id && currentAccountId && currentAccount && accountFilteredLists.length >= 0) {
       const currentListVisible = accountFilteredLists.some(list => list.id === id);
       if (!currentListVisible) {
@@ -404,8 +412,10 @@ export function ListSidebar() {
                             // Switch account context if needed before navigating
                             if (list.accountId && list.accountId !== currentAccountId) {
                               setCurrentAccountId(list.accountId);
+                              skipContextCheck.current = true;
                               setTimeout(() => navigate(`/list/${list.id}`), 50);
                             } else {
+                              skipContextCheck.current = true;
                               navigate(`/list/${list.id}`);
                             }
                           }}
