@@ -883,9 +883,10 @@ export default function ListDetail() {
         }
       }
 
-      await addItemToList(list.id, {
+      // Only include quantity for Shopping category list types
+      const shouldIncludeQuantity = isShoppingList || isRegistryOrWishlistType;
+      const itemData: any = {
         text: nameValidation.value!,
-        quantity: newItemQuantity || 1,
         priority: newItemPriority,
         dueDate: newItemDueDate,
         notes: newItemNotes,
@@ -893,7 +894,14 @@ export default function ListDetail() {
         links: newItemLinks.length > 0 ? newItemLinks : undefined,
         attributes: Object.keys(attributes).length > 0 ? attributes : undefined,
         completed: false,
-      });
+      };
+      
+      // Only add quantity field for shopping-list, registry, wishlist
+      if (shouldIncludeQuantity) {
+        itemData.quantity = newItemQuantity || 1;
+      }
+
+      await addItemToList(list.id, itemData);
 
       // Reset all fields
       setNewItemText("");
