@@ -2531,72 +2531,76 @@ export function ListProvider({ children }: { children: ReactNode }) {
       
       if (listsError) throw listsError;
       
-      if (!listsData || listsData.length === 0) {
-        return [];
-      }
+      // Transform DB results to List format
+      let results: List[] = [];
       
-      // Fetch items for all found lists
-      const listIds = listsData.map((l) => l.id);
-      const { data: itemsData } = await supabase
-        .from("list_items")
-        .select("*")
-        .in("list_id", listIds)
-        .order("item_order", { ascending: true });
-      
-      // Map items to lists
-      const itemsByListId: Record<string, any[]> = {};
-      (itemsData || []).forEach((item) => {
-        if (!itemsByListId[item.list_id]) {
-          itemsByListId[item.list_id] = [];
+      if (listsData && listsData.length > 0) {
+        // Fetch items for all found lists
+        const listIds = listsData.map((l) => l.id);
+        const { data: itemsData } = await supabase
+          .from("list_items")
+          .select("*")
+          .in("list_id", listIds)
+          .order("item_order", { ascending: true });
+        
+        // Map items to lists
+        const itemsByListId: Record<string, any[]> = {};
+        (itemsData || []).forEach((item) => {
+          if (!itemsByListId[item.list_id]) {
+            itemsByListId[item.list_id] = [];
+          }
+          itemsByListId[item.list_id].push(item);
+        });
+        
+        // Transform to List format
+        const transformedLists: List[] = listsData.map((list) => ({
+          id: list.id,
+          title: list.title,
+          category: list.category as ListCategory,
+          listType: (list.list_type || "custom") as ListType,
+          items: (itemsByListId[list.id] || []).map((item) => ({
+            id: item.id,
+            text: item.name,
+            completed: item.is_completed || false,
+            priority: item.priority as "low" | "medium" | "high" | undefined,
+            dueDate: item.due_date,
+            notes: item.notes,
+            link: item.link,
+            price: item.price,
+            quantity: item.quantity || 1,
+            order: item.item_order,
+            imageUrl: item.image_url,
+          })),
+          isPinned: list.is_pinned || false,
+          isShared: list.is_shared || false,
+          shareLink: list.share_link,
+          shareMode: (list.share_mode as 'view_only' | 'importable' | 'registry_buyer') || 'view_only',
+          tags: list.tags || [],
+          collaborators: [],
+          createdAt: new Date(list.created_at),
+          updatedAt: new Date(list.updated_at),
+          isFavorite: list.is_favorite || false,
+          isArchived: list.is_archived || list.title?.startsWith("[Archived]") || false,
+          userId: list.user_id,
+          guestPermission: undefined,
+        }));
+        
+        // Filter by archived status
+        results = transformedLists;
+        if (!filters?.includeArchived) {
+          results = results.filter((list) => !list.isArchived && !list.title.startsWith("[Archived]"));
         }
-        itemsByListId[item.list_id].push(item);
-      });
-      
-      // Transform to List format
-      const transformedLists: List[] = listsData.map((list) => ({
-        id: list.id,
-        title: list.title,
-        category: list.category as ListCategory,
-        listType: (list.list_type || "custom") as ListType,
-        items: (itemsByListId[list.id] || []).map((item) => ({
-          id: item.id,
-          text: item.name,
-          completed: item.is_completed || false,
-          priority: item.priority as "low" | "medium" | "high" | undefined,
-          dueDate: item.due_date,
-          notes: item.notes,
-          link: item.link,
-          price: item.price,
-          quantity: item.quantity || 1,
-          order: item.item_order,
-          imageUrl: item.image_url,
-        })),
-        isPinned: list.is_pinned || false,
-        isShared: list.is_shared || false,
-        shareLink: list.share_link,
-        shareMode: (list.share_mode as 'view_only' | 'importable' | 'registry_buyer') || 'view_only',
-        tags: list.tags || [],
-        collaborators: [],
-        createdAt: new Date(list.created_at),
-        updatedAt: new Date(list.updated_at),
-        isFavorite: list.is_favorite || false,
-        isArchived: list.is_archived || list.title?.startsWith("[Archived]") || false,
-        userId: list.user_id,
-        guestPermission: undefined,
-      }));
-      
-      // Filter by archived status
-      let results = transformedLists;
-      if (!filters?.includeArchived) {
-        results = results.filter((list) => !list.isArchived && !list.title.startsWith("[Archived]"));
       }
       
-      // If query exists, also search in items and tags (already filtered by title in DB)
+      // Also search in-memory lists for matches in items, tags, and categories
+      // This catches lists where the title doesn't match but item content, tags, or category does
       if (lowerQuery) {
-        // Also include lists where items or tags match (even if title doesn't)
         const additionalMatches = lists.filter((list) => {
-          // Skip if already in results
+          // Skip if already in results from DB title search
           if (results.some((r) => r.id === list.id)) return false;
+          
+          // Check title (in-memory fallback, in case DB missed due to encoding)
+          const titleMatch = list.title.toLowerCase().includes(lowerQuery);
           
           // Check items
           const itemMatch = list.items.some((item) =>
@@ -2611,7 +2615,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
           // Check category
           const categoryMatch = list.category.toLowerCase().includes(lowerQuery);
           
-          return itemMatch || tagMatch || categoryMatch;
+          return titleMatch || itemMatch || tagMatch || categoryMatch;
         });
         
         // Apply filters to additional matches
