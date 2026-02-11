@@ -37,6 +37,7 @@ export default function AuthPage() {
   const [resetLoading, setResetLoading] = useState(false);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [activeTab, setActiveTab] = useState("login");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -198,7 +199,7 @@ export default function AuthPage() {
           </p>
         </div>
 
-        <Tabs defaultValue="login" className="w-full">
+        <Tabs defaultValue="login" value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="login">Login</TabsTrigger>
             <TabsTrigger value="register">Register</TabsTrigger>
@@ -278,10 +279,7 @@ export default function AuthPage() {
                     New to ListMine?{" "}
                     <button
                       type="button"
-                      onClick={() => {
-                        const registerTab = document.querySelector('[value="register"]') as HTMLElement;
-                        registerTab?.click();
-                      }}
+                      onClick={() => setActiveTab("register")}
                       className="text-primary font-semibold underline hover:text-primary/80"
                     >
                       Create a free account
