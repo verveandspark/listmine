@@ -414,6 +414,9 @@ export default function Templates() {
               <p className="text-muted-foreground">
                 Create lists from pre-made templates to get started quickly
               </p>
+              <p className="text-sm text-muted-foreground italic mt-1">
+                Good = option to purchase; Even Better = 3 included templates; Lots More = all templates.
+              </p>
             </div>
             <Badge variant="outline" className="bg-primary/10 border-primary/20">
               <Sparkles className="w-3 h-3 mr-1 text-primary" />
@@ -447,6 +450,14 @@ export default function Templates() {
                 "Redeem"
               )}
             </Button>
+          </div>
+          <div className="mt-2">
+            <p className="text-xs text-muted-foreground">
+              Enter your one-time redemption code to unlock a template. Once redeemed, the template is added to your included templates permanently*
+            </p>
+            <p className="text-xs text-muted-foreground italic mt-1">
+              *unless you downgrade to the Free plan.
+            </p>
           </div>
         </Card>
 
