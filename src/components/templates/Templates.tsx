@@ -412,10 +412,10 @@ export default function Templates() {
             <div>
               <h1 className="text-4xl font-bold text-foreground mb-2">Templates</h1>
               <p className="text-muted-foreground">
-                Create lists from pre-made templates to get started quickly
+                Create lists from pre-made templates to get started quickly.
               </p>
               <p className="text-sm text-muted-foreground italic mt-1">
-                Good = option to purchase; Even Better = 3 included templates; Lots More = all templates.
+                Good = option to purchase; Even Better = 3 included templates; Lots More = all templates
               </p>
             </div>
             <Badge variant="outline" className="bg-primary/10 border-primary/20">
