@@ -135,6 +135,7 @@ export default function ImportExport() {
   );
   const [shareUrl, setShareUrl] = useState("");
   const [isImporting, setIsImporting] = useState(false);
+  const [shareUrlError, setShareUrlError] = useState("");
   
   // Handle pre-filled share ID from URL
   useEffect(() => {
@@ -244,6 +245,17 @@ export default function ImportExport() {
     }
   };
 
+  const validateShareUrl = (url: string): boolean => {
+    const trimmed = url.trim();
+    // Check if it contains @ but not http (likely an email)
+    if (trimmed.includes("@") && !trimmed.includes("http")) {
+      setShareUrlError("That looks like an email address. Paste a shared list link instead (e.g. https://app.listmine.com/shared/abc123) or just the share ID.");
+      return false;
+    }
+    setShareUrlError("");
+    return true;
+  };
+
   const handleImportFromShareLink = async () => {
     if (!shareUrl.trim()) {
       toast({
@@ -251,6 +263,11 @@ export default function ImportExport() {
         description: "Please enter a share link or ID",
         variant: "destructive",
       });
+      return;
+    }
+
+    // Validate on submit
+    if (!validateShareUrl(shareUrl)) {
       return;
     }
 
@@ -583,7 +600,7 @@ export default function ImportExport() {
               <div className="flex items-center gap-2 mb-4">
                 <Link2 className="w-5 h-5 text-primary" />
                 <h2 className="text-xl font-semibold text-gray-900">
-                  Import from ListMine Share Link
+                  Import Another User's List
                 </h2>
                 <TooltipProvider>
                   <Tooltip>
@@ -599,27 +616,36 @@ export default function ImportExport() {
                 </TooltipProvider>
               </div>
               <p className="text-sm text-gray-600 mb-4">
-                Copy lists shared by other ListMine users
+                Import a copy of lists shared by other ListMine users
               </p>
 
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="share-url">Share Link or ID</Label>
                   <Input
                     id="share-url"
                     placeholder="https://app.listmine.com/shared/abc123 or abc123"
                     value={shareUrl}
-                    onChange={(e) => setShareUrl(e.target.value)}
+                    onChange={(e) => {
+                      setShareUrl(e.target.value);
+                      validateShareUrl(e.target.value);
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !isImporting) {
                         handleImportFromShareLink();
                       }
                     }}
-                    className="min-h-[44px] mt-2"
+                    className="min-h-[44px]"
                   />
-                  <p className="text-xs text-gray-500 mt-2">
-                    You can paste the full URL or just the share ID
-                  </p>
+                  {shareUrlError && (
+                    <p className="text-xs text-red-600 mt-2">
+                      {shareUrlError}
+                    </p>
+                  )}
+                  {!shareUrlError && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      You can paste the full list URL or just the share ID of the list; emails will not work.
+                    </p>
+                  )}
                 </div>
 
                 <Button 
@@ -635,7 +661,7 @@ export default function ImportExport() {
                   ) : (
                     <>
                       <Download className="w-4 h-4 mr-2" />
-                      Import from Share Link
+                      Import Shared List
                     </>
                   )}
                 </Button>
