@@ -6296,7 +6296,7 @@ export default function ListDetail() {
                   variant="outline"
                   size="sm"
                   className="flex-1"
-                  onClick={() => window.location.href = 'mailto:support@listmine.com'}
+                  onClick={() => window.location.href = 'mailto:info@listmine.com?subject=ListMine%20Support'}
                 >
                   <MessageSquare className="w-4 h-4 mr-2" />
                   Contact Support
