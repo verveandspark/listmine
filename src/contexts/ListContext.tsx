@@ -1654,6 +1654,12 @@ export function ListProvider({ children }: { children: ReactNode }) {
   // Restore multiple deleted items
   const restoreBulkItems = async (listId: string, itemsData: any[]) => {
     try {
+      // DEBUG: Log raw input received from undo state
+      console.log('[DEBUG restoreBulkItems] listId:', listId);
+      console.log('[DEBUG restoreBulkItems] itemsData received:', JSON.stringify(itemsData, null, 2));
+      console.log('[DEBUG restoreBulkItems] itemsData count:', itemsData?.length);
+      console.log('[DEBUG restoreBulkItems] itemsData type:', typeof itemsData, Array.isArray(itemsData));
+      
       const itemsToInsert = itemsData.map((item) => ({
         id: item.id,
         list_id: listId,
@@ -1674,7 +1680,14 @@ export function ListProvider({ children }: { children: ReactNode }) {
         last_edited_at: new Date().toISOString(),
       }));
 
-      const { error } = await supabase.from("list_items").insert(itemsToInsert);
+      // DEBUG: Log the mapped payload about to be sent to Supabase
+      console.log('[DEBUG restoreBulkItems] itemsToInsert payload:', JSON.stringify(itemsToInsert, null, 2));
+
+      const { data, error } = await supabase.from("list_items").insert(itemsToInsert).select();
+
+      // DEBUG: Log the full Supabase response
+      console.log('[DEBUG restoreBulkItems] Supabase response data:', JSON.stringify(data, null, 2));
+      console.log('[DEBUG restoreBulkItems] Supabase response error:', JSON.stringify(error, null, 2));
 
       if (error) throw error;
       

@@ -57,6 +57,10 @@ export function useUndoAction() {
           pendingActionsRef.current.delete(actionId);
 
           try {
+            // DEBUG: Log what the undo hook is passing back to the undo function
+            console.log('[DEBUG useUndoAction] Undo triggered for actionId:', actionId);
+            console.log('[DEBUG useUndoAction] pendingAction.data type:', typeof pendingAction.data, Array.isArray(pendingAction.data));
+            console.log('[DEBUG useUndoAction] pendingAction.data:', JSON.stringify(pendingAction.data, null, 2));
             await pendingAction.undoFn(pendingAction.data);
             toast({
               title: "✅ Undone!",
