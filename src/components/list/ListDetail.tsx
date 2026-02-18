@@ -1445,25 +1445,6 @@ export default function ListDetail() {
     const itemsData = itemsToDelete.map(item => ({ ...item }));
     const itemCount = selectedItems.size;
     
-    // DEBUG: Log what's being saved to undo state before delete
-    console.log('[DEBUG handleBulkDelete] selectedItems count:', selectedItems.size);
-    console.log('[DEBUG handleBulkDelete] itemsToDelete count:', itemsToDelete.length);
-    console.log('[DEBUG handleBulkDelete] itemsData saved for undo:', JSON.stringify(itemsData, null, 2));
-    console.log('[DEBUG handleBulkDelete] itemsData field check (first item):', itemsData[0] ? {
-      hasId: !!itemsData[0].id,
-      hasText: !!itemsData[0].text,
-      hasItemOrder: itemsData[0].order !== undefined,
-      hasQuantity: itemsData[0].quantity !== undefined,
-      hasPriority: itemsData[0].priority !== undefined,
-      hasDueDate: itemsData[0].dueDate !== undefined,
-      hasNotes: itemsData[0].notes !== undefined,
-      hasAssignedTo: itemsData[0].assignedTo !== undefined,
-      hasCompleted: itemsData[0].completed !== undefined,
-      hasLinks: itemsData[0].links !== undefined,
-      hasAttributes: itemsData[0].attributes !== undefined,
-      allKeys: Object.keys(itemsData[0]),
-    } : 'NO ITEMS');
-    
     await executeWithUndo(
       `bulk-delete-${list.id}-${Date.now()}`,
       itemsData,
