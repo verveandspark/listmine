@@ -2146,6 +2146,36 @@ export default function ListDetail() {
                 />
               </div>
 
+              {/* Section dropdown - Only shown when list has sections */}
+              {isSectioned && (
+                <div className="space-y-2">
+                  <Label>Section</Label>
+                  <Select
+                    value={editingItem.attributes?.section || ""}
+                    onValueChange={(value) =>
+                      setEditingItem({
+                        ...editingItem,
+                        attributes: {
+                          ...editingItem.attributes,
+                          section: value,
+                        },
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select section" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableSections.map((section) => (
+                        <SelectItem key={section} value={section}>
+                          {section}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               {/* TO-DO LIST FIELDS: todo, todo-list */}
               {isTodo && (
                 <>
@@ -2727,6 +2757,12 @@ export default function ListDetail() {
                         ? new Date(dueDateInput + 'T00:00:00') 
                         : undefined;
                       
+                      // Find the original item to check if section changed
+                      const originalItem = list.items.find(item => item.id === editingItem.id);
+                      const originalSection = originalItem?.attributes?.section;
+                      const newSection = editingItem.attributes?.section;
+                      const sectionChanged = isSectioned && originalSection !== newSection;
+                      
                       // Build update payload - only include links if the Product Link field was edited
                       const updatePayload: Partial<ListItemType> = {
                         text: editingItem.text,
@@ -2737,6 +2773,18 @@ export default function ListDetail() {
                         attributes: editingItem.attributes,
                         completed: editingItem.completed,
                       };
+                      
+                      // If section changed, calculate new item_order to place at end of new section
+                      if (sectionChanged && newSection) {
+                        const itemsInNewSection = list.items.filter(
+                          item => item.attributes?.section === newSection && item.id !== editingItem.id
+                        );
+                        const maxOrder = itemsInNewSection.length > 0
+                          ? Math.max(...itemsInNewSection.map(item => item.order ?? 0))
+                          : 0;
+                        updatePayload.order = maxOrder + 1;
+                      }
+                      
                       // Only include links in payload if the Product Link field was explicitly edited
                       // If edited and blank: set links: []
                       // If edited and non-empty: set links: [url]
