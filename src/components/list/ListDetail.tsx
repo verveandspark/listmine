@@ -321,6 +321,19 @@ export default function ListDetail() {
     return Array.from(sectionsSet).sort();
   }, [list?.items]);
   
+  // Save last opened list ID for "List View" toggle
+  if (id) {
+    localStorage.setItem("last_list_id", id);
+  }
+  
+  // Safe list type checks using effectiveListType (lowercase keys)
+  const isTodo = effectiveListType === 'todo';
+  const isIdea = effectiveListType === 'idea';
+  const isRegistry = effectiveListType === 'registry';
+  const isRegistryOrWishlistType = isRegistry;
+  const isGrocery = effectiveListType === 'grocery';
+  const isShoppingList = effectiveListType === 'shopping';
+
   // Default grocery categories always available for grocery list types
   const DEFAULT_GROCERY_CATEGORIES = [
       "Baking", "Beverages", "Bread & Bakery", "Canned Goods", "Condiments & Sauces",
@@ -348,19 +361,6 @@ export default function ListDetail() {
     categoriesSet.add('Other');
     return Array.from(categoriesSet).sort();
   }, [list?.items, isGrocery]);
-  
-  // Save last opened list ID for "List View" toggle
-  if (id) {
-    localStorage.setItem("last_list_id", id);
-  }
-  
-  // Safe list type checks using effectiveListType (lowercase keys)
-  const isTodo = effectiveListType === 'todo';
-  const isIdea = effectiveListType === 'idea';
-  const isRegistry = effectiveListType === 'registry';
-  const isRegistryOrWishlistType = isRegistry;
-  const isGrocery = effectiveListType === 'grocery';
-  const isShoppingList = effectiveListType === 'shopping';
   
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [newItemText, setNewItemText] = useState("");
@@ -3807,7 +3807,7 @@ export default function ListDetail() {
                 )}
 
                 {/* CUSTOM LIST - Simple fields */}
-                {effectiveListType === "custom" && (
+                {(effectiveListType === "custom" || effectiveListType === "checklist") && (
                   <>
                     {/* Section dropdown for sectioned custom lists (Recipe, Vacation Packing, etc.) */}
                     {isSectioned && (
