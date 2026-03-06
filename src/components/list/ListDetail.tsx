@@ -146,7 +146,7 @@ import { normalizeListType } from "@/lib/normalizeListType";
 // Uses normalizeListType output values (lowercase keys)
 const isRegistryOrWishlist = (listType: string | undefined): boolean => {
   const normalized = normalizeListType(listType);
-  return normalized === "registry" || normalized === "wishlist";
+  return normalized === "registry";
 };
 
 // Helper function to check if an item is unavailable
@@ -345,8 +345,7 @@ export default function ListDetail() {
   const isTodo = effectiveListType === 'todo';
   const isIdea = effectiveListType === 'idea';
   const isRegistry = effectiveListType === 'registry';
-  const isWishlist = effectiveListType === 'wishlist';
-  const isRegistryOrWishlistType = isRegistry || isWishlist;
+  const isRegistryOrWishlistType = isRegistry;
   const isGrocery = effectiveListType === 'grocery';
   const isShoppingList = effectiveListType === 'shopping';
   

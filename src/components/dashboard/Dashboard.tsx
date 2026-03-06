@@ -160,10 +160,11 @@ const categoryColors: Record<string, string> = {
 const listTypes = [
   "Custom",
   "To-Do",
+  "Checklist",
   "Shopping List",
+  "Grocery",
   "Idea",
-  "Registry",
-  "Wishlist"
+  "Registry/Wishlist"
 ];
 
 // Normalize legacy list types for filtering

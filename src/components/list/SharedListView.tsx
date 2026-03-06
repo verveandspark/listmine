@@ -344,7 +344,6 @@ export default function SharedListView() {
       "idea": "Idea",
       "registry-list": "Registry",
       "registry": "Registry",
-      "wishlist": "Wishlist",
       "shopping-list": "Shopping List",
       "grocery-list": "Shopping List",
       "grocery": "Shopping List",
@@ -354,7 +353,7 @@ export default function SharedListView() {
 
   const isRegistryOrWishlist = (listType: string | undefined): boolean => {
     const normalized = normalizeListTypeLocal(listType);
-    return normalized === "Registry" || normalized === "Wishlist";
+    return normalized === "Registry";
   };
 
   const isShoppingOrGrocery = (listType: string | undefined): boolean => {
@@ -748,9 +747,7 @@ export default function SharedListView() {
               </div>
               <p className="text-xs sm:text-sm text-gray-600 mt-1">
                 {list.category} · {list.items.length} items · 
-                {normalizeListTypeLocal(list.listType) === "Registry" ? " Shared Registry" : 
-                 normalizeListTypeLocal(list.listType) === "Wishlist" ? " Shared Wishlist" : 
-                 " Shared List"}
+                {normalizeListTypeLocal(list.listType) === "Registry" ? " Shared Registry" : " Shared List"}
                 {list.lastEditedAt && (
                   <span className="ml-1">
                     · Last updated {new Date(list.lastEditedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}

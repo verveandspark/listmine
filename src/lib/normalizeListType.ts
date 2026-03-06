@@ -4,8 +4,9 @@ export function normalizeListType(listType: string | null | undefined): string {
     case 'todo-list':
     case 'todo':
     case 'task-list':
-    case 'checklist':
       return 'todo';
+    case 'checklist':
+      return 'checklist';
     case 'idea-list':
     case 'idea':
       return 'idea';
@@ -19,7 +20,7 @@ export function normalizeListType(listType: string | null | undefined): string {
     case 'registry':
       return 'registry';
     case 'wishlist':
-      return 'wishlist';
+      return 'registry';
     case 'custom':
     case 'job-search':
     case 'multi-topic':
@@ -46,14 +47,18 @@ export function displayTypeToDbType(displayType: string): string {
   switch (displayType) {
     case 'To-Do':
       return 'todo-list';
+    case 'Checklist':
+      return 'checklist';
     case 'Idea':
       return 'idea-list';
     case 'Shopping List':
       return 'shopping-list';
+    case 'Grocery':
+      return 'grocery-list';
     case 'Registry':
       return 'registry-list';
-    case 'Wishlist':
-      return 'wishlist';
+    case 'Registry/Wishlist':
+      return 'registry-list';
     case 'Custom':
     default:
       return 'custom';

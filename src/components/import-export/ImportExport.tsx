@@ -60,8 +60,7 @@ const listTypes: ListType[] = [
   "todo",
   "shopping-list",
   "idea",
-  "registry",
-  "wishlist"
+  "registry"
 ];
 
 interface ScrapedItem {
@@ -1013,8 +1012,7 @@ export default function ImportExport() {
                             'todo': 'To-Do',
                             'shopping-list': 'Shopping List',
                             'idea': 'Idea',
-                            'registry': 'Registry',
-                            'wishlist': 'Wishlist'
+                            'registry': 'Registry/Wishlist'
                           }[type] || type;
                           
                           return (

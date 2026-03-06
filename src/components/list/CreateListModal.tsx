@@ -240,7 +240,6 @@ export default function CreateListModal({
         return 'Tasks';
       case 'registry':
       case 'registry-list':
-      case 'wishlist':
       case 'shopping-list':
       case 'grocery':
       case 'grocery-list':
@@ -387,10 +386,11 @@ export default function CreateListModal({
                   const helperTexts: Record<string, string> = {
                     custom: "Flexible lists for anything (notes, plans, collections).",
                     todo: "Tasks with due dates and status.",
+                    checklist: "Check off items, track progress, reset and reuse.",
                     "shopping-list": "Track items to buy (links, quantities).",
+                    grocery: "Weekly shopping with built-in sections, reset and reuse.",
                     idea: "Capture and organize ideas.",
-                    registry: "Shareable gift registry with purchase tracking.",
-                    wishlist: "Shareable wish list with purchase tracking.",
+                    registry: "Shareable gift list with purchase tracking.",
                   };
                   const helperKey = normalizeListType(typeInfo.value);
                   return (

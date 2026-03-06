@@ -14,10 +14,11 @@ export interface ListTypeInfo {
 export const ALL_LIST_TYPES: ListTypeInfo[] = [
   { value: "custom", label: "Custom", requiredTier: "free", tierLabel: "Free" },
   { value: "todo-list", label: "To-Do", requiredTier: "free", tierLabel: "Free" },
+  { value: "checklist", label: "Checklist", requiredTier: "free", tierLabel: "Free" },
   { value: "idea-list", label: "Idea", requiredTier: "good", tierLabel: "Good" },
   { value: "shopping-list", label: "Shopping List", requiredTier: "good", tierLabel: "Good" },
-  { value: "registry-list", label: "Registry", requiredTier: "even_better", tierLabel: "Even Better" },
-  { value: "wishlist", label: "Wishlist", requiredTier: "even_better", tierLabel: "Even Better" },
+  { value: "grocery-list", label: "Grocery", requiredTier: "good", tierLabel: "Good" },
+  { value: "registry-list", label: "Registry/Wishlist", requiredTier: "even_better", tierLabel: "Even Better" },
 ];
 
 // Tier hierarchy for comparison
@@ -307,7 +308,7 @@ export function canAccessBilling(role: TeamMemberRole | string | undefined): boo
  * Note: shopping-list does NOT support this feature
  */
 export function supportsAnonymousClaim(listType: ListType): boolean {
-  return listType === "registry-list" || listType === "registry" || listType === "wishlist";
+  return listType === "registry-list" || listType === "registry";
 }
 
 /**

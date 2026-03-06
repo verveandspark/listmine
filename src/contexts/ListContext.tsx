@@ -697,7 +697,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
         // Sync purchase statuses from purchases table for registry/wishlist lists only
         // Note: shopping-list does NOT support purchase tracking
         const registryWishlistListIds = listsData
-          .filter((l) => l.list_type === "registry-list" || l.list_type === "registry" || l.list_type === "wishlist")
+          .filter((l) => l.list_type === "registry-list" || l.list_type === "registry")
           .map((l) => l.id);
 
         if (registryWishlistListIds.length > 0) {

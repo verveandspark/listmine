@@ -43,7 +43,7 @@ const normalizeListType = (listType: string | undefined): string => {
 // Check if listType is a registry or wishlist (for purchaser UI)
 const isRegistryOrWishlist = (listType: string | undefined): boolean => {
   const normalized = normalizeListType(listType);
-  return normalized === "registry" || normalized === "wishlist";
+  return normalized === "registry";
 };
 
 interface ShareSettingsModalProps {
