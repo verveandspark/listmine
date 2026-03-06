@@ -53,7 +53,9 @@ const normalizeListType = (listType: string | undefined): string => {
     "task-list": "todo",
     "idea-list": "idea",
     "registry-list": "registry",
-    "checklist": "todo",
+    "checklist": "checklist",
+    "wishlist": "registry",
+    "grocery-list": "grocery",
   };
   return normalizations[listType] || listType;
 };
