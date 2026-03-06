@@ -321,20 +321,33 @@ export default function ListDetail() {
     return Array.from(sectionsSet).sort();
   }, [list?.items]);
   
+  // Default grocery categories always available for grocery list types
+  const DEFAULT_GROCERY_CATEGORIES = [
+      "Baking", "Beverages", "Bread & Bakery", "Canned Goods", "Condiments & Sauces",
+      "Dairy", "Deli", "Frozen Food", "Fruit", "Household", "Meat & Fish",
+      "Pasta & Grains", "Pet Stuff", "Snacks", "Spices", "Vegetables", "Other"
+  ];
+
   // Get available categories for grocery lists (use category, fallback to section for older rows)
   const availableCategories = useMemo(() => {
-    if (!list?.items) return ['Other'];
     const categoriesSet = new Set<string>();
-    list.items.forEach(item => {
-      const cat = item.attributes?.category || item.attributes?.section;
-      if (cat && cat.trim() !== '') {
-        categoriesSet.add(cat.trim());
-      }
-    });
+    // For grocery lists, always include default categories
+    if (isGrocery) {
+      DEFAULT_GROCERY_CATEGORIES.forEach(cat => categoriesSet.add(cat));
+    }
+    // Merge with any user-created categories from existing items
+    if (list?.items) {
+      list.items.forEach(item => {
+        const cat = item.attributes?.category || item.attributes?.section;
+        if (cat && cat.trim() !== '') {
+          categoriesSet.add(cat.trim());
+        }
+      });
+    }
     // Always ensure 'Other' is available
     categoriesSet.add('Other');
     return Array.from(categoriesSet).sort();
-  }, [list?.items]);
+  }, [list?.items, isGrocery]);
   
   // Save last opened list ID for "List View" toggle
   if (id) {
@@ -595,11 +608,11 @@ export default function ListDetail() {
   
   // Initialize category from localStorage for grocery lists
   useEffect(() => {
-    if (list?.id && isGrocery && isCategorized) {
+    if (list?.id && isGrocery) {
       const savedCategory = localStorage.getItem(`listmine:lastCategory:${list.id}`);
       setNewItemGroceryCategory(savedCategory || 'Other');
     }
-  }, [list?.id, isGrocery, isCategorized]);
+  }, [list?.id, isGrocery]);
   
   // Save section selection to localStorage
   const handleSectionChange = (section: string) => {
@@ -820,7 +833,7 @@ export default function ListDetail() {
         // Always use category for grocery lists (not section)
         if (newItemCategory) {
           attributes.category = newItemCategory;
-        } else if (isCategorized && newItemGroceryCategory) {
+        } else if (newItemGroceryCategory) {
           // Use selected category from dropdown for categorized grocery lists
           attributes.category = newItemGroceryCategory;
         }
@@ -3993,29 +4006,49 @@ export default function ListDetail() {
                 {isGrocery && (
                   <>
                     {!detailedMode && (
-                      <div className="flex gap-2">
-                        <Input
-                          type="number"
-                          placeholder="Qty"
-                          value={newItemQuantity || ""}
-                          onChange={(e) =>
-                            setNewItemQuantity(e.target.value ? parseInt(e.target.value) : undefined)
-                          }
-                          className="w-20 min-h-[44px]"
-                          min="1"
-                        />
-                        <Input
-                          placeholder="Item name"
-                          value={newItemText}
-                          onChange={(e) => setNewItemText(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              handleAddItem();
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <Input
+                            type="number"
+                            placeholder="Qty"
+                            value={newItemQuantity || ""}
+                            onChange={(e) =>
+                              setNewItemQuantity(e.target.value ? parseInt(e.target.value) : undefined)
                             }
-                          }}
-                          className="flex-1 min-h-[44px]"
-                        />
+                            className="w-20 min-h-[44px]"
+                            min="1"
+                          />
+                          <Input
+                            placeholder="Item name"
+                            value={newItemText}
+                            onChange={(e) => setNewItemText(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleAddItem();
+                              }
+                            }}
+                            className="flex-1 min-h-[44px]"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs mb-2">Category</Label>
+                          <Select
+                            value={newItemGroceryCategory || "Other"}
+                            onValueChange={handleGroceryCategoryChange}
+                          >
+                            <SelectTrigger className="min-h-[44px]">
+                              <SelectValue placeholder="Select category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableCategories.map((category) => (
+                                <SelectItem key={category} value={category}>
+                                  {category}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                     )}
                     {detailedMode && (
@@ -4029,7 +4062,7 @@ export default function ListDetail() {
                         />
                         {/* Row 2: Category (left 50%) + Quantity (right 50%) */}
                         <div className="grid grid-cols-2 gap-3">
-                          {isCategorized && (
+                          {isGrocery && (
                             <div>
                               <Label className="text-xs mb-2">Category</Label>
                               <Select
