@@ -54,9 +54,9 @@ interface Template {
 
 // Hardcoded included template slugs for Even Better tier
 const EVEN_BETTER_INCLUDED_SLUGS = [
-  "grocery-complete",
-  "recipe-starter",
   "vacation-packing",
+  "weekly-meal-planning",
+  "home-maintenance-schedule",
 ];
 
 const MARKETPLACE_URL = "https://listmine.com/templates";
