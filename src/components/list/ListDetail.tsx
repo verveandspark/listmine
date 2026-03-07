@@ -3768,8 +3768,8 @@ export default function ListDetail() {
             <Card className="p-0 mb-2 sm:mb-3 print:hidden">
               <div className="p-2 sm:p-3">
                 <div className="space-y-3">
-                   {/* Mode Toggle - Only show for Grocery lists */}
-                   {isGrocery && (
+                   {/* Mode Toggle - Show for Grocery, Shopping, Registry, and Idea lists */}
+                   {(isGrocery || isIdea || isShoppingList || effectiveListType === 'registry') && (
                      <div className="flex items-center justify-between">
                     <Label className="text-sm font-medium">Add Item Mode</Label>
                     <div className="flex items-center gap-2">
