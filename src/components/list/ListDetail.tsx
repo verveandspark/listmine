@@ -2227,15 +2227,17 @@ export default function ListDetail() {
                       <Label>Status</Label>
                       <Select
                         value={editingItem.attributes?.status || "none"}
-                        onValueChange={(value) =>
+                        onValueChange={(value) => {
+                          const newStatus = value === "none" ? undefined : value;
                           setEditingItem({
                             ...editingItem,
+                            completed: newStatus === "completed",
                             attributes: {
                               ...editingItem.attributes,
-                              status: value === "none" ? undefined : value,
+                              status: newStatus,
                             },
-                          })
-                        }
+                          });
+                        }}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select status" />
@@ -2330,15 +2332,17 @@ export default function ListDetail() {
                     <Label>Status</Label>
                     <Select
                       value={editingItem.attributes?.status || "none"}
-                      onValueChange={(value) =>
+                      onValueChange={(value) => {
+                        const newStatus = value === "none" ? undefined : value;
                         setEditingItem({
                           ...editingItem,
+                          completed: newStatus === "completed",
                           attributes: {
                             ...editingItem.attributes,
-                            status: value === "none" ? undefined : value,
+                            status: newStatus,
                           },
-                        })
-                      }
+                        });
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select status" />
@@ -2467,15 +2471,16 @@ export default function ListDetail() {
                     <Label>Purchase Status</Label>
                     <Select
                       value={editingItem.attributes?.purchaseStatus || "not-purchased"}
-                      onValueChange={(value) =>
+                      onValueChange={(value) => {
                         setEditingItem({
                           ...editingItem,
+                          completed: value === "purchased" || value === "received",
                           attributes: {
                             ...editingItem.attributes,
                             purchaseStatus: value,
                           },
-                        })
-                      }
+                        });
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select status" />
@@ -2609,15 +2614,16 @@ export default function ListDetail() {
                     <Label>Purchase Status</Label>
                     <Select
                       value={editingItem.attributes?.purchaseStatus || ""}
-                      onValueChange={(value) =>
+                      onValueChange={(value) => {
                         setEditingItem({
                           ...editingItem,
+                          completed: value === "purchased" || value === "received",
                           attributes: {
                             ...editingItem.attributes,
                             purchaseStatus: value,
                           },
-                        })
-                      }
+                        });
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select status" />
@@ -4794,11 +4800,20 @@ export default function ListDetail() {
                         {showCompletionCheckbox && (
                           <Checkbox
                             checked={item.completed}
-                            onCheckedChange={(checked) =>
+                            onCheckedChange={(checked) => {
+                              const isChecked = checked as boolean;
+                              const attributeUpdate = isTodo
+                                ? { status: isChecked ? "completed" : undefined }
+                                : (isShoppingList || isRegistryOrWishlistType)
+                                  ? { purchaseStatus: isChecked ? "purchased" : "not-purchased" }
+                                  : {};
                               updateListItem(list.id, item.id, {
-                                completed: checked as boolean,
-                              })
-                            }
+                                completed: isChecked,
+                                ...(Object.keys(attributeUpdate).length > 0
+                                  ? { attributes: { ...item.attributes, ...attributeUpdate } }
+                                  : {}),
+                              });
+                            }}
                             className={`h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform border-gray-400 ${item.completed ? "animate-check-bounce bg-gray-700 border-gray-700" : ""}`}
                           />
                         )}
@@ -5102,11 +5117,20 @@ export default function ListDetail() {
                         {showCompletionCheckbox && (
                           <Checkbox
                             checked={item.completed}
-                            onCheckedChange={(checked) =>
+                            onCheckedChange={(checked) => {
+                              const isChecked = checked as boolean;
+                              const attributeUpdate = isTodo
+                                ? { status: isChecked ? "completed" : undefined }
+                                : (isShoppingList || isRegistryOrWishlistType)
+                                  ? { purchaseStatus: isChecked ? "purchased" : "not-purchased" }
+                                  : {};
                               updateListItem(list.id, item.id, {
-                                completed: checked as boolean,
-                              })
-                            }
+                                completed: isChecked,
+                                ...(Object.keys(attributeUpdate).length > 0
+                                  ? { attributes: { ...item.attributes, ...attributeUpdate } }
+                                  : {}),
+                              });
+                            }}
                             className={`h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform border-gray-400 ${item.completed ? "animate-check-bounce bg-gray-700 border-gray-700" : ""}`}
                           />
                         )}
@@ -5452,11 +5476,20 @@ export default function ListDetail() {
                               {showCompletionCheckbox && (
                                 <Checkbox
                                   checked={item.completed}
-                                  onCheckedChange={(checked) =>
+                                  onCheckedChange={(checked) => {
+                                    const isChecked = checked as boolean;
+                                    const attributeUpdate = isTodo
+                                      ? { status: isChecked ? "completed" : undefined }
+                                      : (isShoppingList || isRegistryOrWishlistType)
+                                        ? { purchaseStatus: isChecked ? "purchased" : "not-purchased" }
+                                        : {};
                                     updateListItem(list.id, item.id, {
-                                      completed: checked as boolean,
-                                    })
-                                  }
+                                      completed: isChecked,
+                                      ...(Object.keys(attributeUpdate).length > 0
+                                        ? { attributes: { ...item.attributes, ...attributeUpdate } }
+                                        : {}),
+                                    });
+                                  }}
                                   className={`mt-1 h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform ${item.completed ? "animate-check-bounce" : ""}`}
                                 />
                               )}
@@ -5664,11 +5697,20 @@ export default function ListDetail() {
                         {showCompletionCheckbox && (
                           <Checkbox
                             checked={item.completed}
-                            onCheckedChange={(checked) =>
+                            onCheckedChange={(checked) => {
+                              const isChecked = checked as boolean;
+                              const attributeUpdate = isTodo
+                                ? { status: isChecked ? "completed" : undefined }
+                                : (isShoppingList || isRegistryOrWishlistType)
+                                  ? { purchaseStatus: isChecked ? "purchased" : "not-purchased" }
+                                  : {};
                               updateListItem(list.id, item.id, {
-                                completed: checked as boolean,
-                              })
-                            }
+                                completed: isChecked,
+                                ...(Object.keys(attributeUpdate).length > 0
+                                  ? { attributes: { ...item.attributes, ...attributeUpdate } }
+                                  : {}),
+                              });
+                            }}
                             className={`h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform ${item.completed ? "animate-check-bounce" : ""}`}
                           />
                         )}
