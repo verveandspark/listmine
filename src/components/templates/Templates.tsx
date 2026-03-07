@@ -119,6 +119,7 @@ export default function Templates() {
   // Only use effectiveTier (which includes team tier) when explicitly in team context
   const personalTier = (user?.tier || 'free') as UserTier;
   const userTier = isTeamContext ? effectiveTier : personalTier;
+  console.log('userTier:', userTier);
 
   useEffect(() => {
     loadTemplatesAndEntitlements();
