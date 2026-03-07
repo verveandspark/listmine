@@ -333,6 +333,7 @@ export default function ListDetail() {
   const isRegistryOrWishlistType = isRegistry;
   const isGrocery = effectiveListType === 'grocery';
   const isShoppingList = effectiveListType === 'shopping';
+  const showCompletionCheckbox = ['todo', 'checklist', 'shopping', 'grocery', 'registry'].includes(effectiveListType ?? '');
 
   // Default grocery categories always available for grocery list types
   const DEFAULT_GROCERY_CATEGORIES = [
@@ -3767,8 +3768,9 @@ export default function ListDetail() {
             <Card className="p-0 mb-2 sm:mb-3 print:hidden">
               <div className="p-2 sm:p-3">
                 <div className="space-y-3">
-                  {/* Mode Toggle */}
-                  <div className="flex items-center justify-between">
+                   {/* Mode Toggle - Only show for Grocery lists */
+                   {isGrocery && (
+                     <div className="flex items-center justify-between">
                     <Label className="text-sm font-medium">Add Item Mode</Label>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-foreground">Quick</span>
@@ -3792,8 +3794,9 @@ export default function ListDetail() {
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
-                  </div>
-                </div>
+                       </div>
+                     </div>
+                   )}
 
                 {/* Item Limit Warning */}
                 {itemLimitReached && (
@@ -3838,38 +3841,26 @@ export default function ListDetail() {
                         </Button>
                         </div>
                     )}
-                    {!detailedMode && (
-                      <div className="space-y-2">
-                        <Input
-                          placeholder="Item name"
-                          value={newItemText}
-                          onChange={(e) => setNewItemText(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              handleAddItem();
-                            }
-                          }}
-                          className="min-h-[44px]"
-                        />
-                      </div>
-                    )}
-                    {detailedMode && (
-                      <div className="space-y-3">
-                        <Input
-                          placeholder="Item name"
-                          value={newItemText}
-                          onChange={(e) => setNewItemText(e.target.value)}
-                          className="min-h-[44px]"
-                        />
-                        <Textarea
-                          placeholder="Notes (optional)"
-                          value={newItemNotes}
-                          onChange={(e) => setNewItemNotes(e.target.value)}
-                          className="min-h-[80px]"
-                        />
-                      </div>
-                    )}
+                    <div className="space-y-3">
+                       <Input
+                         placeholder="Item name"
+                         value={newItemText}
+                         onChange={(e) => setNewItemText(e.target.value)}
+                         onKeyDown={(e) => {
+                           if (e.key === "Enter") {
+                             e.preventDefault();
+                             handleAddItem();
+                           }
+                         }}
+                         className="min-h-[44px]"
+                       />
+                       <Textarea
+                         placeholder="Notes (optional)"
+                         value={newItemNotes}
+                         onChange={(e) => setNewItemNotes(e.target.value)}
+                         className="min-h-[80px]"
+                       />
+                     </div>
                   </>
                 )}
 
@@ -3905,8 +3896,7 @@ export default function ListDetail() {
                         </Button>
                         </div>
                     )}
-                    {!detailedMode && (
-                      <div className="space-y-2">
+                    <div className="space-y-3">
                         <Input
                           placeholder="Task name"
                           value={newItemText}
@@ -3917,16 +3907,6 @@ export default function ListDetail() {
                               handleAddItem();
                             }
                           }}
-                          className="min-h-[44px]"
-                        />
-                      </div>
-                    )}
-                    {detailedMode && (
-                      <div className="space-y-3">
-                        <Input
-                          placeholder="Task name"
-                          value={newItemText}
-                          onChange={(e) => setNewItemText(e.target.value)}
                           className="min-h-[44px]"
                         />
                         <div className="grid grid-cols-2 gap-3">
@@ -3998,7 +3978,6 @@ export default function ListDetail() {
                           className="min-h-[80px]"
                         />
                       </div>
-                    )}
                   </>
                 )}
 
@@ -4812,15 +4791,17 @@ export default function ListDetail() {
                             <GripVertical className="w-5 h-5 text-gray-400 hover:text-gray-600" />
                           </div>
                         )}
-                        <Checkbox
-                          checked={item.completed}
-                          onCheckedChange={(checked) =>
-                            updateListItem(list.id, item.id, {
-                              completed: checked as boolean,
-                            })
-                          }
-                          className={`h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform border-gray-400 ${item.completed ? "animate-check-bounce bg-gray-700 border-gray-700" : ""}`}
-                        />
+                        {showCompletionCheckbox && (
+                          <Checkbox
+                            checked={item.completed}
+                            onCheckedChange={(checked) =>
+                              updateListItem(list.id, item.id, {
+                                completed: checked as boolean,
+                              })
+                            }
+                            className={`h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform border-gray-400 ${item.completed ? "animate-check-bounce bg-gray-700 border-gray-700" : ""}`}
+                          />
+                        )}
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-col gap-0.5 min-w-0 w-full">
                             <p
@@ -5118,15 +5099,17 @@ export default function ListDetail() {
                             <GripVertical className="w-5 h-5 text-gray-400 hover:text-gray-600" />
                           </div>
                         )}
-                        <Checkbox
-                          checked={item.completed}
-                          onCheckedChange={(checked) =>
-                            updateListItem(list.id, item.id, {
-                              completed: checked as boolean,
-                            })
-                          }
-                          className={`h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform border-gray-400 ${item.completed ? "animate-check-bounce bg-gray-700 border-gray-700" : ""}`}
-                        />
+                        {showCompletionCheckbox && (
+                          <Checkbox
+                            checked={item.completed}
+                            onCheckedChange={(checked) =>
+                              updateListItem(list.id, item.id, {
+                                completed: checked as boolean,
+                              })
+                            }
+                            className={`h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform border-gray-400 ${item.completed ? "animate-check-bounce bg-gray-700 border-gray-700" : ""}`}
+                          />
+                        )}
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-col gap-0.5 min-w-0 w-full">
                             <p
@@ -5466,15 +5449,17 @@ export default function ListDetail() {
                                   <GripVertical className="w-5 h-5 text-gray-400 hover:text-gray-600" />
                                 </div>
                               )}
-                              <Checkbox
-                                checked={item.completed}
-                                onCheckedChange={(checked) =>
-                                  updateListItem(list.id, item.id, {
-                                    completed: checked as boolean,
-                                  })
-                                }
-                                className={`mt-1 h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform ${item.completed ? "animate-check-bounce" : ""}`}
-                              />
+                              {showCompletionCheckbox && (
+                                <Checkbox
+                                  checked={item.completed}
+                                  onCheckedChange={(checked) =>
+                                    updateListItem(list.id, item.id, {
+                                      completed: checked as boolean,
+                                    })
+                                  }
+                                  className={`mt-1 h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform ${item.completed ? "animate-check-bounce" : ""}`}
+                                />
+                              )}
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-start justify-between gap-2">
                                   <span
@@ -5676,15 +5661,17 @@ export default function ListDetail() {
                             {itemNumber}.
                           </span>
                         )}
-                        <Checkbox
-                          checked={item.completed}
-                          onCheckedChange={(checked) =>
-                            updateListItem(list.id, item.id, {
-                              completed: checked as boolean,
-                            })
-                          }
-                          className={`h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform ${item.completed ? "animate-check-bounce" : ""}`}
-                        />
+                        {showCompletionCheckbox && (
+                          <Checkbox
+                            checked={item.completed}
+                            onCheckedChange={(checked) =>
+                              updateListItem(list.id, item.id, {
+                                completed: checked as boolean,
+                              })
+                            }
+                            className={`h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform ${item.completed ? "animate-check-bounce" : ""}`}
+                          />
+                        )}
                         {(() => {
                           // Debug logging for Target item images
                           const customImage = item.attributes?.custom?.image;
