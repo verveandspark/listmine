@@ -2957,19 +2957,18 @@ export default function ListDetail() {
               <div className="hidden md:flex items-center gap-1 shrink-0">
                 {/* Primary Actions Group */}
                 <div className="flex items-center gap-1 pr-2 border-r border-gray-200">
-                  {effectiveTier === "free" ? (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="outline" size="sm" onClick={handlePrint} className="h-9 print:hidden">
-                            <Printer className="w-4 h-4 mr-2" />
-                            Print
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Print this list</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  ) : (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="outline" size="sm" onClick={handlePrint} className="h-9 print:hidden">
+                          <Printer className="w-4 h-4 mr-2" />
+                          Print
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Print this list</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  {effectiveTier !== "free" && (
                     <Popover>
                       <TooltipProvider>
                         <Tooltip>
