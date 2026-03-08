@@ -127,6 +127,7 @@ export default function ImportExport() {
   const [importData, setImportData] = useState("");
   const [importCategory, setImportCategory] = useState<ListCategory>("Tasks");
   const [importListType, setImportListType] = useState<ListType>("custom");
+  const [importListName, setImportListName] = useState("");
 
   const [selectedListId, setSelectedListId] = useState("");
   const [exportFormat, setExportFormat] = useState<"csv" | "txt" | "pdf">(
@@ -209,12 +210,14 @@ export default function ImportExport() {
         importCategory,
         importListType,
         importAccountId, // Pass account ID for team imports
+        importListName || undefined,
       );
       toast({
         title: "List imported successfully!",
         description: "Your list has been added to your dashboard",
       });
       setImportData("");
+      setImportListName("");
       navigate("/dashboard");
     } catch (error: any) {
       toast({
@@ -1049,6 +1052,16 @@ export default function ImportExport() {
                       </Label>
                     </div>
                   </RadioGroup>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="import-list-name">List Name (optional)</Label>
+                  <Input
+                    id="import-list-name"
+                    placeholder="e.g. My Grocery List"
+                    value={importListName}
+                    onChange={(e) => setImportListName(e.target.value)}
+                  />
                 </div>
 
                 <Button onClick={handleImport} className="w-full min-h-[44px]">

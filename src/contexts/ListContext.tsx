@@ -1828,6 +1828,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
     category: ListCategory,
     listType: ListType = "custom",
     accountId?: string | null,
+    listName?: string,
   ) => {
     if (!user) return;
     
@@ -2020,7 +2021,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
       // Always use SECURITY DEFINER RPC for list creation (handles both personal and team lists)
       const { data: rpcData, error: rpcError } = await supabase.rpc('create_list_for_user', {
         p_user_id: authUserId,
-        p_list_name: `Imported ${category} List`,
+        p_list_name: listName?.trim() || `Imported ${category} List`,
         p_category: category,
         p_list_type: listType,
         p_account_id: accountId || null,

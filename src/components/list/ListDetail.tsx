@@ -1804,15 +1804,7 @@ export default function ListDetail() {
   };
 
   const handlePrint = () => {
-    toast({
-      title: "🖨️ Opening print dialog",
-      description: "Preparing your list for printing...",
-    });
-    
-    // Small delay to show toast before print dialog
-    setTimeout(() => {
-      window.print();
-    }, 300);
+    window.print();
   };
 
   const getDueDateColor = (dueDate: Date | undefined) => {
