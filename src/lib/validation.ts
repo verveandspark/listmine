@@ -198,18 +198,27 @@ export function validatePassword(password: string): ValidationResult {
   if (!password || password.length === 0) {
     return { valid: false, error: "Password is required" };
   }
-  
-  if (password.length < 8) {
-    return { valid: false, error: "Password must be at least 8 characters" };
+
+  if (password.length < 12) {
+    return { valid: false, error: "Password must be at least 12 characters" };
   }
-  
-  // Optional: Check for strength
-  // const hasNumber = /\d/.test(password);
-  // const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-  // if (!hasNumber && !hasSpecial) {
-  //   return { valid: false, error: "Password must contain at least one number or special character" };
-  // }
-  
+
+  if (!/[A-Z]/.test(password)) {
+    return { valid: false, error: "Password must contain at least one uppercase letter" };
+  }
+
+  if (!/[a-z]/.test(password)) {
+    return { valid: false, error: "Password must contain at least one lowercase letter" };
+  }
+
+  if (!/\d/.test(password)) {
+    return { valid: false, error: "Password must contain at least one digit" };
+  }
+
+  if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+    return { valid: false, error: "Password must contain at least one special character (!@#$%^&*(),.?\":{}|<>)" };
+  }
+
   return { valid: true, value: password };
 }
 

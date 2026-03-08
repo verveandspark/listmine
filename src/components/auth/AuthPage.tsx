@@ -38,6 +38,8 @@ export default function AuthPage() {
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
+  const [registerEmailError, setRegisterEmailError] = useState("");
+  const [registerPasswordError, setRegisterPasswordError] = useState("");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -319,13 +321,12 @@ export default function AuthPage() {
                       type="email"
                       placeholder="your@email.com"
                       value={registerEmail}
-                      onChange={(e) => setRegisterEmail(e.target.value)}
+                      onChange={(e) => { setRegisterEmail(e.target.value); setRegisterEmailError(""); }}
+                      onBlur={() => { const v = validateEmail(registerEmail); setRegisterEmailError(v.valid ? "" : (v.error || "")); }}
                       required
                       className="min-h-[44px] mt-2"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
-                      We'll never share your email
-                    </p>
+                    {registerEmailError ? <p className="text-xs text-red-500 mt-1">{registerEmailError}</p> : <p className="text-xs text-gray-500 mt-1">We'll never share your email</p>}
                   </div>
                   <div>
                     <Label htmlFor="register-password">Password</Label>
@@ -335,7 +336,8 @@ export default function AuthPage() {
                         type={showRegisterPassword ? "text" : "password"}
                         placeholder="••••••••"
                         value={registerPassword}
-                        onChange={(e) => setRegisterPassword(e.target.value)}
+                        onChange={(e) => { setRegisterPassword(e.target.value); setRegisterPasswordError(""); }}
+                        onBlur={() => { const v = validatePassword(registerPassword); setRegisterPasswordError(v.valid ? "" : (v.error || "")); }}
                         required
                         className="min-h-[44px] pr-10"
                       />
@@ -352,9 +354,7 @@ export default function AuthPage() {
                         )}
                       </button>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Must be at least 8 characters
-                    </p>
+                    {registerPasswordError ? <p className="text-xs text-red-500 mt-1">{registerPasswordError}</p> : <p className="text-xs text-gray-500 mt-1">Must be 12+ characters with uppercase, lowercase, number, and symbol</p>}
                   </div>
                   <div className="bg-accent/10 border border-accent/30 rounded-lg p-3">
                     <p className="text-sm text-accent font-medium mb-1">
