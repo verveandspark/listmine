@@ -154,20 +154,37 @@ export default function InviteAccept() {
           // Redirect to dashboard or provided redirect URL
           navigate(result.redirect || "/dashboard", { replace: true });
         } else {
-          toast({
-            title: "❌ Failed to Accept Invite",
-            description: result.error || "Unknown error",
-            variant: "destructive",
-          });
+          if (result.error && (result.error.includes("not authenticated") || result.error.includes("Not authenticated"))) {
+            toast({
+              title: "Almost there!",
+              description: "Please check your email and confirm your account first, then return to this page to accept the invitation.",
+              className: "bg-accent/10 border-accent/30",
+            });
+          } else {
+            toast({
+              title: "❌ Failed to Accept Invite",
+              description: result.error || "Unknown error",
+              variant: "destructive",
+            });
+          }
         }
       }
     } catch (err: unknown) {
       console.error("Error accepting invite:", err);
-      toast({
-        title: "❌ Error",
-        description: err instanceof Error ? err.message : "Failed to accept invite",
-        variant: "destructive",
-      });
+      const errMsg = err instanceof Error ? err.message : "Failed to accept invite";
+      if (errMsg.includes("not authenticated") || errMsg.includes("Not authenticated") || errMsg.includes("JWT") || errMsg.includes("session")) {
+        toast({
+          title: "Almost there!",
+          description: "Please check your email and confirm your account first, then return to this page to accept the invitation.",
+          className: "bg-accent/10 border-accent/30",
+        });
+      } else {
+        toast({
+          title: "❌ Error",
+          description: errMsg,
+          variant: "destructive",
+        });
+      }
     } finally {
       setAccepting(false);
     }
