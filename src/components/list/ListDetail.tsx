@@ -877,7 +877,7 @@ export default function ListDetail() {
           attributes.section = newItemSection;
         }
       } else if (isIdea) {
-        if (newItemStatus) attributes.status = newItemStatus;
+        attributes.status = newItemStatus || "brainstorm";
         // Add section for sectioned idea lists
         if (isSectioned && newItemSection) {
           attributes.section = newItemSection;
@@ -2331,24 +2331,22 @@ export default function ListDetail() {
                   <div className="space-y-2">
                     <Label>Status</Label>
                     <Select
-                      value={editingItem.attributes?.status || "none"}
+                      value={editingItem.attributes?.status || "brainstorm"}
                       onValueChange={(value) => {
-                        const newStatus = value === "none" ? undefined : value;
                         setEditingItem({
                           ...editingItem,
-                          completed: newStatus === "completed",
+                          completed: value === "completed",
                           attributes: {
                             ...editingItem.attributes,
-                            status: newStatus,
+                            status: value,
                           },
                         });
                       }}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
+                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
                         <SelectItem value="brainstorm">Brainstorm</SelectItem>
                         <SelectItem value="in-progress">In progress</SelectItem>
                         <SelectItem value="completed">Completed</SelectItem>
@@ -4568,6 +4566,23 @@ export default function ListDetail() {
                             onChange={(e) => setNewItemLinkImage(e.target.value)}
                             className="min-h-[44px]"
                           />
+                        </div>
+                        <div>
+                          <Label className="text-xs mb-2">Status</Label>
+                          <Select
+                            value={newItemStatus || "brainstorm"}
+                            onValueChange={setNewItemStatus}
+                          >
+                            <SelectTrigger className="min-h-[44px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="brainstorm">Brainstorm</SelectItem>
+                              <SelectItem value="in-progress">In progress</SelectItem>
+                              <SelectItem value="completed">Completed</SelectItem>
+                              <SelectItem value="on-hold">On hold</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                         <Textarea
                           placeholder="Notes (optional)"
