@@ -4492,18 +4492,34 @@ export default function ListDetail() {
                     )}
                     {!detailedMode && (
                       <div className="space-y-2">
-                        <Input
-                          placeholder="Idea title"
-                          value={newItemText}
-                          onChange={(e) => setNewItemText(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              handleAddItem();
-                            }
-                          }}
-                          className="min-h-[44px]"
-                        />
+                        <div className="flex items-center gap-2">
+                          <Input
+                            placeholder="Idea title"
+                            value={newItemText}
+                            onChange={(e) => setNewItemText(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleAddItem();
+                              }
+                            }}
+                            className="flex-1 min-h-[44px]"
+                          />
+                          <Select
+                            value={newItemStatus || "brainstorm"}
+                            onValueChange={setNewItemStatus}
+                          >
+                            <SelectTrigger className="min-h-[44px] w-[160px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="brainstorm">Brainstorm</SelectItem>
+                              <SelectItem value="in-progress">In progress</SelectItem>
+                              <SelectItem value="completed">Completed</SelectItem>
+                              <SelectItem value="on-hold">On hold</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                     )}
                     {detailedMode && (
@@ -4552,23 +4568,6 @@ export default function ListDetail() {
                             onChange={(e) => setNewItemLinkImage(e.target.value)}
                             className="min-h-[44px]"
                           />
-                        </div>
-                        <div>
-                          <Label className="text-xs mb-2">Status</Label>
-                          <Select
-                            value={newItemStatus || ""}
-                            onValueChange={setNewItemStatus}
-                          >
-                            <SelectTrigger className="min-h-[44px]">
-                              <SelectValue placeholder="Select status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="brainstorm">Brainstorm</SelectItem>
-                              <SelectItem value="in-progress">In progress</SelectItem>
-                              <SelectItem value="completed">Completed</SelectItem>
-                              <SelectItem value="on-hold">On hold</SelectItem>
-                            </SelectContent>
-                          </Select>
                         </div>
                         <Textarea
                           placeholder="Notes (optional)"
