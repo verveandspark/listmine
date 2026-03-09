@@ -2129,8 +2129,7 @@ export default function ListDetail() {
           }}
           modal={true}
         >
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto z-[9999]">
-            <form onSubmit={(e) => { e.preventDefault(); document.querySelector<HTMLButtonElement>('[data-save-edit]')?.click(); }} className="contents">
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto z-[9999]" onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && e.target instanceof HTMLInputElement) { e.preventDefault(); document.querySelector<HTMLButtonElement>('[data-save-edit]')?.click(); } }}>
             <DialogHeader>
               <DialogTitle>Edit Item</DialogTitle>
               <DialogDescription>
@@ -2821,7 +2820,6 @@ export default function ListDetail() {
                 </Button>
               </div>
             </div>
-            </form>
           </DialogContent>
         </Dialog>
       )}

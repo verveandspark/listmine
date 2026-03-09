@@ -282,8 +282,7 @@ export default function MergeListsModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
-        <form onSubmit={(e) => { e.preventDefault(); if (step === "select") { if (sourceListId && targetListId && !comparing) handleCompare(); } else { handleApplyMerge(); } }} className="contents">
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col" onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !(e.target instanceof HTMLSelectElement)) { e.preventDefault(); if (step === "select") { if (sourceListId && targetListId && !comparing) handleCompare(); } else { handleApplyMerge(); } } }}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Merge className="w-5 h-5" />
@@ -544,7 +543,6 @@ export default function MergeListsModal({
             </Button>
           )}
         </DialogFooter>
-        </form>
       </DialogContent>
     </Dialog>
   );
