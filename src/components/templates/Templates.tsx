@@ -637,8 +637,7 @@ export default function Templates() {
 
       {/* Create List Modal */}
       <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-        <DialogContent className="sm:max-w-md">
-          <form onSubmit={(e) => { e.preventDefault(); if (!creating && listName.trim()) handleCreateList(); }} className="contents">
+        <DialogContent className="sm:max-w-md" onKeyDown={(e) => { if ((e.key === "Enter" && !e.shiftKey && e.target instanceof HTMLInputElement) || (e.key === "Enter" && (e.ctrlKey || e.metaKey))) { e.preventDefault(); if (!creating && listName.trim()) handleCreateList(); } }}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <span className="text-2xl">{selectedTemplate?.icon_emoji}</span>
@@ -683,7 +682,7 @@ export default function Templates() {
               )}
             </Button>
           </DialogFooter>
-          </form>
+          <p className="text-xs text-gray-400 text-right mt-1">⌘+Enter or Ctrl+Enter to create</p>
         </DialogContent>
       </Dialog>
     </div>
