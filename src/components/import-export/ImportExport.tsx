@@ -209,8 +209,8 @@ export default function ImportExport() {
         "txt",
         importCategory,
         importListType,
-        importAccountId, // Pass account ID for team imports
         importListName || undefined,
+        importAccountId, // Pass account ID for team imports
       );
       toast({
         title: "List imported successfully!",
