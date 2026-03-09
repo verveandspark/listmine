@@ -4028,7 +4028,7 @@ export default function ListDetail() {
                       </div>
                     )}
                     {detailedMode && (
-                      <div className="space-y-3">
+                      <div className="space-y-3" onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey || (!(e.target instanceof HTMLTextAreaElement) && !(e.target instanceof HTMLSelectElement)))) { e.preventDefault(); handleAddItem(); } }}>
                         {/* Row 1: Item name (full width) */}
                         <Input
                           placeholder="Item name"
@@ -4176,7 +4176,7 @@ export default function ListDetail() {
                       </div>
                     )}
                     {detailedMode && (
-                      <div className="space-y-3">
+                      <div className="space-y-3" onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey || (!(e.target instanceof HTMLTextAreaElement) && !(e.target instanceof HTMLSelectElement)))) { e.preventDefault(); handleAddItem(); } }}>
                         <Input
                           placeholder="Item name"
                           value={newItemText}
@@ -4345,7 +4345,7 @@ export default function ListDetail() {
                       </div>
                     )}
                     {detailedMode && (
-                      <div className="space-y-3">
+                      <div className="space-y-3" onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey || (!(e.target instanceof HTMLTextAreaElement) && !(e.target instanceof HTMLSelectElement)))) { e.preventDefault(); handleAddItem(); } }}>
                         <Input
                           placeholder="Item name"
                           value={newItemText}
@@ -4514,7 +4514,7 @@ export default function ListDetail() {
                       </div>
                     )}
                     {detailedMode && (
-                      <div className="space-y-3">
+                      <div className="space-y-3" onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey || (!(e.target instanceof HTMLTextAreaElement) && !(e.target instanceof HTMLSelectElement)))) { e.preventDefault(); handleAddItem(); } }}>
                         <Input
                           placeholder="Idea title"
                           value={newItemText}
@@ -4589,6 +4589,7 @@ export default function ListDetail() {
                 )}
 
                 {/* Add Item Button */}
+                <p className="text-xs text-gray-400 text-right">Cmd+Enter or Ctrl+Enter to add</p>
                 <Button onClick={handleAddItem} className="w-full min-h-[44px] bg-primary hover:bg-primary/90">
                   <Plus className="w-4 h-4 mr-2" />
                   Add Item
