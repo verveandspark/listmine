@@ -371,6 +371,7 @@ export default function ShareSettingsModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <form onSubmit={(e) => { e.preventDefault(); handleGenerateOrUpdate(); }} className="contents">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Link2 className="w-5 h-5 text-[#1f628e]" />
@@ -569,6 +570,7 @@ export default function ShareSettingsModal({
             </Button>
           </div>
         </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

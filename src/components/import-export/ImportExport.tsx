@@ -1118,7 +1118,7 @@ export default function ImportExport() {
                     </Button>
                   </div>
                 ) : (
-                  <>
+                  <form onSubmit={(e) => { e.preventDefault(); if (selectedListId) handleExport(); }} className="contents">
                     <div className="space-y-2">
                       <Label>Select List</Label>
                       <Select
@@ -1197,7 +1197,7 @@ export default function ImportExport() {
                       <Download className="w-4 h-4 mr-2" />
                       Export List
                     </Button>
-                  </>
+                  </form>
                 )}
               </CardContent>
             </Card>

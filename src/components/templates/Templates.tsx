@@ -638,6 +638,7 @@ export default function Templates() {
       {/* Create List Modal */}
       <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
         <DialogContent className="sm:max-w-md">
+          <form onSubmit={(e) => { e.preventDefault(); if (!creating && listName.trim()) handleCreateList(); }} className="contents">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <span className="text-2xl">{selectedTemplate?.icon_emoji}</span>
@@ -682,6 +683,7 @@ export default function Templates() {
               )}
             </Button>
           </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
