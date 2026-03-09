@@ -87,6 +87,7 @@ interface ListContextType {
     format: "csv" | "txt",
     category: ListCategory,
     listType: ListType,
+    listName?: string,
     accountId?: string | null,
   ) => Promise<void>;
   exportList: (listId: string, format: "csv" | "txt" | "pdf") => void;
