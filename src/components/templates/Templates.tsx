@@ -682,7 +682,7 @@ export default function Templates() {
               )}
             </Button>
           </DialogFooter>
-          <p className="text-xs text-gray-400 text-right mt-1">⌘+Enter or Ctrl+Enter to create</p>
+          <p className="text-xs text-gray-400 text-right mt-1">Press Enter or Cmd/Ctrl+Enter to create</p>
         </DialogContent>
       </Dialog>
     </div>

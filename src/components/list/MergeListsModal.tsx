@@ -543,7 +543,7 @@ export default function MergeListsModal({
             </Button>
           )}
         </DialogFooter>
-        <p className="text-xs text-gray-400 text-right mt-1">⌘+Enter or Ctrl+Enter to save</p>
+        <p className="text-xs text-gray-400 text-right mt-1">Press Enter or Cmd/Ctrl+Enter to save</p>
       </DialogContent>
     </Dialog>
   );

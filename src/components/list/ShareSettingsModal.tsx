@@ -568,7 +568,7 @@ export default function ShareSettingsModal({
               )}
             </Button>
           </div>
-          <p className="text-xs text-gray-400 text-right mt-1">⌘+Enter or Ctrl+Enter to save</p>
+          <p className="text-xs text-gray-400 text-right mt-1">Press Enter or Cmd/Ctrl+Enter to save</p>
         </DialogFooter>
       </DialogContent>
     </Dialog>

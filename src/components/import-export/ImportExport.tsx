@@ -881,7 +881,7 @@ export default function ImportExport() {
               </div>
             </Card>
 
-            <Card className="p-4 sm:p-6">
+            <Card className="p-4 sm:p-6" onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); handleImport(); } }}>
               <div className="flex items-center gap-2 mb-4">
                 <FileUp className="w-5 h-5 text-gray-700" />
                 <h2 className="text-xl font-semibold text-gray-900">
@@ -1064,6 +1064,7 @@ export default function ImportExport() {
                   />
                 </div>
 
+                <p className="text-xs text-gray-400 text-right mb-1">Press Enter or Cmd/Ctrl+Enter to save</p>
                 <Button onClick={handleImport} className="w-full min-h-[44px]">
                   {fileDestination === "existing" ? (
                     <>
@@ -1197,7 +1198,7 @@ export default function ImportExport() {
                       <Download className="w-4 h-4 mr-2" />
                       Export List
                     </Button>
-                    <p className="text-xs text-gray-400 text-right mt-1">⌘+Enter or Ctrl+Enter to export</p>
+                    <p className="text-xs text-gray-400 text-right mt-1">Press Enter or Cmd/Ctrl+Enter to export</p>
                   </div>
                 )}
               </CardContent>

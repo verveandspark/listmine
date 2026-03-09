@@ -2819,7 +2819,7 @@ export default function ListDetail() {
                   Save Changes
                 </Button>
               </div>
-              <p className="text-xs text-gray-400 text-right mt-1">⌘+Enter or Ctrl+Enter to save</p>
+              <p className="text-xs text-gray-400 text-right mt-1">Press Enter or Cmd/Ctrl+Enter to save</p>
             </div>
           </DialogContent>
         </Dialog>
@@ -4589,7 +4589,7 @@ export default function ListDetail() {
                 )}
 
                 {/* Add Item Button */}
-                <p className="text-xs text-gray-400 text-right">Cmd+Enter or Ctrl+Enter to add</p>
+                <p className="text-xs text-gray-400 text-right">Press Enter or Cmd/Ctrl+Enter to add</p>
                 <Button onClick={handleAddItem} className="w-full min-h-[44px] bg-primary hover:bg-primary/90">
                   <Plus className="w-4 h-4 mr-2" />
                   Add Item
@@ -6109,7 +6109,7 @@ export default function ListDetail() {
               </Button>
             </div>
           </div>
-            <p className="text-xs text-gray-400 text-right mt-1">Cmd+Enter or Ctrl+Enter to save</p>
+            <p className="text-xs text-gray-400 text-right mt-1">Press Enter or Cmd/Ctrl+Enter to save</p>
         </DialogContent>
       </Dialog>
 
