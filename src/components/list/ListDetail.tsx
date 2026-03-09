@@ -6038,7 +6038,7 @@ export default function ListDetail() {
 
       {/* Edit List Modal */}
       <Dialog open={isEditListDialogOpen} onOpenChange={setIsEditListDialogOpen}>
-        <DialogContent>
+        <DialogContent onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey || !(e.target instanceof HTMLTextAreaElement))) { e.preventDefault(); handleEditList(); } }}>
           <DialogHeader>
             <DialogTitle>Edit List</DialogTitle>
             <DialogDescription>
@@ -6108,6 +6108,7 @@ export default function ListDetail() {
               </Button>
             </div>
           </div>
+            <p className="text-xs text-gray-400 text-right mt-1">Cmd+Enter or Ctrl+Enter to save</p>
         </DialogContent>
       </Dialog>
 
