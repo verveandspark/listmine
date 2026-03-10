@@ -72,6 +72,7 @@ import {
   Pencil,
   Check,
   LayoutList,
+  RotateCcw,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -1802,6 +1803,18 @@ export default function ListDetail() {
       updateListItem(list.id, editingItem.id, { links });
       setEditingItem({ ...editingItem, links });
     }
+  };
+
+  const handleResetAll = async () => {
+    if (!list) return;
+    const itemsToReset = list.items.filter(item => item.completed);
+    if (itemsToReset.length === 0) return;
+    await bulkUpdateItems(
+      list.id,
+      itemsToReset.map(item => item.id),
+      { completed: false }
+    );
+    toast({ title: "Reset complete", description: "All items unchecked." });
   };
 
   const handleExport = async (format: "csv" | "txt" | "pdf") => {
@@ -3793,6 +3806,19 @@ export default function ListDetail() {
     </div>
     <p className="text-xs text-muted-foreground mt-1 text-right">Press Enter to add quickly · More Details for all fields</p>
   </Card>
+  {(isChecklist || isGrocery) && list.items.some(i => i.completed) && (
+    <div className="flex justify-end mb-2">
+      <Button
+        variant="ghost"
+        size="sm"
+        className="text-xs text-muted-foreground hover:text-foreground"
+        onClick={handleResetAll}
+      >
+        <RotateCcw className="w-3 h-3 mr-1" />
+        Reset all
+      </Button>
+    </div>
+  )}
 )}
           {!canEditListItems && (
             <Card className="p-4 mb-4 sm:mb-6 print:hidden bg-muted border-border">
