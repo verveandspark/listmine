@@ -3784,7 +3784,7 @@ export default function ListDetail() {
           {/* Add Item - Only show if user can edit items */}
           {canEditListItems && (
   <Card className="p-3 mb-2 sm:mb-3 print:hidden">
-    <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2">
+    <div className="flex sm:flex-row flex-wrap items-center gap-2">
       {isSectioned && (
         <Select value={newItemSection} onValueChange={setNewItemSection}>
           <SelectTrigger className="w-full sm:w-[140px]">
@@ -3809,7 +3809,7 @@ export default function ListDetail() {
         }}
         className="flex-1 min-w-[120px]"
       />
-      <div className="flex gap-2">
+      <div className="flex gap-2 w-full sm:w-auto">
         <Button
           onClick={handleAddItem}
           disabled={!newItemText.trim()}
