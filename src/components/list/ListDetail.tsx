@@ -3028,6 +3028,24 @@ export default function ListDetail() {
 
                 {/* Secondary Actions Group */}
                 <div className="flex items-center gap-1 px-2 border-r border-gray-200">
+                  {isSectioned && canEditListItems && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-9"
+                            onClick={() => setIsAddingSectionOpen(true)}
+                          >
+                            <Plus className="w-4 h-4 mr-1" />
+                            Add Section
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Add a new section</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
                   {/* Open source registry Button - only for The Knot and MyRegistry lists */}
                   {(() => {
                     const isTheKnot = list.source?.startsWith('theknot:');
@@ -3798,6 +3816,18 @@ export default function ListDetail() {
           <SelectContent>
             {availableSections.map((s) => (
               <SelectItem key={s} value={s}>{s}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+      {isGrocery && (
+        <Select value={newItemGroceryCategory || "Other"} onValueChange={handleGroceryCategoryChange}>
+          <SelectTrigger className="w-[100px] sm:w-[140px] shrink-0">
+            <SelectValue placeholder="Category" />
+          </SelectTrigger>
+          <SelectContent>
+            {availableCategories.map((cat) => (
+              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
             ))}
           </SelectContent>
         </Select>
