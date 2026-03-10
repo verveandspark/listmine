@@ -3782,8 +3782,7 @@ export default function ListDetail() {
           )}
 
           {/* Add Item - Only show if user can edit items */}
-          {canEditListItems ? (
-{canEditListItems && (
+          {canEditListItems && (
   <Card className="p-3 mb-2 sm:mb-3 print:hidden">
     <div className="flex items-center gap-2">
       <Input
@@ -3817,7 +3816,7 @@ export default function ListDetail() {
     <p className="text-xs text-muted-foreground mt-1 text-right">Press Enter to add quickly · More Details for all fields</p>
   </Card>
 )}
-          ) : (
+          {!canEditListItems && (
             <Card className="p-4 mb-4 sm:mb-6 print:hidden bg-muted border-border">
               <p className="text-sm text-muted-foreground text-center">
                 {list.isGuestAccess 
