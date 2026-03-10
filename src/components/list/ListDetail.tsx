@@ -3784,10 +3784,10 @@ export default function ListDetail() {
           {/* Add Item - Only show if user can edit items */}
           {canEditListItems && (
   <Card className="p-3 mb-2 sm:mb-3 print:hidden">
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2">
       {isSectioned && (
         <Select value={newItemSection} onValueChange={setNewItemSection}>
-          <SelectTrigger className="w-full sm:w-[140px] shrink-0">
+          <SelectTrigger className="w-full sm:w-[140px]">
             <SelectValue placeholder="Section" />
           </SelectTrigger>
           <SelectContent>
@@ -3809,21 +3809,23 @@ export default function ListDetail() {
         }}
         className="flex-1 min-w-[120px]"
       />
-      <Button
-        onClick={handleAddItem}
-        disabled={!newItemText.trim()}
-        className="shrink-0"
-      >
-        + Add
-      </Button>
-      <Button
-        variant="outline"
-        onClick={() => setIsDetailedAddModalOpen(true)}
-        className="shrink-0"
-        title="Add item with full details"
-      >
-        More Details
-      </Button>
+      <div className="flex gap-2">
+        <Button
+          onClick={handleAddItem}
+          disabled={!newItemText.trim()}
+          className="shrink-0"
+        >
+          + Add
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => setIsDetailedAddModalOpen(true)}
+          className="shrink-0"
+          title="Add item with full details"
+        >
+          More Details
+        </Button>
+      </div>
     </div>
     <p className="text-xs text-muted-foreground mt-1 text-right">Press Enter to add quickly · More Details for all fields</p>
   </Card>
