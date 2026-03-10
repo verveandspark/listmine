@@ -618,11 +618,22 @@ export default function ListDetail() {
   }, [list?.id, isGrocery]);
 
   useEffect(() => {
-    const scrollContainer = document.querySelector('.flex-1.overflow-y-auto');
-    if (!scrollContainer) return;
-    const handleScroll = () => setShowScrollButtons(scrollContainer.scrollTop > 300);
-    scrollContainer.addEventListener('scroll', handleScroll);
-    return () => scrollContainer.removeEventListener('scroll', handleScroll);
+    const scrollContainer = document.querySelector('.overflow-y-auto');
+    const handleScroll = (e: Event) => {
+      const target = e.target as Element;
+      setShowScrollButtons(target.scrollTop > 150);
+    };
+    const handleWindowScroll = () => {
+      setShowScrollButtons(window.scrollY > 150);
+    };
+    if (scrollContainer) {
+      scrollContainer.addEventListener('scroll', handleScroll);
+    }
+    window.addEventListener('scroll', handleWindowScroll);
+    return () => {
+      scrollContainer?.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('scroll', handleWindowScroll);
+    };
   }, []);
   
   // Save section selection to localStorage
