@@ -1340,24 +1340,6 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* Divider */}
-            <div className="hidden sm:block h-6 w-px bg-border" />
-
-            {/* Total Items */}
-            <div className="flex items-center gap-2">
-              <Package className="w-5 h-5 text-primary" />
-              <span className="text-sm text-muted-foreground">
-                Total Items:{" "}
-                <span className="font-semibold text-foreground">
-                  {Math.max(0, accountFilteredLists.filter(l => !l.isArchived && !l.title.startsWith("[Archived]")).reduce((sum, list) => sum + (list.items?.length || 0), 0))}
-                </span>
-                {!isTeamContext && (
-                  <span className="text-muted-foreground">
-                    {" "}/ {user?.itemsPerListLimit === -1 ? "Unlimited" : `${user?.itemsPerListLimit} per list`}
-                  </span>
-                )}
-              </span>
-            </div>
 
             {/* Capacity Warning Badge */}
             {user?.listLimit !== -1 && getUsagePercentage() >= 80 && (
