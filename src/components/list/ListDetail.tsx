@@ -332,6 +332,7 @@ export default function ListDetail() {
   const isTodo = effectiveListType === 'todo';
   const isIdea = effectiveListType === 'idea';
   const isRegistry = effectiveListType === 'registry';
+  const isChecklist = effectiveListType === 'checklist';
   const isRegistryOrWishlistType = isRegistry;
   const isGrocery = effectiveListType === 'grocery';
   const isShoppingList = effectiveListType === 'shopping';
