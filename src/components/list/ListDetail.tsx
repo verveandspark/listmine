@@ -332,7 +332,7 @@ export default function ListDetail() {
   const isRegistry = effectiveListType === 'registry';
   const isRegistryOrWishlistType = isRegistry;
   const isGrocery = effectiveListType === 'grocery';
-  const isShoppingList = effectiveListType === 'shopping';
+  const isShoppingListList = effectiveListType === 'shopping';
   const showCompletionCheckbox = ['todo', 'checklist', 'shopping', 'grocery', 'registry'].includes(effectiveListType ?? '');
 
   // Default grocery categories always available for grocery list types
@@ -866,7 +866,7 @@ export default function ListDetail() {
           if (newItemLinkDescription) attributes.customLinkDescription = newItemLinkDescription;
           if (newItemLinkImage) attributes.customLinkImage = newItemLinkImage;
         }
-      } else if (isShoppingList && !isGrocery) {
+      } else if (isShoppingListList && !isGrocery) {
         if (newItemPrice) attributes.price = newItemPrice;
         if (newItemStatus) attributes.purchaseStatus = newItemStatus;
         // Add section for sectioned shopping lists (Gift Tracker, etc.)
@@ -907,7 +907,7 @@ export default function ListDetail() {
       }
 
       // Only include quantity for Shopping category list types
-      const shouldIncludeQuantity = isShoppingList || isRegistryOrWishlistType;
+      const shouldIncludeQuantity = isShoppingListList || isRegistryOrWishlistType;
       const itemData: any = {
         text: nameValidation.value!,
         priority: newItemPriority,
@@ -2503,7 +2503,7 @@ export default function ListDetail() {
               )}
 
               {/* SHOPPING LIST FIELDS: shopping-list - NO purchaser UI */}
-              {isShoppingList && !isGrocery && (
+              {isShoppingListList && !isGrocery && (
                 <>
                   <div className="space-y-2">
                     <Label>Product Link (optional)</Label>
@@ -3776,7 +3776,7 @@ export default function ListDetail() {
               <div className="p-2 sm:p-3">
                 <div className="space-y-3">
                    {/* Mode Toggle - Show for Grocery, Shopping, Registry, and Idea lists */}
-                   {(isGrocery || isIdea || isShoppingList || effectiveListType === 'registry') && (
+                   {(isGrocery || isIdea || isShoppingListList || effectiveListType === 'registry') && (
                      <div className="flex items-center justify-between">
                     <Label className="text-sm font-medium">Add Item Mode</Label>
                     <div className="flex items-center gap-2">
@@ -4289,7 +4289,7 @@ export default function ListDetail() {
                 )}
 
                 {/* SHOPPING LIST - Shopping fields (NO purchaser UI, simpler than registry) */}
-                {isShoppingList && !isGrocery && (
+                {isShoppingListList && !isGrocery && (
                   <>
                     {/* Section dropdown for sectioned shopping lists (Gift Tracker, etc.) */}
                     {isSectioned && (
@@ -4822,7 +4822,7 @@ export default function ListDetail() {
                               const isChecked = checked as boolean;
                               const attributeUpdate = isTodo
                                 ? { status: isChecked ? "completed" : undefined }
-                                : (isShoppingList || isRegistryOrWishlistType)
+                                : (isShoppingListList || isRegistryOrWishlistType)
                                   ? { purchaseStatus: isChecked ? "purchased" : "not-purchased" }
                                   : {};
                               updateListItem(list.id, item.id, {
@@ -4844,7 +4844,7 @@ export default function ListDetail() {
                               {(() => {
                                 // For shopping, registry, wishlist, and grocery types, show quantity prefix when > 1
                                 const qty = item.quantity || item.attributes?.quantityNeeded;
-                                const showQtyTypes = isShoppingList || isRegistryOrWishlistType || isGrocery;
+                                const showQtyTypes = isShoppingListList || isRegistryOrWishlistType || isGrocery;
                                 if (showQtyTypes && qty && qty > 1) {
                                   return (
                                     <span className="font-semibold text-primary">
@@ -5139,7 +5139,7 @@ export default function ListDetail() {
                               const isChecked = checked as boolean;
                               const attributeUpdate = isTodo
                                 ? { status: isChecked ? "completed" : undefined }
-                                : (isShoppingList || isRegistryOrWishlistType)
+                                : (isShoppingListList || isRegistryOrWishlistType)
                                   ? { purchaseStatus: isChecked ? "purchased" : "not-purchased" }
                                   : {};
                               updateListItem(list.id, item.id, {
@@ -5161,7 +5161,7 @@ export default function ListDetail() {
                               {(() => {
                                 // For shopping, registry, wishlist, and grocery types, show quantity prefix when > 1
                                 const qty = item.quantity || item.attributes?.quantityNeeded;
-                                const showQtyTypes = isShoppingList || isRegistryOrWishlistType || isGrocery;
+                                const showQtyTypes = isShoppingListList || isRegistryOrWishlistType || isGrocery;
                                 if (showQtyTypes && qty && qty > 1) {
                                   return (
                                     <span className="font-semibold text-primary">
@@ -5498,7 +5498,7 @@ export default function ListDetail() {
                                     const isChecked = checked as boolean;
                                     const attributeUpdate = isTodo
                                       ? { status: isChecked ? "completed" : undefined }
-                                      : (isShoppingList || isRegistryOrWishlistType)
+                                      : (isShoppingListList || isRegistryOrWishlistType)
                                         ? { purchaseStatus: isChecked ? "purchased" : "not-purchased" }
                                         : {};
                                     updateListItem(list.id, item.id, {
@@ -5719,7 +5719,7 @@ export default function ListDetail() {
                               const isChecked = checked as boolean;
                               const attributeUpdate = isTodo
                                 ? { status: isChecked ? "completed" : undefined }
-                                : (isShoppingList || isRegistryOrWishlistType)
+                                : (isShoppingListList || isRegistryOrWishlistType)
                                   ? { purchaseStatus: isChecked ? "purchased" : "not-purchased" }
                                   : {};
                               updateListItem(list.id, item.id, {
@@ -6091,7 +6091,7 @@ export default function ListDetail() {
                   <Select value={newItemSection} onValueChange={setNewItemSection}>
                     <SelectTrigger><SelectValue placeholder="Select section" /></SelectTrigger>
                     <SelectContent>
-                      {sections.map((s) => (<SelectItem key={s} value={s}>{s}</SelectItem>))}
+                      {availableSections.map((s) => (<SelectItem key={s} value={s}>{s}</SelectItem>))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -6143,7 +6143,7 @@ export default function ListDetail() {
                 </div>
               )}
               {/* Shopping & Registry: Product Link */}
-              {(isShopping || isRegistry) && (
+              {(isShoppingList || isRegistry) && (
                 <div className="space-y-2">
                   <Label>Product Link (optional)</Label>
                   <Input value={newItemProductLink} onChange={(e) => setNewItemProductLink(e.target.value)} placeholder="https://example.com/product" />
@@ -6157,7 +6157,7 @@ export default function ListDetail() {
                 </div>
               )}
               {/* Shopping, Registry, Idea: Link Preview Fields */}
-              {(isShopping || isRegistry || isIdea) && (
+              {(isShoppingList || isRegistry || isIdea) && (
                 <>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
@@ -6176,7 +6176,7 @@ export default function ListDetail() {
                 </>
               )}
               {/* Shopping & Registry: Price + Quantity side by side */}
-              {(isShopping || isRegistry) && (
+              {(isShoppingList || isRegistry) && (
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label>Price</Label>
@@ -6189,7 +6189,7 @@ export default function ListDetail() {
                 </div>
               )}
               {/* Shopping & Registry: Purchase Status */}
-              {(isShopping || isRegistry) && (
+              {(isShoppingList || isRegistry) && (
                 <div className="space-y-2">
                   <Label>Purchase Status</Label>
                   <Select value={newItemStatus || "not_purchased"} onValueChange={(v) => setNewItemStatus(v)}>
