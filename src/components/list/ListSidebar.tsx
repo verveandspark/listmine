@@ -271,6 +271,13 @@ export function ListSidebar() {
           </div>
         )}
 
+        {currentAccount?.type === 'team' && (
+          <div className="mx-2 mb-2 px-2 py-1 bg-primary/5 rounded text-xs text-muted-foreground flex items-center gap-1">
+            <Users className="w-3 h-3 shrink-0" />
+            Viewing team lists
+          </div>
+        )}
+
         {/* Dashboard Button */}
         <Button
           onClick={() => {

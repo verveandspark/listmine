@@ -1742,21 +1742,6 @@ export default function Dashboard() {
                             <div>
                               <CardTitle className="text-lg flex items-center gap-2 flex-wrap">
                                 {list.title}
-                                {list.isGuestAccess && (
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Badge variant="outline" className="text-xs bg-teal-100 text-teal-700 border-teal-300">
-                                          <Users className="w-3 h-3 mr-1" />
-                                          Guest (can edit)
-                                        </Badge>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>You have guest access to edit this list</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                )}
                                 {list.accountId && (
                                   <Badge variant="outline" className="text-xs bg-secondary/10 text-secondary border-secondary/30">
                                     <Users className="w-3 h-3 mr-1" />
@@ -2272,16 +2257,6 @@ export default function Dashboard() {
                         <div>
                           <CardTitle className="text-lg flex items-center gap-2">
                             {list.title}
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Badge variant="outline" className="text-xs bg-teal-100 text-teal-700 border-teal-300">Guest (can edit)</Badge>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>You have guest access to edit this list</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
                           </CardTitle>
                           <CardDescription>
                             {list.category} ·{" "}
