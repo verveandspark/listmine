@@ -2976,8 +2976,8 @@ export default function ListDetail() {
 
               {/* Desktop Actions - Grouped logically */}
               <div className="hidden md:flex items-center gap-1 shrink-0">
-                {/* Primary Actions Group */}
-                <div className="flex items-center gap-1 pr-2">
+                {/* Group 1 - Output (border-r): Print, Export, Merge */}
+                <div className="flex items-center gap-1 pr-2 border-r border-gray-200">
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -3023,99 +3023,27 @@ export default function ListDetail() {
                       </PopoverContent>
                     </Popover>
                   )}
-                </div>
-
-                {/* Secondary Actions Group */}
-                <div className="flex items-center gap-1 px-2 border-r border-gray-200">
-                  {isSectioned && canEditListItems && (
+                  {isOwner && lists.length >= 2 && (
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
                             variant="ghost"
-                            size="sm"
-                            className="h-9 w-9 p-0"
-                            onClick={() => setIsAddingSectionOpen(true)}
+                            size="icon"
+                            onClick={() => setIsMergeModalOpen(true)}
+                            className="h-9 w-9"
                           >
-                            <LayoutList className="w-4 h-4" />
+                            <Merge className="w-4 h-4 text-accent" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Add a new section</TooltipContent>
+                        <TooltipContent>Merge with another list</TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
                   )}
-                  {/* Open source registry Button - only for The Knot and MyRegistry lists */}
-                  {(() => {
-                    const isTheKnot = list.source?.startsWith('theknot:');
-                    const isMyRegistry = list.source?.startsWith('myregistry:');
-                    
-                    // Only show for registry sources
-                    if (!isTheKnot && !isMyRegistry) return null;
-                    
-                    const registryUrl = isTheKnot 
-                      ? list.source?.replace(/^theknot:/, '') 
-                      : list.source?.replace(/^myregistry:/, '');
-                    
-                    const handleCopyRegistryLink = async () => {
-                      try {
-                        await navigator.clipboard.writeText(registryUrl!);
-                        toast({
-                          title: "Copied!",
-                          description: "Registry link copied to clipboard",
-                        });
-                      } catch {
-                        toast({
-                          title: "Copy failed",
-                          description: "Could not copy. Please copy from the address bar.",
-                          variant: "destructive",
-                        });
-                      }
-                    };
-                    
-                    if (registryUrl) {
-                      return (
-                        <>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <a 
-                                  href={registryUrl} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3"
-                                >
-                                  <ExternalLink className="w-4 h-4 mr-2" />
-                                  Open source registry
-                                </a>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                Open the original registry in a new tab
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                          
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-9"
-                                  onClick={handleCopyRegistryLink}
-                                >
-                                  <Copy className="w-4 h-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                Copy registry link
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </>
-                      );
-                    }
-                    return null;
-                  })()}
+                </div>
+
+                {/* Group 2 - Social (border-r): Favorite, Share */}
+                <div className="flex items-center gap-1 px-2 border-r border-gray-200">
                   {/* Favorite Toggle */}
                   <TooltipProvider>
                     <Tooltip>
@@ -3183,6 +3111,27 @@ export default function ListDetail() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   )}
+                </div>
+
+                {/* Group 3 - Edit (border-r): Add Section, Bulk Select, Edit List */}
+                <div className="flex items-center gap-1 px-2 border-r border-gray-200">
+                  {isSectioned && canEditListItems && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-9 w-9 p-0"
+                            onClick={() => setIsAddingSectionOpen(true)}
+                          >
+                            <LayoutList className="w-4 h-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Add a new section</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -3201,44 +3150,6 @@ export default function ListDetail() {
                       <TooltipContent>{isSelectMode ? "Done selecting" : "Select Multiple"}</TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
-                </div>
-
-                {/* Utility Actions Group */}
-                <div className="flex items-center gap-1 px-2 border-r border-gray-200">
-                  {isRegistryOrWishlistType && (
-                    <>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setIsPurchaseHistoryOpen(true)}
-                              className="h-9 w-9"
-                            >
-                              <ShoppingCart className="w-4 h-4 text-gray-600" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Purchase History</TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setIsUpdateFromRetailerOpen(true)}
-                              className="h-9 w-9"
-                            >
-                              <RefreshCw className="w-4 h-4 text-gray-600" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Update from Retailer</TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </>
-                  )}
                   {isOwner && (
                     <TooltipProvider>
                       <Tooltip>
@@ -3256,43 +3167,62 @@ export default function ListDetail() {
                       </Tooltip>
                     </TooltipProvider>
                   )}
-                  {isOwner && lists.length >= 2 && (
+                </div>
+
+                {/* Group 4 - Registry (border-r, conditional on isRegistryOrWishlistType): Purchase History, Update from Retailer */}
+                {isRegistryOrWishlistType && (
+                  <div className="flex items-center gap-1 px-2 border-r border-gray-200">
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => setIsMergeModalOpen(true)}
+                            onClick={() => setIsPurchaseHistoryOpen(true)}
                             className="h-9 w-9"
                           >
-                            <Merge className="w-4 h-4 text-accent" />
+                            <ShoppingCart className="w-4 h-4 text-gray-600" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Merge with another list</TooltipContent>
+                        <TooltipContent>Purchase History</TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
-                  )}
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-9 w-9"
-                          onClick={() => setIsHelpModalOpen(true)}
-                        >
-                          <HelpCircle className="w-4 h-4 text-gray-600" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Help</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setIsUpdateFromRetailerOpen(true)}
+                            className="h-9 w-9"
+                          >
+                            <RefreshCw className="w-4 h-4 text-gray-600" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Update from Retailer</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                )}
 
-                {/* Destructive Actions - Separated (Owner only) */}
+                {/* Group 5 - Manage (no border, owner only): Help, Archive, ArchiveRestore, Delete */}
                 {isOwner && (
                   <div className="flex items-center gap-1 pl-2">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9"
+                            onClick={() => setIsHelpModalOpen(true)}
+                          >
+                            <HelpCircle className="w-4 h-4 text-gray-600" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Help</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -3361,6 +3291,7 @@ export default function ListDetail() {
                     </AlertDialog>
                   </div>
                 )}
+
               </div>
 
               {/* Mobile Menu */}
