@@ -3878,18 +3878,25 @@ export default function ListDetail() {
             <div className="flex flex-row gap-2 min-w-0 w-full items-start sm:items-center">
               {/* Tags Dropdown */}
               <Popover open={isTagsSectionOpen} onOpenChange={setIsTagsSectionOpen}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-[40px] gap-2 flex-shrink-0">
-                    <Tag className="w-4 h-4" />
-                    Tags
-                    <Badge variant="secondary" className="text-xs ml-1">
-                      {list.tags?.length || 0}
-                    </Badge>
-                    <ChevronDown 
-                      className={`w-4 h-4 transition-transform ${isTagsSectionOpen ? 'rotate-180' : ''}`} 
-                    />
-                  </Button>
-                </PopoverTrigger>
+                <TooltipProvider>
+                  <Tooltip>
+                    <PopoverTrigger asChild>
+                      <TooltipTrigger asChild>
+                        <Button variant="outline" size="sm" className="h-[40px] gap-2 flex-shrink-0">
+                          <Tag className="w-4 h-4" />
+                          Tags
+                          <Badge variant="secondary" className="text-xs ml-1">
+                            {list.tags?.length || 0}
+                          </Badge>
+                          <ChevronDown 
+                            className={`w-4 h-4 transition-transform ${isTagsSectionOpen ? 'rotate-180' : ''}`} 
+                          />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Tag this list to organize and filter on your dashboard</TooltipContent>
+                    </PopoverTrigger>
+                  </Tooltip>
+                </TooltipProvider>
                 <PopoverContent className="w-80" align="end">
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
@@ -3901,7 +3908,7 @@ export default function ListDetail() {
                           </TooltipTrigger>
                           <TooltipContent>
                             <p className="max-w-xs">
-                              Add keywords to organize and filter items
+                              Tags help you organize and filter your lists on the dashboard. Add tags like "work", "personal", or "urgent".
                             </p>
                           </TooltipContent>
                         </Tooltip>

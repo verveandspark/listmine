@@ -247,6 +247,7 @@ export default function Dashboard() {
   const [priorityFilter, setPriorityFilter] = useState<
     "all" | "high" | "medium" | "low"
   >("all");
+  const [selectedTag, setSelectedTag] = useState<string | "all">("all");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [selectedList, setSelectedList] = useState<any>(null);
@@ -601,6 +602,7 @@ export default function Dashboard() {
     if (showFavoritesOnly) count++;
     if (dueDateFilter !== "all") count++;
     if (priorityFilter !== "all") count++;
+    if (selectedTag !== "all") count++;
     return count;
   };
 
@@ -793,6 +795,11 @@ export default function Dashboard() {
   // Apply favorites filter
   if (showFavoritesOnly) {
     displayLists = displayLists.filter((list) => list.isFavorite);
+  }
+
+  // Apply tag filter
+  if (selectedTag !== "all") {
+    displayLists = displayLists.filter(list => list.tags?.includes(selectedTag));
   }
 
   // Apply archived filter
@@ -1567,6 +1574,38 @@ export default function Dashboard() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+                <div>
+                  <Label className="text-sm font-semibold mb-3 block">Tag</Label>
+                  {(() => {
+                    const allTags = Array.from(new Set(
+                      accountFilteredLists.flatMap(list => list.tags || [])
+                    )).sort();
+                    if (allTags.length === 0) return (
+                      <p className="text-xs text-muted-foreground">No tags added to any lists yet.</p>
+                    );
+                    return (
+                      <div className="flex flex-wrap gap-2">
+                        <Badge
+                          variant={selectedTag === "all" ? "default" : "outline"}
+                          className="cursor-pointer"
+                          onClick={() => setSelectedTag("all")}
+                        >
+                          All
+                        </Badge>
+                        {allTags.map(tag => (
+                          <Badge
+                            key={tag}
+                            variant={selectedTag === tag ? "default" : "outline"}
+                            className="cursor-pointer"
+                            onClick={() => setSelectedTag(tag)}
+                          >
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </PopoverContent>
