@@ -3784,7 +3784,19 @@ export default function ListDetail() {
           {/* Add Item - Only show if user can edit items */}
           {canEditListItems && (
   <Card className="p-3 mb-2 sm:mb-3 print:hidden">
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
+      {isSectioned && (
+        <Select value={newItemSection} onValueChange={setNewItemSection}>
+          <SelectTrigger className="w-full sm:w-[140px] shrink-0">
+            <SelectValue placeholder="Section" />
+          </SelectTrigger>
+          <SelectContent>
+            {availableSections.map((s) => (
+              <SelectItem key={s} value={s}>{s}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
       <Input
         placeholder={isTodo ? "Task name" : "Item name"}
         value={newItemText}
@@ -3795,7 +3807,7 @@ export default function ListDetail() {
             handleAddItem();
           }
         }}
-        className="flex-1"
+        className="flex-1 min-w-[120px]"
       />
       <Button
         onClick={handleAddItem}
@@ -5547,7 +5559,7 @@ export default function ListDetail() {
               <Button
                 variant="outline"
                 onClick={() => setIsEditListDialogOpen(false)}
-                className="flex-1"
+                className="flex-1 min-w-[120px]"
               >
                 Cancel
               </Button>
@@ -5851,7 +5863,7 @@ export default function ListDetail() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="flex-1"
+                  className="flex-1 min-w-[120px]"
                   onClick={() => window.open('https://listmine.com/how-it-works', '_blank')}
                 >
                   <FileText className="w-4 h-4 mr-2" />
@@ -5860,7 +5872,7 @@ export default function ListDetail() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="flex-1"
+                  className="flex-1 min-w-[120px]"
                   onClick={() => window.location.href = 'mailto:info@listmine.com?subject=ListMine%20Support'}
                 >
                   <MessageSquare className="w-4 h-4 mr-2" />
