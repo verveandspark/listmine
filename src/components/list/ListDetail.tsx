@@ -71,6 +71,7 @@ import {
   Info,
   Pencil,
   Check,
+  LayoutList,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -2976,13 +2977,12 @@ export default function ListDetail() {
               {/* Desktop Actions - Grouped logically */}
               <div className="hidden md:flex items-center gap-1 shrink-0">
                 {/* Primary Actions Group */}
-                <div className="flex items-center gap-1 pr-2 border-r border-gray-200">
+                <div className="flex items-center gap-1 pr-2">
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="outline" size="sm" onClick={handlePrint} className="h-9 print:hidden">
-                          <Printer className="w-4 h-4 mr-2" />
-                          Print
+                        <Button variant="ghost" size="sm" onClick={handlePrint} className="h-9 w-9 p-0 print:hidden">
+                          <Printer className="w-4 h-4" />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>Print this list</TooltipContent>
@@ -2994,13 +2994,12 @@ export default function ListDetail() {
                         <Tooltip>
                           <PopoverTrigger asChild>
                             <TooltipTrigger asChild>
-                              <Button variant="outline" size="sm" disabled={isExporting} className="h-9">
+                              <Button variant="ghost" size="sm" disabled={isExporting} className="h-9 w-9 p-0">
                                 {isExporting ? (
-                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  <Loader2 className="w-4 h-4 animate-spin" />
                                 ) : (
-                                  <Download className="w-4 h-4 mr-2" />
+                                  <Download className="w-4 h-4" />
                                 )}
-                                Export
                               </Button>
                             </TooltipTrigger>
                           </PopoverTrigger>
@@ -3033,13 +3032,12 @@ export default function ListDetail() {
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
-                            variant="outline"
+                            variant="ghost"
                             size="sm"
-                            className="h-9"
+                            className="h-9 w-9 p-0"
                             onClick={() => setIsAddingSectionOpen(true)}
                           >
-                            <Plus className="w-4 h-4 mr-1" />
-                            Add Section
+                            <LayoutList className="w-4 h-4" />
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>Add a new section</TooltipContent>
