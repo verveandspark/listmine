@@ -3658,7 +3658,7 @@ export default function ListDetail() {
           </p>
         </div>
 
-        <div className="flex-1 overflow-y-auto relative">
+        <div className="flex-1 overflow-y-auto">
           {/* Guest Access Banner */}
           {list.isGuestAccess && (
             <div className="bg-teal-50 border-b border-teal-200 px-4 sm:px-6 lg:px-8 py-2 print:hidden">
