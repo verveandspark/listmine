@@ -3370,19 +3370,10 @@ export default function ListDetail() {
 
                     {/* Primary Actions */}
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1">Primary</p>
-                    {effectiveTier === "free" ? (
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          handlePrint();
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className="w-full justify-start min-h-[44px] print:hidden"
-                      >
-                        <Printer className="w-4 h-4 mr-2" />
-                        Print List
-                      </Button>
-                    ) : (
+                    <Button variant="outline" onClick={() => { handlePrint(); setIsMobileMenuOpen(false); }} className="w-full justify-start min-h-[44px] print:hidden">
+                      <Printer className="w-4 h-4 mr-2" />Print List
+                    </Button>
+                    {effectiveTier === "free" ? null : (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -3403,6 +3394,11 @@ export default function ListDetail() {
                           ))}
                         </DropdownMenuContent>
                       </DropdownMenu>
+                    )}
+                    {isOwner && lists.length >= 2 && (
+                      <Button variant="outline" onClick={() => { setIsMergeModalOpen(true); setIsMobileMenuOpen(false); }} className="w-full justify-start min-h-[44px]">
+                        <Merge className="w-4 h-4 mr-2" />Merge Lists
+                      </Button>
                     )}
 
                     {/* Secondary Actions */}
@@ -3541,10 +3537,6 @@ export default function ListDetail() {
                       {isSelectMode ? "Done Selecting" : "Select Multiple"}
                     </Button>
 
-                    {/* Utility Actions */}
-                    <div className="border-t border-gray-200 my-2" />
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1">More</p>
-                    
                     {isRegistryOrWishlistType && (
                       <>
                         <Button
@@ -3571,6 +3563,21 @@ export default function ListDetail() {
                         </Button>
                       </>
                     )}
+
+                    {isSectioned && canEditListItems && (
+                      <Button variant="outline" onClick={() => { setIsAddingSectionOpen(true); setIsMobileMenuOpen(false); }} className="w-full justify-start min-h-[44px]">
+                        <LayoutList className="w-4 h-4 mr-2" />Add Section
+                      </Button>
+                    )}
+                    {(isChecklist || isGrocery) && list.items.some(i => i.completed) && canEditListItems && (
+                      <Button variant="outline" onClick={() => { handleResetAll(); setIsMobileMenuOpen(false); }} className="w-full justify-start min-h-[44px]">
+                        <RotateCcw className="w-4 h-4 mr-2" />Reset All
+                      </Button>
+                    )}
+
+                    {/* Utility Actions */}
+                    <div className="border-t border-gray-200 my-2" />
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1">More</p>
                     {isOwner && (
                       <Button
                         variant="outline"
@@ -3842,6 +3849,15 @@ export default function ListDetail() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 print:hidden">
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-medium text-gray-700">Items</h3>
+              {(isTodo || isChecklist || isGrocery) && (() => {
+                const completedCount = list.items.filter(i => i.completed).length;
+                const totalCount = list.items.length;
+                return totalCount > 0 ? (
+                  <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                    {completedCount}/{totalCount}
+                  </span>
+                ) : null;
+              })()}
             </div>
             
             <div className="flex flex-row gap-2 min-w-0 w-full items-start sm:items-center">
