@@ -2854,7 +2854,7 @@ export default function ListDetail() {
       {/* Mobile Sidebar Overlay */}
       <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
         <SheetContent side="left" className="w-[280px] p-0 print:hidden">
-          <ListSidebar />
+          <ListSidebar onListSelect={() => setIsSidebarOpen(false)} />
         </SheetContent>
       </Sheet>
 
