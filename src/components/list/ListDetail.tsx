@@ -3787,7 +3787,7 @@ export default function ListDetail() {
     <div className="flex sm:flex-row flex-wrap items-center gap-2">
       {isSectioned && (
         <Select value={newItemSection} onValueChange={setNewItemSection}>
-          <SelectTrigger className="w-full sm:w-[140px]">
+          <SelectTrigger className="w-[100px] sm:w-[140px] shrink-0">
             <SelectValue placeholder="Section" />
           </SelectTrigger>
           <SelectContent>
