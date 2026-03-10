@@ -6062,7 +6062,9 @@ export default function ListDetail() {
         <div className="fixed bottom-6 right-6 flex flex-col gap-2 z-50 print:hidden">
           <button
             onClick={() => {
-              document.querySelector('.flex-1.overflow-y-auto')?.scrollTo({ top: 0, behavior: 'smooth' });
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+               const sc = document.querySelector('.overflow-y-auto');
+               if (sc) sc.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             title="Back to top"
             className="w-11 h-11 rounded-full bg-white border-2 border-gray-300 shadow-lg flex items-center justify-center hover:border-primary transition-all"
