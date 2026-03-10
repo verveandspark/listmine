@@ -3181,6 +3181,23 @@ export default function ListDetail() {
                       </Tooltip>
                     </TooltipProvider>
                   )}
+                  {(isChecklist || isGrocery) && list.items.some(i => i.completed) && canEditListItems && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9"
+                            onClick={handleResetAll}
+                          >
+                            <RotateCcw className="w-4 h-4 text-gray-600" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Reset all (uncheck all items)</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
                 </div>
 
                 {/* Group 4 - Registry (border-r, conditional on isRegistryOrWishlistType): Purchase History, Update from Retailer */}
@@ -3806,19 +3823,6 @@ export default function ListDetail() {
       </div>
     </div>
     <p className="text-xs text-muted-foreground mt-1 text-right">Press Enter to add quickly · More Details for all fields</p>
-    {(isChecklist || isGrocery) && list.items.some(i => i.completed) && (
-      <div className="flex justify-end mt-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-xs text-muted-foreground hover:text-foreground"
-          onClick={handleResetAll}
-        >
-          <RotateCcw className="w-3 h-3 mr-1" />
-          Reset all
-        </Button>
-      </div>
-    )}
   </Card>
 )}
           {!canEditListItems && (
