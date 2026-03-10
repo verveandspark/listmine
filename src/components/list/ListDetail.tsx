@@ -3658,7 +3658,7 @@ export default function ListDetail() {
           </p>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto relative">
           {/* Guest Access Banner */}
           {list.isGuestAccess && (
             <div className="bg-teal-50 border-b border-teal-200 px-4 sm:px-6 lg:px-8 py-2 print:hidden">
@@ -3671,7 +3671,7 @@ export default function ListDetail() {
           )}
           
           {/* Sticky Add Item Section */}
-          <div className="sticky top-0 z-10 bg-gradient-to-br from-primary/10 via-white to-secondary/10 px-4 sm:px-6 lg:px-8 pt-4 pb-2 print:hidden">
+          <div className="sticky top-0 z-20 bg-gradient-to-br from-primary/10 via-white to-secondary/10 px-4 sm:px-6 lg:px-8 pt-4 pb-2 print:hidden">
             {/* Bulk Actions Toolbar */}
           {isSelectMode && (
             <Card className="p-2 sm:p-3 mb-4 bg-primary/10 border-primary/20 print:hidden">
