@@ -401,6 +401,8 @@ export default function ListDetail() {
   const [linkFieldTouched, setLinkFieldTouched] = useState(false);
   // Separate boolean to persist modal open state across item refreshes
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDetailedAddModalOpen, setIsDetailedAddModalOpen] = useState(false);
+  const [showScrollButtons, setShowScrollButtons] = useState(false);
   // Separate state for due date input string (to avoid type mismatch with Date)
   const [dueDateInput, setDueDateInput] = useState<string>('');
 
@@ -614,6 +616,14 @@ export default function ListDetail() {
       setNewItemGroceryCategory(savedCategory || 'Other');
     }
   }, [list?.id, isGrocery]);
+
+  useEffect(() => {
+    const scrollContainer = document.querySelector('.flex-1.overflow-y-auto');
+    if (!scrollContainer) return;
+    const handleScroll = () => setShowScrollButtons(scrollContainer.scrollTop > 300);
+    scrollContainer.addEventListener('scroll', handleScroll);
+    return () => scrollContainer.removeEventListener('scroll', handleScroll);
+  }, []);
   
   // Save section selection to localStorage
   const handleSectionChange = (section: string) => {
@@ -6036,6 +6046,232 @@ export default function ListDetail() {
           </div>
         </div>
       </div>
+
+      {showScrollButtons && (
+        <div className="fixed bottom-6 right-6 flex flex-col gap-2 z-50 print:hidden">
+          <button
+            onClick={() => {
+              document.querySelector('.flex-1.overflow-y-auto')?.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            title="Back to top"
+            className="w-11 h-11 rounded-full bg-white border-2 border-gray-300 shadow-lg flex items-center justify-center hover:border-primary transition-all"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+          </button>
+          {canEditListItems && (
+            <button
+              onClick={() => setIsDetailedAddModalOpen(true)}
+              title="Add item with details"
+              className="w-11 h-11 rounded-full bg-primary text-white shadow-lg flex items-center justify-center hover:bg-primary/90 transition-all"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Detailed Add Item Modal */}
+      {isDetailedAddModalOpen && (
+        <Dialog open={true} onOpenChange={(open) => { if (!open) setIsDetailedAddModalOpen(false); }}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto z-[9999]" onKeyDown={(e) => { if ((e.key === "Enter" && !e.shiftKey && e.target instanceof HTMLInputElement) || (e.key === "Enter" && (e.ctrlKey || e.metaKey))) { e.preventDefault(); handleAddItem(); setIsDetailedAddModalOpen(false); } }}>
+            <DialogHeader>
+              <DialogTitle>Add Item</DialogTitle>
+              <DialogDescription>Add a new item with full details</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              {/* Item Name - Always */}
+              <div className="space-y-2">
+                <Label>Item Name</Label>
+                <Input value={newItemText} onChange={(e) => setNewItemText(e.target.value)} placeholder="Item name" />
+              </div>
+              {/* Section - When list has sections */}
+              {isSectioned && (
+                <div className="space-y-2">
+                  <Label>Section</Label>
+                  <Select value={newItemSection} onValueChange={setNewItemSection}>
+                    <SelectTrigger><SelectValue placeholder="Select section" /></SelectTrigger>
+                    <SelectContent>
+                      {sections.map((s) => (<SelectItem key={s} value={s}>{s}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {/* Grocery: Category + Quantity side by side */}
+              {isGrocery && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Category</Label>
+                    <Select value={newItemGroceryCategory || "Other"} onValueChange={handleGroceryCategoryChange}>
+                      <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                      <SelectContent>
+                        {availableCategories.map((cat) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Quantity</Label>
+                    <Input type="number" placeholder="1" value={newItemQuantity || ""} onChange={(e) => setNewItemQuantity(e.target.value ? parseInt(e.target.value) : undefined)} min="1" />
+                  </div>
+                </div>
+              )}
+              {/* Grocery: Unit + Est. Price side by side */}
+              {isGrocery && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Unit</Label>
+                    <Select value={newItemUnit || ""} onValueChange={(v) => setNewItemUnit(v || undefined)}>
+                      <SelectTrigger><SelectValue placeholder="Select unit" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="each">Each</SelectItem>
+                        <SelectItem value="lb">lb</SelectItem>
+                        <SelectItem value="oz">oz</SelectItem>
+                        <SelectItem value="kg">kg</SelectItem>
+                        <SelectItem value="g">g</SelectItem>
+                        <SelectItem value="pack">Pack</SelectItem>
+                        <SelectItem value="box">Box</SelectItem>
+                        <SelectItem value="bag">Bag</SelectItem>
+                        <SelectItem value="bottle">Bottle</SelectItem>
+                        <SelectItem value="can">Can</SelectItem>
+                        <SelectItem value="dozen">Dozen</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Est. Price</Label>
+                    <Input type="number" placeholder="0.00" value={newItemPrice || ""} onChange={(e) => setNewItemPrice(e.target.value ? parseFloat(e.target.value) : undefined)} min="0" step="0.01" />
+                  </div>
+                </div>
+              )}
+              {/* Shopping & Registry: Product Link */}
+              {(isShopping || isRegistry) && (
+                <div className="space-y-2">
+                  <Label>Product Link (optional)</Label>
+                  <Input value={newItemProductLink} onChange={(e) => setNewItemProductLink(e.target.value)} placeholder="https://example.com/product" />
+                </div>
+              )}
+              {/* Idea: Inspiration Link */}
+              {isIdea && (
+                <div className="space-y-2">
+                  <Label>Inspiration Link (optional)</Label>
+                  <Input value={newItemProductLink} onChange={(e) => setNewItemProductLink(e.target.value)} placeholder="https://example.com/inspiration" />
+                </div>
+              )}
+              {/* Shopping, Registry, Idea: Link Preview Fields */}
+              {(isShopping || isRegistry || isIdea) && (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Link Title (optional)</Label>
+                      <Input value={newItemLinkTitle} onChange={(e) => setNewItemLinkTitle(e.target.value)} placeholder={isIdea ? "e.g., Modern Kitchen Design" : "e.g., Wireless Headphones"} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Link Description (optional)</Label>
+                      <Textarea value={newItemLinkDescription} onChange={(e) => setNewItemLinkDescription(e.target.value)} placeholder={isIdea ? "e.g., Minimalist kitchen with marble countertops" : "e.g., Noise-canceling over-ear headphones"} rows={2} />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Link Image URL (optional)</Label>
+                    <Input value={newItemLinkImage} onChange={(e) => setNewItemLinkImage(e.target.value)} placeholder="e.g., https://example.com/image.jpg" />
+                  </div>
+                </>
+              )}
+              {/* Shopping & Registry: Price + Quantity side by side */}
+              {(isShopping || isRegistry) && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Price</Label>
+                    <Input type="number" placeholder="0.00" value={newItemPrice || ""} onChange={(e) => setNewItemPrice(e.target.value ? parseFloat(e.target.value) : undefined)} min="0" step="0.01" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Quantity</Label>
+                    <Input type="number" placeholder="1" value={newItemQuantity || ""} onChange={(e) => setNewItemQuantity(e.target.value ? parseInt(e.target.value) : undefined)} min="1" />
+                  </div>
+                </div>
+              )}
+              {/* Shopping & Registry: Purchase Status */}
+              {(isShopping || isRegistry) && (
+                <div className="space-y-2">
+                  <Label>Purchase Status</Label>
+                  <Select value={newItemStatus || "not_purchased"} onValueChange={(v) => setNewItemStatus(v)}>
+                    <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="not_purchased">Not purchased</SelectItem>
+                      <SelectItem value="purchased">Purchased</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {/* Registry: Helper text */}
+              {isRegistry && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+                  <span>💡</span>
+                  <p className="text-sm text-amber-800">When shared, visitors can mark items as purchased and their info will be recorded.</p>
+                </div>
+              )}
+              {/* To-Do: Due Date */}
+              {isTodo && (
+                <div className="space-y-2">
+                  <Label>Due Date</Label>
+                  <Input type="date" value={newItemDueDate ? newItemDueDate.toISOString().split('T')[0] : ''} onChange={(e) => setNewItemDueDate(e.target.value ? new Date(e.target.value) : undefined)} />
+                </div>
+              )}
+              {/* To-Do: Priority + Status side by side */}
+              {isTodo && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Priority</Label>
+                    <Select value={newItemPriority || "none"} onValueChange={(v) => setNewItemPriority(v as any)}>
+                      <SelectTrigger><SelectValue placeholder="Select priority" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Status</Label>
+                    <Select value={newItemStatus || "not_started"} onValueChange={(v) => setNewItemStatus(v)}>
+                      <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="not_started">Not Started</SelectItem>
+                        <SelectItem value="in_progress">In Progress</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+              {/* Idea: Status */}
+              {isIdea && (
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <Select value={newItemStatus || "brainstorm"} onValueChange={(v) => setNewItemStatus(v)}>
+                    <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="brainstorm">Brainstorm</SelectItem>
+                      <SelectItem value="in_progress">In Progress</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="on_hold">On Hold</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {/* Notes - Always, last field */}
+              <div className="space-y-2">
+                <Label>Notes</Label>
+                <Textarea value={newItemNotes} onChange={(e) => setNewItemNotes(e.target.value)} placeholder="Add notes..." rows={3} />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-4">
+              <p className="text-xs text-gray-400 self-center mr-auto">Press Enter or Cmd/Ctrl+Enter to add</p>
+              <Button variant="outline" onClick={() => setIsDetailedAddModalOpen(false)}>Cancel</Button>
+              <Button onClick={() => { handleAddItem(); setIsDetailedAddModalOpen(false); }}>Add Item</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Edit List Modal */}
       <Dialog open={isEditListDialogOpen} onOpenChange={setIsEditListDialogOpen}>
