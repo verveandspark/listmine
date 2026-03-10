@@ -2908,20 +2908,25 @@ export default function ListDetail() {
                   <h1 className="text-lg sm:text-2xl font-bold text-foreground truncate flex items-center gap-2">
                     {list.title}
                     {list.isGuestAccess && (
-                      <Badge variant="outline" className="text-xs bg-teal-100 text-teal-700 border-teal-300">
-                        {list.guestPermission === 'edit' ? 'Guest (can edit)' : 'Guest (view only)'}
-                      </Badge>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge variant="outline" className="text-xs bg-teal-100 text-teal-700 border-teal-300 cursor-help">
+                              {list.guestPermission === 'edit' ? 'G' : 'G (view)'}
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{list.guestPermission === 'edit' ? 'Guest (can edit)' : 'Guest (view only)'}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     )}
                     {list.isTeamOwner && list.accountId && (
                       <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30">
                         Team Owner
                       </Badge>
                     )}
-                    {list.isTeamMember && !list.isTeamOwner && (
-                      <Badge variant="outline" className="text-xs bg-secondary/10 text-secondary border-secondary/30">
-                        Team (can edit)
-                      </Badge>
-                    )}
+
                     {list.isArchived && (
                       <Badge variant="secondary" className="text-xs">Archived</Badge>
                     )}

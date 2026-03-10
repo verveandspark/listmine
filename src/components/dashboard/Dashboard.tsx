@@ -2134,9 +2134,6 @@ export default function Dashboard() {
                           <div>
                             <CardTitle className="text-lg flex items-center gap-2">
                               {list.title}
-                              {list.isGuestAccess && (
-                                <Badge variant="outline" className="text-xs bg-teal-100 text-teal-700 border-teal-300">Guest (can edit)</Badge>
-                              )}
                             </CardTitle>
                             <CardDescription>
                               {list.category} ·{" "}
@@ -2480,9 +2477,7 @@ export default function Dashboard() {
                           {list.isFavorite && (
                             <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
                           )}
-                          {list.isGuestAccess && (
-                            <Badge variant="outline" className="text-xs bg-teal-100 text-teal-700 border-teal-300">Guest (can edit)</Badge>
-                          )}
+
                           {list.isShared && canShareLists(effectiveTier) && (
                             <Share2 className="w-4 h-4 text-primary" />
                           )}

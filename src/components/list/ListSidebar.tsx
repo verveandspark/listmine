@@ -160,29 +160,11 @@ export function ListSidebar() {
               : 'bg-primary/10 text-primary border-primary/20'
           }`}
         >
-          {isEditAccess ? (
-            <>
-              <Users className="w-2.5 h-2.5 mr-0.5" />
-              Guest (can edit)
-            </>
-          ) : (
-            <>
-              <Share2 className="w-2.5 h-2.5 mr-0.5" />
-              Shared
-            </>
-          )}
+          {isEditAccess ? 'G' : 'Shared'}
         </Badge>
       );
     }
-    if (list.accountId) {
-      return (
-        <Badge variant="outline" className="text-[10px] px-1 py-0 bg-secondary/10 text-secondary border-secondary/30">
-          <Users className="w-2.5 h-2.5 mr-0.5" />
-          Team
-        </Badge>
-      );
-    }
-    return null; // Personal lists don't need a badge in personal mode
+    return null; // No badge for team lists
   };
 
   // Count archived lists
@@ -336,15 +318,7 @@ export function ListSidebar() {
           )}
         </div>
 
-        {/* My Guest Access Lists section - only in personal mode */}
-        {currentAccount?.type === 'personal' && filteredLists.some(l => l.isGuestAccess) && (
-          <div className="mb-4 p-2 bg-teal-50 rounded-lg border border-teal-200">
-            <div className="flex items-center gap-2 text-teal-700 text-sm font-medium">
-              <Users className="w-4 h-4" />
-              My Guest Access Lists ({filteredLists.filter(l => l.isGuestAccess).length})
-            </div>
-          </div>
-        )}
+
 
         {/* Archived toggle */}
         {archivedCount > 0 && (
