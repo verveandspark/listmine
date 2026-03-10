@@ -428,6 +428,7 @@ export default function ListDetail() {
   const [newLink, setNewLink] = useState("");
   const [isExporting, setIsExporting] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const [hideCompleted, setHideCompleted] = useState(false);
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -1859,6 +1860,10 @@ export default function ListDetail() {
   const getSortedItems = () => {
     if (!list) return [];
     let items = [...list.items];
+
+    if (hideCompleted && (isTodo || isChecklist || isGrocery)) {
+      items = items.filter(item => !item.completed);
+    }
 
     // For registry/wishlist, group by purchase status first
     if (isRegistryOrWishlistType) {
@@ -3858,6 +3863,16 @@ export default function ListDetail() {
                   </span>
                 ) : null;
               })()}
+              {(isTodo || isChecklist || isGrocery) && list.items.some(i => i.completed) && (
+                <Button
+                  variant={hideCompleted ? "default" : "ghost"}
+                  size="sm"
+                  className="h-6 text-xs px-2"
+                  onClick={() => setHideCompleted(!hideCompleted)}
+                >
+                  {hideCompleted ? "Show all" : "Hide done"}
+                </Button>
+              )}
             </div>
             
             <div className="flex flex-row gap-2 min-w-0 w-full items-start sm:items-center">
