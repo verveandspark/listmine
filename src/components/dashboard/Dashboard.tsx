@@ -235,9 +235,9 @@ export default function Dashboard() {
   >(() => {
     return (localStorage.getItem("listSortBy") as any) || "recent";
   });
-  const [showCompleted, setShowCompleted] = useState(true);
   const [showArchived, setShowArchived] = useState(false);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"dashboard" | "list">(() => {
     return (localStorage.getItem("dashboardViewMode") as "dashboard" | "list") || "dashboard";
   });
@@ -597,9 +597,9 @@ export default function Dashboard() {
 
   const getActiveFilterCount = () => {
     let count = 0;
-    if (!showCompleted) count++;
     if (showArchived) count++;
     if (showFavoritesOnly) count++;
+    if (statusFilter !== "all") count++;
     if (dueDateFilter !== "all") count++;
     if (priorityFilter !== "all") count++;
     if (selectedTag !== "all") count++;
@@ -807,6 +807,13 @@ export default function Dashboard() {
     displayLists = displayLists.filter((list) => !list.isArchived && !list.title.startsWith("[Archived]"));
   }
 
+  // Apply status filter
+  if (statusFilter !== "all") {
+    displayLists = displayLists.filter((list) => {
+      return list.items?.some((item: any) => item.status === statusFilter);
+    });
+  }
+
   // Apply sorting
   displayLists = [...displayLists].sort((a, b) => {
     switch (listSortBy) {
@@ -833,6 +840,10 @@ export default function Dashboard() {
         return dateB - dateA;
     }
   });
+
+  // Determine if filters are active to show search results view
+  const hasActiveFilters = getActiveFilterCount() > 0 || statusFilter !== "all";
+  const showSearchResults = searchQuery.trim() || hasActiveFilters;
 
   // Get account-filtered lists for favorites and stats
   const accountFilteredLists = (() => {
@@ -1421,10 +1432,10 @@ export default function Dashboard() {
             )}
           </div>
           {/* Search results indicator */}
-          {searchQuery.trim() && searchResults !== null && (
+          {showSearchResults && (
             <div className="text-sm text-muted-foreground flex items-center gap-2">
               <span>
-                Found {searchResults.length} list{searchResults.length !== 1 ? "s" : ""}
+                Found {displayLists.length} list{displayLists.length !== 1 ? "s" : ""}
                 {showArchived ? " (including archived)" : ""}
               </span>
             </div>
@@ -1453,30 +1464,6 @@ export default function Dashboard() {
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2">
                       <Checkbox
-                        id="showCompleted"
-                        checked={showCompleted}
-                        onCheckedChange={(checked) =>
-                          setShowCompleted(checked as boolean)
-                        }
-                      />
-                      <label htmlFor="showCompleted" className="text-sm">
-                        Show completed items
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="showArchived"
-                        checked={showArchived}
-                        onCheckedChange={(checked) =>
-                          setShowArchived(checked as boolean)
-                        }
-                      />
-                      <label htmlFor="showArchived" className="text-sm">
-                        Show archived lists {archivedCount > 0 && `(${archivedCount})`}
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
                         id="showFavoritesOnly"
                         checked={showFavoritesOnly}
                         onCheckedChange={(checked) =>
@@ -1489,6 +1476,53 @@ export default function Dashboard() {
                       </label>
                     </div>
                   </div>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-semibold mb-3 block">
+                    Status
+                  </Label>
+                  <RadioGroup
+                    value={statusFilter}
+                    onValueChange={(value: any) => setStatusFilter(value)}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="all" id="status-all" />
+                      <label htmlFor="status-all" className="text-sm">
+                        All
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="not_started" id="status-not-started" />
+                      <label htmlFor="status-not-started" className="text-sm">
+                        Not Started
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="in_progress" id="status-in-progress" />
+                      <label htmlFor="status-in-progress" className="text-sm">
+                        In Progress
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="completed" id="status-completed" />
+                      <label htmlFor="status-completed" className="text-sm">
+                        Completed
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="brainstorming" id="status-brainstorming" />
+                      <label htmlFor="status-brainstorming" className="text-sm">
+                        Brainstorming (for ideas)
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="on_hold" id="status-on-hold" />
+                      <label htmlFor="status-on-hold" className="text-sm">
+                        On Hold (for ideas)
+                      </label>
+                    </div>
+                  </RadioGroup>
                 </div>
 
                 <div>
@@ -1582,6 +1616,24 @@ export default function Dashboard() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                <div>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="showArchived"
+                        checked={showArchived}
+                        onCheckedChange={(checked) =>
+                          setShowArchived(checked as boolean)
+                        }
+                      />
+                      <label htmlFor="showArchived" className="text-sm">
+                        Show archived lists {archivedCount > 0 && `(${archivedCount})`}
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <Label className="text-sm font-semibold mb-3 block">Tag</Label>
                   {(() => {
@@ -1695,7 +1747,7 @@ export default function Dashboard() {
         </div>
 
         {/* Search Results Section - Only visible when searching */}
-        {searchQuery.trim() && (
+        {showSearchResults && (
           <div className="mb-6 sm:mb-8">
             <h2 className="text-base sm:text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
               <Search className="w-5 h-5 text-primary" />
@@ -1795,7 +1847,7 @@ export default function Dashboard() {
         )}
 
         {/* Favorites Row - Hidden when searching */}
-        {!searchQuery.trim() && (
+        {!showSearchResults && (
         <div className="mb-6 sm:mb-8">
           <h2 className="text-base sm:text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
             <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
@@ -1993,7 +2045,7 @@ export default function Dashboard() {
         )}
 
         {/* Recent Lists Section */}
-        {!searchQuery.trim() && recentLists.length > 0 && (
+        {!showSearchResults && recentLists.length > 0 && (
           <div className="mb-6 sm:mb-8">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base sm:text-lg font-semibold text-foreground flex items-center gap-2">
@@ -2160,7 +2212,7 @@ export default function Dashboard() {
             </div>
           </div>
         )}
-        {!searchQuery.trim() && (
+        {!showSearchResults && (
         <div className="mb-6 sm:mb-8">
           <h2 className="text-base sm:text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
             <Users className="w-5 h-5 text-secondary" />
@@ -2237,7 +2289,7 @@ export default function Dashboard() {
         )}
 
         {/* Categories Section - Only visible in Dashboard view and not when searching */}
-        {viewMode === "dashboard" && !searchQuery.trim() && (
+        {viewMode === "dashboard" && !showSearchResults && (
         <div className="mb-6 sm:mb-8 mt-8" id="categories-section">{/* Added mt-8 for vertical spacing */}
           <h2 className="text-base sm:text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
             <Layers className="w-5 h-5 text-primary" />
