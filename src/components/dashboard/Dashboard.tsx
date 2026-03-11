@@ -157,7 +157,7 @@ const categoryColors: Record<string, string> = {
 };
 
 // Filter dropdown list types (simplified, no duplicates)
-const listTypes = [
+const listTypes: { value: string; label: string }[] = [
   "Custom",
   "To-Do",
   "Checklist",
