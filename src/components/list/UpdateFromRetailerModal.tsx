@@ -264,7 +264,6 @@ export default function UpdateFromRetailerModal({
           </DialogTitle>
           <DialogDescription>
             Paste the original wishlist URL to check for new items or price changes.
-            </p>
           </DialogDescription>
         </DialogHeader>
 
