@@ -620,6 +620,7 @@ export default function Dashboard() {
     if (dueDateFilter !== "all") count++;
     if (priorityFilter !== "all") count++;
     if (selectedTag !== "all") count++;
+    if (filterType !== "all") count++;
     return count;
   };
 
@@ -814,6 +815,16 @@ export default function Dashboard() {
     displayLists = displayLists.filter((list) => list.isFavorite);
   }
 
+  // Apply priority filter
+  if (priorityFilter !== "all") {
+    displayLists = displayLists.filter((list) => {
+      return list.items?.some((item: any) => {
+        const p = (item.priority || item.attributes?.priority || "").toLowerCase();
+        return p === priorityFilter;
+      });
+    });
+  }
+
   // Apply tag filter
   if (selectedTag !== "all") {
     displayLists = displayLists.filter(list => list.tags?.includes(selectedTag));
@@ -827,7 +838,10 @@ export default function Dashboard() {
   // Apply status filter
   if (statusFilter !== "all") {
     displayLists = displayLists.filter((list) => {
-      return list.items?.some((item: any) => item.status === statusFilter);
+      return list.items?.some((item: any) => 
+        normalizeStatus(item.status) === statusFilter ||
+        normalizeStatus(item.attributes?.status) === statusFilter
+      );
     });
   }
 
@@ -859,7 +873,7 @@ export default function Dashboard() {
   });
 
   // Determine if filters are active to show search results view
-  const hasActiveFilters = getActiveFilterCount() > 0 || statusFilter !== "all";
+  const hasActiveFilters = getActiveFilterCount() > 0 || statusFilter !== "all" || filterType !== "all";
   const showSearchResults = searchQuery.trim() || hasActiveFilters;
 
   // Get account-filtered lists for favorites and stats
