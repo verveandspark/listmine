@@ -102,7 +102,7 @@ import { useEffect, useRef } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { formatDistanceToNow, isToday } from "date-fns";
+import { formatDistanceToNow, isToday, isThisWeek, isPast, startOfDay } from "date-fns";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -831,17 +831,41 @@ export default function Dashboard() {
   }
 
   // Apply archived filter
-  if (!showArchived) {
+  if (showArchived) {
+    // When filter is active, show ONLY archived lists
+    displayLists = displayLists.filter((list) => list.isArchived || list.title.startsWith("[Archived]"));
+  } else {
+    // By default, hide archived lists
     displayLists = displayLists.filter((list) => !list.isArchived && !list.title.startsWith("[Archived]"));
+  }
+
+  // Apply due date filter
+  if (dueDateFilter !== "all") {
+    displayLists = displayLists.filter((list) => {
+      return list.items?.some((item: any) => {
+        const dueDate = item.dueDate || item.attributes?.dueDate;
+        if (!dueDate) return false;
+        const date = new Date(dueDate);
+        if (dueDateFilter === "today") return isToday(date);
+        if (dueDateFilter === "week") return isThisWeek(date);
+        if (dueDateFilter === "overdue") return isPast(startOfDay(date)) && !isToday(date) && !item.completed;
+        return false;
+      });
+    });
   }
 
   // Apply status filter
   if (statusFilter !== "all") {
     displayLists = displayLists.filter((list) => {
-      return list.items?.some((item: any) => 
-        normalizeStatus(item.status) === statusFilter ||
-        normalizeStatus(item.attributes?.status) === statusFilter
-      );
+      const listType = normalizeListType(list.listType);
+      return list.items?.some((item: any) => {
+        const rawStatus = item.status || item.attributes?.status;
+        // If no status set, use default based on list type
+        const effectiveStatus = rawStatus 
+          ? normalizeStatus(rawStatus)
+          : listType === "idea" ? "brainstorm" : "not-started";
+        return effectiveStatus === statusFilter;
+      });
     });
   }
 
@@ -1509,13 +1533,13 @@ export default function Dashboard() {
                       </label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="not_started" id="status-not-started" />
+                      <RadioGroupItem value="not-started" id="status-not-started" />
                       <label htmlFor="status-not-started" className="text-sm">
                         Not Started
                       </label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="in_progress" id="status-in-progress" />
+                      <RadioGroupItem value="in-progress" id="status-in-progress" />
                       <label htmlFor="status-in-progress" className="text-sm">
                         In Progress
                       </label>
@@ -1527,13 +1551,13 @@ export default function Dashboard() {
                       </label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="brainstorming" id="status-brainstorming" />
+                      <RadioGroupItem value="brainstorm" id="status-brainstorming" />
                       <label htmlFor="status-brainstorming" className="text-sm">
                         Brainstorming (for ideas)
                       </label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="on_hold" id="status-on-hold" />
+                      <RadioGroupItem value="on-hold" id="status-on-hold" />
                       <label htmlFor="status-on-hold" className="text-sm">
                         On Hold (for ideas)
                       </label>
@@ -1625,8 +1649,8 @@ export default function Dashboard() {
                     <SelectContent>
                       <SelectItem value="all">All Types</SelectItem>
                       {listTypes.map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {type}
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -2533,8 +2557,8 @@ export default function Dashboard() {
                 </SelectTrigger>
                 <SelectContent>
                   {listTypes.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type}
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
