@@ -1455,27 +1455,12 @@ export default function Dashboard() {
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-80">
+            <PopoverContent className="w-80 max-h-[80vh] overflow-y-auto">
               <div className="space-y-4">
                 <div>
                   <Label className="text-sm font-semibold mb-3 block">
                     Display Options
                   </Label>
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="showFavoritesOnly"
-                        checked={showFavoritesOnly}
-                        onCheckedChange={(checked) =>
-                          setShowFavoritesOnly(checked as boolean)
-                        }
-                      />
-                      <label htmlFor="showFavoritesOnly" className="text-sm">
-                        <Star className="w-3 h-3 inline mr-1" />
-                        Favorites only
-                      </label>
-                    </div>
-                  </div>
                 </div>
 
                 <div>
