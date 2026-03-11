@@ -437,7 +437,7 @@ export default function MergeListsModal({
 
               {/* New Items */}
               {compareResult.newItems.length > 0 && (
-                <div className="flex-1 overflow-hidden flex flex-col">
+                <div className="overflow-y-auto flex flex-col">
                   <div className="flex items-center justify-between mb-2">
                     <Label className="flex items-center gap-2">
                       <Plus className="w-4 h-4 text-accent" />
@@ -449,7 +449,7 @@ export default function MergeListsModal({
                         : "Select All"}
                     </Button>
                   </div>
-                  <ScrollArea className="flex-1 border rounded-md p-2 max-h-[250px]">
+                  <ScrollArea className="border rounded-md p-2 h-[250px]">
                     <div className="space-y-2">
                       {compareResult.newItems.map((item, index) => (
                         <div
