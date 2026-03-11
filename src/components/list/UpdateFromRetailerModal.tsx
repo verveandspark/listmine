@@ -262,10 +262,8 @@ export default function UpdateFromRetailerModal({
             <RefreshCw className="w-5 h-5" />
             Update from Retailer
           </DialogTitle>
-          <DialogDescription className="space-y-2">
-            <p>Re-scrape a retailer wishlist to find new items or price changes.</p>
-            <p className="text-xs text-gray-600">
-              Currently supports: Amazon wishlists. More retailers coming soon!
+          <DialogDescription>
+            Paste the original wishlist URL to check for new items or price changes.
             </p>
           </DialogDescription>
         </DialogHeader>
