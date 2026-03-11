@@ -158,13 +158,13 @@ const categoryColors: Record<string, string> = {
 
 // Filter dropdown list types (simplified, no duplicates)
 const listTypes: { value: string; label: string }[] = [
-  "Custom",
-  "To-Do",
-  "Checklist",
-  "Shopping List",
-  "Grocery",
-  "Idea",
-  "Registry/Wishlist"
+  { value: "custom", label: "Custom" },
+  { value: "todo", label: "To-Do" },
+  { value: "checklist", label: "Checklist" },
+  { value: "shopping", label: "Shopping List" },
+  { value: "grocery", label: "Grocery" },
+  { value: "idea", label: "Idea" },
+  { value: "registry", label: "Registry/Wishlist" },
 ];
 
 // Normalize legacy list types for filtering
