@@ -1759,89 +1759,23 @@ export default function Dashboard() {
                           </TooltipProvider>
                         )}
                       </div>
-                      <CardHeader className="pb-2">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={`w-10 h-10 rounded-lg ${categoryColors[list.category]} flex items-center justify-center`}
-                            >
-                              <Icon className="w-5 h-5" />
-                            </div>
-                            <div>
-                              <CardTitle className="text-lg flex items-center gap-2 flex-wrap">
-                                {list.title}
-                                {list.accountId && (
-                                  <Badge variant="outline" className="text-xs bg-secondary/10 text-secondary border-secondary/30">
-                                    <Users className="w-3 h-3 mr-1" />
-                                    Team
-                                  </Badge>
-                                )}
-                                {!list.accountId && !list.isGuestAccess && (
-                                  <Badge variant="outline" className="text-xs bg-muted text-muted-foreground border-border">
-                                    <User className="w-3 h-3 mr-1" />
-                                    Personal
-                                  </Badge>
-                                )}
-                                {list.isArchived && (
-                                  <Badge variant="secondary" className="text-xs">Archived</Badge>
-                                )}
-                              </CardTitle>
-                              <CardDescription>
-                                {list.category} ·{" "}
-                                {list.listType}
-                              </CardDescription>
-                            </div>
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="p-2 rounded-lg bg-primary/10 flex-shrink-0">
+                            <Icon className="w-4 h-4 text-primary" />
                           </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-muted-foreground">
-                              {itemCount} items
-                            </span>
-                            <span className="text-muted-foreground">
-                              {completedItems} completed
-                            </span>
-                          </div>
-                          {itemCount > 0 && (
-                            <div className="w-full bg-muted rounded-full h-1.5">
-                              <div
-                                className="bg-primary h-1.5 rounded-full transition-all"
-                                style={{
-                                  width: `${(completedItems / itemCount) * 100}%`,
-                                }}
-                              />
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-medium text-sm truncate">{list.title}</h3>
+                            <p className="text-xs text-muted-foreground">{list.category} - {normalizeListType(list.listType)}</p>
+                            <div className="flex items-center justify-between mt-2">
+                              <span className="text-xs text-muted-foreground">{itemCount} items</span>
+                              <span className="text-xs text-muted-foreground">{completedItems} completed</span>
                             </div>
-                          )}
-                          <div className="flex items-center justify-between pt-2">
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <Clock className="w-3 h-3" />
-                              <span>Updated {getTimeAgo(list.updatedAt)}{list.lastEditedByEmail && ` by ${list.lastEditedByEmail.split('@')[0]}`}</span>
-                            </div>
-                            <div className="flex gap-1">
-                              {list.isShared && canShareLists(effectiveTier) && (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Badge
-                                        variant="outline"
-                                        className="bg-primary/10 border-primary/20 text-xs"
-                                      >
-                                        <Share2 className="w-3 h-3 mr-1 text-primary" />
-                                        <span className="text-primary">Shared</span>
-                                      </Badge>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>
-                                        {list.shareMode === 'view_only' 
-                                          ? "Shared link active: View only"
-                                          : "Shared link active: Importable (copy)"}
-                                      </p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              )}
+                            <div className="flex items-center gap-1 mt-1">
+                              <Clock className="w-3 h-3 text-muted-foreground" />
+                              <span className="text-xs text-muted-foreground">
+                                Updated {new Date(list.updatedAt).toLocaleDateString()}
+                              </span>
                             </div>
                           </div>
                         </div>
