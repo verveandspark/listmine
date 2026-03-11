@@ -168,6 +168,23 @@ const listTypes = [
 ];
 
 // Normalize legacy list types for filtering
+
+const normalizeStatus = (status: string | undefined): string => {
+  if (!status) return "not-started";
+  const map: Record<string, string> = {
+    "not_started": "not-started",
+    "not-started": "not-started",
+    "in_progress": "in-progress",
+    "in-progress": "in-progress",
+    "completed": "completed",
+    "brainstorm": "brainstorm",
+    "brainstorming": "brainstorm",
+    "on_hold": "on-hold",
+    "on-hold": "on-hold",
+  };
+  return map[status.toLowerCase()] || status.toLowerCase();
+};
+
 const normalizeListType = (listType: string | undefined): string => {
   if (!listType) return "custom";
   const normalizations: Record<string, string> = {
@@ -1824,8 +1841,8 @@ export default function Dashboard() {
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 <Search className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
-                <p>No lists found matching "{searchQuery}"</p>
-                <p className="text-sm mt-1">Try a different search term</p>
+                <p>{searchQuery.trim() ? `No lists found matching "${searchQuery}"` : "No lists match the selected filters"}</p>
+                <p className="text-sm mt-1">{searchQuery.trim() ? "Try a different search term" : "Try adjusting your filters"}</p>
               </div>
             )}
           </div>
