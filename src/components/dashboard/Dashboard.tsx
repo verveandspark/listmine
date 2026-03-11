@@ -851,6 +851,13 @@ export default function Dashboard() {
   const favoriteLists = accountFilteredLists.filter(
     (list) => list.isFavorite && !list.isArchived && !list.title.startsWith("[Archived]")
   );
+  // Compute recent lists sorted by last updated
+  const recentLists = useMemo(() => {
+    return [...accountFilteredLists]
+      .filter(list => !list.isArchived && !list.title.startsWith(\"[Archived]\"))
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      .slice(0, 5);
+  }, [accountFilteredLists]);
   // Shared lists should ONLY show in personal mode, never in team mode
   const sharedLists = currentAccount?.type === 'personal' 
     ? lists.filter((list) => list.isGuestAccess)
@@ -2223,7 +2230,7 @@ export default function Dashboard() {
         </div>
         )}
 
-        {/* My Guest Access Lists Section - Lists where user has guest edit access */}
+        {/* Recent Lists Section */}\n        {!searchQuery.trim() && recentLists.length > 0 && (\n          <div className=\"mb-6 sm:mb-8\">\n            <div className=\"flex items-center justify-between mb-4\">\n              <h2 className=\"text-base sm:text-lg font-semibold text-foreground flex items-center gap-2\">\n                <Clock className=\"w-5 h-5 text-secondary\" />\n                Recently Updated\n              </h2>\n              <Button\n                variant=\"ghost\"\n                size=\"sm\"\n                className=\"text-sm text-muted-foreground hover:text-foreground\"\n                onClick={() => {\n                  const categoriesSection = document.getElementById(\"categories-section\");\n                  if (categoriesSection) categoriesSection.scrollIntoView({ behavior: \"smooth\" });\n                }}\n              >\n                See all lists →\n              </Button>\n            </div>\n            <div className=\"grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-2\">\n              {recentLists.map((list, index) => {\n                const Icon = categoryIcons[list.category] || ListChecks;\n                const itemCount = Math.max(0, list.items?.length || 0);\n                const completedItems = Math.max(0, list.items?.filter(item => item.completed).length || 0);\n                return (\n                  <Card\n                    key={list.id}\n                    className=\"hover:shadow-lg hover:bg-primary/5 transition-all cursor-pointer group relative animate-slide-up\"\n                    style={{ animationDelay: `${index * 50}ms` }}\n                    onClick={() => {\n                      localStorage.setItem(\"last_list_id\", list.id);\n                      navigate(`/list/${list.id}`);\n                    }}\n                  >\n                    <CardContent className=\"p-4\">\n                      <div className=\"flex items-start gap-3\">\n                        <div className=\"p-2 rounded-lg bg-primary/10 flex-shrink-0\">\n                          <Icon className=\"w-4 h-4 text-primary\" />\n                        </div>\n                        <div className=\"flex-1 min-w-0\">\n                          <h3 className=\"font-medium text-sm truncate\">{list.title}</h3>\n                          <p className=\"text-xs text-muted-foreground\">{list.category} · {normalizeListType(list.listType)}</p>\n                          <div className=\"flex items-center justify-between mt-2\">\n                            <span className=\"text-xs text-muted-foreground\">{itemCount} items</span>\n                            <span className=\"text-xs text-muted-foreground\">{completedItems} completed</span>\n                          </div>\n                          <div className=\"flex items-center gap-1 mt-1\">\n                            <Clock className=\"w-3 h-3 text-muted-foreground\" />\n                            <span className=\"text-xs text-muted-foreground\">\n                              Updated {new Date(list.updatedAt).toLocaleDateString()}\n                            </span>\n                          </div>\n                        </div>\n                      </div>\n                    </CardContent>\n                  </Card>\n                );\n              })}\n            </div>\n          </div>\n        )}\n\n        {/* My Guest Access Lists Section - Lists where user has guest edit access */}
         {!searchQuery.trim() && (
         <div className="mb-6 sm:mb-8">
           <h2 className="text-base sm:text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
@@ -2329,7 +2336,7 @@ export default function Dashboard() {
 
         {/* Categories Section - Only visible in Dashboard view and not when searching */}
         {viewMode === "dashboard" && !searchQuery.trim() && (
-        <div className="mb-6 sm:mb-8 mt-8">{/* Added mt-8 for vertical spacing */}
+        <div className="mb-6 sm:mb-8 mt-8" id="categories-section">{/* Added mt-8 for vertical spacing */}
           <h2 className="text-base sm:text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
             <Layers className="w-5 h-5 text-primary" />
             Categories
