@@ -5576,6 +5576,7 @@ export default function ListDetail() {
                 <SelectContent>
                   <SelectItem value="custom">Custom</SelectItem>
                   <SelectItem value="todo-list">To-Do List</SelectItem>
+                  <SelectItem value="checklist">Checklist</SelectItem>
                   <SelectItem value="grocery-list">Grocery List</SelectItem>
                   <SelectItem value="registry-list">Registry</SelectItem>
                   <SelectItem value="shopping-list">Shopping List</SelectItem>
