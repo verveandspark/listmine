@@ -856,7 +856,7 @@ export default function Dashboard() {
     return [...accountFilteredLists]
       .filter(list => !list.isArchived && !list.title.startsWith("[Archived]"))
       .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-      .slice(0, 5);
+      .slice(0, 6);
   }, [accountFilteredLists]);
   // Shared lists should ONLY show in personal mode, never in team mode
   const sharedLists = currentAccount?.type === 'personal' 
@@ -1963,117 +1963,6 @@ export default function Dashboard() {
                           </DropdownMenuContent>
                         </DropdownMenu>
                       )}
-                      <DropdownMenu open={exportDropdownOpen === `fav-${list.id}`} onOpenChange={(open) => setExportDropdownOpen(open ? `fav-${list.id}` : null)}>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <DropdownMenuTrigger asChild>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7 rounded-full bg-muted hover:bg-primary/10 transition-colors"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <Download className="w-3.5 h-3.5" />
-                                </Button>
-                              </TooltipTrigger>
-                            </DropdownMenuTrigger>
-                            <TooltipContent>Export</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        <DropdownMenuContent onClick={(e) => e.stopPropagation()}>
-                          {canExportLists(effectiveTier) ? (
-                            <>
-                              {getAvailableExportFormats(effectiveTier).map((format) => (
-                                <DropdownMenuItem
-                                  key={format}
-                                  onClick={(e) => handleQuickExport(e as any, list.id, format)}
-                                >
-                                  Export as {format.toUpperCase()}
-                                </DropdownMenuItem>
-                              ))}
-                            </>
-                          ) : (
-                            <DropdownMenuItem onClick={() => navigate("/upgrade")}>
-                              <Crown className="w-4 h-4 mr-2" />
-                              Upgrade to Export
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 rounded-full bg-muted hover:bg-accent/20 transition-colors"
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                const archivedTitle = list.title.startsWith("[Archived]") 
-                                  ? list.title 
-                                  : `[Archived] ${list.title}`;
-                                
-                                try {
-                                  await updateList(list.id, { title: archivedTitle });
-                                  toast({
-                                    title: "List archived",
-                                    description: `"${list.title}" has been archived and hidden from your dashboard`,
-                                  });
-                                } catch (error) {
-                                  console.error("Error archiving list:", error);
-                                  toast({
-                                    title: "Error",
-                                    description: "Failed to archive list",
-                                    variant: "destructive",
-                                  });
-                                }
-                              }}
-                            >
-                              <Archive className="w-3.5 h-3.5 text-accent" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Archive list (hide from dashboard)</TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                      {list.isArchived && (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 rounded-full bg-accent/10 hover:bg-accent/20 transition-colors"
-                                onClick={(e) => handleUnarchive(e, list.id)}
-                              >
-                                <ArchiveRestore className="w-3.5 h-3.5 text-accent" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Restore from Archive</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      )}
-                      {lists.length >= 2 && (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 rounded-full bg-muted hover:bg-accent/20 transition-colors"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setMergeSourceListId(list.id);
-                                  setIsMergeModalOpen(true);
-                                }}
-                              >
-                                <Merge className="w-3.5 h-3.5 text-accent" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Merge with another list</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      )}
                       <AlertDialog>
                         <TooltipProvider>
                           <Tooltip>
@@ -2136,84 +2025,23 @@ export default function Dashboard() {
                       </AlertDialog>
                     </div>
 
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className={`w-10 h-10 rounded-lg ${categoryColors[list.category]} flex items-center justify-center`}
-                          >
-                            <Icon className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <CardTitle className="text-lg flex items-center gap-2">
-                              {list.title}
-                            </CardTitle>
-                            <CardDescription>
-                              {list.category} ·{" "}
-                              {list.listType}
-                            </CardDescription>
-                          </div>
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 rounded-lg bg-primary/10 flex-shrink-0">
+                          <Icon className="w-4 h-4 text-primary" />
                         </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">
-                            {itemCount} items
-                          </span>
-                          <span className="text-muted-foreground">
-                            {completedItems} completed
-                          </span>
-                        </div>
-                        {itemCount > 0 && (
-                          <div className="w-full bg-muted rounded-full h-1.5">
-                            <div
-                              className="bg-primary h-1.5 rounded-full transition-all"
-                              style={{
-                                width: `${(completedItems / itemCount) * 100}%`,
-                              }}
-                            />
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium text-sm truncate">{list.title}</h3>
+                          <p className="text-xs text-muted-foreground">{list.category} - {normalizeListType(list.listType)}</p>
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="text-xs text-muted-foreground">{itemCount} items</span>
+                            <span className="text-xs text-muted-foreground">{completedItems} completed</span>
                           </div>
-                        )}
-                        <div className="flex items-center justify-between pt-2">
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Clock className="w-3 h-3" />
-                            <span>Updated {getTimeAgo(list.updatedAt)}{list.lastEditedByEmail && ` by ${list.lastEditedByEmail.split('@')[0]}`}</span>
-                          </div>
-                          <div className="flex gap-1">
-                            {list.isShared && canShareLists(effectiveTier) && (
-                              <div className="flex items-center gap-1">
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Badge
-                                        variant="outline"
-                                        className="bg-primary/10 border-primary/20 text-xs cursor-pointer hover:bg-primary/20"
-                                        onClick={(e) => handleQuickShare(e, list.id, true)}
-                                      >
-                                        <Share2 className="w-3 h-3 mr-1 text-primary" />
-                                        <span className="text-primary underline">Shared</span>
-                                      </Badge>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>
-                                        {list.shareMode === 'view_only' 
-                                          ? "Shared link active: View only"
-                                          : "Shared link active: Importable (copy)"}
-                                      </p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                                <Badge
-                                  variant="outline"
-                                  className="bg-red-50 border-red-200 text-xs cursor-pointer hover:bg-red-100"
-                                  onClick={(e) => handleQuickUnshare(e, list.id)}
-                                >
-                                  <Link2Off className="w-3 h-3 text-red-600" />
-                                </Badge>
-                              </div>
-                            )}
+                          <div className="flex items-center gap-1 mt-1">
+                            <Clock className="w-3 h-3 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">
+                              Updated {getTimeAgo(list.updatedAt)}{list.lastEditedByEmail && ` by ${list.lastEditedByEmail.split('@')[0]}`}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -2242,12 +2070,9 @@ export default function Dashboard() {
                 variant="ghost"
                 size="sm"
                 className="text-sm text-muted-foreground hover:text-foreground"
-                onClick={() => {
-                  const categoriesSection = document.getElementById("categories-section");
-                  if (categoriesSection) categoriesSection.scrollIntoView({ behavior: "smooth" });
-                }}
+                onClick={() => setViewMode("list")}
               >
-                See all lists â
+                See all lists <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-2">
@@ -2272,7 +2097,7 @@ export default function Dashboard() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="font-medium text-sm truncate">{list.title}</h3>
-                          <p className="text-xs text-muted-foreground">{list.category} Â· {normalizeListType(list.listType)}</p>
+                          <p className="text-xs text-muted-foreground">{list.category} - {normalizeListType(list.listType)}</p>
                           <div className="flex items-center justify-between mt-2">
                             <span className="text-xs text-muted-foreground">{itemCount} items</span>
                             <span className="text-xs text-muted-foreground">{completedItems} completed</span>
@@ -2324,6 +2149,21 @@ export default function Dashboard() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            className={`h-7 w-7 rounded-full ${list.isFavorite ? 'bg-muted hover:bg-primary/10' : 'bg-muted hover:bg-primary/10'} transition-colors`}
+                            onClick={(e) => handleToggleFavorite(e, list.id)}
+                          >
+                            <Star className={`w-3.5 h-3.5 ${list.isFavorite ? 'text-amber-500 fill-amber-500' : 'text-muted-foreground'}`} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>{list.isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             className="h-7 w-7 rounded-full bg-muted hover:bg-primary/10 transition-colors"
                             onClick={(e) => openEditDialog(list, e)}
                           >
@@ -2333,6 +2173,108 @@ export default function Dashboard() {
                         <TooltipContent>Edit</TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
+                    {canShareLists(effectiveTier) && (
+                      <DropdownMenu>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <DropdownMenuTrigger asChild>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className={`h-7 w-7 rounded-full transition-colors ${list.isShared ? "bg-primary/10 hover:bg-primary/20" : "bg-muted hover:bg-primary/10"}`}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Share2 className={`w-3.5 h-3.5 ${list.isShared ? "text-primary" : ""}`} />
+                                </Button>
+                              </TooltipTrigger>
+                            </DropdownMenuTrigger>
+                            <TooltipContent>{list.isShared ? "Share Options" : "Share"}</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <DropdownMenuContent onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenuItem onClick={(e) => { handleQuickShare(e as any, list.id, list.isShared || false); }}>
+                            <Share2 className="w-4 h-4 mr-2" />
+                            {list.isShared ? "Share Settings" : "Share options"}
+                          </DropdownMenuItem>
+                          {canInviteGuests(effectiveTier) && (
+                            <DropdownMenuItem onClick={() => { setSelectedListForGuests(list.id); setIsGuestManagementOpen(true); }}>
+                              <Users className="w-4 h-4 mr-2" />
+                              Manage Guests
+                            </DropdownMenuItem>
+                          )}
+                          {canHaveTeamMembers(effectiveTier) && (
+                            <DropdownMenuItem onClick={() => setIsTeamManagementOpen(true)}>
+                              <Users className="w-4 h-4 mr-2" />
+                              Manage Team
+                            </DropdownMenuItem>
+                          )}
+                          {list.isShared && canShareLists(effectiveTier) && (
+                            <DropdownMenuItem onClick={(e) => handleQuickUnshare(e as any, list.id)} className="text-red-600">
+                              <Link2Off className="w-4 h-4 mr-2" />
+                              Unshare List
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                    <AlertDialog>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <AlertDialogTrigger asChild>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 rounded-full bg-muted hover:bg-destructive/20 transition-colors"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                              </Button>
+                            </TooltipTrigger>
+                          </AlertDialogTrigger>
+                          <TooltipContent>Delete</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete list?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will delete "{list.title}" and all its items.
+                            You can undo this action for a few seconds.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={async () => {
+                              const listData = {
+                                ...list,
+                                items: list.items.map(item => ({ ...item })),
+                              };
+                              await executeWithUndo(
+                                `delete-list-${list.id}`,
+                                listData,
+                                async () => {
+                                  await deleteList(list.id);
+                                },
+                                async (data) => {
+                                  await restoreList(data);
+                                },
+                                {
+                                  title: "List deleted",
+                                  description: `"${list.title}" has been removed`,
+                                  undoDescription: `"${list.title}" has been restored`,
+                                }
+                              );
+                            }}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
 
                   <CardHeader className="pb-3">
