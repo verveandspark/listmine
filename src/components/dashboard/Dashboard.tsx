@@ -1725,7 +1725,7 @@ export default function Dashboard() {
                       }}
                     >
                       {/* Quick Actions - shown on hover */}
-                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-200 flex flex-wrap gap-1.5 z-10 bg-white/95 backdrop-blur-sm rounded-lg p-1.5 shadow-lg border border-gray-100 max-w-[140px] justify-end">
+                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-200 flex flex-nowrap gap-1 z-10 bg-white/95 backdrop-blur-sm rounded-lg p-1.5 shadow-lg border border-gray-100 justify-end">
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -1886,7 +1886,7 @@ export default function Dashboard() {
                     }}
                   >
                     {/* Quick Actions - shown on hover */}
-                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-200 flex flex-wrap gap-1.5 z-10 bg-white/95 backdrop-blur-sm rounded-lg p-1.5 shadow-lg border border-gray-100 max-w-[140px] justify-end">
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-200 flex flex-nowrap gap-1 z-10 bg-white/95 backdrop-blur-sm rounded-lg p-1.5 shadow-lg border border-gray-100 justify-end">
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -2070,7 +2070,7 @@ export default function Dashboard() {
                 variant="ghost"
                 size="sm"
                 className="text-sm text-muted-foreground hover:text-foreground"
-                onClick={() => setViewMode("list")}
+                onClick={() => handleViewModeChange("list")}
               >
                 See all lists <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
@@ -2142,7 +2142,7 @@ export default function Dashboard() {
                   }}
                 >
                   {/* Quick Actions - shown on hover */}
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-200 flex flex-wrap gap-1.5 z-10 bg-white/95 backdrop-blur-sm rounded-lg p-1.5 shadow-lg border border-gray-100 max-w-[140px] justify-end">
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-200 flex flex-nowrap gap-1 z-10 bg-white/95 backdrop-blur-sm rounded-lg p-1.5 shadow-lg border border-gray-100 justify-end">
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
