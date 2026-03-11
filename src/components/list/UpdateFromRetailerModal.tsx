@@ -52,7 +52,11 @@ export default function UpdateFromRetailerModal({
   onAddItems,
   onUpdateItems,
 }: UpdateFromRetailerModalProps) {
-  const [url, setUrl] = useState("");
+  const [url, setUrl] = useState(() => {
+    if (list.source?.startsWith('theknot:')) return list.source.replace(/^theknot:/, '');
+    if (list.source?.startsWith('myregistry:')) return list.source.replace(/^myregistry:/, '');
+    return "";
+  });
   const [loading, setLoading] = useState(false);
   const [comparing, setComparing] = useState(false);
   const [compareResult, setCompareResult] = useState<CompareResult | null>(null);
@@ -269,7 +273,14 @@ export default function UpdateFromRetailerModal({
         <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
           {/* URL Input */}
           <div className="space-y-2">
-            <Label htmlFor="retailer-url">Retailer Wishlist URL</Label>
+            <Label htmlFor="retailer-url">
+              Retailer Wishlist URL
+              {!list.source && (
+                <span className="text-xs text-muted-foreground font-normal ml-2">
+                  Tip: paste your wishlist URL from Amazon, Target, etc.
+                </span>
+              )}
+            </Label>
             <div className="flex gap-2">
               <Input
                 id="retailer-url"
