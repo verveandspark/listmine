@@ -1216,14 +1216,19 @@ export function ListProvider({ children }: { children: ReactNode }) {
         });
         if (rpcError) throw new Error(rpcError.message);
         // Re-fetch the new list by title to get its ID
-        const { data: fetchedList, error: fetchError } = await supabase
+        const fetchQuery = supabase
           .from("lists")
           .select("id")
-          .eq("user_id", user.id)
           .eq("title", newTitle)
           .order("created_at", { ascending: false })
-          .limit(1)
-          .single();
+          .limit(1);
+        // For team lists, search by account_id; for personal, by user_id
+        if (sourceList.accountId) {
+          fetchQuery.eq("account_id", sourceList.accountId);
+        } else {
+          fetchQuery.eq("user_id", user.id);
+        }
+        const { data: fetchedList, error: fetchError } = await fetchQuery.single();
         if (fetchError || !fetchedList) throw new Error("Failed to retrieve duplicated list");
         // Continue with items using fetchedList.id
         if (includeItems && sourceList.items?.length > 0) {
