@@ -140,7 +140,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/lib/supabase";
-import { canInviteGuests, canHaveTeamMembers, canShareLists, canExportLists, getAvailableExportFormats, type UserTier } from "@/lib/tierUtils";
+import { canInviteGuests, canHaveTeamMembers, canShareLists, canExportLists, getAvailableExportFormats, isPaidTier, type UserTier } from "@/lib/tierUtils";
 import ShareSettingsModal from "./ShareSettingsModal";
 
 import { normalizeListType } from "@/lib/normalizeListType";
