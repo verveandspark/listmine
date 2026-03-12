@@ -1204,7 +1204,56 @@ export function ListProvider({ children }: { children: ReactNode }) {
       }])
       .select()
       .single();
-    if (listError) throw new Error(listError.message);
+    if (listError) {
+      // RLS fallback - use SECURITY DEFINER function
+      if (listError.message.includes("row-level security") || listError.code === "42501") {
+        const { data: rpcData, error: rpcError } = await supabase.rpc('create_list_for_user', {
+          p_user_id: user.id,
+          p_list_name: newTitle,
+          p_category: sourceList.category,
+          p_list_type: sourceList.listType,
+          p_account_id: sourceList.accountId || null,
+        });
+        if (rpcError) throw new Error(rpcError.message);
+        // Re-fetch the new list by title to get its ID
+        const { data: fetchedList, error: fetchError } = await supabase
+          .from("lists")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("title", newTitle)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single();
+        if (fetchError || !fetchedList) throw new Error("Failed to retrieve duplicated list");
+        // Continue with items using fetchedList.id
+        if (includeItems && sourceList.items?.length > 0) {
+          const itemsToInsert = sourceList.items.map((item: any) => {
+            const attrs = resetStatuses ? { ...item.attributes, status: undefined } : item.attributes;
+            return {
+              list_id: fetchedList.id,
+              text: item.text,
+              notes: item.notes || null,
+              priority: item.priority || null,
+              due_date: item.dueDate ? new Date(item.dueDate).toISOString() : null,
+              assigned_to: item.assignedTo || null,
+              completed: resetStatuses ? false : (item.completed || false),
+              quantity: item.quantity || null,
+              links: item.links || [],
+              attributes: attrs || null,
+              is_unavailable: item.isUnavailable || false,
+              item_order: item.itemOrder ?? item.item_order ?? 0,
+              last_edited_by_user_id: user.id,
+              last_edited_by_email: user.email || null,
+              last_edited_at: new Date().toISOString(),
+            };
+          });
+          await supabase.from("list_items").insert(itemsToInsert);
+        }
+        await loadLists();
+        return fetchedList.id;
+      }
+      throw new Error(listError.message);
+    }
 
     // Copy items if requested
     if (includeItems && sourceList.items?.length > 0) {
