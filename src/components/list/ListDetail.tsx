@@ -300,6 +300,8 @@ export default function ListDetail() {
     return uniqueSections.size >= 1;
   }, [list?.items]);
   
+  const sectionsActive = isSectioned || customSections.length > 0;
+  
   // Check if list is categorized (grocery lists use category attribute)
   const isCategorized = useMemo(() => {
     if (!list?.items) return false;
@@ -559,8 +561,6 @@ export default function ListDetail() {
     return Array.from(combined).sort();
   }, [availableSections, customSections]);
 
-  const sectionsActive = isSectioned || customSections.length > 0;
-  
   // Get items grouped by section for template-based lists
   const getGroupedSectionItems = useMemo(() => {
     if (!list?.items) return {};
