@@ -300,7 +300,7 @@ export default function ListDetail() {
     return uniqueSections.size >= 1;
   }, [list?.items]);
   
-  const sectionsActive = isSectioned || customSections.length > 0;
+  const [customSections, setCustomSections] = useState<string[]>([]);\n  \n  const sectionsActive = isSectioned || customSections.length > 0;
   
   // Check if list is categorized (grocery lists use category attribute)
   const isCategorized = useMemo(() => {
@@ -472,7 +472,7 @@ export default function ListDetail() {
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   
   // Section management state (for template-based lists) - list-specific
-  const [customSections, setCustomSections] = useState<string[]>([]);
+
   const [templateSectionsOrder, setTemplateSectionsOrder] = useState<string[]>([]);
   const [editingSectionName, setEditingSectionName] = useState<string | null>(null);
   const [editedSectionValue, setEditedSectionValue] = useState<string>("");
