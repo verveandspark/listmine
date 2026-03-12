@@ -437,6 +437,11 @@ export default function ListDetail() {
   const [itemSortBy, setItemSortBy] = useState<
     "manual" | "priority" | "dueDate" | "alphabetical" | "status"
   >("manual");
+
+  // Reset sort to manual when navigating to a different list
+  useEffect(() => {
+    setItemSortBy("manual");
+  }, [list?.id]);
   const [showItemLimitError, setShowItemLimitError] = useState(false);
   const [detailedMode, setDetailedMode] = useState(false);
   const [itemLimitReached, setItemLimitReached] = useState(false);
