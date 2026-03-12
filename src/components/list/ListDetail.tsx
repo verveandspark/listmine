@@ -2276,7 +2276,7 @@ export default function ListDetail() {
                       <SelectValue placeholder="Select section" />
                     </SelectTrigger>
                     <SelectContent>
-                      {availableSections.map((section) => (
+                      {allAvailableSections.map((section) => (
                         <SelectItem key={section} value={section}>
                           {section}
                         </SelectItem>
@@ -3881,7 +3881,7 @@ export default function ListDetail() {
             <SelectValue placeholder="Section" />
           </SelectTrigger>
           <SelectContent>
-            {availableSections.map((s) => (
+            {allAvailableSections.map((s) => (
               <SelectItem key={s} value={s}>{s}</SelectItem>
             ))}
           </SelectContent>
@@ -5440,7 +5440,7 @@ export default function ListDetail() {
                   <Select value={newItemSection} onValueChange={setNewItemSection}>
                     <SelectTrigger><SelectValue placeholder="Select section" /></SelectTrigger>
                     <SelectContent>
-                      {availableSections.map((s) => (<SelectItem key={s} value={s}>{s}</SelectItem>))}
+                      {allAvailableSections.map((s) => (<SelectItem key={s} value={s}>{s}</SelectItem>))}
                     </SelectContent>
                   </Select>
                 </div>
