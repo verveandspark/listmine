@@ -84,6 +84,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -220,6 +221,7 @@ export default function ListDetail() {
     refreshLists,
     unarchiveList,
     toggleFavorite,
+    duplicateList,
   } = useLists();
   const { toast } = useToast();
   const { executeWithUndo } = useUndoAction();
@@ -452,6 +454,11 @@ export default function ListDetail() {
   const [isShareSettingsOpen, setIsShareSettingsOpen] = useState(false);
   const [isUpdateFromRetailerOpen, setIsUpdateFromRetailerOpen] = useState(false);
   const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
+  const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
+  const [duplicateTitle, setDuplicateTitle] = useState("");
+  const [duplicateIncludeItems, setDuplicateIncludeItems] = useState(true);
+  const [duplicateResetStatuses, setDuplicateResetStatuses] = useState(false);
+  const [isDuplicating, setIsDuplicating] = useState(false);
   
   // Tags section collapsed state
   const [isTagsSectionOpen, setIsTagsSectionOpen] = useState(false);
@@ -1400,6 +1407,20 @@ export default function ListDetail() {
       }
     } else {
       navigate("/dashboard");
+    }
+  };
+
+  const handleDuplicate = async () => {
+    if (!duplicateTitle.trim() || isDuplicating) return;
+    setIsDuplicating(true);
+    try {
+      const newId = await duplicateList(list.id, duplicateTitle.trim(), duplicateIncludeItems, duplicateResetStatuses);
+      setIsDuplicateModalOpen(false);
+      navigate(`/list/${newId}`);
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setIsDuplicating(false);
     }
   };
 
@@ -3061,7 +3082,7 @@ export default function ListDetail() {
                   )}
                 </div>
 
-                {/* Group 2 - Social (border-r): Favorite, Share */}
+                {/* Group 2 - Social (border-r): Favorite, Duplicate, Share */}
                 <div className="flex items-center gap-1 px-2 border-r border-gray-200">
                   {/* Favorite Toggle */}
                   <TooltipProvider>
@@ -3085,7 +3106,25 @@ export default function ListDetail() {
                       <TooltipContent>{list.isFavorite ? "Remove from Favorites" : "Add to Favorites"}</TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
-                  {/* Share dropdown - only show for owners with paid tier */}
+                  {/* Duplicate List */}
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-9 w-9"
+                          onClick={() => {
+                            setDuplicateTitle(`${list.title} (Copy)`);
+                            setIsDuplicateModalOpen(true);
+                          }}
+                        >
+                          <Copy className="w-4 h-4 text-gray-600" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Duplicate list</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                   {isOwner && canShareLists(effectiveTier) && (
                     <DropdownMenu>
                       <TooltipProvider>
@@ -3485,6 +3524,19 @@ export default function ListDetail() {
                     >
                       <Star className={`w-4 h-4 mr-2 ${list.isFavorite ? "text-amber-500 fill-amber-500" : ""}`} />
                       {list.isFavorite ? "Remove from Favorites" : "Add to Favorites"}
+                    </Button>
+                    {/* Duplicate List - Mobile */}
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setDuplicateTitle(`${list.title} (Copy)`);
+                        setIsDuplicateModalOpen(true);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="w-full justify-start min-h-[44px]"
+                    >
+                      <Copy className="w-4 h-4 mr-2" />
+                      Duplicate List
                     </Button>
                     {/* Mobile share buttons - only for owners with paid tier */}
                     {isOwner && canShareLists(effectiveTier) && (
@@ -5910,6 +5962,55 @@ export default function ListDetail() {
               </div>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Duplicate List Dialog */}
+      <Dialog open={isDuplicateModalOpen} onOpenChange={setIsDuplicateModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Duplicate List</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label>New list name</Label>
+              <Input
+                value={duplicateTitle}
+                onChange={(e) => setDuplicateTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || (e.key === "Enter" && (e.metaKey || e.ctrlKey))) {
+                    handleDuplicate();
+                  }
+                }}
+                autoFocus
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="includeItems"
+                checked={duplicateIncludeItems}
+                onCheckedChange={(checked) => setDuplicateIncludeItems(checked as boolean)}
+              />
+              <label htmlFor="includeItems" className="text-sm">Include items</label>
+            </div>
+            {duplicateIncludeItems && (
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="resetStatuses"
+                  checked={duplicateResetStatuses}
+                  onCheckedChange={(checked) => setDuplicateResetStatuses(checked as boolean)}
+                />
+                <label htmlFor="resetStatuses" className="text-sm">Reset item statuses (uncheck completed, clear statuses)</label>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDuplicateModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleDuplicate} disabled={!duplicateTitle.trim() || isDuplicating}>
+              {isDuplicating ? "Duplicating..." : "Duplicate"}
+            </Button>
+          </DialogFooter>
+          <p className="text-xs text-muted-foreground text-right">Press Enter or Cmd/Ctrl+Enter to duplicate</p>
         </DialogContent>
       </Dialog>
     </div>

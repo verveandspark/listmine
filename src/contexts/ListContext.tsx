@@ -58,6 +58,7 @@ interface ListContextType {
     listType: ListType,
     accountId?: string | null,
   ) => Promise<string>;
+  duplicateList: (listId: string, newTitle: string, includeItems: boolean, resetStatuses: boolean) => Promise<string>;
   updateList: (id: string, updates: Partial<List>) => Promise<void>;
   deleteList: (id: string) => Promise<void>;
   restoreList: (listData: any) => Promise<void>;
@@ -1179,6 +1180,62 @@ export function ListProvider({ children }: { children: ReactNode }) {
       }
       throw error;
     }
+  };
+
+  const duplicateList = async (
+    listId: string,
+    newTitle: string,
+    includeItems: boolean,
+    resetStatuses: boolean,
+  ): Promise<string> => {
+    if (!user) throw new Error("User not authenticated");
+    const sourceList = lists.find((l) => l.id === listId);
+    if (!sourceList) throw new Error("List not found");
+
+    // Create new list
+    const { data: newList, error: listError } = await supabase
+      .from("lists")
+      .insert([{
+        user_id: user.id,
+        title: newTitle,
+        category: sourceList.category,
+        list_type: sourceList.listType,
+        account_id: sourceList.accountId || null,
+      }])
+      .select()
+      .single();
+    if (listError) throw new Error(listError.message);
+
+    // Copy items if requested
+    if (includeItems && sourceList.items?.length > 0) {
+      const itemsToInsert = sourceList.items.map((item: any) => {
+        const attrs = resetStatuses
+          ? { ...item.attributes, status: undefined }
+          : item.attributes;
+        return {
+          list_id: newList.id,
+          text: item.text,
+          notes: item.notes || null,
+          priority: item.priority || null,
+          due_date: item.dueDate ? new Date(item.dueDate).toISOString() : null,
+          assigned_to: item.assignedTo || null,
+          completed: resetStatuses ? false : (item.completed || false),
+          quantity: item.quantity || null,
+          links: item.links || [],
+          attributes: attrs || null,
+          is_unavailable: item.isUnavailable || false,
+          item_order: item.itemOrder ?? item.item_order ?? 0,
+          last_edited_by_user_id: user.id,
+          last_edited_by_email: user.email || null,
+          last_edited_at: new Date().toISOString(),
+        };
+      });
+      const { error: itemsError } = await supabase.from("list_items").insert(itemsToInsert);
+      if (itemsError) throw new Error(itemsError.message);
+    }
+
+    await loadLists();
+    return newList.id;
   };
 
   const updateList = async (listId: string, updates: Partial<List>) => {
@@ -3106,6 +3163,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
     lists,
     hasLoadedOnce,
     addList,
+    duplicateList,
     updateList,
     deleteList,
     restoreList,
