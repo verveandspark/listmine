@@ -300,7 +300,9 @@ export default function ListDetail() {
     return uniqueSections.size >= 1;
   }, [list?.items]);
   
-  const [customSections, setCustomSections] = useState<string[]>([]);\n  \n  const sectionsActive = isSectioned || customSections.length > 0;
+  const [customSections, setCustomSections] = useState<string[]>([]);
+
+  const sectionsActive = isSectioned || customSections.length > 0;
   
   // Check if list is categorized (grocery lists use category attribute)
   const isCategorized = useMemo(() => {
