@@ -1909,6 +1909,14 @@ export default function ListDetail() {
             });
           case "alphabetical":
             return group.sort((a, b) => a.text.localeCompare(b.text));
+          case "status": {
+            const statusOrder: Record<string, number> = { "in-progress": 0, "in_progress": 0, "not-started": 1, "not_started": 1, "": 1, "completed": 2 };
+            return group.sort((a, b) => {
+              const aStatus = a.attributes?.status || "not-started";
+              const bStatus = b.attributes?.status || "not-started";
+              return (statusOrder[aStatus] ?? 99) - (statusOrder[bStatus] ?? 99);
+            });
+          }
           case "manual":
           default:
             return group.sort((a, b) => a.order - b.order);
@@ -1935,6 +1943,27 @@ export default function ListDetail() {
         });
       case "alphabetical":
         return items.sort((a, b) => a.text.localeCompare(b.text));
+      case "status": {
+        const statusOrder: Record<string, number> = isIdea
+          ? { "in-progress": 0, "in_progress": 0, "brainstorm": 1, "brainstorming": 1, "on-hold": 2, "on_hold": 2, "completed": 3 }
+          : isShopping
+          ? { "not-purchased": 0, "not_purchased": 0, "": 0, "purchased": 1 }
+          : { "in-progress": 0, "in_progress": 0, "not-started": 1, "not_started": 1, "": 1, "completed": 2 };
+        return items.sort((a, b) => {
+          let aStatus: string;
+          let bStatus: string;
+          if (isShopping) {
+            aStatus = a.completed ? "purchased" : "not-purchased";
+            bStatus = b.completed ? "purchased" : "not-purchased";
+          } else {
+            aStatus = a.attributes?.status || (isIdea ? "brainstorm" : "not-started");
+            bStatus = b.attributes?.status || (isIdea ? "brainstorm" : "not-started");
+          }
+          const aOrder = statusOrder[aStatus] ?? 99;
+          const bOrder = statusOrder[bStatus] ?? 99;
+          return aOrder - bOrder;
+        });
+      }
       case "manual":
       default:
         return items.sort((a, b) => a.order - b.order);
@@ -4017,6 +4046,9 @@ export default function ListDetail() {
                           <SelectItem value="priority">Priority</SelectItem>
                           <SelectItem value="dueDate">Due Date</SelectItem>
                         </>
+                      )}
+                      {(isTodo || isIdea || isShopping) && (
+                        <SelectItem value="status">Status</SelectItem>
                       )}
                     </>
                   )}
