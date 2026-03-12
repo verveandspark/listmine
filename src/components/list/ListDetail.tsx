@@ -436,9 +436,7 @@ export default function ListDetail() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [itemSortBy, setItemSortBy] = useState<
     "manual" | "priority" | "dueDate" | "alphabetical" | "status"
-  >(() => {
-    return (localStorage.getItem("itemSortBy") as any) || "manual";
-  });
+  >("manual");
   const [showItemLimitError, setShowItemLimitError] = useState(false);
   const [detailedMode, setDetailedMode] = useState(false);
   const [itemLimitReached, setItemLimitReached] = useState(false);
@@ -1875,7 +1873,7 @@ export default function ListDetail() {
 
   const handleItemSortChange = (value: string) => {
     setItemSortBy(value as any);
-    localStorage.setItem("itemSortBy", value);
+    // Sort preference is per-session, not persisted
   };
 
   const getSortedItems = () => {
