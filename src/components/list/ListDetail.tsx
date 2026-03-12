@@ -3216,7 +3216,7 @@ export default function ListDetail() {
 
                 {/* Group 3 - Edit (border-r): Add Section, Bulk Select, Edit List */}
                 <div className="flex items-center gap-1 px-2 border-r border-gray-200">
-                  {isPaidTier(effectiveTier) && canEditListItems && (
+                  {isPaidTier(effectiveTier) && canEditListItems && !isRegistryOrWishlistType && (
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -3664,7 +3664,7 @@ export default function ListDetail() {
                       </>
                     )}
 
-                    {isPaidTier(effectiveTier) && canEditListItems && (
+                    {isPaidTier(effectiveTier) && canEditListItems && !isRegistryOrWishlistType && (
                       <Button variant="outline" onClick={() => { setIsAddingSectionOpen(true); setIsMobileMenuOpen(false); }} className="w-full justify-start min-h-[44px]">
                         <LayoutList className="w-4 h-4 mr-2" />Add Section
                       </Button>
