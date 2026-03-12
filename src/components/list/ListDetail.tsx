@@ -475,25 +475,21 @@ export default function ListDetail() {
   const [editingSectionName, setEditingSectionName] = useState<string | null>(null);
   const [editedSectionValue, setEditedSectionValue] = useState<string>("");
   const [isAddingSectionOpen, setIsAddingSectionOpen] = useState(false);
-  const [sectionModeEnabled, setSectionModeEnabled] = useState(() => {
-    if (!list?.id) return false;
-    const stored = localStorage.getItem(`section_mode_${list.id}`);
-    return stored === 'true';
-  });
   const [newSectionName, setNewSectionName] = useState<string>("");
   const [newSectionMode, setNewSectionMode] = useState<"empty" | "copy">("empty");
   const [copySectionSource, setCopySectionSource] = useState<string>("");
   const [deletingSectionName, setDeletingSectionName] = useState<string | null>(null);
   const [showDeleteSectionDialog, setShowDeleteSectionDialog] = useState(false);
   
-  useEffect(() => {
-    if (list?.id) {
-      localStorage.setItem(`section_mode_${list.id}`, sectionModeEnabled.toString());
-    }
-  }, [list?.id, sectionModeEnabled]);
-  
   // Section state for sectioned lists (todo/idea)
   const [newItemSection, setNewItemSection] = useState<string>("");
+
+  // Default newItemSection to "OTHER" when section mode is enabled and no section is set
+  useEffect(() => {
+    if (sectionsActive && (!newItemSection || newItemSection.trim() === "")) {
+      setNewItemSection("OTHER");
+    }
+  }, [sectionsActive, list?.id]);
   
   // Check if this is a template-based list
   const isTemplateBasedList = useMemo(() => {
@@ -543,7 +539,7 @@ export default function ListDetail() {
       const sortedItems = [...list.items].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
       
       sortedItems.forEach(item => {
-        const section = item.attributes?.section?.trim() || 'Uncategorized';
+        const section = item.attributes?.section?.trim() || 'OTHER';
         if (!seenSections.has(section)) {
           seenSections.add(section);
           orderedSections.push(section);
@@ -562,6 +558,8 @@ export default function ListDetail() {
     const combined = new Set([...availableSections, ...customSections]);
     return Array.from(combined).sort();
   }, [availableSections, customSections]);
+
+  const sectionsActive = isSectioned || customSections.length > 0;
   
   // Get items grouped by section for template-based lists
   const getGroupedSectionItems = useMemo(() => {
@@ -569,7 +567,7 @@ export default function ListDetail() {
     const grouped: { [key: string]: typeof list.items } = {};
     
     list.items.forEach(item => {
-      const section = item.attributes?.section?.trim() || 'Uncategorized';
+      const section = item.attributes?.section?.trim() || 'OTHER';
       if (!grouped[section]) {
         grouped[section] = [];
       }
@@ -2257,7 +2255,7 @@ export default function ListDetail() {
               </div>
 
               {/* Section dropdown - Only shown when list has sections */}
-              {(isSectioned || sectionModeEnabled) && (
+              {sectionsActive && (
                 <div className="space-y-2">
                   <Label>Section</Label>
                   <Select
@@ -3216,25 +3214,7 @@ export default function ListDetail() {
 
                 {/* Group 3 - Edit (border-r): Add Section, Bulk Select, Edit List */}
                 <div className="flex items-center gap-1 px-2 border-r border-gray-200">
-                  {!isSectioned && !sectionModeEnabled && isPaidTier(effectiveTier) && canEditListItems && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-9 w-9 p-0"
-                            onClick={() => setSectionModeEnabled(true)}
-                          >
-                            <LayoutList className="w-4 h-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Enable sections</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
-
-                  {(isSectioned || sectionModeEnabled) && canEditListItems && (
+                  {isPaidTier(effectiveTier) && canEditListItems && (
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -3682,7 +3662,7 @@ export default function ListDetail() {
                       </>
                     )}
 
-                    {(isSectioned || sectionModeEnabled) && canEditListItems && (
+                    {isPaidTier(effectiveTier) && canEditListItems && (
                       <Button variant="outline" onClick={() => { setIsAddingSectionOpen(true); setIsMobileMenuOpen(false); }} className="w-full justify-start min-h-[44px]">
                         <LayoutList className="w-4 h-4 mr-2" />Add Section
                       </Button>
@@ -3893,7 +3873,7 @@ export default function ListDetail() {
           {canEditListItems && (
   <Card className="p-3 mb-2 sm:mb-3 print:hidden">
     <div className="flex sm:flex-row flex-wrap items-center gap-2">
-      {(isSectioned || sectionModeEnabled) && (
+      {sectionsActive && (
         <Select value={newItemSection} onValueChange={setNewItemSection}>
           <SelectTrigger className="w-[100px] sm:w-[140px] shrink-0">
             <SelectValue placeholder="Section" />
@@ -4068,7 +4048,7 @@ export default function ListDetail() {
                   <SelectItem value="manual">Manual (drag to reorder)</SelectItem>
                   
                   {/* Only show other options for non-sectioned lists */}
-                  {!((isTemplateBasedList && isSectioned) || sectionModeEnabled) && (
+                  {!((isTemplateBasedList && isSectioned) || customSections.length > 0) && (
                     <>
                       <SelectItem value="alphabetical">Alphabetical</SelectItem>
                       
@@ -4696,7 +4676,7 @@ export default function ListDetail() {
                   })}
                 </div>
               ))
-            ) : ((isTemplateBasedList && isSectioned) || sectionModeEnabled) ? (
+            ) : ((isTemplateBasedList && isSectioned) || customSections.length > 0) ? (
               // Sectioned display for template-based lists
               <>
                 {getSortedSections.map((sectionName) => {
@@ -5452,7 +5432,7 @@ export default function ListDetail() {
                 <Input value={newItemText} onChange={(e) => setNewItemText(e.target.value)} placeholder="Item name" />
               </div>
               {/* Section - When list has sections */}
-              {(isSectioned || sectionModeEnabled) && (
+              {sectionsActive && (
                 <div className="space-y-2">
                   <Label>Section</Label>
                   <Select value={newItemSection} onValueChange={setNewItemSection}>
@@ -5910,7 +5890,7 @@ export default function ListDetail() {
                     <SelectValue placeholder="Select section to copy from" />
                   </SelectTrigger>
                   <SelectContent>
-                    {allAvailableSections.filter(s => s !== 'Uncategorized').map((section) => (
+                    {allAvailableSections.filter(s => s !== 'OTHER').map((section) => (
                       <SelectItem key={section} value={section}>
                         {section}
                       </SelectItem>
