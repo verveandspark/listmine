@@ -623,7 +623,7 @@ export default function ListDetail() {
   
   // Initialize section from localStorage when list changes (or default to first section)
   useEffect(() => {
-    if (list?.id && isSectioned) {
+    if (list?.id && sectionsActive) {
       const savedSection = localStorage.getItem(`listmine:lastSection:${list.id}`);
       // Use saved section if it exists in available sections, otherwise use first available
       if (savedSection && availableSections.includes(savedSection)) {
@@ -632,7 +632,7 @@ export default function ListDetail() {
         setNewItemSection(availableSections[0] || 'OTHER');
       }
     }
-  }, [list?.id, isSectioned, availableSections]);
+  }, [list?.id, sectionsActive, availableSections]);
   
   // Initialize category from localStorage for grocery lists
   useEffect(() => {
@@ -892,7 +892,7 @@ export default function ListDetail() {
         if (newItemQuantityPurchased) attributes.quantityPurchased = newItemQuantityPurchased;
         if (newItemStatus) attributes.purchaseStatus = newItemStatus;
         // Add section for sectioned registry lists (Baby Registry, Wedding Registry)
-        if (isSectioned && newItemSection) {
+        if (sectionsActive && newItemSection) {
           attributes.section = newItemSection;
         }
         if (newItemProductLink) {
@@ -906,7 +906,7 @@ export default function ListDetail() {
         if (newItemPrice) attributes.price = newItemPrice;
         if (newItemStatus) attributes.purchaseStatus = newItemStatus;
         // Add section for sectioned shopping lists (Gift Tracker, etc.)
-        if (isSectioned && newItemSection) {
+        if (sectionsActive && newItemSection) {
           attributes.section = newItemSection;
         }
         if (newItemProductLink) {
@@ -919,13 +919,13 @@ export default function ListDetail() {
       } else if (isTodo) {
         if (newItemStatus) attributes.status = newItemStatus;
         // Add section for sectioned todo lists
-        if (isSectioned && newItemSection) {
+        if (sectionsActive && newItemSection) {
           attributes.section = newItemSection;
         }
       } else if (isIdea) {
         attributes.status = newItemStatus || "brainstorm";
         // Add section for sectioned idea lists
-        if (isSectioned && newItemSection) {
+        if (sectionsActive && newItemSection) {
           attributes.section = newItemSection;
         }
         if (newItemProductLink) {
@@ -937,7 +937,7 @@ export default function ListDetail() {
         }
       } else if (effectiveListType === "custom") {
         // Add section for sectioned custom lists (Recipe, Vacation Packing, Home Maintenance, Moving Checklist)
-        if (isSectioned && newItemSection) {
+        if (sectionsActive && newItemSection) {
           attributes.section = newItemSection;
         }
       }
