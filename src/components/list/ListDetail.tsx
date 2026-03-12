@@ -435,7 +435,7 @@ export default function ListDetail() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [itemSortBy, setItemSortBy] = useState<
-    "manual" | "priority" | "dueDate" | "alphabetical"
+    "manual" | "priority" | "dueDate" | "alphabetical" | "status"
   >(() => {
     return (localStorage.getItem("itemSortBy") as any) || "manual";
   });
@@ -1946,13 +1946,13 @@ export default function ListDetail() {
       case "status": {
         const statusOrder: Record<string, number> = isIdea
           ? { "in-progress": 0, "in_progress": 0, "brainstorm": 1, "brainstorming": 1, "on-hold": 2, "on_hold": 2, "completed": 3 }
-          : isShopping
+          : isShoppingList
           ? { "not-purchased": 0, "not_purchased": 0, "": 0, "purchased": 1 }
           : { "in-progress": 0, "in_progress": 0, "not-started": 1, "not_started": 1, "": 1, "completed": 2 };
         return items.sort((a, b) => {
           let aStatus: string;
           let bStatus: string;
-          if (isShopping) {
+          if (isShoppingList) {
             aStatus = a.completed ? "purchased" : "not-purchased";
             bStatus = b.completed ? "purchased" : "not-purchased";
           } else {
@@ -4047,7 +4047,7 @@ export default function ListDetail() {
                           <SelectItem value="dueDate">Due Date</SelectItem>
                         </>
                       )}
-                      {(isTodo || isIdea || isShopping) && (
+                      {(isTodo || isIdea || isShoppingList) && (
                         <SelectItem value="status">Status</SelectItem>
                       )}
                     </>
