@@ -4,7 +4,7 @@ import { useLists } from "@/contexts/useListsHook";
 import { useAuth } from "@/contexts/useAuthHook";
 import { useAccount } from "@/contexts/AccountContext";
 import { supabase } from "@/lib/supabase";
-import { canExportLists, canImportLists, canPrintLists, getAvailableExportFormats, type UserTier } from "@/lib/tierUtils";
+import { canExportLists, canImportLists, canPrintLists, getAvailableExportFormats, canImportFromRetailer, type UserTier } from "@/lib/tierUtils";
 import { ListCategory, ListType } from "@/types";
 import {
   Card,
@@ -118,6 +118,7 @@ export default function ImportExport() {
   const canExport = canExportLists(effectiveTier);
   const canPrint = canPrintLists(effectiveTier);
   const availableFormats = getAvailableExportFormats(effectiveTier);
+  const canRetailerImport = canImportFromRetailer(effectiveTier);
   
   // Show import gating message only for free personal users (not in team context)
   const showImportGatingMessage = !canImport && !isTeamContext;
@@ -500,6 +501,15 @@ export default function ImportExport() {
     }
 
     try {
+      if (!canRetailerImport) {
+        toast({
+          title: "Upgrade Required",
+          description: "Retailer import is available on Even Better plan.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Debug: Log items being sent to importFromWishlist
       console.log("[IMPORT_TO_LIST_DEBUG] Items being sent to importFromWishlist:");
       selectedItems.slice(0, 3).forEach((item, idx) => {
@@ -670,6 +680,7 @@ export default function ImportExport() {
               </div>
             </Card>
 
+            {canRetailerImport ? (
             <Card className="p-4 sm:p-6">
               <div className="flex items-center gap-2 mb-4">
                 <ShoppingCart className="w-5 h-5 text-accent" />
@@ -880,6 +891,27 @@ export default function ImportExport() {
                 )}
               </div>
             </Card>
+            ) : (
+              <Card className="opacity-60 border-dashed">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-gray-500">
+                    <ShoppingCart className="w-5 h-5" />
+                    Import from Public List
+                  </CardTitle>
+                  <CardDescription>Available on Even Better plan</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-500">Upgrade to import from retailers and wishlists.</p>
+                  <Button
+                    variant="outline"
+                    className="mt-4 w-full"
+                    onClick={() => navigate("/upgrade")}
+                  >
+                    Upgrade to Even Better
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
 
             <Card className="p-4 sm:p-6" onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); handleImport(); } }}>
               <div className="flex items-center gap-2 mb-4">

@@ -188,6 +188,14 @@ export function canPrintLists(_tier: UserTier | string | undefined): boolean {
 }
 
 /**
+ * Check if user can import from retailer wishlists
+ * Even Better+: retailer import enabled
+ */
+export function canImportFromRetailer(tier: UserTier | null): boolean {
+  return tier === "even_better" || tier === "lots_more";
+}
+
+/**
  * Get available export formats for a tier
  * Free: none (print only)
  * Good: csv, txt
