@@ -75,7 +75,7 @@ export default function CreateListModal({
   
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { addList } = useLists();
+  const { addList, lists } = useLists();
   const { user } = useAuth();
   const { currentAccount, isTeamContext: globalIsTeamContext } = useAccount();
   const navigate = useNavigate();
@@ -94,6 +94,11 @@ export default function CreateListModal({
   
   const effectiveTier = getEffectiveTier();
   const listTypesWithAvailability = getListTypesWithAvailability(effectiveTier);
+
+  // Check list limit for personal lists only
+  const personalListCount = (lists || []).filter((l: any) => !l.account_id).length;
+  const personalListLimit = userTier === "free" ? 5 : (user?.listLimit || -1);
+  const isAtPersonalListLimit = ownership === "personal" && personalListLimit !== -1 && personalListCount >= personalListLimit;
   
   // Default ownership to current account context when modal opens
   useEffect(() => {
@@ -275,6 +280,11 @@ export default function CreateListModal({
 
     if (!user) {
       setError("You must be logged in to create a list. Please refresh the page and try again.");
+      return;
+    }
+
+    if (isAtPersonalListLimit) {
+      setError(`You've reached your list limit of ${personalListLimit} lists. Upgrade to create more.`);
       return;
     }
 
@@ -491,7 +501,7 @@ export default function CreateListModal({
           >
             Cancel
           </Button>
-          <Button onClick={handleCreate} disabled={isCreating}>
+          <Button onClick={handleCreate} disabled={isCreating || isAtPersonalListLimit}>
             {isCreating ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -502,6 +512,17 @@ export default function CreateListModal({
             )}
           </Button>
         </DialogFooter>
+        {isAtPersonalListLimit && (
+          <div className="text-sm text-destructive mt-2 shrink-0 px-4 sm:px-6 pb-4 -mt-2 bg-white">
+            You've reached your list limit.{" "}
+            <button
+              onClick={() => navigate("/upgrade")}
+              className="underline font-semibold hover:no-underline"
+            >
+              Upgrade now
+            </button>
+          </div>
+        )}
       </DialogContent>
 
       {/* Upsell Modal */}
