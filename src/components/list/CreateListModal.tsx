@@ -513,11 +513,11 @@ export default function CreateListModal({
           </Button>
         </DialogFooter>
         {isAtPersonalListLimit && (
-          <div className="text-sm text-destructive mt-2 shrink-0 px-4 sm:px-6 pb-4 -mt-2 bg-white">
-            You've reached your list limit.{" "}
+          <div className="flex items-center justify-between w-full text-base text-destructive font-semibold mb-4">
+            <span>You've reached your list limit.</span>
             <button
               onClick={() => navigate("/upgrade")}
-              className="underline font-semibold hover:no-underline"
+              className="underline hover:no-underline ml-2"
             >
               Upgrade now
             </button>
