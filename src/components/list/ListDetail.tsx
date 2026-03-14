@@ -231,17 +231,21 @@ export default function ListDetail() {
   
   const list = lists.find((l) => l.id === id);
   
-  // If list not found after data has loaded, redirect to dashboard
-  if (!list && hasLoadedOnce) {
-    useEffect(() => {
+  // Redirect if list not found after data has loaded
+  useEffect(() => {
+    if (!list && hasLoadedOnce) {
       toast({
         title: "List not found",
         description: "This list is no longer accessible. Redirecting to dashboard.",
         variant: "destructive",
       });
       navigate("/dashboard", { replace: true });
-    }, [hasLoadedOnce, navigate, toast]);
-    return null; // Don't render anything while redirecting
+    }
+  }, [list, hasLoadedOnce, navigate, toast]);
+
+  // Guard against incomplete list data - show skeleton while loading
+  if (!list || !list.id) {
+    return <ListDetailSkeleton />;
   }
   
   // Compute effective list type from DB field (list_type) with fallback to listType
