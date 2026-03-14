@@ -2222,7 +2222,7 @@ export default function ListDetail() {
 
   // Compute effective list type from DB field (list_type) with fallback to listType
   // Use lowercase comparison for registry/wishlist checks
-  const effectiveListType = normalizeListType((list as any)?.list_type ?? list?.listType);
+  const effectiveListType = normalizeListType((list as any)?.list_type ?? list?.listType ?? "");
 
   // Safe list type checks using effectiveListType (lowercase keys)
   const isTodo = effectiveListType === 'todo';
@@ -2232,7 +2232,7 @@ export default function ListDetail() {
   const isRegistryOrWishlistType = isRegistry;
   const isGrocery = effectiveListType === 'grocery';
   const isShoppingList = effectiveListType === 'shopping';
-  const showCompletionCheckbox = ['todo', 'checklist', 'shopping', 'grocery', 'registry'].includes(effectiveListType ?? '');
+  const showCompletionCheckbox = ['todo', 'checklist', 'shopping', 'grocery', 'registry'].includes(effectiveListType);
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 animate-in fade-in duration-200 print:bg-white print:min-h-0">
