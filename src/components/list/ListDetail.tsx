@@ -243,10 +243,7 @@ export default function ListDetail() {
     }
   }, [list, hasLoadedOnce, navigate, toast]);
 
-  // Guard against incomplete list data - show skeleton while loading
-  if (!list || !list.id) {
-    return <ListDetailSkeleton />;
-  }
+
   
   
   // Compute effective list type from DB field (list_type) with fallback to listType
@@ -2232,6 +2229,10 @@ export default function ListDetail() {
   // Use lowercase comparison for registry/wishlist checks
 
 
+
+  if (!list || !list.id) {
+    return <ListDetailSkeleton />;
+  }
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 animate-in fade-in duration-200 print:bg-white print:min-h-0">
