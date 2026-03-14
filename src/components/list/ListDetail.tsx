@@ -231,6 +231,19 @@ export default function ListDetail() {
   
   const list = lists.find((l) => l.id === id);
   
+  // If list not found after data has loaded, redirect to dashboard
+  if (!list && hasLoadedOnce) {
+    useEffect(() => {
+      toast({
+        title: "List not found",
+        description: "This list is no longer accessible. Redirecting to dashboard.",
+        variant: "destructive",
+      });
+      navigate("/dashboard", { replace: true });
+    }, [hasLoadedOnce, navigate, toast]);
+    return null; // Don't render anything while redirecting
+  }
+  
   // Compute effective list type from DB field (list_type) with fallback to listType
   // Use lowercase comparison for registry/wishlist checks
   const effectiveListType = normalizeListType((list as any)?.list_type ?? list?.listType);
