@@ -243,11 +243,6 @@ export default function ListDetail() {
     }
   }, [list, hasLoadedOnce, navigate, toast]);
 
-  // Prevent rendering while redirecting due to lost access
-  if (!list && hasLoadedOnce) {
-    return null;
-  }
-
   // Guard against incomplete list data - show skeleton while loading
   if (!list || !list.id) {
     return <ListDetailSkeleton />;
