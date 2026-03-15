@@ -3175,6 +3175,7 @@ export default function ListDetail() {
                     </Tooltip>
                   </TooltipProvider>
                   {/* Duplicate List */}
+                  {effectiveTier !== "free" && (
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -3193,6 +3194,7 @@ export default function ListDetail() {
                       <TooltipContent>Duplicate list</TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
+                  )}
                   {isOwner && canShareLists(effectiveTier) && (
                     <DropdownMenu>
                       <TooltipProvider>
@@ -3594,6 +3596,7 @@ export default function ListDetail() {
                       {list.isFavorite ? "Remove from Favorites" : "Add to Favorites"}
                     </Button>
                     {/* Duplicate List - Mobile */}
+                    {effectiveTier !== "free" && (
                     <Button
                       variant="outline"
                       onClick={() => {
@@ -3606,6 +3609,7 @@ export default function ListDetail() {
                       <Copy className="w-4 h-4 mr-2" />
                       Duplicate List
                     </Button>
+                    )}
                     {/* Mobile share buttons - only for owners with paid tier */}
                     {isOwner && canShareLists(effectiveTier) && (
                       <>

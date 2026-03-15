@@ -1192,6 +1192,14 @@ export function ListProvider({ children }: { children: ReactNode }) {
     const sourceList = lists.find((l) => l.id === listId);
     if (!sourceList) throw new Error("List not found");
 
+    // Tier gating for duplication
+    if (user.tier === 'free') {
+      throw new Error("Duplicating lists is not available on the Free tier. Upgrade to duplicate lists.");
+    }
+    if (sourceList.listType === 'registry' && user.tier === 'good') {
+      throw new Error("Registry lists cannot be duplicated on your current tier. Upgrade to Even Better or higher.");
+    }
+
     // Create new list
     const { data: newList, error: listError } = await supabase
       .from("lists")
