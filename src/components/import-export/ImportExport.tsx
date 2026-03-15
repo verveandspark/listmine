@@ -961,7 +961,7 @@ export default function ImportExport() {
                 </Alert>
               ) : (
                 <p className="text-sm text-gray-600 mb-4">
-                  Upload a file or paste your list below
+                  Upload a file or paste your list below. For CSV files, only the first column is imported as item names.
                 </p>
               )}
 
