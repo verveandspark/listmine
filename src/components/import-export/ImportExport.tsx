@@ -4,7 +4,7 @@ import { useLists } from "@/contexts/useListsHook";
 import { useAuth } from "@/contexts/useAuthHook";
 import { useAccount } from "@/contexts/AccountContext";
 import { supabase } from "@/lib/supabase";
-import { canExportLists, canImportLists, canPrintLists, getAvailableExportFormats, canImportFromRetailer, type UserTier } from "@/lib/tierUtils";
+import { canExportLists, canImportLists, canPrintLists, getAvailableExportFormats, canImportFromRetailer, getAvailableListTypes, ALL_LIST_TYPES, type UserTier } from "@/lib/tierUtils";
 import { ListCategory, ListType } from "@/types";
 import {
   Card,
