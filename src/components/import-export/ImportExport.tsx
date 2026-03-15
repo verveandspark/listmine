@@ -210,8 +210,8 @@ export default function ImportExport() {
         (importData.includes(",") ? "csv" : "txt"),
         importCategory,
         importListType,
-        importListName || undefined,
         importAccountId, // Pass account ID for team imports
+        importListName || undefined,
       );
       toast({
         title: "List imported successfully!",
