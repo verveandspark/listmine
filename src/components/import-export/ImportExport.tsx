@@ -361,7 +361,23 @@ export default function ImportExport() {
         return;
       }
 
-      setImportData(content);
+      // For CSV files, extract first column only and strip trailing commas
+      const fileName = (event.target as any)?._file?.name || "";
+      const isCSV = file.name.toLowerCase().endsWith(".csv");
+      let cleanedContent = content;
+      if (isCSV) {
+        const lines = content
+          .split("\n")
+          .map(line => line.split(",")[0].trim())
+          .filter(line => line.length > 0);
+        // Skip header row if first line looks like a column header
+        const headerWords = ["category", "item", "name", "task", "title", "product", "description"];
+        if (lines.length > 0 && headerWords.includes(lines[0].toLowerCase())) {
+          lines.shift();
+        }
+        cleanedContent = lines.join("\n");
+      }
+      setImportData(cleanedContent);
     };
     reader.onerror = () => {
       toast({
