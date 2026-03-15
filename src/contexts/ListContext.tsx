@@ -2192,7 +2192,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
         !error.message.includes("empty") &&
         !error.message.includes("read this file")
       ) {
-        throw new Error("Couldn't import list. Try again or contact support.");
+        console.error("[importList] Unhandled error:", error); throw new Error("Couldn't import list: " + (error?.message || JSON.stringify(error)));
       }
       throw error;
     }
@@ -3013,7 +3013,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
       } else if (error.message.includes("limit")) {
         throw error;
       } else {
-        throw new Error("Couldn't import list. Try again or contact support.");
+        console.error("[importList] Unhandled error:", error); throw new Error("Couldn't import list: " + (error?.message || JSON.stringify(error)));
       }
     }
   };
