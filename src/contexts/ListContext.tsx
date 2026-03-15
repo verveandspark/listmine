@@ -2880,9 +2880,10 @@ export function ListProvider({ children }: { children: ReactNode }) {
 
       console.log(`[ListContext] Shared list has ${sharedItems?.length || 0} items (before filtering)`);
 
+    const activeListCount = lists.filter(l => !l.isArchived && !l.title.startsWith("[Archived]") && !l.isGuestAccess && !l.accountId).length;
       // Check list limit - only for personal lists (no accountId)
       // Team lists bypass personal list limits
-      if (!accountId && user.listLimit !== -1 && lists.length >= user.listLimit) {
+      if (!accountId && user.listLimit !== -1 && activeListCount >= user.listLimit) {
         const tierName =
           user.tier === "free"
             ? "Free"
@@ -3035,9 +3036,10 @@ export function ListProvider({ children }: { children: ReactNode }) {
       throw new Error(categoryValidation.error);
     }
 
+    const activeListCount = lists.filter(l => !l.isArchived && !l.title.startsWith("[Archived]") && !l.isGuestAccess && !l.accountId).length;
     // Check list limit - only for personal lists (no accountId)
     // Team lists bypass personal list limits
-    if (!accountId && user.listLimit !== -1 && lists.length >= user.listLimit) {
+    if (!accountId && user.listLimit !== -1 && activeListCount >= user.listLimit) {
       const tierName =
         user.tier === "free"
           ? "Free"
