@@ -55,13 +55,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import AddToExistingListModal from "./AddToExistingListModal";
 
-const listTypes: ListType[] = [
-  "custom",
-  "todo",
-  "shopping",
-  "idea",
-  "registry"
-];
+// listTypes now computed per-tier inside component
 
 interface ScrapedItem {
   name: string;
@@ -1040,19 +1034,11 @@ export default function ImportExport() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {listTypes.map((type) => {
-                          // Display friendly names
-                          const displayName = {
-                            'custom': 'Custom',
-                            'todo': 'To-Do',
-                            'shopping': 'Shopping List',
-                            'idea': 'Idea',
-                            'registry': 'Registry/Wishlist'
-                          }[type] || type;
-                          
+                        {getAvailableListTypes(effectiveTier).map((type) => {
+                          const typeInfo = ALL_LIST_TYPES.find(t => t.value === type);
                           return (
                             <SelectItem key={type} value={type}>
-                              {displayName}
+                              {typeInfo?.label || type}
                             </SelectItem>
                           );
                         })}
