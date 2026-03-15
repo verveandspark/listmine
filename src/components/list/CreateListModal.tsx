@@ -30,6 +30,7 @@ import {
 import { ListCategory, ListType } from "@/types";
 import { Loader2, Lock, User, Users } from "lucide-react";
 import { getListTypesWithAvailability, UserTier } from "@/lib/tierUtils";
+import { normalizeListType } from "@/lib/normalizeListType";
 import ListTypeUpsellModal from "./ListTypeUpsellModal";
 
 interface CreateListModalProps {
@@ -45,20 +46,7 @@ interface AccountOption {
   ownerTier?: UserTier;
 }
 
-// Normalize listType variations for consistent helper text lookup
-const normalizeListType = (listType: string | undefined): string => {
-  if (!listType) return "custom";
-  const normalizations: Record<string, string> = {
-    "todo-list": "todo",
-    "task-list": "todo",
-    "idea-list": "idea",
-    "registry-list": "registry",
-    "checklist": "checklist",
-    "wishlist": "registry",
-    "grocery-list": "grocery",
-  };
-  return normalizations[listType] || listType;
-};
+// normalizeListType imported from @/lib/normalizeListType for legacy DB value normalization
 
 export default function CreateListModal({
   open,
@@ -241,18 +229,13 @@ export default function CreateListModal({
   const getDefaultCategoryForListType = (type: ListType): ListCategory => {
     switch (type) {
       case 'todo':
-      case 'todo-list':
-      case 'task-list':
       case 'checklist':
         return 'Tasks';
       case 'registry':
-      case 'registry-list':
-      case 'shopping-list':
+      case 'shopping':
       case 'grocery':
-      case 'grocery-list':
         return 'Shopping';
       case 'idea':
-      case 'idea-list':
       case 'custom':
       default:
         return 'Other';
@@ -399,7 +382,7 @@ export default function CreateListModal({
                     custom: "Flexible lists for anything (notes, plans, collections).",
                     todo: "Tasks with due dates and status.",
                     checklist: "Check off items, track progress, reset and reuse.",
-                    "shopping-list": "Track items to buy (links, quantities).",
+                    shopping: "Track items to buy (links, quantities).",
                     grocery: "Weekly shopping with built-in sections, reset and reuse.",
                     idea: "Capture and organize ideas.",
                     registry: "Shareable gift list with purchase tracking.",

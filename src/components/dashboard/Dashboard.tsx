@@ -115,6 +115,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { isPaidTier, canShareLists, canExportLists, canImportLists, canInviteGuests, canHaveTeamMembers, getAvailableExportFormats, formatLimitCompact, type UserTier } from "@/lib/tierUtils";
+import { normalizeListType } from "@/lib/normalizeListType";
 import {
   validateListName,
   validateCategory,
@@ -167,10 +168,9 @@ const listTypes: { value: string; label: string }[] = [
   { value: "registry", label: "Registry/Wishlist" },
 ];
 
-// Normalize legacy list types for filtering
+// Normalize legacy list types for filtering - uses shared normalizeListType from @/lib/normalizeListType
 
 const normalizeStatus = (status: string | undefined): string => {
-  if (!status) return "not-started";
   const map: Record<string, string> = {
     "not_started": "not-started",
     "not-started": "not-started",
@@ -183,23 +183,6 @@ const normalizeStatus = (status: string | undefined): string => {
     "on-hold": "on-hold",
   };
   return map[status.toLowerCase()] || status.toLowerCase();
-};
-
-const normalizeListType = (listType: string | undefined): string => {
-  if (!listType) return "custom";
-  const normalizations: Record<string, string> = {
-    "todo-list": "todo",
-    "task-list": "todo",
-    "idea-list": "idea",
-    "registry-list": "registry",
-    "checklist": "todo",
-    "grocery-list": "shopping-list",
-    "multi-topic": "custom",
-    "compare-contrast": "custom",
-    "pro-con": "custom",
-    "multi-option": "custom",
-  };
-  return normalizations[listType] || listType;
 };
 
 export default function Dashboard() {

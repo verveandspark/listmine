@@ -971,7 +971,7 @@ export default function ListDetail() {
         completed: false,
       };
       
-      // Only add quantity field for shopping-list, registry, wishlist
+      // Only add quantity field for shopping, registry, wishlist
       if (shouldIncludeQuantity) {
         itemData.quantity = newItemQuantity || 1;
       }
@@ -2311,7 +2311,7 @@ export default function ListDetail() {
                 </div>
               )}
 
-              {/* TO-DO LIST FIELDS: todo, todo-list */}
+              {/* TO-DO LIST FIELDS: todo */}
               {isTodo && (
                 <>
                   <div className="space-y-2">
@@ -2376,7 +2376,7 @@ export default function ListDetail() {
                 </>
               )}
 
-              {/* IDEA LIST FIELDS: idea, idea-list */}
+              {/* IDEA LIST FIELDS: idea */}
               {isIdea && (
                 <>
                   <div className="space-y-2">
@@ -2479,7 +2479,7 @@ export default function ListDetail() {
                 </>
               )}
 
-              {/* REGISTRY/WISHLIST FIELDS: registry, registry-list, wishlist */}
+              {/* REGISTRY/WISHLIST FIELDS: registry */}
               {isRegistryOrWishlistType && (
                 <>
                   <div className="space-y-2">
@@ -2622,7 +2622,7 @@ export default function ListDetail() {
                 </>
               )}
 
-              {/* SHOPPING LIST FIELDS: shopping-list - NO purchaser UI */}
+              {/* SHOPPING LIST FIELDS: shopping - NO purchaser UI */}
               {isShoppingList && !isGrocery && (
                 <>
                   <div className="space-y-2">
@@ -2758,7 +2758,7 @@ export default function ListDetail() {
                 </>
               )}
 
-              {/* GROCERY LIST FIELDS: grocery-list */}
+              {/* GROCERY LIST FIELDS: grocery */}
               {isGrocery && (
                 <>
                   <div className="grid grid-cols-2 gap-4">
@@ -4214,7 +4214,7 @@ export default function ListDetail() {
                                               style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
                             >
                               {(() => {
-                                // For shopping, registry, wishlist, and grocery types, show quantity prefix when > 1
+                                // For shopping, registry, and grocery types, show quantity prefix when > 1
                                 const qty = item.quantity || item.attributes?.quantityNeeded;
                                 const showQtyTypes = isShoppingList || isRegistryOrWishlistType || isGrocery;
                                 if (showQtyTypes && qty && qty > 1) {
@@ -4531,7 +4531,7 @@ export default function ListDetail() {
                                               style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
                             >
                               {(() => {
-                                // For shopping, registry, wishlist, and grocery types, show quantity prefix when > 1
+                                // For shopping, registry, and grocery types, show quantity prefix when > 1
                                 const qty = item.quantity || item.attributes?.quantityNeeded;
                                 const showQtyTypes = isShoppingList || isRegistryOrWishlistType || isGrocery;
                                 if (showQtyTypes && qty && qty > 1) {
@@ -5698,12 +5698,12 @@ export default function ListDetail() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="custom">Custom</SelectItem>
-                  <SelectItem value="todo-list">To-Do List</SelectItem>
+                  <SelectItem value="todo">To-Do List</SelectItem>
                   <SelectItem value="checklist">Checklist</SelectItem>
-                  <SelectItem value="grocery-list">Grocery List</SelectItem>
-                  <SelectItem value="registry-list">Registry</SelectItem>
-                  <SelectItem value="shopping-list">Shopping List</SelectItem>
-                  <SelectItem value="idea-list">Idea List</SelectItem>
+                  <SelectItem value="grocery">Grocery List</SelectItem>
+                  <SelectItem value="registry">Registry</SelectItem>
+                  <SelectItem value="shopping">Shopping List</SelectItem>
+                  <SelectItem value="idea">Idea List</SelectItem>
                 </SelectContent>
               </Select>
             </div>

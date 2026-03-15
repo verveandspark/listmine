@@ -58,7 +58,7 @@ import AddToExistingListModal from "./AddToExistingListModal";
 const listTypes: ListType[] = [
   "custom",
   "todo",
-  "shopping-list",
+  "shopping",
   "idea",
   "registry"
 ];
@@ -1045,7 +1045,7 @@ export default function ImportExport() {
                           const displayName = {
                             'custom': 'Custom',
                             'todo': 'To-Do',
-                            'shopping-list': 'Shopping List',
+                            'shopping': 'Shopping List',
                             'idea': 'Idea',
                             'registry': 'Registry/Wishlist'
                           }[type] || type;

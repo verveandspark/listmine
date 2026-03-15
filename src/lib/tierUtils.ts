@@ -10,15 +10,15 @@ export interface ListTypeInfo {
 }
 
 // Define all list types with their required tiers
-// NOTE: These are the canonical 6 base types shown in the UI
+// NOTE: These are the canonical 7 base types shown in the UI
 export const ALL_LIST_TYPES: ListTypeInfo[] = [
   { value: "custom", label: "Custom", requiredTier: "free", tierLabel: "Free" },
-  { value: "todo-list", label: "To-Do", requiredTier: "free", tierLabel: "Free" },
+  { value: "todo", label: "To-Do", requiredTier: "free", tierLabel: "Free" },
   { value: "checklist", label: "Checklist", requiredTier: "free", tierLabel: "Free" },
-  { value: "idea-list", label: "Idea", requiredTier: "good", tierLabel: "Good" },
-  { value: "shopping-list", label: "Shopping List", requiredTier: "good", tierLabel: "Good" },
-  { value: "grocery-list", label: "Grocery", requiredTier: "good", tierLabel: "Good" },
-  { value: "registry-list", label: "Registry/Wishlist", requiredTier: "even_better", tierLabel: "Even Better" },
+  { value: "idea", label: "Idea", requiredTier: "good", tierLabel: "Good" },
+  { value: "shopping", label: "Shopping List", requiredTier: "good", tierLabel: "Good" },
+  { value: "grocery", label: "Grocery", requiredTier: "good", tierLabel: "Good" },
+  { value: "registry", label: "Registry/Wishlist", requiredTier: "even_better", tierLabel: "Even Better" },
 ];
 
 // Tier hierarchy for comparison
@@ -316,7 +316,7 @@ export function canAccessBilling(role: TeamMemberRole | string | undefined): boo
  * Note: shopping-list does NOT support this feature
  */
 export function supportsAnonymousClaim(listType: ListType): boolean {
-  return listType === "registry-list" || listType === "registry";
+  return listType === "registry";
 }
 
 /**

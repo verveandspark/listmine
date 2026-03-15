@@ -146,22 +146,12 @@ export const canManageSharing = (list: List, currentUserId: string | undefined):
 export type ListCategory = 'Tasks' | 'Shopping' | 'Meals' | 'Household' | 'Planning' | 'Other' | 'School' | 'Work';
 
 export type ListType = 
-  | 'task-list'
-  | 'todo-list'
   | 'todo'
-  | 'registry-list'
   | 'registry'
   | 'checklist'
-  | 'grocery-list'
   | 'grocery'
-  | 'shopping-list'
-  | 'idea-list'
+  | 'shopping'
   | 'idea'
-  | 'multi-topic'
-  | 'compare-contrast'
-  | 'pro-con'
-  | 'multi-option'
-  | 'wishlist'
   | 'custom';
 
 export interface ListTemplate {

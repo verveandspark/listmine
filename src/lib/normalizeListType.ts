@@ -42,23 +42,23 @@ export const listTypeOptions = [
   'Wishlist',
 ];
 
-// Convert display type back to database type
+// Convert display type back to database type (canonical names)
 export function displayTypeToDbType(displayType: string): string {
   switch (displayType) {
     case 'To-Do':
-      return 'todo-list';
+      return 'todo';
     case 'Checklist':
       return 'checklist';
     case 'Idea':
-      return 'idea-list';
+      return 'idea';
     case 'Shopping List':
-      return 'shopping-list';
+      return 'shopping';
     case 'Grocery':
-      return 'grocery-list';
+      return 'grocery';
     case 'Registry':
-      return 'registry-list';
+      return 'registry';
     case 'Registry/Wishlist':
-      return 'registry-list';
+      return 'registry';
     case 'Custom':
     default:
       return 'custom';

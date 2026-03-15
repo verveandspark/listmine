@@ -345,8 +345,9 @@ export default function SharedListView() {
       "registry-list": "Registry",
       "registry": "Registry",
       "shopping-list": "Shopping List",
-      "grocery-list": "Shopping List",
-      "grocery": "Shopping List",
+      "shopping": "Shopping List",
+      "grocery-list": "Grocery",
+      "grocery": "Grocery",
     };
     return normalizations[listType.toLowerCase()] || "Custom";
   };

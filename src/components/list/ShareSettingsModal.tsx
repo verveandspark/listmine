@@ -27,23 +27,12 @@ import {
 import { ShareMode } from "@/types";
 import { useAuth } from "@/contexts/useAuthHook";
 import { canShareLists, getTierDisplayName, canUsePurchaseTracking, type UserTier } from "@/lib/tierUtils";
+import { normalizeListType } from "@/lib/normalizeListType";
 import { ShoppingCart, Gift, Crown } from "lucide-react";
-
-// Helper to normalize listType variations for consistent handling
-const normalizeListType = (listType: string | undefined): string => {
-  if (!listType) return "custom";
-  const normalizations: Record<string, string> = {
-    "todo-list": "todo",
-    "idea-list": "idea",
-    "registry-list": "registry",
-  };
-  return normalizations[listType] || listType;
-};
 
 // Check if listType is a registry or wishlist (for purchaser UI)
 const isRegistryOrWishlist = (listType: string | undefined): boolean => {
-  const normalized = normalizeListType(listType);
-  return normalized === "registry";
+  return normalizeListType(listType) === "registry";
 };
 
 interface ShareSettingsModalProps {

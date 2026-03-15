@@ -25,6 +25,7 @@ import {
 import html2pdf from "html2pdf.js";
 import { canAccessListType, getAvailableListTypes, getTierDisplayName, canShareLists, canInviteGuests, canImportLists, getAvailableExportFormats, UserTier } from "@/lib/tierUtils";
 import { useToast } from "@/components/ui/use-toast";
+import { normalizeListType } from "@/lib/normalizeListType";
 
 const OPERATION_TIMEOUT = 15000;
 
@@ -699,7 +700,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
         // Sync purchase statuses from purchases table for registry/wishlist lists only
         // Note: shopping-list does NOT support purchase tracking
         const registryWishlistListIds = listsData
-          .filter((l) => l.list_type === "registry-list" || l.list_type === "registry")
+          .filter((l) => normalizeListType(l.list_type) === "registry")
           .map((l) => l.id);
 
         if (registryWishlistListIds.length > 0) {
