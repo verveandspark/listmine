@@ -166,7 +166,7 @@ export default function ImportExport() {
   const [itemsForExistingList, setItemsForExistingList] = useState<ScrapedItem[]>([]);
   const [existingListSourceType, setExistingListSourceType] = useState<"csv" | "amazon" | "manual" | "share">("csv");
 
-  const handleImport = () => {
+  const handleImport = async () => {
     // Validate import data
     const dataValidation = validateImportData(importData);
     if (!dataValidation.valid) {
@@ -205,9 +205,9 @@ export default function ImportExport() {
     }
 
     try {
-      importList(
+      await importList(
         dataValidation.value!,
-        "txt",
+        (importData.includes(",") ? "csv" : "txt"),
         importCategory,
         importListType,
         importListName || undefined,
