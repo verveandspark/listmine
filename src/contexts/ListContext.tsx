@@ -1972,7 +1972,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
       );
     }
 
-    const lines = data.split("\n").filter((line) => line.trim());
+    const lines = data.split("\n").filter((line) => line.trim() && line.replace(/[,\s]/g, "").length > 0);
 
     if (lines.length === 0) {
       throw new Error(

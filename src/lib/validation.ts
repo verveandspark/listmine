@@ -228,7 +228,7 @@ export function validateImportData(data: string): ValidationResult {
     return { valid: false, error: "Import data is empty" };
   }
   
-  const lines = data.split('\n').filter(line => line.trim().length > 0);
+  const lines = data.split('\n').filter(line => line.trim().length > 0 && line.replace(/[,\s]/g, '').length > 0);
   
   if (lines.length === 0) {
     return { valid: false, error: "Import data contains no valid items" };
