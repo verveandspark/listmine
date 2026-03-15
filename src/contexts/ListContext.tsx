@@ -797,8 +797,8 @@ export function ListProvider({ children }: { children: ReactNode }) {
         lastEditedAt: list.last_edited_at ? new Date(list.last_edited_at) : null,
       })) || [];
 
-      // Split lists into categories for tier filtering
-      // Tier limits should ONLY apply to personal owned lists, NOT team or guest/shared lists
+      // Split lists into categories for defensive UI sanitization
+      // All lists are always shown regardless of tier — tier only gates creation
       const personalOwnedLists = listsWithItems.filter(
         (list) => !list.accountId && !list.isGuestAccess && list.userId === userId
       );
@@ -809,17 +809,16 @@ export function ListProvider({ children }: { children: ReactNode }) {
         (list) => list.isGuestAccess
       );
       
-      // Apply tier limits ONLY to personal owned lists
-      const limitedPersonalLists = personalOwnedLists.filter((list) => 
-        canAccessListType(userTier, list.listType)
-      );
+      // NOTE: We do NOT filter existing lists by tier/list_type.
+      // All lists a user owns should always be visible regardless of their current tier.
+      // Tier gating only applies to CREATE (what types appear in the Create New List modal).
       
       // DEFENSIVE UI: For Free tier users, sanitize any shared state that shouldn't exist
       // This prevents shared state from reappearing after refresh if DB cleanup failed
       const canShareNow = canShareLists(userTier);
       // Note: canInviteGuests check can be added here if needed for guest-related UI sanitization
       
-      const sanitizedPersonalLists = limitedPersonalLists.map((list) => {
+      const sanitizedPersonalLists = personalOwnedLists.map((list) => {
         if (!canShareNow && (list.isShared || list.shareLink)) {
           console.log('[ListContext] Defensive UI: Hiding share state for free tier list:', list.id);
           return {
@@ -832,7 +831,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
         return list;
       });
       
-      // Recombine: tier-limited personal + all team + all guest/shared
+      // Recombine: all personal (sanitized) + all team + all guest/shared
       const filteredLists = [...sanitizedPersonalLists, ...teamOwnedLists, ...guestSharedLists];
 
       // Final check before setting state
