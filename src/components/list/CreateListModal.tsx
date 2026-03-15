@@ -84,7 +84,7 @@ export default function CreateListModal({
   const listTypesWithAvailability = getListTypesWithAvailability(effectiveTier);
 
   // Check list limit for personal lists only
-  const personalListCount = (lists || []).filter((l: any) => !l.account_id).length;
+  const personalListCount = (lists || []).filter((l: any) => !l.account_id && !l.isArchived && !l.title?.startsWith("[Archived]")).length;
   const personalListLimit = userTier === "free" ? 5 : (user?.listLimit || -1);
   const isAtPersonalListLimit = ownership === "personal" && personalListLimit !== -1 && personalListCount >= personalListLimit;
   
