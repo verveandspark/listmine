@@ -123,9 +123,6 @@ Deno.serve(async (req) => {
         if (JSON.stringify(comparableLM) !== JSON.stringify(comparableRetailer)) {
           updatedItems.push({ listMineItem, retailerItem })
         }
-        }
-      }
-    })
 
     // Find items only in retailer list
     Object.keys(retailerItemsIndex).forEach(key => {
