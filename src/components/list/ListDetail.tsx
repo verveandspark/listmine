@@ -373,6 +373,15 @@ export default function ListDetail() {
     // For grocery lists, always include default categories
     if (isGrocery) {
       DEFAULT_GROCERY_CATEGORIES.forEach(cat => categoriesSet.add(cat));
+      // Also include any custom categories added via "Add Section" for grocery
+      if (list?.id) {
+        try {
+          const stored = localStorage.getItem(`listmine:customGroceryCategories:${list.id}`);
+          if (stored) {
+            JSON.parse(stored).forEach((cat: string) => categoriesSet.add(cat));
+          }
+        } catch {}
+      }
     }
     // Merge with any user-created categories from existing items
     if (list?.items) {
@@ -386,7 +395,7 @@ export default function ListDetail() {
     // Always ensure 'Other' is available
     categoriesSet.add('Other');
     return Array.from(categoriesSet).sort();
-  }, [list?.items, isGrocery]);
+  }, [list?.items, isGrocery, list?.id]);
   
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [newItemText, setNewItemText] = useState("");
@@ -913,11 +922,10 @@ export default function ListDetail() {
         }
         if (newItemProductLink) {
           attributes.productLink = newItemProductLink;
-          // Save manual link preview data
-          if (newItemLinkTitle) attributes.customLinkTitle = newItemLinkTitle;
-          if (newItemLinkDescription) attributes.customLinkDescription = newItemLinkDescription;
           if (newItemLinkImage) attributes.customLinkImage = newItemLinkImage;
         }
+        if (newItemLinkTitle) attributes.customLinkTitle = newItemLinkTitle;
+        if (newItemLinkDescription) attributes.customLinkDescription = newItemLinkDescription;
       } else if (isShoppingList && !isGrocery) {
         if (newItemPrice) attributes.price = newItemPrice;
         if (newItemStatus) attributes.purchaseStatus = newItemStatus;
@@ -927,11 +935,10 @@ export default function ListDetail() {
         }
         if (newItemProductLink) {
           attributes.productLink = newItemProductLink;
-          // Save manual link preview data
-          if (newItemLinkTitle) attributes.customLinkTitle = newItemLinkTitle;
-          if (newItemLinkDescription) attributes.customLinkDescription = newItemLinkDescription;
           if (newItemLinkImage) attributes.customLinkImage = newItemLinkImage;
         }
+        if (newItemLinkTitle) attributes.customLinkTitle = newItemLinkTitle;
+        if (newItemLinkDescription) attributes.customLinkDescription = newItemLinkDescription;
       } else if (isTodo) {
         if (newItemStatus) attributes.status = newItemStatus;
         // Add section for sectioned todo lists
@@ -946,11 +953,10 @@ export default function ListDetail() {
         }
         if (newItemProductLink) {
           attributes.inspirationLink = newItemProductLink;
-          // Save manual link preview data
-          if (newItemLinkTitle) attributes.customLinkTitle = newItemLinkTitle;
-          if (newItemLinkDescription) attributes.customLinkDescription = newItemLinkDescription;
           if (newItemLinkImage) attributes.customLinkImage = newItemLinkImage;
         }
+        if (newItemLinkTitle) attributes.customLinkTitle = newItemLinkTitle;
+        if (newItemLinkDescription) attributes.customLinkDescription = newItemLinkDescription;
       } else if (effectiveListType === "custom") {
         // Add section for sectioned custom lists (Recipe, Vacation Packing, Home Maintenance, Moving Checklist)
         if (sectionsActive && newItemSection) {
@@ -959,7 +965,7 @@ export default function ListDetail() {
       }
 
       // Only include quantity for Shopping category list types
-      const shouldIncludeQuantity = isShoppingList || isRegistryOrWishlistType;
+      const shouldIncludeQuantity = isShoppingList || isRegistryOrWishlistType || isGrocery;
       const itemData: any = {
         text: nameValidation.value!,
         priority: newItemPriority,
@@ -1311,6 +1317,18 @@ export default function ListDetail() {
       return;
     }
 
+    // For grocery lists, add to custom categories instead of sections
+    if (isGrocery && list?.id) {
+      try {
+        const stored = localStorage.getItem(`listmine:customGroceryCategories:${list.id}`);
+        const existing = stored ? JSON.parse(stored) : [];
+        if (!existing.includes(trimmedName)) {
+          const updated = [...existing, trimmedName];
+          localStorage.setItem(`listmine:customGroceryCategories:${list.id}`, JSON.stringify(updated));
+        }
+      } catch {}
+      return;
+    }
     // Add to custom sections and persist to localStorage
     const newCustomSections = [...customSections, trimmedName];
     setCustomSections(newCustomSections);
@@ -2558,7 +2576,7 @@ export default function ListDetail() {
                       <Input
                         type="text"
                         placeholder="$0.00"
-                        value={String(editingItem.attributes?.custom?.price ?? "")}
+                        value={String(editingItem.attributes?.price ?? editingItem.attributes?.custom?.price ?? "")}
                         onChange={(e) =>
                           setEditingItem({
                             ...editingItem,
@@ -2568,6 +2586,7 @@ export default function ListDetail() {
                                 ...editingItem.attributes?.custom,
                                 price: e.target.value,
                               },
+                              price: e.target.value, // also save to top-level for manual items
                             },
                           })
                         }
@@ -2701,7 +2720,7 @@ export default function ListDetail() {
                       <Input
                         type="text"
                         placeholder="$0.00"
-                        value={String(editingItem.attributes?.custom?.price ?? "")}
+                        value={String(editingItem.attributes?.price ?? editingItem.attributes?.custom?.price ?? "")}
                         onChange={(e) =>
                           setEditingItem({
                             ...editingItem,
@@ -2711,6 +2730,7 @@ export default function ListDetail() {
                                 ...editingItem.attributes?.custom,
                                 price: e.target.value,
                               },
+                              price: e.target.value, // also save to top-level for manual items
                             },
                           })
                         }
@@ -2780,13 +2800,9 @@ export default function ListDetail() {
                           <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="produce">Produce</SelectItem>
-                          <SelectItem value="dairy">Dairy</SelectItem>
-                          <SelectItem value="meat">Meat</SelectItem>
-                          <SelectItem value="pantry">Pantry</SelectItem>
-                          <SelectItem value="frozen">Frozen</SelectItem>
-                          <SelectItem value="bakery">Bakery</SelectItem>
-                          <SelectItem value="other">Other</SelectItem>
+                          {availableCategories.map((cat) => (
+                            <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -2839,7 +2855,7 @@ export default function ListDetail() {
                       <Input
                         type="text"
                         placeholder="$0.00"
-                        value={String(editingItem.attributes?.custom?.price ?? "")}
+                        value={String(editingItem.attributes?.price ?? editingItem.attributes?.custom?.price ?? "")}
                         onChange={(e) =>
                           setEditingItem({
                             ...editingItem,
@@ -5570,10 +5586,10 @@ export default function ListDetail() {
               {(isShoppingList || isRegistry) && (
                 <div className="space-y-2">
                   <Label>Purchase Status</Label>
-                  <Select value={newItemStatus || "not_purchased"} onValueChange={(v) => setNewItemStatus(v)}>
+                  <Select value={newItemStatus || "not-purchased"} onValueChange={(v) => setNewItemStatus(v)}>
                     <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="not_purchased">Not purchased</SelectItem>
+                      <SelectItem value="not-purchased">Not purchased</SelectItem>
                       <SelectItem value="purchased">Purchased</SelectItem>
                     </SelectContent>
                   </Select>
@@ -5610,11 +5626,11 @@ export default function ListDetail() {
                   </div>
                   <div className="space-y-2">
                     <Label>Status</Label>
-                    <Select value={newItemStatus || "not_started"} onValueChange={(v) => setNewItemStatus(v)}>
+                    <Select value={newItemStatus || "not-started"} onValueChange={(v) => setNewItemStatus(v)}>
                       <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="not_started">Not Started</SelectItem>
-                        <SelectItem value="in_progress">In Progress</SelectItem>
+                        <SelectItem value="not-started">Not Started</SelectItem>
+                        <SelectItem value="in-progress">In Progress</SelectItem>
                         <SelectItem value="completed">Completed</SelectItem>
                       </SelectContent>
                     </Select>
@@ -5629,7 +5645,7 @@ export default function ListDetail() {
                     <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="brainstorm">Brainstorm</SelectItem>
-                      <SelectItem value="in_progress">In Progress</SelectItem>
+                      <SelectItem value="in-progress">In Progress</SelectItem>
                       <SelectItem value="completed">Completed</SelectItem>
                       <SelectItem value="on_hold">On Hold</SelectItem>
                     </SelectContent>
