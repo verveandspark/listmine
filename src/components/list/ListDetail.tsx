@@ -325,6 +325,7 @@ export default function ListDetail() {
   }, [list?.items]);
   
   const [customSections, setCustomSections] = useState<string[]>([]);
+  const [customGroceryCategories, setCustomGroceryCategories] = useState<string[]>([]);
 
   const sectionsActive = isSectioned || customSections.length > 0;
   
@@ -374,14 +375,7 @@ export default function ListDetail() {
     if (isGrocery) {
       DEFAULT_GROCERY_CATEGORIES.forEach(cat => categoriesSet.add(cat));
       // Also include any custom categories added via "Add Section" for grocery
-      if (list?.id) {
-        try {
-          const stored = localStorage.getItem(`listmine:customGroceryCategories:${list.id}`);
-          if (stored) {
-            JSON.parse(stored).forEach((cat: string) => categoriesSet.add(cat));
-          }
-        } catch {}
-      }
+      customGroceryCategories.forEach(cat => categoriesSet.add(cat));
     }
     // Merge with any user-created categories from existing items
     if (list?.items) {
@@ -395,7 +389,7 @@ export default function ListDetail() {
     // Always ensure 'Other' is available
     categoriesSet.add('Other');
     return Array.from(categoriesSet).sort();
-  }, [list?.items, isGrocery, list?.id]);
+  }, [list?.items, isGrocery, list?.id, customGroceryCategories]);
   
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [newItemText, setNewItemText] = useState("");
@@ -539,6 +533,18 @@ export default function ListDetail() {
         setCustomSections([]);
       }
       
+      // Load custom grocery categories
+      const savedGroceryCategories = localStorage.getItem(`listmine:customGroceryCategories:${list.id}`);
+      if (savedGroceryCategories) {
+        try {
+          setCustomGroceryCategories(JSON.parse(savedGroceryCategories));
+        } catch {
+          setCustomGroceryCategories([]);
+        }
+      } else {
+        setCustomGroceryCategories([]);
+      }
+
       // Load or initialize template sections order
       const savedTemplateOrder = localStorage.getItem(`listmine:templateSectionsOrder:${list.id}`);
       if (savedTemplateOrder) {
@@ -957,8 +963,8 @@ export default function ListDetail() {
         }
         if (newItemLinkTitle) attributes.customLinkTitle = newItemLinkTitle;
         if (newItemLinkDescription) attributes.customLinkDescription = newItemLinkDescription;
-      } else if (effectiveListType === "custom") {
-        // Add section for sectioned custom lists (Recipe, Vacation Packing, Home Maintenance, Moving Checklist)
+      } else if (effectiveListType === "custom" || effectiveListType === "checklist") {
+        // Add section for sectioned custom/checklist lists
         if (sectionsActive && newItemSection) {
           attributes.section = newItemSection;
         }
@@ -1325,6 +1331,7 @@ export default function ListDetail() {
         if (!existing.includes(trimmedName)) {
           const updated = [...existing, trimmedName];
           localStorage.setItem(`listmine:customGroceryCategories:${list.id}`, JSON.stringify(updated));
+          setCustomGroceryCategories(updated);
         }
       } catch {}
       return;
@@ -2471,14 +2478,14 @@ export default function ListDetail() {
                   <div className="space-y-2">
                     <Label>Status</Label>
                     <Select
-                      value={editingItem.attributes?.status || "brainstorm"}
+                      value={editingItem.attributes?.status || "none"}
                       onValueChange={(value) => {
                         setEditingItem({
                           ...editingItem,
                           completed: value === "completed",
                           attributes: {
                             ...editingItem.attributes,
-                            status: value,
+                            status: value === "none" ? undefined : value,
                           },
                         });
                       }}
@@ -2487,6 +2494,7 @@ export default function ListDetail() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
                         <SelectItem value="brainstorm">Brainstorm</SelectItem>
                         <SelectItem value="in-progress">In progress</SelectItem>
                         <SelectItem value="completed">Completed</SelectItem>
@@ -2753,7 +2761,7 @@ export default function ListDetail() {
                   <div className="space-y-2">
                     <Label>Purchase Status</Label>
                     <Select
-                      value={editingItem.attributes?.purchaseStatus || ""}
+                      value={editingItem.attributes?.purchaseStatus || "not-purchased"}
                       onValueChange={(value) => {
                         setEditingItem({
                           ...editingItem,
@@ -4234,10 +4242,10 @@ export default function ListDetail() {
                                               style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
                             >
                               {(() => {
-                                // For shopping, registry, and grocery types, show quantity prefix when > 1
-                                const qty = item.quantity || item.attributes?.quantityNeeded;
+                                // For shopping, registry, and grocery types, always show quantity prefix
+                                const qty = item.quantity || item.attributes?.quantityNeeded || (isShoppingList || isRegistryOrWishlistType || isGrocery ? 1 : 0);
                                 const showQtyTypes = isShoppingList || isRegistryOrWishlistType || isGrocery;
-                                if (showQtyTypes && qty && qty > 1) {
+                                if (showQtyTypes && qty && qty >= 1) {
                                   return (
                                     <span className="font-semibold text-primary">
                                       {qty}× {" "}
@@ -4262,6 +4270,31 @@ export default function ListDetail() {
                             {isItemUnavailable(item) && (
                               <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-300">
                                 Unavailable
+                              </Badge>
+                            )}
+                            {/* Status badge - show for todo/idea lists with status */}
+                            {(isTodo || isIdea) && item.attributes?.status && (
+                              <Badge
+                                variant="outline"
+                                className={`text-xs ${
+                                  item.attributes.status === 'completed'
+                                    ? 'bg-success/10 text-success border-success/20'
+                                    : item.attributes.status === 'in-progress'
+                                    ? 'bg-warning/10 text-warning border-warning/20'
+                                    : item.attributes.status === 'brainstorm'
+                                    ? 'bg-purple-100 text-purple-700 border-purple-200'
+                                    : item.attributes.status === 'on-hold'
+                                    ? 'bg-gray-100 text-gray-600 border-gray-200'
+                                    : 'bg-primary/10 text-primary border-primary/20'
+                                }`}
+                              >
+                                <Clock className="w-3 h-3 mr-1" />
+                                {item.attributes.status === 'not-started' ? 'Not started' :
+                                 item.attributes.status === 'in-progress' ? 'In progress' :
+                                 item.attributes.status === 'completed' ? 'Completed' :
+                                 item.attributes.status === 'brainstorm' ? 'Brainstorm' :
+                                 item.attributes.status === 'on-hold' ? 'On hold' :
+                                 item.attributes.status}
                               </Badge>
                             )}
                             {/* Price display - attributes.price or custom.price (registry imports) */}
@@ -4551,10 +4584,10 @@ export default function ListDetail() {
                                               style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
                             >
                               {(() => {
-                                // For shopping, registry, and grocery types, show quantity prefix when > 1
-                                const qty = item.quantity || item.attributes?.quantityNeeded;
+                                // For shopping, registry, and grocery types, always show quantity prefix
+                                const qty = item.quantity || item.attributes?.quantityNeeded || (isShoppingList || isRegistryOrWishlistType || isGrocery ? 1 : 0);
                                 const showQtyTypes = isShoppingList || isRegistryOrWishlistType || isGrocery;
-                                if (showQtyTypes && qty && qty > 1) {
+                                if (showQtyTypes && qty && qty >= 1) {
                                   return (
                                     <span className="font-semibold text-primary">
                                       {qty}× {" "}
@@ -4579,6 +4612,31 @@ export default function ListDetail() {
                             {isItemUnavailable(item) && (
                               <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-300">
                                 Unavailable
+                              </Badge>
+                            )}
+                            {/* Status badge - show for todo/idea lists with status */}
+                            {(isTodo || isIdea) && item.attributes?.status && (
+                              <Badge
+                                variant="outline"
+                                className={`text-xs ${
+                                  item.attributes.status === 'completed'
+                                    ? 'bg-success/10 text-success border-success/20'
+                                    : item.attributes.status === 'in-progress'
+                                    ? 'bg-warning/10 text-warning border-warning/20'
+                                    : item.attributes.status === 'brainstorm'
+                                    ? 'bg-purple-100 text-purple-700 border-purple-200'
+                                    : item.attributes.status === 'on-hold'
+                                    ? 'bg-gray-100 text-gray-600 border-gray-200'
+                                    : 'bg-primary/10 text-primary border-primary/20'
+                                }`}
+                              >
+                                <Clock className="w-3 h-3 mr-1" />
+                                {item.attributes.status === 'not-started' ? 'Not started' :
+                                 item.attributes.status === 'in-progress' ? 'In progress' :
+                                 item.attributes.status === 'completed' ? 'Completed' :
+                                 item.attributes.status === 'brainstorm' ? 'Brainstorm' :
+                                 item.attributes.status === 'on-hold' ? 'On hold' :
+                                 item.attributes.status}
                               </Badge>
                             )}
                             {/* Price display - attributes.price or custom.price (registry imports) */}
@@ -5516,17 +5574,14 @@ export default function ListDetail() {
                     <Select value={newItemUnit || ""} onValueChange={(v) => setNewItemUnit(v || undefined)}>
                       <SelectTrigger><SelectValue placeholder="Select unit" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="each">Each</SelectItem>
-                        <SelectItem value="lb">lb</SelectItem>
+                        <SelectItem value="lbs">lbs</SelectItem>
                         <SelectItem value="oz">oz</SelectItem>
-                        <SelectItem value="kg">kg</SelectItem>
-                        <SelectItem value="g">g</SelectItem>
-                        <SelectItem value="pack">Pack</SelectItem>
-                        <SelectItem value="box">Box</SelectItem>
-                        <SelectItem value="bag">Bag</SelectItem>
-                        <SelectItem value="bottle">Bottle</SelectItem>
-                        <SelectItem value="can">Can</SelectItem>
-                        <SelectItem value="dozen">Dozen</SelectItem>
+                        <SelectItem value="count">count</SelectItem>
+                        <SelectItem value="liters">liters</SelectItem>
+                        <SelectItem value="ml">ml</SelectItem>
+                        <SelectItem value="cups">cups</SelectItem>
+                        <SelectItem value="tbsp">tbsp</SelectItem>
+                        <SelectItem value="tsp">tsp</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -5641,13 +5696,14 @@ export default function ListDetail() {
               {isIdea && (
                 <div className="space-y-2">
                   <Label>Status</Label>
-                  <Select value={newItemStatus || "brainstorm"} onValueChange={(v) => setNewItemStatus(v)}>
+                  <Select value={newItemStatus || "none"} onValueChange={(v) => setNewItemStatus(v)}>
                     <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
                       <SelectItem value="brainstorm">Brainstorm</SelectItem>
                       <SelectItem value="in-progress">In Progress</SelectItem>
                       <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="on_hold">On Hold</SelectItem>
+                      <SelectItem value="on-hold">On Hold</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
