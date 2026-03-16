@@ -100,10 +100,29 @@ Deno.serve(async (req) => {
         onlyInListMine.push(existingItemsIndex[key])
       } else {
         const listMineItem = existingItemsIndex[key]
+        // Normalize both sides to comparable shape before diffing
         const retailerItem = retailerItemsIndex[key]
-        // Simple deep comparison for differences
-        if (JSON.stringify(listMineItem) !== JSON.stringify(retailerItem)) {
+        const comparableLM = {
+          name: (listMineItem.text || '').trim().toLowerCase(),
+          price: listMineItem.attributes?.custom?.price || null,
+          image: listMineItem.attributes?.custom?.image || null,
+          link: listMineItem.links?.[0] || null,
+          requested: listMineItem.attributes?.registry?.quantity_requested || null,
+          purchased: listMineItem.attributes?.registry?.quantity_purchased || null,
+          unavailable: listMineItem.is_unavailable || null,
+        }
+        const comparableRetailer = {
+          name: (retailerItem.name || '').trim().toLowerCase(),
+          price: retailerItem.attributes?.custom?.price || retailerItem.price || null,
+          image: retailerItem.attributes?.custom?.image || retailerItem.image || null,
+          link: retailerItem.link || retailerItem.links?.[0] || null,
+          requested: retailerItem.attributes?.custom?.requested_quantity || null,
+          purchased: retailerItem.attributes?.custom?.purchased_quantity || null,
+          unavailable: retailerItem.attributes?.custom?.is_unavailable || null,
+        }
+        if (JSON.stringify(comparableLM) !== JSON.stringify(comparableRetailer)) {
           updatedItems.push({ listMineItem, retailerItem })
+        }
         }
       }
     })
