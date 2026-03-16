@@ -2584,9 +2584,9 @@ export default function ListDetail() {
                               ...editingItem.attributes,
                               custom: {
                                 ...editingItem.attributes?.custom,
-                                price: e.target.value ? parseFloat(e.target.value) : undefined,
+                                price: e.target.value, // string per Record<string, string> type
                               },
-                              price: e.target.value ? parseFloat(e.target.value) : undefined, // also save to top-level for manual items
+                              price: e.target.value ? parseFloat(e.target.value) : undefined, // number per top-level type
                             },
                           })
                         }
@@ -2728,9 +2728,9 @@ export default function ListDetail() {
                               ...editingItem.attributes,
                               custom: {
                                 ...editingItem.attributes?.custom,
-                                price: e.target.value ? parseFloat(e.target.value) : undefined,
+                                price: e.target.value, // string per Record<string, string> type
                               },
-                              price: e.target.value ? parseFloat(e.target.value) : undefined, // also save to top-level for manual items
+                              price: e.target.value ? parseFloat(e.target.value) : undefined, // number per top-level type
                             },
                           })
                         }
