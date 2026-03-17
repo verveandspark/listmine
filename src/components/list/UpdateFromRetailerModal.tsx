@@ -105,7 +105,7 @@ export default function UpdateFromRetailerModal({
       }));
 
       const { data: compareData, error: compareError } = await supabase.functions.invoke(
-        "supabase-functions-compare-merge",
+        "compare-merge",
         {
           body: {
             listMineListId: list.id,

@@ -123,7 +123,7 @@ export default function MergeListsModal({
       })) || [];
 
       const { data: compareData, error: compareError } = await supabase.functions.invoke(
-        "supabase-functions-compare-merge",
+        "compare-merge",
         {
           body: {
             listMineListId: targetListId,

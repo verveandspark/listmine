@@ -207,7 +207,7 @@ export default function ScrapeWishlistModal({
 
       // Call the compare-merge edge function for validation
       const { data, error } = await supabase.functions.invoke(
-        "supabase-functions-compare-merge",
+        "compare-merge",
         {
           body: {
             listMineListId: null,
