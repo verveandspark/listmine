@@ -1,491 +1,368 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ListPlus, Users, Crown, ChevronRight, X, Sparkles, Download, HelpCircle, Keyboard, Check } from "lucide-react";
-import { useAuth } from "@/contexts/useAuthHook";
-import { useNavigate } from "react-router-dom";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+import { useAccount } from "@/contexts/AccountContext";
 import { getTierDisplayName, type UserTier } from "@/lib/tierUtils";
 
-interface OnboardingStep {
+const ONBOARDING_KEY = "listmine_onboarding_seen";
+
+interface OnboardingTooltipsProps {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+interface Slide {
   id: string;
   title: string;
-  description: string;
-  icon: React.ReactNode;
-  targetSelector?: string;
+  body: React.ReactNode;
+  tierFilter?: UserTier[];
+  isLast?: boolean;
 }
 
-// Helper to check if user has a paid tier
-const isPaidTier = (tier?: string): boolean => {
-  return tier === "good" || tier === "even_better" || tier === "lots_more";
-};
+function getSlides(effectiveTier: UserTier, displayName: string): Slide[] {
+  const slides: Slide[] = [
+    {
+      id: "free-note",
+      title: "Important Note About Your Free Account",
+      tierFilter: ["free"],
+      body: (
+        <div className="space-y-3 text-sm text-muted-foreground">
+          <p>
+            Welcome to <strong>ListMine</strong>! You're on the{" "}
+            <strong>Free</strong> plan, which gives you access to the core
+            features to get started.
+          </p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>Up to <strong>3 lists</strong> at a time</li>
+            <li>
+              List types limited to <strong>Custom</strong>,{" "}
+              <strong>To-Do</strong>, and <strong>Checklist</strong>
+            </li>
+            <li>No collaboration, import/export, or registry features</li>
+          </ul>
+          <p>
+            You can upgrade anytime from the <strong>Upgrade</strong> page to
+            unlock more lists, list types, and powerful features.
+          </p>
+        </div>
+      ),
+    },
+    {
+      id: "create-list",
+      title: "Create Your First List",
+      body: (
+        <div className="space-y-3 text-sm text-muted-foreground">
+          <p>
+            Your plan:{" "}
+            <span className="font-semibold text-primary">{displayName}</span>
+          </p>
+          <p>
+            Click <strong>"New List"</strong> from the dashboard to get
+            started. You can choose a list type, pick a template, or start
+            from scratch.
+          </p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>Name your list and choose a category</li>
+            <li>Add items with priority, due dates, and notes</li>
+            <li>Drag and drop to reorder items</li>
+            <li>Pin important lists to the top of your dashboard</li>
+          </ul>
+        </div>
+      ),
+    },
+    {
+      id: "navigate",
+      title: "Navigate the App",
+      body: (
+        <div className="space-y-3 text-sm text-muted-foreground">
+          <p>
+            Use the <strong>sidebar</strong> to jump between your lists,
+            templates, and settings. The dashboard gives you a bird's-eye
+            view of everything.
+          </p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li><strong>Dashboard</strong> — overview of all your lists</li>
+            <li><strong>Templates</strong> — start from a ready-made list</li>
+            <li><strong>Profile</strong> — manage your account and preferences</li>
+            <li><strong>Search</strong> — quickly find any list or item</li>
+          </ul>
+        </div>
+      ),
+    },
+    {
+      id: "collaborate",
+      title: "Collaborate with Others",
+      body: (
+        <div className="space-y-3 text-sm text-muted-foreground">
+          <p>
+            Share lists with friends, family, or teammates. Open any list and
+            use the <strong>Share</strong> button to invite collaborators.
+          </p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>
+              <strong>Guests</strong> — invite anyone to view or edit a
+              specific list (Good plan+)
+            </li>
+            <li>
+              <strong>Teams</strong> — create a shared workspace where all
+              members see team lists (Even Better plan+)
+            </li>
+            <li>Generate a shareable link for read-only or edit access</li>
+          </ul>
+        </div>
+      ),
+    },
+    {
+      id: "import-export",
+      title: "Import, Export, & Print",
+      body: (
+        <div className="space-y-3 text-sm text-muted-foreground">
+          <p>
+            Move your data in and out of ListMine with ease. Find these
+            options in the <strong>Import / Export</strong> section.
+          </p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>
+              <strong>Import</strong> — upload a CSV or TXT file to create
+              lists instantly (Good plan+)
+            </li>
+            <li>
+              <strong>Export</strong> — download your lists as CSV or TXT
+              for backups or sharing (Good plan+)
+            </li>
+            <li>
+              <strong>Print</strong> — print any list directly from the list
+              view
+            </li>
+          </ul>
+        </div>
+      ),
+    },
+    {
+      id: "registry",
+      title: "Registry with Purchase Tracking",
+      body: (
+        <div className="space-y-3 text-sm text-muted-foreground">
+          <p>
+            Create wishlists or gift registries and let friends and family
+            mark items as purchased — without spoiling the surprise.
+          </p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>
+              Available on the <strong>Even Better</strong> plan and above
+            </li>
+            <li>
+              Share a registry link — buyers see availability, you don't see
+              who bought what
+            </li>
+            <li>
+              Track purchase history and manage your registry settings
+            </li>
+          </ul>
+        </div>
+      ),
+    },
+    {
+      id: "shortcuts",
+      title: "Keyboard Shortcuts & Support",
+      body: (
+        <div className="space-y-3 text-sm text-muted-foreground">
+          <p>Work faster and get help whenever you need it.</p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>
+              Press{" "}
+              <kbd className="px-1 py-0.5 rounded bg-muted border text-xs font-mono">?</kbd>{" "}
+              anywhere to see available keyboard shortcuts
+            </li>
+            <li>
+              Use the <strong>Help</strong> menu for FAQs, tips, and contact
+              support
+            </li>
+            <li>
+              Access <strong>Settings</strong> from your profile to
+              personalize the experience
+            </li>
+          </ul>
+        </div>
+      ),
+    },
+    {
+      id: "upgrade",
+      title: "Upgrade for More Features",
+      tierFilter: ["free", "good", "even_better"],
+      isLast: true,
+      body: (
+        <div className="space-y-3 text-sm text-muted-foreground">
+          <p>
+            Ready to unlock the full power of ListMine? Upgrading gives you
+            access to more lists, more list types, and premium features.
+          </p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>
+              <strong>Good</strong> — more lists, idea &amp; shopping types,
+              import/export, guest sharing
+            </li>
+            <li>
+              <strong>Even Better</strong> — teams, registries, wishlists,
+              purchase tracking
+            </li>
+            <li>
+              <strong>Lots More</strong> — unlimited everything, all
+              features, priority support
+            </li>
+          </ul>
+        </div>
+      ),
+    },
+  ];
 
-// Helper to get tier level for comparison
-const getTierLevel = (tier?: string): number => {
-  const levels: Record<string, number> = {
-    "free": 0,
-    "good": 1,
-    "even_better": 2,
-    "lots_more": 3,
-  };
-  return levels[tier || "free"] || 0;
-};
-
-// Tier feature item component with current tier highlighting
-interface TierFeatureItemProps {
-  tierName: string;
-  tierKey: UserTier;
-  currentTier?: string;
-  children: React.ReactNode;
+  return slides.filter((slide) => {
+    if (!slide.tierFilter) return true;
+    return slide.tierFilter.includes(effectiveTier);
+  });
 }
 
-function TierFeatureItem({ tierName, tierKey, currentTier, children }: TierFeatureItemProps) {
-  const isCurrentTier = currentTier === tierKey;
-  const hasAccess = getTierLevel(currentTier) >= getTierLevel(tierKey);
-  
-  return (
-    <li className={`flex items-center gap-2 ${isCurrentTier ? "bg-primary/10 -mx-2 px-2 py-1 rounded" : ""}`}>
-      {hasAccess ? (
-        <Check className="w-3 h-3 text-accent flex-shrink-0" />
-      ) : (
-        <Sparkles className="w-3 h-3 text-primary flex-shrink-0" />
-      )}
-      <span>
-        <strong className={isCurrentTier ? "text-primary" : ""}>{tierName}:</strong> {children}
-        {isCurrentTier && <Badge variant="outline" className="ml-2 text-xs py-0 px-1">Your plan</Badge>}
-      </span>
-    </li>
-  );
-}
-
-const ONBOARDING_STEPS: OnboardingStep[] = [
-  {
-    id: "create-list",
-    title: "Create Your First List",
-    description:
-      "Click the button to create your first list. Choose from templates like Tasks, Shopping, or create a custom list.",
-    icon: <ListPlus className="w-8 h-8 text-primary" />,
-  },
-  {
-    id: "invite-collaborators",
-    title: "Invite Collaborators",
-    description:
-      "Share your lists with friends and family! Open any list and click the button to invite others to view or edit. Available on Good, Even Better, and Lots More tiers.",
-    icon: <Users className="w-8 h-8 text-primary" />,
-  },
-  {
-    id: "guests-and-teams",
-    title: "Guests & Teams",
-    description:
-      "Collaborate with others using Guests and Teams! Guests can view or edit specific lists you share with them. Teams let you create a shared workspace where all members can access team lists. Use the account switcher in the sidebar to switch between Personal and Team modes.",
-    icon: <Users className="w-8 h-8 text-primary" />,
-    // Only show for even_better and lots_more tiers
-  },
-  {
-    id: "import-export",
-    title: "Import & Export Lists",
-    description:
-      "Easily import lists from CSV or TXT files, or export your lists to back them up or share with others.",
-    icon: <Download className="w-8 h-8 text-primary" />,
-  },
-  {
-    id: "upgrade-tier",
-    title: "Upgrade for More Features",
-    description:
-      "Upgrade anytime to unlock more lists, collaboration, import/export, wishlists, registries, and more!",
-    icon: <Crown className="w-8 h-8 text-primary" />,
-  },
-  {
-    id: "help-support",
-    title: "Help & Support",
-    description:
-      "Need help? Access the Help menu from any page to find FAQs, tips, and contact support.",
-    icon: <HelpCircle className="w-8 h-8 text-primary" />,
-  },
-  {
-    id: "keyboard-shortcuts",
-    title: "Keyboard Shortcuts",
-    description:
-      "Work faster with keyboard shortcuts! Press ? anytime to see all available shortcuts.",
-    icon: <Keyboard className="w-8 h-8 text-primary" />,
-  },
-];
-
-const ONBOARDING_KEY = "listmine_onboarding_completed";
-
-export function OnboardingTooltips() {
-  const [isOpen, setIsOpen] = useState(false);
+export function OnboardingTooltips({
+  open: externalOpen,
+  onOpenChange,
+}: OnboardingTooltipsProps = {}) {
+  const [internalOpen, setInternalOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [dontShowAgain, setDontShowAgain] = useState(false);
-  const { user } = useAuth();
+  const { effectiveTier } = useAccount();
   const navigate = useNavigate();
 
-  // Filter steps based on user tier
-  const steps = ONBOARDING_STEPS.filter(step => {
-    // Hide upgrade step if user is already on "lots_more" tier
-    if (step.id === "upgrade-tier" && user?.tier === "lots_more") {
-      return false;
-    }
-    // Show guests-and-teams step only for even_better and lots_more tiers
-    if (step.id === "guests-and-teams") {
-      return user?.tier === "even_better" || user?.tier === "lots_more";
-    }
-    return true;
-  });
+  const isControlled = externalOpen !== undefined;
+  const isOpen = isControlled ? externalOpen : internalOpen;
 
+  const setOpen = (val: boolean) => {
+    if (isControlled) {
+      onOpenChange?.(val);
+    } else {
+      setInternalOpen(val);
+    }
+  };
+
+  // Auto-show on first visit (uncontrolled mode only)
   useEffect(() => {
-    const hasCompletedOnboarding = localStorage.getItem(ONBOARDING_KEY);
-    if (!hasCompletedOnboarding) {
-      const timer = setTimeout(() => setIsOpen(true), 1000);
+    if (isControlled) return;
+    const hasCompleted = localStorage.getItem(ONBOARDING_KEY);
+    if (!hasCompleted) {
+      const timer = setTimeout(() => setInternalOpen(true), 1000);
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [isControlled]);
 
-  const handleNext = () => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
-    } else {
-      handleComplete();
+  // Reset to step 0 when opened externally
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentStep(0);
+      setDontShowAgain(false);
     }
-  };
+  }, [isOpen]);
 
-  const handleSkip = () => {
-    handleComplete();
-  };
+  const displayName = getTierDisplayName(effectiveTier);
+  const slides = getSlides(effectiveTier, displayName);
+  const totalSteps = slides.length;
+  const slide = slides[currentStep];
+  const isLastSlide = slide?.isLast || currentStep === totalSteps - 1;
 
-  const handleComplete = () => {
-    // Always save if "Don't show again" is checked, or if completing the tour
-    localStorage.setItem(ONBOARDING_KEY, "true");
-    setIsOpen(false);
-  };
-
-  const handleDismiss = () => {
+  const handleClose = () => {
     if (dontShowAgain) {
       localStorage.setItem(ONBOARDING_KEY, "true");
     }
-    setIsOpen(false);
+    setOpen(false);
   };
 
-  const step = steps[currentStep];
+  const handleNext = () => {
+    if (!isLastSlide) {
+      setCurrentStep((s) => s + 1);
+    }
+  };
+
+  const handleGetStarted = () => {
+    localStorage.setItem(ONBOARDING_KEY, "true");
+    setOpen(false);
+  };
+
+  const handleUpgrade = () => {
+    localStorage.setItem(ONBOARDING_KEY, "true");
+    setOpen(false);
+    navigate("/upgrade");
+  };
+
+  if (!slide) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => {
-      if (!open) handleDismiss();
-      else setIsOpen(open);
-    }}>
-      <DialogContent 
-        className="sm:max-w-md animate-pop-in"
-        aria-describedby="onboarding-description"
-      >
-        <button
-          onClick={handleDismiss}
-          aria-label="Skip onboarding tour"
-          className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-        >
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
-        </button>
+    <Dialog open={isOpen} onOpenChange={setOpen}>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <div className="flex items-center justify-center mb-4">
-            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center animate-pulse-soft">
-              {step.icon}
-            </div>
-          </div>
-          <DialogTitle className="text-center text-xl">
-            {step.title}
-          </DialogTitle>
-          <DialogDescription className="text-center text-base leading-relaxed">
-            {step.id === "create-list" && (
-              <>
-                Click the <span className="font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded">+ New List</span> button to create your first list.
-              </>
-            )}
-            {step.id === "invite-collaborators" && (
-              <>
-                Share your lists with friends and family! Open any list and click the <span className="font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded">Share</span> button to invite others.
-              </>
-            )}
-            {step.id === "guests-and-teams" && (
-              <>
-                <span className="font-semibold text-primary">Guests</span> can view or edit specific lists you share with them. <span className="font-semibold text-primary">Teams</span> let you create a shared workspace where all members can access team lists. Use the <span className="font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded">account switcher</span> in the sidebar to switch between Personal and Team modes.
-              </>
-            )}
-            {step.id === "import-export" && (
-              <>
-                Easily import and export your lists to back them up or share with others.
-              </>
-            )}
-            {step.id === "upgrade-tier" && (
-              <>Upgrade anytime to unlock more features:</>
-            )}
-            {step.id === "help-support" && (
-              <>
-                Click the <span className="font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded">?</span> icon in the header to access help, FAQs, and contact support anytime.
-              </>
-            )}
-            {step.id === "keyboard-shortcuts" && (
-              <>
-                Press <span className="font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded">?</span> on your keyboard anytime to see all available shortcuts for faster navigation.
-              </>
-            )}
-          </DialogDescription>
-          
-          {/* Create List slide - tier-aware list types */}
-          {step.id === "create-list" && (
-            <div className="mt-3">
-              {user?.tier && (
-                <div className="flex justify-center mb-3">
-                  <Badge variant="secondary" className="text-xs">
-                    Your plan: {getTierDisplayName(user.tier as UserTier)}
-                  </Badge>
-                </div>
-              )}
-              {isPaidTier(user?.tier) ? (
-                <div className="text-center">
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Choose from all available templates:
-                  </p>
-                  <div className="flex flex-wrap justify-center gap-2">
-                    <Badge variant="outline">To-Do</Badge>
-                    <Badge variant="outline">Custom</Badge>
-                    <Badge variant="outline">Grocery</Badge>
-                    <Badge variant="outline">Idea</Badge>
-                    {getTierLevel(user?.tier) >= getTierLevel("even_better") && (
-                      <>
-                        <Badge variant="outline">Registry</Badge>
-                        <Badge variant="outline">Wishlist</Badge>
-                      </>
-                    )}
-                  </div>
-                  {getTierLevel(user?.tier) < getTierLevel("even_better") && (
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Upgrade to Even Better for Registry & Wishlist templates
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center">
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Available on Free tier:
-                  </p>
-                  <div className="flex flex-wrap justify-center gap-2 mb-3">
-                    <Badge variant="outline">To-Do</Badge>
-                    <Badge variant="outline">Custom</Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground mb-2">
-                    Upgrade to unlock more templates:
-                  </p>
-                  <div className="flex flex-wrap justify-center gap-2 mb-3">
-                    <Badge variant="secondary" className="opacity-60">Grocery</Badge>
-                    <Badge variant="secondary" className="opacity-60">Idea</Badge>
-                    <Badge variant="secondary" className="opacity-60">Registry</Badge>
-                    <Badge variant="secondary" className="opacity-60">Wishlist</Badge>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      handleComplete();
-                      navigate("/upgrade");
-                    }}
-                    className="w-full text-primary border-primary/30 hover:bg-primary/5"
-                  >
-                    <Crown className="w-3 h-3 mr-1" />
-                    Upgrade for More Templates
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-          
-          {/* Current tier badge for tier-related slides */}
-          {(step.id === "invite-collaborators" || step.id === "import-export") && user?.tier && (
-            <div className="flex justify-center mt-2">
-              <Badge variant="secondary" className="text-xs">
-                Your plan: {getTierDisplayName(user.tier as UserTier)}
-              </Badge>
-            </div>
-          )}
-          
-          {step.id === "invite-collaborators" && (
-            <div className="mt-3">
-              <p className="text-xs text-muted-foreground mb-2 text-center">
-                <strong>Guests</strong> can view or edit lists you share. <strong>Admin accounts</strong> have full access to manage all your lists.
-              </p>
-              <ul className="text-left space-y-1 text-sm text-muted-foreground">
-                <TierFeatureItem tierName="Good" tierKey="good" currentTier={user?.tier}>
-                  Share read-only links
-                </TierFeatureItem>
-                <TierFeatureItem tierName="Even Better" tierKey="even_better" currentTier={user?.tier}>
-                  Invite up to 2 guests to edit
-                </TierFeatureItem>
-                <TierFeatureItem tierName="Lots More" tierKey="lots_more" currentTier={user?.tier}>
-                  3 admin accounts + unlimited guests
-                </TierFeatureItem>
-              </ul>
-              {!isPaidTier(user?.tier) && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    handleComplete();
-                    navigate("/upgrade");
-                  }}
-                  className="mt-3 w-full text-primary border-primary/30 hover:bg-primary/5"
-                >
-                  <Crown className="w-3 h-3 mr-1" />
-                  Upgrade to Share Lists
-                </Button>
-              )}
-            </div>
-          )}
-          {step.id === "import-export" && (
-            <div className="mt-3">
-              <ul className="text-left space-y-1 text-sm text-muted-foreground">
-                <TierFeatureItem tierName="Good" tierKey="good" currentTier={user?.tier}>
-                  Import from multiple sources, export to CSV/TXT
-                </TierFeatureItem>
-                <TierFeatureItem tierName="Even Better" tierKey="even_better" currentTier={user?.tier}>
-                  All above + export to PDF
-                </TierFeatureItem>
-                <TierFeatureItem tierName="Lots More" tierKey="lots_more" currentTier={user?.tier}>
-                  All import/export features
-                </TierFeatureItem>
-              </ul>
-              {!isPaidTier(user?.tier) && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    handleComplete();
-                    navigate("/upgrade");
-                  }}
-                  className="mt-3 w-full text-primary border-primary/30 hover:bg-primary/5"
-                >
-                  <Crown className="w-3 h-3 mr-1" />
-                  Upgrade for Import/Export
-                </Button>
-              )}
-            </div>
-          )}
-          {step.id === "upgrade-tier" && (
-            <div className="text-center">
-              {user?.tier && (
-                <div className="flex justify-center mb-3">
-                  <Badge variant="secondary" className="text-xs">
-                    Your plan: {getTierDisplayName(user.tier as UserTier)}
-                  </Badge>
-                </div>
-              )}
-              <ul className="text-left mt-2 space-y-2 text-sm text-muted-foreground">
-                <TierFeatureItem tierName="Good" tierKey="good" currentTier={user?.tier}>
-                  Import from multiple sources, share read-only links, export to CSV/TXT
-                </TierFeatureItem>
-                <TierFeatureItem tierName="Even Better" tierKey="even_better" currentTier={user?.tier}>
-                  Real-time collaboration (2 guests), export to PDF, Registry & Wishlist templates
-                </TierFeatureItem>
-                <TierFeatureItem tierName="Lots More" tierKey="lots_more" currentTier={user?.tier}>
-                  3 admin accounts, unlimited guests, all features
-                </TierFeatureItem>
-              </ul>
-              <Button
-                onClick={() => {
-                  handleComplete();
-                  navigate("/upgrade");
-                }}
-                className="mt-4 w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
-              >
-                <Crown className="w-4 h-4 mr-2" />
-                See Plans & Upgrade
-              </Button>
-            </div>
-          )}
-          {step.id === "keyboard-shortcuts" && (
-            <div className="text-center">
-              <div className="mt-2 grid grid-cols-2 gap-2 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2 bg-gray-50 rounded px-2 py-1">
-                  <kbd className="px-2 py-0.5 bg-white border rounded text-xs font-mono">N</kbd>
-                  <span>New list</span>
-                </div>
-                <div className="flex items-center gap-2 bg-gray-50 rounded px-2 py-1">
-                  <kbd className="px-2 py-0.5 bg-white border rounded text-xs font-mono">/</kbd>
-                  <span>Search</span>
-                </div>
-                <div className="flex items-center gap-2 bg-gray-50 rounded px-2 py-1">
-                  <kbd className="px-2 py-0.5 bg-white border rounded text-xs font-mono">?</kbd>
-                  <span>Help</span>
-                </div>
-                <div className="flex items-center gap-2 bg-gray-50 rounded px-2 py-1">
-                  <kbd className="px-2 py-0.5 bg-white border rounded text-xs font-mono">Esc</kbd>
-                  <span>Close</span>
-                </div>
-              </div>
-            </div>
-          )}
+          <DialogTitle className="text-lg">{slide.title}</DialogTitle>
         </DialogHeader>
 
-        {/* Progress dots */}
-        <div className="flex justify-center gap-2 my-4" role="progressbar" aria-valuenow={currentStep + 1} aria-valuemin={1} aria-valuemax={steps.length} aria-label={`Step ${currentStep + 1} of ${steps.length}`}>
-          {steps.map((_, index) => (
+        {/* Step indicator */}
+        <div className="flex gap-1 mb-2">
+          {slides.map((_, i) => (
             <div
-              key={index}
-              className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                index === currentStep
-                  ? "bg-primary w-6"
-                  : index < currentStep
-                  ? "bg-primary/60"
-                  : "bg-gray-300"
+              key={i}
+              className={`h-1 rounded-full flex-1 transition-colors ${
+                i === currentStep
+                  ? "bg-primary"
+                  : i < currentStep
+                  ? "bg-primary/40"
+                  : "bg-muted"
               }`}
-              aria-label={`Step ${index + 1}${index === currentStep ? " (current)" : index < currentStep ? " (completed)" : ""}`}
             />
           ))}
         </div>
 
-        <DialogFooter className="flex flex-col gap-4">
-          {/* Don't show again checkbox */}
-          <div className="flex items-center space-x-2 w-full justify-center">
-            <Checkbox 
-              id="dont-show-again" 
+        {/* Body */}
+        <div className="py-2">{slide.body}</div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between pt-2 border-t gap-4">
+          {/* Don't show again */}
+          <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+            <Checkbox
+              id="dont-show-again"
               checked={dontShowAgain}
-              onCheckedChange={(checked) => setDontShowAgain(checked === true)}
+              onCheckedChange={(checked) =>
+                setDontShowAgain(checked === true)
+              }
             />
-            <Label 
-              htmlFor="dont-show-again" 
-              className="text-sm text-gray-500 cursor-pointer"
-            >
-              Don't show this again
-            </Label>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row gap-2 w-full">
-            <Button
-              variant="ghost"
-              onClick={handleDismiss}
-              className="text-gray-500 min-h-[44px]"
-            >
-              {dontShowAgain ? "Dismiss" : "Skip tour"}
+            Don't show again
+          </label>
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Button variant="ghost" size="sm" onClick={handleClose}>
+              Skip tour
             </Button>
-            <Button onClick={handleNext} className="min-h-[44px]">
-              {currentStep < steps.length - 1 ? (
-                <>
-                  Next
-                  <ChevronRight className="w-4 h-4 ml-1" />
-                </>
-              ) : (
-                "Get Started!"
-              )}
-            </Button>
+
+            {isLastSlide && slide.id === "upgrade" && (
+              <Button variant="outline" size="sm" onClick={handleUpgrade}>
+                See plans &amp; upgrade
+              </Button>
+            )}
+
+            {!isLastSlide ? (
+              <Button size="sm" onClick={handleNext}>
+                Next
+              </Button>
+            ) : (
+              <Button size="sm" onClick={handleGetStarted}>
+                Get started
+              </Button>
+            )}
           </div>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

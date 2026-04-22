@@ -2608,15 +2608,15 @@ export default function Dashboard() {
               <div className="space-y-3 text-sm">
                 <div>
                   <p className="font-medium text-foreground">How do I share a list?</p>
-                  <p className="text-muted-foreground">Open any list and click the Share button to generate a shareable link or invite collaborators.</p>
+                  <p className="text-muted-foreground">Open any list and click the Share button. Sharing options depend on your plan — Free users can view lists, Good+ can share read-only links and copies, Even Better+ adds guest access, and Lots More adds full team access.</p>
                 </div>
                 <div>
                   <p className="font-medium text-foreground">How do I upgrade my plan?</p>
-                  <p className="text-muted-foreground">Click the "Upgrade" button in the header or visit the Pricing page to see available plans.</p>
+                  <p className="text-muted-foreground">Go to your Profile or click the Upgrade button in the header to see available plans.</p>
                 </div>
                 <div>
                   <p className="font-medium text-foreground">Can I import existing lists?</p>
-                  <p className="text-muted-foreground">Yes! Use the Import/Export feature to import lists from CSV or TXT files.</p>
+                  <p className="text-muted-foreground">Yes! Use the Import button from the dashboard or list view. Good+ can import from CSV/TXT files and other ListMine users. Even Better+ can also import from supported retailers like Amazon and Target.</p>
                 </div>
               </div>
             </div>
