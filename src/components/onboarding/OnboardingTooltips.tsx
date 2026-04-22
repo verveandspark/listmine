@@ -35,21 +35,18 @@ function getSlides(effectiveTier: UserTier, displayName: string): Slide[] {
       body: (
         <div className="space-y-3 text-sm text-muted-foreground">
           <p>
-            Welcome to <strong>ListMine</strong>! You're on the{" "}
-            <strong>Free</strong> plan, which gives you access to the core
-            features to get started.
-          </p>
-          <ul className="list-disc pl-5 space-y-1">
-            <li>Up to <strong>3 lists</strong> at a time</li>
-            <li>
-              List types limited to <strong>Custom</strong>,{" "}
-              <strong>To-Do</strong>, and <strong>Checklist</strong>
-            </li>
-            <li>No collaboration, import/export, or registry features</li>
-          </ul>
-          <p>
-            You can upgrade anytime from the <strong>Upgrade</strong> page to
-            unlock more lists, list types, and powerful features.
+            The Free Plan includes three core list types, basic list functions
+            such as duplicate, merge, and edit, and the ability to print. The
+            rest of this tour mentions things that are not always available
+            until you upgrade. You can do so anytime from your profile area or
+            by clicking{" "}
+            <button
+              className="text-primary underline font-medium"
+              onClick={() => navigate("/upgrade")}
+            >
+              here
+            </button>
+            .
           </p>
         </div>
       ),
@@ -60,20 +57,16 @@ function getSlides(effectiveTier: UserTier, displayName: string): Slide[] {
       body: (
         <div className="space-y-3 text-sm text-muted-foreground">
           <p>
-            Your plan:{" "}
+            Your Plan:{" "}
             <span className="font-semibold text-primary">{displayName}</span>
           </p>
           <p>
-            Click <strong>"New List"</strong> from the dashboard to get
-            started. You can choose a list type, pick a template, or start
-            from scratch.
+            Click the <strong>+ New List</strong> button or the plus icon to
+            create your first list. Choose from available lists or start from a
+            template: Custom, To-Do, Checklist, Shopping List, Grocery, Idea,
+            Registry/Wishlist
           </p>
-          <ul className="list-disc pl-5 space-y-1">
-            <li>Name your list and choose a category</li>
-            <li>Add items with priority, due dates, and notes</li>
-            <li>Drag and drop to reorder items</li>
-            <li>Pin important lists to the top of your dashboard</li>
-          </ul>
+          <p>Paid plans can also organize any list with sections.</p>
         </div>
       ),
     },
@@ -83,16 +76,11 @@ function getSlides(effectiveTier: UserTier, displayName: string): Slide[] {
       body: (
         <div className="space-y-3 text-sm text-muted-foreground">
           <p>
-            Use the <strong>sidebar</strong> to jump between your lists,
-            templates, and settings. The dashboard gives you a bird's-eye
-            view of everything.
+            Use the Dashboard/List toggle to switch views. Hover over the
+            buttons in the menu to see what each does. A few helpful ones: Add
+            Section, Duplicate, and Merge
           </p>
-          <ul className="list-disc pl-5 space-y-1">
-            <li><strong>Dashboard</strong> — overview of all your lists</li>
-            <li><strong>Templates</strong> — start from a ready-made list</li>
-            <li><strong>Profile</strong> — manage your account and preferences</li>
-            <li><strong>Search</strong> — quickly find any list or item</li>
-          </ul>
+          <p>Your plan determines what buttons you see in your menu.</p>
         </div>
       ),
     },
@@ -102,20 +90,21 @@ function getSlides(effectiveTier: UserTier, displayName: string): Slide[] {
       body: (
         <div className="space-y-3 text-sm text-muted-foreground">
           <p>
-            Share lists with friends, family, or teammates. Open any list and
-            use the <strong>Share</strong> button to invite collaborators.
+            Share your lists in multiple ways. Click the share button to see
+            your options.
           </p>
+          <p>Share Options include:</p>
           <ul className="list-disc pl-5 space-y-1">
-            <li>
-              <strong>Guests</strong> — invite anyone to view or edit a
-              specific list (Good plan+)
-            </li>
-            <li>
-              <strong>Teams</strong> — create a shared workspace where all
-              members see team lists (Even Better plan+)
-            </li>
-            <li>Generate a shareable link for read-only or edit access</li>
+            <li><strong>Good+:</strong> Read-only and Copy</li>
+            <li><strong>Even Better+:</strong> Registry and Guest Access</li>
+            <li><strong>Lots More:</strong> Team Access</li>
           </ul>
+          <p>
+            Guests can view and edit specific lists you share with them. Teams
+            lets you create a shared workspace with joint access. Use the{" "}
+            <strong>Account Switcher</strong> to switch between Personal and
+            Team modes.
+          </p>
         </div>
       ),
     },
@@ -125,23 +114,15 @@ function getSlides(effectiveTier: UserTier, displayName: string): Slide[] {
       body: (
         <div className="space-y-3 text-sm text-muted-foreground">
           <p>
-            Move your data in and out of ListMine with ease. Find these
-            options in the <strong>Import / Export</strong> section.
+            Import lists to get started faster. Just click the import button
+            from the dashboard or list view. You can import from a file,
+            another ListMine user, and even supported retailers on the Even
+            Better plan.
           </p>
-          <ul className="list-disc pl-5 space-y-1">
-            <li>
-              <strong>Import</strong> — upload a CSV or TXT file to create
-              lists instantly (Good plan+)
-            </li>
-            <li>
-              <strong>Export</strong> — download your lists as CSV or TXT
-              for backups or sharing (Good plan+)
-            </li>
-            <li>
-              <strong>Print</strong> — print any list directly from the list
-              view
-            </li>
-          </ul>
+          <p>
+            Print is available on all plans. Export formats vary by plan and
+            include CSV, TXT, and PDF (Even Better+).
+          </p>
         </div>
       ),
     },
@@ -151,21 +132,19 @@ function getSlides(effectiveTier: UserTier, displayName: string): Slide[] {
       body: (
         <div className="space-y-3 text-sm text-muted-foreground">
           <p>
-            Create wishlists or gift registries and let friends and family
-            mark items as purchased — without spoiling the surprise.
+            Create one from scratch or combine all of your retailer registries
+            in one place with our registry importer. Organize and track each
+            purchase.
           </p>
-          <ul className="list-disc pl-5 space-y-1">
-            <li>
-              Available on the <strong>Even Better</strong> plan and above
-            </li>
-            <li>
-              Share a registry link — buyers see availability, you don't see
-              who bought what
-            </li>
-            <li>
-              Track purchase history and manage your registry settings
-            </li>
-          </ul>
+          <p>
+            Use the Shopping Cart button to see what's been purchased. Buyers
+            can leave notes and their name. You choose when to reveal who they
+            are if you need to send a thank you.
+          </p>
+          <p>
+            Need to update your registry or add a new retailer? Just Rescrape
+            it by hitting the rescrape button.
+          </p>
         </div>
       ),
     },
@@ -174,22 +153,30 @@ function getSlides(effectiveTier: UserTier, displayName: string): Slide[] {
       title: "Keyboard Shortcuts & Support",
       body: (
         <div className="space-y-3 text-sm text-muted-foreground">
-          <p>Work faster and get help whenever you need it.</p>
+          <p>Click the ? in the menu to access help, FAQs, and support.</p>
+          <p>You'll see quick shortcuts like:</p>
           <ul className="list-disc pl-5 space-y-1">
             <li>
-              Press{" "}
+              <kbd className="px-1 py-0.5 rounded bg-muted border text-xs font-mono">N</kbd>{" "}
+              — Create new list
+            </li>
+            <li>
+              <kbd className="px-1 py-0.5 rounded bg-muted border text-xs font-mono">/</kbd>{" "}
+              — Search lists
+            </li>
+            <li>
+              <kbd className="px-1 py-0.5 rounded bg-muted border text-xs font-mono">ESC</kbd>{" "}
+              — Close modal
+            </li>
+            <li>
               <kbd className="px-1 py-0.5 rounded bg-muted border text-xs font-mono">?</kbd>{" "}
-              anywhere to see available keyboard shortcuts
-            </li>
-            <li>
-              Use the <strong>Help</strong> menu for FAQs, tips, and contact
-              support
-            </li>
-            <li>
-              Access <strong>Settings</strong> from your profile to
-              personalize the experience
+              — Open help &amp; shortcuts
             </li>
           </ul>
+          <p>
+            You'll also be able to contact us or visit our support page through
+            the Help menu.
+          </p>
         </div>
       ),
     },
@@ -200,22 +187,23 @@ function getSlides(effectiveTier: UserTier, displayName: string): Slide[] {
       isLast: true,
       body: (
         <div className="space-y-3 text-sm text-muted-foreground">
+          <p>Upgrade anytime to unlock more features.</p>
           <p>
-            Ready to unlock the full power of ListMine? Upgrading gives you
-            access to more lists, more list types, and premium features.
+            Your Plan:{" "}
+            <span className="font-semibold text-primary">{displayName}</span>
           </p>
           <ul className="list-disc pl-5 space-y-1">
             <li>
-              <strong>Good</strong> — more lists, idea &amp; shopping types,
-              import/export, guest sharing
+              <strong>Good:</strong> adds sections, import, export to CSV/TXT,
+              and the ability to share/copy lists with others.
             </li>
             <li>
-              <strong>Even Better</strong> — teams, registries, wishlists,
-              purchase tracking
+              <strong>Even Better:</strong> adds registry/purchasing, PDF
+              export, guest access, and 3 free templates.
             </li>
             <li>
-              <strong>Lots More</strong> — unlimited everything, all
-              features, priority support
+              <strong>Lots More:</strong> adds team access, all templates, and
+              unlimited lists.
             </li>
           </ul>
         </div>
