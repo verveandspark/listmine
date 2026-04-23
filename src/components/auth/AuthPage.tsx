@@ -360,9 +360,9 @@ export default function AuthPage() {
                       ✨ Free Tier Includes:
                     </p>
                     <ul className="text-xs text-accent space-y-1 ml-4 list-disc">
-                      <li>Create up to 5 lists</li>
-                      <li>Unlimited items per list</li>
-                      <li>Share lists with others</li>
+                      <li>Create up to 5 lists (Custom, To-Do, Checklist)</li>
+                      <li>20 items per list</li>
+                      <li>Print your lists</li>
                     </ul>
                     <p className="text-xs text-accent/80 mt-2">
                       Upgrade anytime from inside the app for more features!

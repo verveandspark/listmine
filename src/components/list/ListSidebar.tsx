@@ -227,23 +227,17 @@ export function ListSidebar({ onListSelect }: { onListSelect?: () => void } = {}
   }, [id, lists]);
 
   return (
-    <div className="w-64 bg-white border-r border-gray-200 h-screen sticky top-0 overflow-y-auto overflow-x-visible">
+    <div className="w-64 bg-white border-r border-gray-200 h-screen sticky top-0 overflow-y-auto">
       <div className="p-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900">Lists</h2>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Badge variant="secondary" className="cursor-help">{filteredLists.length}</Badge>
-              </TooltipTrigger>
-              <TooltipContent side="right" align="start" sideOffset={8} className="z-[9999]">
-                <p className="max-w-xs">
-                  Total lists visible to you, including shared and guest lists.
-                  {!showArchived && archivedCount > 0 && ` ${archivedCount} archived list${archivedCount !== 1 ? 's' : ''} hidden.`}
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Badge
+            variant="secondary"
+            className="cursor-help"
+            title={`Total lists visible to you, including shared and guest lists.${!showArchived && archivedCount > 0 ? ` ${archivedCount} archived list${archivedCount !== 1 ? 's' : ''} hidden.` : ''}`}
+          >
+            {filteredLists.length}
+          </Badge>
         </div>
 
         {/* Account Switcher */}

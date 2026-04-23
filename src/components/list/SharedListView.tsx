@@ -1122,7 +1122,7 @@ export default function SharedListView() {
             </p>
             <ul className="text-sm text-gray-600 mb-4 space-y-1.5">
               <li className="flex items-center gap-2">
-                <span className="text-accent">✓</span> Up to 5 lists (To-Do and Custom only)
+                <span className="text-accent">✓</span> Up to 5 lists (Custom, To-Do, and Checklist)
               </li>
               <li className="flex items-center gap-2">
                 <span className="text-accent">✓</span> 20 items per list
@@ -1131,13 +1131,7 @@ export default function SharedListView() {
                 <span className="text-accent">✓</span> Categorize, search, and filter lists
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-accent">✓</span> Import from multiple sources
-              </li>
-              <li className="flex items-center gap-2">
                 <span className="text-accent">✓</span> Print lists
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-accent">✓</span> Share read-only links
               </li>
               <li className="flex items-center gap-2">
                 <span className="text-accent">✓</span> No credit card required
