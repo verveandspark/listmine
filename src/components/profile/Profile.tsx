@@ -602,12 +602,12 @@ export default function Profile() {
                     </div>
                     {user.tier === "free" && (
                       <p className="text-xs text-muted-foreground mt-2">
-                        Upgrade to unlock Grocery, Idea, Registry, and Wishlist templates
+                        Upgrade to unlock Shopping, Idea, Grocery, and more list types
                       </p>
                     )}
                     {user.tier === "good" && (
                       <p className="text-xs text-muted-foreground mt-2">
-                        Upgrade to Even Better for Registry & Wishlist templates
+                        Upgrade to Even Better to unlock Registry & Wishlist
                       </p>
                     )}
                   </div>
@@ -622,14 +622,14 @@ export default function Profile() {
                       {user.tier === "free" && (
                         <li className="flex items-start gap-2 text-muted-foreground">
                           <X className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                          <span>Collaboration not available on Free plan</span>
+                          <span>Sharing and guest invites not available on Free plan</span>
                         </li>
                       )}
                       {user.tier === "good" && (
                         <>
                           <li className="flex items-start gap-2">
                             <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-accent" />
-                            <span>Share read-only links</span>
+                            <span>Share read-only and importable links</span>
                           </li>
                           <li className="flex items-start gap-2">
                             <Button
@@ -647,11 +647,15 @@ export default function Profile() {
                         <>
                           <li className="flex items-start gap-2">
                             <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-accent" />
-                            <span>Share read-only links</span>
+                            <span>Share read-only and importable links</span>
                           </li>
                           <li className="flex items-start gap-2">
                             <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-accent" />
                             <span>Invite up to 2 guests to edit</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-accent" />
+                            <span>Anonymous claim + purchase tracking for registries</span>
                           </li>
                           <li className="flex items-start gap-2">
                             <Button
@@ -679,11 +683,19 @@ export default function Profile() {
                         <>
                           <li className="flex items-start gap-2">
                             <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-accent" />
-                            <span>Share read-only links</span>
+                            <span>Share read-only and importable links</span>
                           </li>
                           <li className="flex items-start gap-2">
                             <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-accent" />
-                            <span>3 admin accounts + unlimited guests</span>
+                            <span>Unlimited guests per list</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-accent" />
+                            <span>Invite up to 3 team members</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-accent" />
+                            <span>Anonymous claim + purchase tracking for registries</span>
                           </li>
                           <li className="flex items-start gap-2">
                             <Button
@@ -738,7 +750,7 @@ export default function Profile() {
                           </li>
                           <li className="flex items-start gap-2 text-muted-foreground">
                             <X className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                            <span>Import/Export not available on Free plan</span>
+                            <span>Import and file export not available on Free plan</span>
                           </li>
                         </>
                       )}
@@ -750,7 +762,7 @@ export default function Profile() {
                           </li>
                           <li className="flex items-start gap-2">
                             <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-accent" />
-                            <span>Export to CSV/TXT</span>
+                            <span>Export to CSV, TXT + Print</span>
                           </li>
                         </>
                       )}
@@ -762,7 +774,7 @@ export default function Profile() {
                           </li>
                           <li className="flex items-start gap-2">
                             <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-accent" />
-                            <span>Export to CSV/TXT/PDF</span>
+                            <span>Export to CSV, TXT, PDF + Print</span>
                           </li>
                         </>
                       )}
@@ -791,7 +803,7 @@ export default function Profile() {
                             <>
                               <li className="flex items-center gap-1.5">
                                 <Star className="w-3 h-3 text-amber-500" />
-                                Share lists with read-only links
+                                Share lists with read-only and importable links
                               </li>
                               <li className="flex items-center gap-1.5">
                                 <Star className="w-3 h-3 text-amber-500" />
@@ -803,7 +815,11 @@ export default function Profile() {
                               </li>
                               <li className="flex items-center gap-1.5">
                                 <Star className="w-3 h-3 text-amber-500" />
-                                Grocery, Idea, and more list types
+                                Shopping, Idea, Grocery, and more list types
+                              </li>
+                              <li className="flex items-center gap-1.5">
+                                <Star className="w-3 h-3 text-amber-500" />
+                                Sections and bulk actions
                               </li>
                             </>
                           )}
@@ -831,7 +847,7 @@ export default function Profile() {
                               </li>
                               <li className="flex items-center gap-1.5">
                                 <Star className="w-3 h-3 text-amber-500" />
-                                3 admin team accounts
+                                Invite up to 3 team members
                               </li>
                               <li className="flex items-center gap-1.5">
                                 <Star className="w-3 h-3 text-amber-500" />
@@ -883,7 +899,7 @@ export default function Profile() {
               {user.tier === "free" && (
                 <div className="bg-accent/10 border border-accent/30 rounded-lg p-4">
                   <p className="text-sm text-accent mb-3">
-                    Upgrade to Premium for higher limits and advanced features!
+                    Upgrade for higher limits and more features!
                   </p>
                   <Button
                     onClick={() => navigate("/upgrade")}
@@ -891,7 +907,7 @@ export default function Profile() {
                     className="w-full"
                   >
                     <Crown className="w-4 h-4 mr-2" />
-                    Upgrade to Premium
+                    Upgrade Now
                   </Button>
                 </div>
               )}
