@@ -1128,8 +1128,8 @@ export default function ImportExport() {
                   )}
                 </div>
                 <CardDescription>
-                  Export your list to CSV, TXT, or PDF format for backup or
-                  sharing.
+                  Export your list for backup or sharing. CSV and TXT are
+                  available on Good+. PDF is available on Even Better+.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
