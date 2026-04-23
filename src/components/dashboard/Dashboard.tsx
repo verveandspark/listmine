@@ -1493,7 +1493,7 @@ export default function Dashboard() {
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-80 max-h-[70vh] overflow-y-auto" align="end" side="bottom">
+            <PopoverContent className="w-80 max-h-[60vh] overflow-y-auto" align="end" side="bottom" avoidCollisions={true} collisionPadding={16}>
               <div className="space-y-4">
                 <div>
                   <Label className="text-sm font-semibold mb-3 block">

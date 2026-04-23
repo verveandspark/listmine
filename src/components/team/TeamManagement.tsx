@@ -545,7 +545,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
 
   if (!canManageTeam) {
     return (
-      <Card className="p-6">
+      <Card className="p-6 max-w-2xl w-full">
         <div className="text-center space-y-4">
           <Crown className="w-12 h-12 mx-auto text-accent" />
           <h3 className="text-lg font-semibold">Team Members</h3>
@@ -562,7 +562,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ onClose }) => {
   }
 
   return (
-    <Card className="p-6 space-y-6">
+    <Card className="p-6 space-y-6 max-w-2xl w-full">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Users className="w-5 h-5 text-primary" />

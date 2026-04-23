@@ -236,7 +236,7 @@ export function ListSidebar({ onListSelect }: { onListSelect?: () => void } = {}
               <TooltipTrigger asChild>
                 <Badge variant="secondary" className="cursor-help">{filteredLists.length}</Badge>
               </TooltipTrigger>
-              <TooltipContent>
+              <TooltipContent side="right" align="start">
                 <p className="max-w-xs">
                   Total lists visible to you, including shared and guest lists.
                   {!showArchived && archivedCount > 0 && ` ${archivedCount} archived list${archivedCount !== 1 ? 's' : ''} hidden.`}
