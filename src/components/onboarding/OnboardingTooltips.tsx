@@ -74,14 +74,14 @@ function getSlides(effectiveTier: UserTier, displayName: string): Slide[] {
           </p>
           <p>
             Click the <strong>+ New List</strong> button or the{" "}
-            <Plus className="inline w-3.5 h-3.5 align-text-bottom" /> to
-            create your first list.
+            <Plus size={16} className="inline-block align-text-bottom" />{" "}
+            icon to create your first list.
           </p>
           <p>
             Choose a list type to get started: Custom, To-Do, Checklist,
             Shopping List, Grocery, Idea, Registry/Wishlist
           </p>
-          <p>Paid plans can also organize any list with sections.</p>
+          <p>Paid plans can also organize any list with sections and utilize templates for even better list making.</p>
         </div>
       ),
     },
@@ -97,13 +97,13 @@ function getSlides(effectiveTier: UserTier, displayName: string): Slide[] {
           <p>A few helpful ones:</p>
           <ul className="space-y-1 pl-1">
             <li className="flex items-center gap-2">
-              <LayoutList className="w-4 h-4 flex-shrink-0" /> Add Section
+              <LayoutList size={16} className="inline-block flex-shrink-0" /> Add Section
             </li>
             <li className="flex items-center gap-2">
-              <Copy className="w-4 h-4 flex-shrink-0" /> Duplicate
+              <Copy size={16} className="inline-block flex-shrink-0" /> Duplicate
             </li>
             <li className="flex items-center gap-2">
-              <Merge className="w-4 h-4 flex-shrink-0" /> Merge
+              <Merge size={16} className="inline-block flex-shrink-0" /> Merge
             </li>
           </ul>
           <p>Your plan determines what buttons you see in your menu.</p>
@@ -141,17 +141,17 @@ function getSlides(effectiveTier: UserTier, displayName: string): Slide[] {
         <div className="space-y-3 text-sm text-muted-foreground">
           <p>
             Import lists to get started faster. Just click the{" "}
-            <Upload className="inline w-3.5 h-3.5 align-text-bottom" />{" "}
+            <Upload size={16} className="inline-block align-text-bottom" />{" "}
             import button from the dashboard or list view. You can import from
             a file, another ListMine user, and even supported retailers on the
             Even Better plan and above.
           </p>
           <p>
-            <Printer className="inline w-3.5 h-3.5 align-text-bottom mr-1" />
+            <Printer size={16} className="inline-block align-text-bottom mr-1" />
             Print is available on all plans.
           </p>
           <p>
-            <Download className="inline w-3.5 h-3.5 align-text-bottom mr-1" />
+            <Download size={16} className="inline-block align-text-bottom mr-1" />
             Export formats vary by plan and include CSV and TXT (Good+) and
             PDF (Even Better+).
           </p>
@@ -163,7 +163,7 @@ function getSlides(effectiveTier: UserTier, displayName: string): Slide[] {
       title: "Registry with Purchase Tracking",
       body: (
         <div className="space-y-3 text-sm text-muted-foreground">
-          <p>Available on Even Better plans and above.</p>
+          <p><em>Available on Even Better plans and above.</em></p>
           <p>
             Create one from scratch or combine all of your retailer registries
             in one place with our registry importer. Organize and track each
@@ -171,7 +171,7 @@ function getSlides(effectiveTier: UserTier, displayName: string): Slide[] {
           </p>
           <p>
             Use the{" "}
-            <ShoppingCart className="inline w-3.5 h-3.5 align-text-bottom" />{" "}
+            <ShoppingCart size={16} className="inline-block align-text-bottom" />{" "}
             Shopping Cart button to see what's been purchased. Buyers can
             leave notes and their name. You choose when to reveal who they are
             if you need to send a thank you.
@@ -179,7 +179,7 @@ function getSlides(effectiveTier: UserTier, displayName: string): Slide[] {
           <p>
             Need to update your registry or add a new retailer? Just rescrape
             it by hitting the{" "}
-            <RefreshCw className="inline w-3.5 h-3.5 align-text-bottom" />{" "}
+            <RefreshCw size={16} className="inline-block align-text-bottom" />{" "}
             rescrape button.
           </p>
         </div>
@@ -192,7 +192,7 @@ function getSlides(effectiveTier: UserTier, displayName: string): Slide[] {
         <div className="space-y-3 text-sm text-muted-foreground">
           <p>
             Click the{" "}
-            <HelpCircle className="inline w-3.5 h-3.5 align-text-bottom" />{" "}
+            <HelpCircle size={16} className="inline-block align-text-bottom" />{" "}
             in the menu to access help, FAQs, and support.
           </p>
           <p>You'll see quick shortcuts like:</p>
@@ -259,6 +259,7 @@ export function OnboardingTooltips({
   open: externalOpen,
   onOpenChange,
 }: OnboardingTooltipsProps = {}) {
+  const navigate = useNavigate();
   const [internalOpen, setInternalOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [dontShowAgain, setDontShowAgain] = useState(false);
