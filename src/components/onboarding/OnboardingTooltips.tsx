@@ -1,5 +1,17 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  Plus,
+  LayoutList,
+  Copy,
+  Merge,
+  Upload,
+  Printer,
+  Download,
+  ShoppingCart,
+  RefreshCw,
+  HelpCircle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -39,12 +51,12 @@ function getSlides(effectiveTier: UserTier, displayName: string): Slide[] {
             such as duplicate, merge, and edit, and the ability to print. The
             rest of this tour mentions things that are not always available
             until you upgrade. You can do so anytime from your profile area or
-            by clicking{" "}
+            by{" "}
             <button
               className="text-primary underline font-medium"
               onClick={() => navigate("/upgrade")}
             >
-              here
+              clicking here
             </button>
             .
           </p>
@@ -61,10 +73,13 @@ function getSlides(effectiveTier: UserTier, displayName: string): Slide[] {
             <span className="font-semibold text-primary">{displayName}</span>
           </p>
           <p>
-            Click the <strong>+ New List</strong> button or the plus icon to
-            create your first list. Choose from available lists or start from a
-            template: Custom, To-Do, Checklist, Shopping List, Grocery, Idea,
-            Registry/Wishlist
+            Click the <strong>+ New List</strong> button or the{" "}
+            <Plus className="inline w-3.5 h-3.5 align-text-bottom" /> to
+            create your first list.
+          </p>
+          <p>
+            Choose a list type to get started: Custom, To-Do, Checklist,
+            Shopping List, Grocery, Idea, Registry/Wishlist
           </p>
           <p>Paid plans can also organize any list with sections.</p>
         </div>
@@ -77,9 +92,20 @@ function getSlides(effectiveTier: UserTier, displayName: string): Slide[] {
         <div className="space-y-3 text-sm text-muted-foreground">
           <p>
             Use the Dashboard/List toggle to switch views. Hover over the
-            buttons in the menu to see what each does. A few helpful ones: Add
-            Section, Duplicate, and Merge
+            buttons in the menu to see what each does.
           </p>
+          <p>A few helpful ones:</p>
+          <ul className="space-y-1 pl-1">
+            <li className="flex items-center gap-2">
+              <LayoutList className="w-4 h-4 flex-shrink-0" /> Add Section
+            </li>
+            <li className="flex items-center gap-2">
+              <Copy className="w-4 h-4 flex-shrink-0" /> Duplicate
+            </li>
+            <li className="flex items-center gap-2">
+              <Merge className="w-4 h-4 flex-shrink-0" /> Merge
+            </li>
+          </ul>
           <p>Your plan determines what buttons you see in your menu.</p>
         </div>
       ),
@@ -114,14 +140,20 @@ function getSlides(effectiveTier: UserTier, displayName: string): Slide[] {
       body: (
         <div className="space-y-3 text-sm text-muted-foreground">
           <p>
-            Import lists to get started faster. Just click the import button
-            from the dashboard or list view. You can import from a file,
-            another ListMine user, and even supported retailers on the Even
-            Better plan.
+            Import lists to get started faster. Just click the{" "}
+            <Upload className="inline w-3.5 h-3.5 align-text-bottom" />{" "}
+            import button from the dashboard or list view. You can import from
+            a file, another ListMine user, and even supported retailers on the
+            Even Better plan and above.
           </p>
           <p>
-            Print is available on all plans. Export formats vary by plan and
-            include CSV, TXT, and PDF (Even Better+).
+            <Printer className="inline w-3.5 h-3.5 align-text-bottom mr-1" />
+            Print is available on all plans.
+          </p>
+          <p>
+            <Download className="inline w-3.5 h-3.5 align-text-bottom mr-1" />
+            Export formats vary by plan and include CSV and TXT (Good+) and
+            PDF (Even Better+).
           </p>
         </div>
       ),
@@ -131,19 +163,24 @@ function getSlides(effectiveTier: UserTier, displayName: string): Slide[] {
       title: "Registry with Purchase Tracking",
       body: (
         <div className="space-y-3 text-sm text-muted-foreground">
+          <p>Available on Even Better plans and above.</p>
           <p>
             Create one from scratch or combine all of your retailer registries
             in one place with our registry importer. Organize and track each
             purchase.
           </p>
           <p>
-            Use the Shopping Cart button to see what's been purchased. Buyers
-            can leave notes and their name. You choose when to reveal who they
-            are if you need to send a thank you.
+            Use the{" "}
+            <ShoppingCart className="inline w-3.5 h-3.5 align-text-bottom" />{" "}
+            Shopping Cart button to see what's been purchased. Buyers can
+            leave notes and their name. You choose when to reveal who they are
+            if you need to send a thank you.
           </p>
           <p>
-            Need to update your registry or add a new retailer? Just Rescrape
-            it by hitting the rescrape button.
+            Need to update your registry or add a new retailer? Just rescrape
+            it by hitting the{" "}
+            <RefreshCw className="inline w-3.5 h-3.5 align-text-bottom" />{" "}
+            rescrape button.
           </p>
         </div>
       ),
@@ -153,7 +190,11 @@ function getSlides(effectiveTier: UserTier, displayName: string): Slide[] {
       title: "Keyboard Shortcuts & Support",
       body: (
         <div className="space-y-3 text-sm text-muted-foreground">
-          <p>Click the ? in the menu to access help, FAQs, and support.</p>
+          <p>
+            Click the{" "}
+            <HelpCircle className="inline w-3.5 h-3.5 align-text-bottom" />{" "}
+            in the menu to access help, FAQs, and support.
+          </p>
           <p>You'll see quick shortcuts like:</p>
           <ul className="list-disc pl-5 space-y-1">
             <li>
@@ -168,14 +209,9 @@ function getSlides(effectiveTier: UserTier, displayName: string): Slide[] {
               <kbd className="px-1 py-0.5 rounded bg-muted border text-xs font-mono">ESC</kbd>{" "}
               — Close modal
             </li>
-            <li>
-              <kbd className="px-1 py-0.5 rounded bg-muted border text-xs font-mono">?</kbd>{" "}
-              — Open help &amp; shortcuts
-            </li>
           </ul>
           <p>
-            You'll also be able to contact us or visit our support page through
-            the Help menu.
+            You'll also find links to contact us and visit our support page.
           </p>
         </div>
       ),
@@ -194,12 +230,14 @@ function getSlides(effectiveTier: UserTier, displayName: string): Slide[] {
           </p>
           <ul className="list-disc pl-5 space-y-1">
             <li>
-              <strong>Good:</strong> adds sections, import, export to CSV/TXT,
-              and the ability to share/copy lists with others.
+              <strong>Good:</strong> adds sections, import from CSV/TXT and
+              other ListMine users, export to CSV/TXT, and the ability to
+              share/copy lists with others.
             </li>
             <li>
-              <strong>Even Better:</strong> adds registry/purchasing, PDF
-              export, guest access, and 3 free templates.
+              <strong>Even Better:</strong> adds import from retailers,
+              registry/purchasing, PDF export, guest access, and 3 free
+              templates.
             </li>
             <li>
               <strong>Lots More:</strong> adds team access, all templates, and
