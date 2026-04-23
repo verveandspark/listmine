@@ -38,7 +38,7 @@ interface Slide {
   isLast?: boolean;
 }
 
-function getSlides(effectiveTier: UserTier, displayName: string): Slide[] {
+function getSlides(effectiveTier: UserTier, displayName: string, navigate: (path: string) => void): Slide[] {
   const slides: Slide[] = [
     {
       id: "free-note",
@@ -264,7 +264,6 @@ export function OnboardingTooltips({
   const [currentStep, setCurrentStep] = useState(0);
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const { effectiveTier } = useAccount();
-  const navigate = useNavigate();
 
   const isControlled = externalOpen !== undefined;
   const isOpen = isControlled ? externalOpen : internalOpen;
@@ -296,7 +295,7 @@ export function OnboardingTooltips({
   }, [isOpen]);
 
   const displayName = getTierDisplayName(effectiveTier);
-  const slides = getSlides(effectiveTier, displayName);
+  const slides = getSlides(effectiveTier, displayName, navigate);
   const totalSteps = slides.length;
   const slide = slides[currentStep];
   const isLastSlide = slide?.isLast || currentStep === totalSteps - 1;
