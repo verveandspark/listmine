@@ -4347,44 +4347,7 @@ export default function ListDetail() {
                             </div>
                           )}
 
-                          {/* Link Preview Card for Registry/Wishlist/Idea items - VIEW 1 */}
-                          {(item.attributes?.productLink || item.attributes?.inspirationLink) && (
-                            <div className="mt-2 pointer-events-none">
-                              <a
-                                href={item.attributes.productLink || item.attributes.inspirationLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="block border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow bg-white pointer-events-auto"
-                              >
-                                {item.attributes.customLinkImage && (
-                                  <img
-                                    src={item.attributes.customLinkImage}
-                                    alt={item.attributes.customLinkTitle || "Product"}
-                                    className="w-full h-32 object-cover"
-                                  />
-                                )}
-                                <div className="p-3">
-                                  <h4 className="font-semibold text-sm text-gray-900 line-clamp-2">
-                                    {item.attributes.customLinkTitle || new URL(item.attributes.productLink || item.attributes.inspirationLink || "").hostname}
-                                  </h4>
-                                  {item.attributes.customLinkDescription && (
-                                    <p className="text-xs text-gray-600 mt-1 line-clamp-2">
-                                      {item.attributes.customLinkDescription}
-                                    </p>
-                                  )}
-                                  {!item.attributes.customLinkDescription && (
-                                    <p className="text-xs text-gray-500 mt-1">
-                                      Click to view
-                                    </p>
-                                  )}
-                                  <p className="text-xs text-primary mt-2 truncate flex items-center gap-1">
-                                    <ExternalLink className="w-3 h-3" />
-                                    {new URL(item.attributes.productLink || item.attributes.inspirationLink || "").hostname}
-                                  </p>
-                                </div>
-                              </a>
-                            </div>
-                          )}
+                          {/* Link preview card removed - links shown via action row only */}
 
                           {/* Universal item link actions - only show for registry/wishlist with links */}
                           {shouldShowItemLinks(item) && (
@@ -5339,52 +5302,10 @@ export default function ListDetail() {
                                 Note
                               </Badge>
                             )}
-                            {(item.attributes?.productLink || item.attributes?.inspirationLink) && (
-                              <Badge variant="outline" className="text-xs bg-primary/10 border-primary/20">
-                                <LinkIcon className="w-3 h-3 mr-1 text-primary" />
-                                <span className="text-primary underline">{isIdea ? "Inspiration" : "Product"} Link</span>
-                              </Badge>
-                            )}
+                            {/* Product/Inspiration Link badge removed - links shown via action row only */}
                           </div>
 
-                          {/* Link Preview Card for Registry/Wishlist/Idea items */}
-                          {(item.attributes?.productLink || item.attributes?.inspirationLink) && (
-                            <div className="mt-3">
-                              <a
-                                href={item.attributes.productLink || item.attributes.inspirationLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="block border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow bg-white"
-                              >
-                                {item.attributes.customLinkImage && (
-                                  <img
-                                    src={item.attributes.customLinkImage}
-                                    alt={item.attributes.customLinkTitle || "Product"}
-                                    className="w-full h-32 object-cover"
-                                  />
-                                )}
-                                <div className="p-3">
-                                  <h4 className="font-semibold text-sm text-gray-900 line-clamp-2">
-                                    {item.attributes.customLinkTitle || new URL(item.attributes.productLink || item.attributes.inspirationLink || "").hostname}
-                                  </h4>
-                                  {item.attributes.customLinkDescription && (
-                                    <p className="text-xs text-gray-600 mt-1 line-clamp-2">
-                                      {item.attributes.customLinkDescription}
-                                    </p>
-                                  )}
-                                  {!item.attributes.customLinkDescription && (
-                                    <p className="text-xs text-gray-500 mt-1">
-                                      Click to view
-                                    </p>
-                                  )}
-                                  <p className="text-xs text-primary mt-2 truncate flex items-center gap-1">
-                                    <ExternalLink className="w-3 h-3" />
-                                    {new URL(item.attributes.productLink || item.attributes.inspirationLink || "").hostname}
-                                  </p>
-                                </div>
-                              </a>
-                            </div>
-                          )}
+                          {/* Link preview card removed - links shown via action row only */}
 
                           {/* Universal item link actions - only show for registry/wishlist with links */}
                           {shouldShowItemLinks(item) && (

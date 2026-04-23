@@ -178,8 +178,7 @@ export default function UpdateFromRetailerModal({
                 price: update.retailerItem.price 
                   ? parseFloat(update.retailerItem.price.replace(/[^0-9.]/g, "")) 
                   : update.listMineItem.attributes?.price,
-                productLink: update.retailerItem.link || update.listMineItem.attributes?.productLink,
-                linkImage: update.retailerItem.image || update.listMineItem.attributes?.linkImage,
+                // Do NOT write productLink or linkImage — preserves existing item display format
               },
             },
           }));
