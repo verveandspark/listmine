@@ -2068,22 +2068,32 @@ export default function Dashboard() {
         )}
 
         {/* Recent Lists Section */}
-        {!showSearchResults && recentLists.length > 0 && (
+        {!showSearchResults && (
           <div className="mb-6 sm:mb-8">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base sm:text-lg font-semibold text-foreground flex items-center gap-2">
                 <Clock className="w-5 h-5 text-secondary" />
                 Recently Updated
               </h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-sm text-muted-foreground hover:text-foreground"
-                onClick={() => handleViewModeChange("list")}
-              >
-                See all lists <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
+              {recentLists.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-sm text-muted-foreground hover:text-foreground"
+                  onClick={() => handleViewModeChange("list")}
+                >
+                  See all lists <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              )}
             </div>
+            {recentLists.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-center rounded-xl border border-dashed border-muted-foreground/30 bg-muted/30">
+                <Clock className="w-8 h-8 text-muted-foreground/50 mb-3" />
+                <p className="text-sm text-muted-foreground">
+                  No recently updated lists yet. Create your first list to get started!
+                </p>
+              </div>
+            ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-2">
               {recentLists.map((list, index) => {
                 const Icon = categoryIcons[list.category] || ListChecks;
@@ -2233,6 +2243,7 @@ export default function Dashboard() {
                 );
               })}
             </div>
+            )}
           </div>
         )}
         {!showSearchResults && (
