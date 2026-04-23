@@ -1384,7 +1384,7 @@ export default function Dashboard() {
                   )}
                 </span>
               </span>
-              {!isTeamContext && user?.listLimit !== -1 && (
+              {!isTeamContext && (
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -1392,10 +1392,10 @@ export default function Dashboard() {
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="max-w-xs">
-                        You're using {contextActiveListsCount} of your{" "}
-                        {user?.listLimit} lists on the{" "}
-                        {getTierName(effectiveTier)} tier. Shared lists
-                        and archived lists don't count toward your limit.
+                        {user?.listLimit === -1
+                          ? `You have ${contextActiveListsCount} lists on the ${getTierName(effectiveTier)} tier. Shared lists and archived lists aren't included in this count.`
+                          : `You're using ${contextActiveListsCount} of your ${user?.listLimit} lists on the ${getTierName(effectiveTier)} tier. Shared lists and archived lists don't count toward your limit.`
+                        }
                       </p>
                     </TooltipContent>
                   </Tooltip>

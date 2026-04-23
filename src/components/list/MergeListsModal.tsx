@@ -435,6 +435,13 @@ export default function MergeListsModal({
                 </p>
               </div>
 
+              {/* Nothing to merge message */}
+              {compareResult.newItems.length === 0 && (
+                <p className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-3 border border-muted">
+                  Nothing new to merge — all items already exist in the target list. You may want to delete the source list if it's no longer needed.
+                </p>
+              )}
+
               {/* New Items */}
               {compareResult.newItems.length > 0 && (
                 <div className="overflow-y-auto flex flex-col">
@@ -523,6 +530,10 @@ export default function MergeListsModal({
                   Compare & Preview
                 </>
               )}
+            </Button>
+          ) : compareResult && compareResult.newItems.length === 0 ? (
+            <Button onClick={handleClose}>
+              Done
             </Button>
           ) : (
             <Button
