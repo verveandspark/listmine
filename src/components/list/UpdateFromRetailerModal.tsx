@@ -154,11 +154,16 @@ export default function UpdateFromRetailerModal({
           text: item.name,
           completed: false,
           order: list.items.length,
+          // Populate links array so ItemLinkActions ("View item / Copy link / Search") renders
+          links: item.link ? [item.link] : [],
           attributes: {
             price: item.price ? parseFloat(item.price.replace(/[^0-9.]/g, "")) : undefined,
             productLink: item.link,
-            linkImage: item.image,
-            linkTitle: item.name,
+            // Use customLinkImage (matches how the rest of the app stores/reads item images)
+            customLinkImage: item.image,
+            // Also store under custom.image for edit modal compatibility
+            custom: item.image ? { image: item.image } : undefined,
+            customLinkTitle: item.name,
           },
         }));
 

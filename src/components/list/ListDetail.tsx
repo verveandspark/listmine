@@ -5750,6 +5750,7 @@ export default function ListDetail() {
               await addItemToList(list.id, {
                 text: item.text || "",
                 completed: item.completed || false,
+                links: Array.isArray(item.links) ? item.links : [],
                 attributes: item.attributes,
               });
             }
