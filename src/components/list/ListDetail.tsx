@@ -1933,6 +1933,37 @@ export default function ListDetail() {
     // Sort preference is per-session, not persisted
   };
 
+  // When the owner checks a registry/wishlist item as purchased, insert a purchase record
+  // so it shows up in purchase history and is visible to buyers.
+  const handleOwnerPurchaseRecord = async (
+    listId: string,
+    itemId: string,
+    isChecked: boolean,
+  ) => {
+    if (!isRegistryOrWishlistType) return;
+    if (isChecked) {
+      // Remove any existing owner-marked record first (prevent duplicates), then insert
+      await supabase
+        .from("purchases")
+        .delete()
+        .eq("item_id", itemId)
+        .eq("purchaser_name", "Marked by owner");
+      await supabase.from("purchases").insert({
+        list_id: listId,
+        item_id: itemId,
+        purchaser_name: "Marked by owner",
+        purchase_note: null,
+      });
+    } else {
+      // Remove owner-marked purchase record when unchecked back to not-purchased
+      await supabase
+        .from("purchases")
+        .delete()
+        .eq("item_id", itemId)
+        .eq("purchaser_name", "Marked by owner");
+    }
+  };
+
   const getSortedItems = () => {
     if (!list) return [];
     let items = [...list.items];
@@ -1943,8 +1974,8 @@ export default function ListDetail() {
 
     // For registry/wishlist, group by purchase status first
     if (isRegistryOrWishlistType) {
-      const unpurchased = items.filter(item => item.attributes?.purchaseStatus !== "purchased");
-      const purchased = items.filter(item => item.attributes?.purchaseStatus === "purchased");
+      const unpurchased = items.filter(item => item.attributes?.purchaseStatus !== "purchased" && item.attributes?.purchaseStatus !== "received");
+      const purchased = items.filter(item => item.attributes?.purchaseStatus === "purchased" || item.attributes?.purchaseStatus === "received");
       
       // Sort each group according to the selected sort method
       const sortGroup = (group: typeof items) => {
@@ -2765,7 +2796,7 @@ export default function ListDetail() {
                       onValueChange={(value) => {
                         setEditingItem({
                           ...editingItem,
-                          completed: value === "purchased" || value === "received",
+                          completed: value === "purchased",
                           attributes: {
                             ...editingItem.attributes,
                             purchaseStatus: value,
@@ -2779,7 +2810,6 @@ export default function ListDetail() {
                       <SelectContent>
                         <SelectItem value="not-purchased">Not purchased</SelectItem>
                         <SelectItem value="purchased">Purchased</SelectItem>
-                        <SelectItem value="received">Received</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -2962,6 +2992,21 @@ export default function ListDetail() {
                         }
                       }
                       await updateListItem(list.id, editingItem.id, updatePayload);
+
+                      // Sync owner purchase record when editing a registry/wishlist item's status
+                      if (isRegistryOrWishlistType) {
+                        const originalItem = list.items.find(i => i.id === editingItem.id);
+                        const oldStatus = originalItem?.attributes?.purchaseStatus;
+                        const newStatus = editingItem.attributes?.purchaseStatus;
+                        const wasOwnerPurchased = oldStatus === "purchased" || oldStatus === "received";
+                        const isOwnerPurchased = newStatus === "purchased" || newStatus === "received";
+                        if (!wasOwnerPurchased && isOwnerPurchased) {
+                          await handleOwnerPurchaseRecord(list.id, editingItem.id, true);
+                        } else if (wasOwnerPurchased && !isOwnerPurchased) {
+                          await handleOwnerPurchaseRecord(list.id, editingItem.id, false);
+                        }
+                      }
+
                       setIsEditModalOpen(false);
                       setEditingItem(null);
                       setDueDateInput('');
@@ -4164,7 +4209,7 @@ export default function ListDetail() {
                     </Badge>
                   </div>
                   {categoryItems.map((item, index) => {
-                    const isPurchased = isRegistryOrWishlistType && item.attributes?.purchaseStatus === "purchased";
+                    const isPurchased = isRegistryOrWishlistType && (item.attributes?.purchaseStatus === "purchased" || item.attributes?.purchaseStatus === "received");
                     const isDropTarget = dropTargetId === item.id;
                     
                     return (
@@ -4220,17 +4265,31 @@ export default function ListDetail() {
                             checked={item.completed}
                             onCheckedChange={(checked) => {
                               const isChecked = checked as boolean;
-                              const attributeUpdate = isTodo
-                                ? { status: isChecked ? "completed" : undefined }
-                                : (isShoppingList || isRegistryOrWishlistType)
-                                  ? { purchaseStatus: isChecked ? "purchased" : "not-purchased" }
-                                  : {};
+                              let attributeUpdate: Record<string, any> = {};
+                              if (isTodo) {
+                                attributeUpdate = { status: isChecked ? "completed" : undefined };
+                              } else if (isRegistryOrWishlistType) {
+                                if (isChecked) {
+                                  attributeUpdate = { purchaseStatus: "purchased" };
+                                } else {
+                                  const current = item.attributes?.purchaseStatus;
+                                  attributeUpdate = { purchaseStatus: current === "received" ? "purchased" : "not-purchased" };
+                                }
+                              } else if (isShoppingList) {
+                                attributeUpdate = { purchaseStatus: isChecked ? "purchased" : "not-purchased" };
+                              }
                               updateListItem(list.id, item.id, {
                                 completed: isChecked,
                                 ...(Object.keys(attributeUpdate).length > 0
                                   ? { attributes: { ...item.attributes, ...attributeUpdate } }
                                   : {}),
                               });
+                              // Sync owner purchase record for registry/wishlist
+                              if (isRegistryOrWishlistType && isChecked) {
+                                handleOwnerPurchaseRecord(list.id, item.id, true);
+                              } else if (isRegistryOrWishlistType && !isChecked && item.attributes?.purchaseStatus !== "received") {
+                                handleOwnerPurchaseRecord(list.id, item.id, false);
+                              }
                             }}
                             className={`h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform border-gray-400 ${item.completed ? "animate-check-bounce bg-gray-700 border-gray-700" : ""}`}
                           />
@@ -4262,9 +4321,9 @@ export default function ListDetail() {
                               </p>
                             )}
                             <div className="flex items-center gap-2 flex-wrap">
-                            {isPurchased && (
-                              <Badge className="bg-accent/10 text-accent border-accent/20">
-                                ✓ Purchased
+                            {isRegistryOrWishlistType && item.attributes?.purchaseStatus === "received" && (
+                              <Badge className="bg-blue-100 text-blue-700 border-blue-300">
+                                ✓ Received
                               </Badge>
                             )}
                             {isItemUnavailable(item) && (
@@ -4469,7 +4528,7 @@ export default function ListDetail() {
                     </Badge>
                   </div>
                   {sectionItems.map((item, index) => {
-                    const isPurchased = isRegistryOrWishlistType && item.attributes?.purchaseStatus === "purchased";
+                    const isPurchased = isRegistryOrWishlistType && (item.attributes?.purchaseStatus === "purchased" || item.attributes?.purchaseStatus === "received");
                     const isDropTarget = dropTargetId === item.id;
                     
                     return (
@@ -4525,17 +4584,31 @@ export default function ListDetail() {
                             checked={item.completed}
                             onCheckedChange={(checked) => {
                               const isChecked = checked as boolean;
-                              const attributeUpdate = isTodo
-                                ? { status: isChecked ? "completed" : undefined }
-                                : (isShoppingList || isRegistryOrWishlistType)
-                                  ? { purchaseStatus: isChecked ? "purchased" : "not-purchased" }
-                                  : {};
+                              let attributeUpdate: Record<string, any> = {};
+                              if (isTodo) {
+                                attributeUpdate = { status: isChecked ? "completed" : undefined };
+                              } else if (isRegistryOrWishlistType) {
+                                if (isChecked) {
+                                  attributeUpdate = { purchaseStatus: "purchased" };
+                                } else {
+                                  const current = item.attributes?.purchaseStatus;
+                                  attributeUpdate = { purchaseStatus: current === "received" ? "purchased" : "not-purchased" };
+                                }
+                              } else if (isShoppingList) {
+                                attributeUpdate = { purchaseStatus: isChecked ? "purchased" : "not-purchased" };
+                              }
                               updateListItem(list.id, item.id, {
                                 completed: isChecked,
                                 ...(Object.keys(attributeUpdate).length > 0
                                   ? { attributes: { ...item.attributes, ...attributeUpdate } }
                                   : {}),
                               });
+                              // Sync owner purchase record for registry/wishlist
+                              if (isRegistryOrWishlistType && isChecked) {
+                                handleOwnerPurchaseRecord(list.id, item.id, true);
+                              } else if (isRegistryOrWishlistType && !isChecked && item.attributes?.purchaseStatus !== "received") {
+                                handleOwnerPurchaseRecord(list.id, item.id, false);
+                              }
                             }}
                             className={`h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform border-gray-400 ${item.completed ? "animate-check-bounce bg-gray-700 border-gray-700" : ""}`}
                           />
@@ -4567,9 +4640,9 @@ export default function ListDetail() {
                               </p>
                             )}
                             <div className="flex items-center gap-2 flex-wrap">
-                            {isPurchased && (
-                              <Badge className="bg-accent/10 text-accent border-accent/20">
-                                ✓ Purchased
+                            {isRegistryOrWishlistType && item.attributes?.purchaseStatus === "received" && (
+                              <Badge className="bg-blue-100 text-blue-700 border-blue-300">
+                                ✓ Received
                               </Badge>
                             )}
                             {isItemUnavailable(item) && (
@@ -4853,7 +4926,7 @@ export default function ListDetail() {
                     )}
                     {/* Section Items */}
                     {sectionItems.map((item, index) => {
-                      const isPurchased = isRegistryOrWishlistType && item.attributes?.purchaseStatus === "purchased";
+                      const isPurchased = isRegistryOrWishlistType && (item.attributes?.purchaseStatus === "purchased" || item.attributes?.purchaseStatus === "received");
                       const isDropTarget = dropTargetId === item.id;
                       
                       return (
@@ -4909,17 +4982,31 @@ export default function ListDetail() {
                                   checked={item.completed}
                                   onCheckedChange={(checked) => {
                                     const isChecked = checked as boolean;
-                                    const attributeUpdate = isTodo
-                                      ? { status: isChecked ? "completed" : undefined }
-                                      : (isShoppingList || isRegistryOrWishlistType)
-                                        ? { purchaseStatus: isChecked ? "purchased" : "not-purchased" }
-                                        : {};
+                                    let attributeUpdate: Record<string, any> = {};
+                                    if (isTodo) {
+                                      attributeUpdate = { status: isChecked ? "completed" : undefined };
+                                    } else if (isRegistryOrWishlistType) {
+                                      if (isChecked) {
+                                        attributeUpdate = { purchaseStatus: "purchased" };
+                                      } else {
+                                        const current = item.attributes?.purchaseStatus;
+                                        attributeUpdate = { purchaseStatus: current === "received" ? "purchased" : "not-purchased" };
+                                      }
+                                    } else if (isShoppingList) {
+                                      attributeUpdate = { purchaseStatus: isChecked ? "purchased" : "not-purchased" };
+                                    }
                                     updateListItem(list.id, item.id, {
                                       completed: isChecked,
                                       ...(Object.keys(attributeUpdate).length > 0
                                         ? { attributes: { ...item.attributes, ...attributeUpdate } }
                                         : {}),
                                     });
+                                    // Sync owner purchase record for registry/wishlist
+                                    if (isRegistryOrWishlistType && isChecked) {
+                                      handleOwnerPurchaseRecord(list.id, item.id, true);
+                                    } else if (isRegistryOrWishlistType && !isChecked && item.attributes?.purchaseStatus !== "received") {
+                                      handleOwnerPurchaseRecord(list.id, item.id, false);
+                                    }
                                   }}
                                   className={`mt-1 h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform ${item.completed ? "animate-check-bounce" : ""}`}
                                 />
@@ -5035,14 +5122,15 @@ export default function ListDetail() {
               (() => {
                 const sortedItems = getSortedItems();
                 // Purchaser UI only for registry/wishlist, NOT shopping-list
-                const hasPurchasedItems = isRegistryOrWishlistType && sortedItems.some(item => item.attributes?.purchaseStatus === "purchased");
-                const hasUnpurchasedItems = isRegistryOrWishlistType && sortedItems.some(item => item.attributes?.purchaseStatus !== "purchased");
+                const hasPurchasedItems = isRegistryOrWishlistType && sortedItems.some(item => item.attributes?.purchaseStatus === "purchased" || item.attributes?.purchaseStatus === "received");
+                const hasUnpurchasedItems = isRegistryOrWishlistType && sortedItems.some(item => item.attributes?.purchaseStatus !== "purchased" && item.attributes?.purchaseStatus !== "received");
                 
                 return sortedItems.map((item, index) => {
-                  const isPurchased = item.attributes?.purchaseStatus === "purchased";
+                  const isInPurchasedSection = item.attributes?.purchaseStatus === "purchased" || item.attributes?.purchaseStatus === "received";
+                  const isPurchased = isInPurchasedSection;
                   const prevItem = index > 0 ? sortedItems[index - 1] : null;
-                  const prevIsPurchased = prevItem?.attributes?.purchaseStatus === "purchased";
-                  const isFirstPurchased = isPurchased && !prevIsPurchased && isRegistryOrWishlistType;
+                  const prevInPurchasedSection = prevItem?.attributes?.purchaseStatus === "purchased" || prevItem?.attributes?.purchaseStatus === "received";
+                  const isFirstPurchased = isPurchased && !prevInPurchasedSection && isRegistryOrWishlistType;
                   
                   // Calculate continuous numbering for registry/wishlist
                   const showNumbering = isRegistryOrWishlistType;
@@ -5130,17 +5218,32 @@ export default function ListDetail() {
                             checked={item.completed}
                             onCheckedChange={(checked) => {
                               const isChecked = checked as boolean;
-                              const attributeUpdate = isTodo
-                                ? { status: isChecked ? "completed" : undefined }
-                                : (isShoppingList || isRegistryOrWishlistType)
-                                  ? { purchaseStatus: isChecked ? "purchased" : "not-purchased" }
-                                  : {};
+                              let attributeUpdate: Record<string, any> = {};
+                              if (isTodo) {
+                                attributeUpdate = { status: isChecked ? "completed" : undefined };
+                              } else if (isRegistryOrWishlistType) {
+                                if (isChecked) {
+                                  attributeUpdate = { purchaseStatus: "purchased" };
+                                } else {
+                                  // Unchecking: "received" → "purchased" (stays in section), "purchased" → "not-purchased"
+                                  const current = item.attributes?.purchaseStatus;
+                                  attributeUpdate = { purchaseStatus: current === "received" ? "purchased" : "not-purchased" };
+                                }
+                              } else if (isShoppingList) {
+                                attributeUpdate = { purchaseStatus: isChecked ? "purchased" : "not-purchased" };
+                              }
                               updateListItem(list.id, item.id, {
                                 completed: isChecked,
                                 ...(Object.keys(attributeUpdate).length > 0
                                   ? { attributes: { ...item.attributes, ...attributeUpdate } }
                                   : {}),
                               });
+                              // Sync owner purchase record for registry/wishlist
+                              if (isRegistryOrWishlistType && isChecked) {
+                                handleOwnerPurchaseRecord(list.id, item.id, true);
+                              } else if (isRegistryOrWishlistType && !isChecked && item.attributes?.purchaseStatus !== "received") {
+                                handleOwnerPurchaseRecord(list.id, item.id, false);
+                              }
                             }}
                             className={`h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform ${item.completed ? "animate-check-bounce" : ""}`}
                           />
@@ -5191,9 +5294,9 @@ export default function ListDetail() {
                               </p>
                             )}
                             <div className="flex items-center gap-2 flex-wrap">
-                            {isPurchased && (
-                              <Badge className="bg-success/10 text-success border-success/30">
-                                ✓ Purchased
+                            {isRegistryOrWishlistType && item.attributes?.purchaseStatus === "received" && (
+                              <Badge className="bg-blue-100 text-blue-700 border-blue-300">
+                                ✓ Received
                               </Badge>
                             )}
                             {isItemUnavailable(item) && (

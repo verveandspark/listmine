@@ -1404,8 +1404,8 @@ export default function Dashboard() {
             </div>
 
 
-            {/* Capacity Warning Badge */}
-            {user?.listLimit !== -1 && getUsagePercentage() >= 80 && (
+            {/* Capacity Warning Badge - only show in personal view */}
+            {!isTeamContext && user?.listLimit !== -1 && getUsagePercentage() >= 80 && (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>

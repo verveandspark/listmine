@@ -238,11 +238,12 @@ export default function SharedListView() {
   }, [list?.id]);
 
   const handlePurchaseClick = (item: any) => {
-    // Check if item is already purchased
-    if (purchases[item.id]) {
+    // Check if item is already purchased (by buyer or owner)
+    const isOwnerPurchased = item.attributes?.purchaseStatus === "purchased" || item.attributes?.purchaseStatus === "received";
+    if (purchases[item.id] || isOwnerPurchased) {
       toast({
         title: "Already Purchased",
-        description: "This item is already being purchased",
+        description: "This item has already been purchased",
         variant: "destructive",
       });
       return;
@@ -843,7 +844,8 @@ export default function SharedListView() {
             </Card>
           ) : (
             list.items.map((item: any, index: number) => {
-              const isPurchased = !!purchases[item.id];
+              const isOwnerPurchased = item.attributes?.purchaseStatus === "purchased" || item.attributes?.purchaseStatus === "received";
+              const isPurchased = !!purchases[item.id] || isOwnerPurchased;
               
               return (
               <Card
@@ -1079,7 +1081,8 @@ export default function SharedListView() {
                     {/* Purchase button for registry/wishlist items - ONLY in registry_buyer mode */}
                     {isRegistryOrWishlist(list.listType) && canPurchase && (
                       <div className="mt-3">
-                        {purchases[item.id] ? (
+                        {/* Show as purchased if there's a buyer purchase record OR if the owner marked it purchased */}
+                        {purchases[item.id] || item.attributes?.purchaseStatus === "purchased" || item.attributes?.purchaseStatus === "received" ? (
                           <div className="flex items-center gap-2">
                             <Badge 
                               variant="outline" 

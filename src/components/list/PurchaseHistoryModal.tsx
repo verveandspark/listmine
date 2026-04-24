@@ -131,8 +131,12 @@ export default function PurchaseHistoryModal({
         purchaseStatus: "not-purchased",
       };
 
-      // If quantityNeeded exists, increment it back
-      if (currentAttributes.quantityNeeded !== undefined) {
+      // Find the purchase being deleted to check if it was owner-marked
+      const purchaseBeingDeleted = purchases.find((p) => p.id === purchaseId);
+      const isOwnerMarked = purchaseBeingDeleted?.purchaser_name === "Marked by owner";
+
+      // If quantityNeeded exists and this was a buyer purchase (not owner-marked), increment it back
+      if (!isOwnerMarked && currentAttributes.quantityNeeded !== undefined) {
         updatedAttributes.quantityNeeded = (currentAttributes.quantityNeeded || 0) + 1;
       }
 
@@ -149,7 +153,9 @@ export default function PurchaseHistoryModal({
 
       toast({
         title: "Purchase removed",
-        description: "Item quantity has been restored",
+        description: isOwnerMarked
+          ? "Item has been marked as not purchased"
+          : "Item quantity has been restored",
       });
     } catch (error: any) {
       console.error("Error deleting purchase:", error);
@@ -230,7 +236,11 @@ export default function PurchaseHistoryModal({
                           {getItemName(purchase.item_id)}
                         </TableCell>
                         <TableCell>
-                          {localShowPurchaserInfo && purchase.purchaser_name ? (
+                          {purchase.purchaser_name === "Marked by owner" ? (
+                            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                              Marked by owner
+                            </Badge>
+                          ) : localShowPurchaserInfo && purchase.purchaser_name ? (
                             <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
                               {purchase.purchaser_name}
                             </Badge>
