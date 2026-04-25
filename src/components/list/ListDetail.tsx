@@ -616,7 +616,7 @@ export default function ListDetail() {
   // Get sections in proper order: template sections first (in their original order), then user-added sections (alphabetically)
   const getSortedSections = useMemo(() => {
     const allSections = Object.keys(getGroupedSectionItems);
-    if (!isTemplateBasedList || templateSectionsOrder.length === 0) {
+    if (templateSectionsOrder.length === 0) {
       // If not template-based or no order stored, return sections as-is (could sort alphabetically if desired)
       return allSections;
     }
