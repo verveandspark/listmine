@@ -154,6 +154,7 @@ export default function UpdateFromRetailerModal({
           text: item.name,
           completed: false,
           order: list.items.length,
+          quantity: 1,
           // Populate links array so ItemLinkActions ("View item / Copy link / Search") renders
           links: item.link ? [item.link] : [],
           attributes: {

@@ -3152,6 +3152,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
         links: item.link ? [item.link] : [],
         completed: false,
         item_order: index,
+        quantity: item.attributes?.registry?.requested || item.attributes?.custom?.requested_quantity || 1,
         attributes: {
           // Merge any incoming custom attributes from the scraper
           custom: {

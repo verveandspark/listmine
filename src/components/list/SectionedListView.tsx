@@ -23,7 +23,14 @@ import {
   Check,
   X,
   Edit,
+  Info,
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface SectionedListViewProps {
   // Section data
@@ -358,7 +365,7 @@ const SectionedListView: React.FC<SectionedListViewProps> = ({
                         />
                       )}
                       {itemSortBy === "manual" && (
-                        <div className="cursor-grab active:cursor-grabbing touch-none">
+                        <div className="cursor-grab active:cursor-grabbing touch-none" title="Drag to reorder items">
                           <GripVertical className="w-5 h-5 text-gray-400 hover:text-gray-600" />
                         </div>
                       )}
@@ -453,6 +460,25 @@ const SectionedListView: React.FC<SectionedListViewProps> = ({
                             }`}
                           >
                             {item.text}
+                            {/* Hidden details indicator */}
+                            {(
+                              (item.priority && item.priority !== 'none') ||
+                              (!isRegistryOrWishlistType && item.links && item.links.length > 0 && item.links[0].trim() !== '') ||
+                              item.attributes?.color ||
+                              item.attributes?.size ||
+                              item.attributes?.weight
+                            ) && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="inline-flex items-center align-middle ml-1 cursor-default flex-shrink-0">
+                                      <Info className="w-3 h-3 text-teal-400/70" />
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>More details in edit view.</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
                           </span>
                           {/* Edit & Delete buttons */}
                           {canEditListItems && (

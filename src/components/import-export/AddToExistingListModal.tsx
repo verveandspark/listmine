@@ -175,7 +175,7 @@ export default function AddToExistingListModal({
           priority: originalItem?.priority,
           dueDate: originalItem?.dueDate,
           notes: originalItem?.notes,
-          quantity: originalItem?.quantity,
+          quantity: originalItem?.quantity || 1,
           links: item.link ? [item.link] : undefined,
           attributes: {
             // Merge scraped attributes with custom price/image

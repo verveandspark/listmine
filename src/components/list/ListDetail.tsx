@@ -4177,6 +4177,16 @@ export default function ListDetail() {
             </Alert>
           )}
 
+          {/* Sections Tip Banner - only for sectioned lists (not grocery, not registry/wishlist) */}
+          {sectionsActive && !isGrocery && !isRegistryOrWishlistType && (
+            <Alert className="mb-4 bg-primary/10 border-primary/20">
+              <Info className="h-4 w-4 text-primary" />
+              <AlertDescription className="text-sm text-primary">
+                <strong>Tip:</strong> Drag sections to reorder them, drag items within a section to reorder those items. To move an item to a different section, use the Edit button.
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Items List */}
           <div className="space-y-2">
             {list.items.length === 0 ? (
@@ -4312,6 +4322,25 @@ export default function ListDetail() {
                                 return null;
                               })()}
                               {item.text}
+                              {/* Hidden details indicator */}
+                              {(
+                                (item.priority && item.priority !== 'none') ||
+                                (!isRegistryOrWishlistType && item.links && item.links.length > 0 && item.links[0].trim() !== '') ||
+                                item.attributes?.color ||
+                                item.attributes?.size ||
+                                item.attributes?.weight
+                              ) && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="inline-flex items-center align-middle ml-1 cursor-default">
+                                        <Info className="w-3 h-3 text-teal-400/70 flex-shrink-0" />
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>More details in edit view.</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
                             </p>
                             {item.notes && !(
                               item.text.match(/^(Main idea|Supporting details|Action items|Follow-up needed|Resources\/links|Breakfast|Lunch|Dinner|Snack|Notes)$/) ||
@@ -4729,6 +4758,25 @@ export default function ListDetail() {
                                 </span>
                               )}
                               {item.text}
+                              {/* Hidden details indicator */}
+                              {(
+                                (item.priority && item.priority !== 'none') ||
+                                (!isRegistryOrWishlistType && item.links && item.links.length > 0 && item.links[0].trim() !== '') ||
+                                item.attributes?.color ||
+                                item.attributes?.size ||
+                                item.attributes?.weight
+                              ) && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="inline-flex items-center align-middle ml-1 cursor-default">
+                                        <Info className="w-3 h-3 text-teal-400/70 flex-shrink-0" />
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>More details in edit view.</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
                             </p>
                             {item.notes && !(
                               item.text.match(/^(Main idea|Supporting details|Action items|Follow-up needed|Resources\/links|Breakfast|Lunch|Dinner|Snack|Notes)$/) ||
