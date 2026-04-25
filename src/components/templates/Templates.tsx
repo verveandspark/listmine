@@ -357,7 +357,7 @@ export default function Templates() {
       setShowCreateModal(false);
       
       // Small delay to ensure DB write is complete before navigation
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 300));
       navigate(`/list/${newListId}`);
     } catch (error: any) {
       console.error("[Templates] Create list error:", error);

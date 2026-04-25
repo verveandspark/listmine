@@ -231,42 +231,6 @@ export default function ListDetail() {
   
   const list = lists.find((l) => l.id === id);
   
-  // Redirect if list not found after data has loaded
-  useEffect(() => {
-    if (!list && hasLoadedOnce) {
-      toast({
-        title: "List not found",
-        description: "This list is no longer accessible. Redirecting to dashboard.",
-        variant: "destructive",
-      });
-      navigate("/dashboard", { replace: true });
-    }
-  }, [list, hasLoadedOnce, navigate, toast]);
-
-
-  
-  
-  // Compute effective list type from DB field (list_type) with fallback to listType
-  const effectiveListType = normalizeListType((list as any)?.list_type ?? list?.listType ?? "");
-
-  // Safe list type checks using effectiveListType (lowercase keys)
-  const isTodo = effectiveListType === 'todo';
-  const isIdea = effectiveListType === 'idea';
-  const isRegistry = effectiveListType === 'registry';
-  const isChecklist = effectiveListType === 'checklist';
-  const isRegistryOrWishlistType = isRegistry;
-  const isGrocery = effectiveListType === 'grocery';
-  const isShoppingList = effectiveListType === 'shopping';
-  const showCompletionCheckbox = ['todo', 'checklist', 'shopping', 'grocery', 'registry'].includes(effectiveListType);
-
-  // Log list load result (avoid referencing variables declared later)
-  console.log("[LIST_LOAD_RESULT]", { 
-    listId: id, 
-    hasData: !!list, 
-    listsCount: lists.length,
-    effectiveListType 
-  });
-  
   // Use global account context
   const { effectiveTier: accountEffectiveTier, isTeamContext: globalIsTeamContext } = useAccount();
   
@@ -275,12 +239,12 @@ export default function ListDetail() {
   const isTeamContext = globalIsTeamContext || !!list?.accountId || !!list?.isTeamMember || !!list?.isTeamOwner;
   const effectiveTier = (isTeamContext ? 'lots_more' : accountEffectiveTier) as UserTier;
   
-  // Track attempts independent of hasLoadedOnce
+  // Track attempts for retry logic (handles race condition with newly created lists)
   const [attempts, setAttempts] = useState(0);
   const [retrying, setRetrying] = useState(false);
-  const maxAttempts = 3;
-  const retryDelay = 250;
-  
+  const maxAttempts = 8;
+  const retryDelay = 400;
+
   // Retry fetching the list if not found (handles race condition with newly created lists)
   useEffect(() => {
     if (!list && id && attempts < maxAttempts && !retrying) {
@@ -299,6 +263,39 @@ export default function ListDetail() {
     setAttempts(0);
     setRetrying(false);
   }, [id]);
+
+  // Only redirect after all retries are exhausted (prevents premature redirect for newly created lists)
+  useEffect(() => {
+    if (!list && hasLoadedOnce && attempts >= maxAttempts && !retrying) {
+      toast({
+        title: "List not found",
+        description: "This list is no longer accessible. Redirecting to dashboard.",
+        variant: "destructive",
+      });
+      navigate("/dashboard", { replace: true });
+    }
+  }, [list, hasLoadedOnce, attempts, retrying, navigate, toast]);
+
+  // Compute effective list type from DB field (list_type) with fallback to listType
+  const effectiveListType = normalizeListType((list as any)?.list_type ?? list?.listType ?? "");
+
+  // Safe list type checks using effectiveListType (lowercase keys)
+  const isTodo = effectiveListType === 'todo';
+  const isIdea = effectiveListType === 'idea';
+  const isRegistry = effectiveListType === 'registry';
+  const isChecklist = effectiveListType === 'checklist';
+  const isRegistryOrWishlistType = isRegistry;
+  const isGrocery = effectiveListType === 'grocery';
+  const isShoppingList = effectiveListType === 'shopping';
+  const showCompletionCheckbox = ['todo', 'checklist', 'shopping', 'grocery', 'registry'].includes(effectiveListType);
+
+  // Log list load result
+  console.log("[LIST_LOAD_RESULT]", { 
+    listId: id, 
+    hasData: !!list, 
+    listsCount: lists.length,
+    effectiveListType 
+  });
   
   // Permission checks for guest access (only compute if list exists)
   const isOwner = list ? canEditListMeta(list, user?.id) : false;
@@ -4262,7 +4259,7 @@ export default function ListDetail() {
                         )}
                         {showCompletionCheckbox && (
                           <Checkbox
-                            checked={item.completed}
+                            checked={isRegistryOrWishlistType ? isPurchased : item.completed}
                             onCheckedChange={(checked) => {
                               const isChecked = checked as boolean;
                               let attributeUpdate: Record<string, any> = {};
@@ -4291,13 +4288,13 @@ export default function ListDetail() {
                                 handleOwnerPurchaseRecord(list.id, item.id, false);
                               }
                             }}
-                            className={`h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform border-gray-400 ${item.completed ? "animate-check-bounce bg-gray-700 border-gray-700" : ""}`}
+                            className={`h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform border-gray-400 ${(isRegistryOrWishlistType ? isPurchased : item.completed) ? "animate-check-bounce bg-gray-700 border-gray-700" : ""}`}
                           />
                         )}
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-col gap-0.5 min-w-0 w-full">
                             <p
-                              className={`text-sm sm:text-base text-gray-900 transition-all duration-200 ${item.completed ? "line-through opacity-50" : ""} break-words overflow-hidden w-full`}
+                              className={`text-sm sm:text-base text-gray-900 transition-all duration-200 ${(isRegistryOrWishlistType ? isPurchased : item.completed) ? "line-through opacity-50" : ""} break-words overflow-hidden w-full`}
                                               style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
                             >
                               {(() => {
@@ -4315,7 +4312,10 @@ export default function ListDetail() {
                               })()}
                               {item.text}
                             </p>
-                            {item.notes && !item.completed && (
+                            {item.notes && !(
+                              item.text.match(/^(Main idea|Supporting details|Action items|Follow-up needed|Resources\/links|Breakfast|Lunch|Dinner|Snack|Notes)$/) ||
+                              item.notes.match(/^(Add meal|Add snack|Add idea|Add item|Ideas for next week)/)
+                            ) && (
                               <p className="text-xs text-gray-500 -mt-0.5 break-words italic">
                                 {renderNotesWithLinks(item.notes)}
                               </p>
@@ -4378,15 +4378,6 @@ export default function ListDetail() {
                               <Badge variant="outline" className="text-xs">
                                 <UserIcon className="w-3 h-3 mr-1" />
                                 {item.assignedTo}
-                              </Badge>
-                            )}
-                            {/* Note indicator only shows when notes exist but are hidden (item completed) */}
-                            {item.notes && item.completed && 
-                              !item.text.match(/^(Main idea|Supporting details|Action items|Follow-up needed|Resources\/links|Breakfast|Lunch|Dinner|Snack|Notes)$/) &&
-                              !item.notes.match(/^(Add meal|Add snack|Add idea|Add item|Ideas for next week)/) && (
-                              <Badge variant="outline" className="text-xs">
-                                <FileText className="w-3 h-3 mr-1" />
-                                Note
                               </Badge>
                             )}
                             </div>
@@ -4581,7 +4572,7 @@ export default function ListDetail() {
                         )}
                         {showCompletionCheckbox && (
                           <Checkbox
-                            checked={item.completed}
+                            checked={isRegistryOrWishlistType ? isPurchased : item.completed}
                             onCheckedChange={(checked) => {
                               const isChecked = checked as boolean;
                               let attributeUpdate: Record<string, any> = {};
@@ -4610,13 +4601,13 @@ export default function ListDetail() {
                                 handleOwnerPurchaseRecord(list.id, item.id, false);
                               }
                             }}
-                            className={`h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform border-gray-400 ${item.completed ? "animate-check-bounce bg-gray-700 border-gray-700" : ""}`}
+                            className={`h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform border-gray-400 ${(isRegistryOrWishlistType ? isPurchased : item.completed) ? "animate-check-bounce bg-gray-700 border-gray-700" : ""}`}
                           />
                         )}
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-col gap-0.5 min-w-0 w-full">
                             <p
-                              className={`text-sm sm:text-base text-gray-900 transition-all duration-200 ${item.completed ? "line-through opacity-50" : ""} break-words overflow-hidden w-full`}
+                              className={`text-sm sm:text-base text-gray-900 transition-all duration-200 ${(isRegistryOrWishlistType ? isPurchased : item.completed) ? "line-through opacity-50" : ""} break-words overflow-hidden w-full`}
                                               style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
                             >
                               {(() => {
@@ -4634,7 +4625,10 @@ export default function ListDetail() {
                               })()}
                               {item.text}
                             </p>
-                            {item.notes && !item.completed && (
+                            {item.notes && !(
+                              item.text.match(/^(Main idea|Supporting details|Action items|Follow-up needed|Resources\/links|Breakfast|Lunch|Dinner|Snack|Notes)$/) ||
+                              item.notes.match(/^(Add meal|Add snack|Add idea|Add item|Ideas for next week)/)
+                            ) && (
                               <p className="text-xs text-gray-500 -mt-0.5 break-words italic">
                                 {renderNotesWithLinks(item.notes)}
                               </p>
@@ -4697,15 +4691,6 @@ export default function ListDetail() {
                               <Badge variant="outline" className="text-xs">
                                 <UserIcon className="w-3 h-3 mr-1" />
                                 {item.assignedTo}
-                              </Badge>
-                            )}
-                            {/* Note indicator only shows when notes exist but are hidden (item completed) */}
-                            {item.notes && item.completed && 
-                              !item.text.match(/^(Main idea|Supporting details|Action items|Follow-up needed|Resources\/links|Breakfast|Lunch|Dinner|Snack|Notes)$/) &&
-                              !item.notes.match(/^(Add meal|Add snack|Add idea|Add item|Ideas for next week)/) && (
-                              <Badge variant="outline" className="text-xs">
-                                <FileText className="w-3 h-3 mr-1" />
-                                Note
                               </Badge>
                             )}
                             </div>
@@ -4979,7 +4964,7 @@ export default function ListDetail() {
                               )}
                               {showCompletionCheckbox && (
                                 <Checkbox
-                                  checked={item.completed}
+                                  checked={isRegistryOrWishlistType ? isPurchased : item.completed}
                                   onCheckedChange={(checked) => {
                                     const isChecked = checked as boolean;
                                     let attributeUpdate: Record<string, any> = {};
@@ -5008,13 +4993,13 @@ export default function ListDetail() {
                                       handleOwnerPurchaseRecord(list.id, item.id, false);
                                     }
                                   }}
-                                  className={`mt-1 h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform ${item.completed ? "animate-check-bounce" : ""}`}
+                                  className={`mt-1 h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform ${(isRegistryOrWishlistType ? isPurchased : item.completed) ? "animate-check-bounce" : ""}`}
                                 />
                               )}
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-start justify-between gap-2">
                                   <span
-                                    className={`break-words ${item.completed ? "line-through text-gray-400" : ""}`}
+                                    className={`break-words ${(isRegistryOrWishlistType ? isPurchased : item.completed) ? "line-through text-gray-400" : ""}`}
                                   >
                                     {item.text}
                                   </span>
@@ -5098,7 +5083,10 @@ export default function ListDetail() {
                                   )}
                                 </div>
                                 {/* Notes */}
-                                {item.notes && !item.completed && (
+                                {item.notes && !(
+                                  item.text.match(/^(Main idea|Supporting details|Action items|Follow-up needed|Resources\/links|Breakfast|Lunch|Dinner|Snack|Notes)$/) ||
+                                  item.notes.match(/^(Add meal|Add snack|Add idea|Add item|Ideas for next week)/)
+                                ) && (
                                   <p className="text-xs text-gray-500 -mt-0.5 break-words italic">
                                     {renderNotesWithLinks(item.notes)}
                                   </p>
@@ -5215,7 +5203,7 @@ export default function ListDetail() {
                         )}
                         {showCompletionCheckbox && (
                           <Checkbox
-                            checked={item.completed}
+                            checked={isRegistryOrWishlistType ? isPurchased : item.completed}
                             onCheckedChange={(checked) => {
                               const isChecked = checked as boolean;
                               let attributeUpdate: Record<string, any> = {};
@@ -5245,7 +5233,7 @@ export default function ListDetail() {
                                 handleOwnerPurchaseRecord(list.id, item.id, false);
                               }
                             }}
-                            className={`h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform ${item.completed ? "animate-check-bounce" : ""}`}
+                            className={`h-6 w-6 md:h-[18px] md:w-[18px] rounded md:rounded-[3px] mr-3 md:mr-2 flex-shrink-0 transition-transform ${(isRegistryOrWishlistType ? isPurchased : item.completed) ? "animate-check-bounce" : ""}`}
                           />
                         )}
                         {(() => {
@@ -5278,7 +5266,7 @@ export default function ListDetail() {
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-col gap-0.5 min-w-0 w-full">
                             <p
-                              className={`text-sm sm:text-base text-gray-900 transition-all duration-200 ${item.completed ? "line-through opacity-50" : ""} break-words overflow-hidden w-full`}
+                              className={`text-sm sm:text-base text-gray-900 transition-all duration-200 ${(isRegistryOrWishlistType ? isPurchased : item.completed) ? "line-through opacity-50" : ""} break-words overflow-hidden w-full`}
                                               style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
                             >
                               {item.quantity && (
@@ -5288,7 +5276,10 @@ export default function ListDetail() {
                               )}
                               {item.text}
                             </p>
-                            {item.notes && !item.completed && (
+                            {item.notes && !(
+                              item.text.match(/^(Main idea|Supporting details|Action items|Follow-up needed|Resources\/links|Breakfast|Lunch|Dinner|Snack|Notes)$/) ||
+                              item.notes.match(/^(Add meal|Add snack|Add idea|Add item|Ideas for next week)/)
+                            ) && (
                               <p className="text-xs text-gray-500 -mt-0.5 break-words italic">
                                 {renderNotesWithLinks(item.notes)}
                               </p>
@@ -5394,15 +5385,6 @@ export default function ListDetail() {
                                  item.attributes.status === 'brainstorm' ? 'Brainstorm' :
                                  item.attributes.status === 'on-hold' ? 'On hold' :
                                  item.attributes.status}
-                              </Badge>
-                            )}
-                            {/* Note indicator only shows when notes exist but are hidden (item completed) */}
-                            {item.notes && item.completed && 
-                              !item.text.match(/^(Main idea|Supporting details|Action items|Follow-up needed|Resources\/links|Breakfast|Lunch|Dinner|Snack|Notes)$/) &&
-                              !item.notes.match(/^(Add meal|Add snack|Add idea|Add item|Ideas for next week)/) && (
-                              <Badge variant="outline" className="text-xs">
-                                <FileText className="w-3 h-3 mr-1" />
-                                Note
                               </Badge>
                             )}
                             {/* Product/Inspiration Link badge removed - links shown via action row only */}
