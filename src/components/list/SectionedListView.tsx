@@ -462,11 +462,15 @@ const SectionedListView: React.FC<SectionedListViewProps> = ({
                             {item.text}
                             {/* Hidden details indicator */}
                             {(
-                              (item.priority && item.priority !== 'none') ||
-                              (!isRegistryOrWishlistType && item.links && item.links.length > 0 && item.links[0].trim() !== '') ||
-                              item.attributes?.color ||
-                              item.attributes?.size ||
-                              item.attributes?.weight
+                              (item.priority && item.priority !== 'none' && item.priority !== '') ||
+                              (item.due_date != null) ||
+                              (item.notes != null && item.notes !== '') ||
+                              (item.links && item.links.length > 0 && item.links.some((l: string) => l.trim() !== '')) ||
+                              (item.quantity != null && item.quantity > 0) ||
+                              (item.assigned_to != null && item.assigned_to !== '') ||
+                              (item.attributes && Object.values(item.attributes).some((v: any) =>
+                                v !== null && v !== undefined && v !== '' && !(typeof v === 'object' && Object.keys(v).length === 0)
+                              ))
                             ) && (
                               <TooltipProvider>
                                 <Tooltip>
