@@ -459,6 +459,7 @@ const SectionedListView: React.FC<SectionedListViewProps> = ({
                             }`}
                           >
                             {item.text}
+                          </span>
                           {canEditListItems && (
                             <div className="flex items-center gap-1 flex-shrink-0">
                               <button

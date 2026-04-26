@@ -4322,7 +4322,7 @@ export default function ListDetail() {
                                 return null;
                               })()}
                               {item.text}
-                              {/* Hidden details indicator */}
+                            </p>
                             {item.notes && !(
                               item.text.match(/^(Main idea|Supporting details|Action items|Follow-up needed|Resources\/links|Breakfast|Lunch|Dinner|Snack|Notes)$/) ||
                               item.notes.match(/^(Add meal|Add snack|Add idea|Add item|Ideas for next week)/)
@@ -4739,7 +4739,7 @@ export default function ListDetail() {
                                 </span>
                               )}
                               {item.text}
-                              {/* Hidden details indicator */}
+                            </p>
                             {item.notes && !(
                               item.text.match(/^(Main idea|Supporting details|Action items|Follow-up needed|Resources\/links|Breakfast|Lunch|Dinner|Snack|Notes)$/) ||
                               item.notes.match(/^(Add meal|Add snack|Add idea|Add item|Ideas for next week)/)
