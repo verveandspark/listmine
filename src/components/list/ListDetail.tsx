@@ -2182,21 +2182,6 @@ export default function ListDetail() {
     return { url: null, isFallback: false, isTheKnot: false };
   };
 
-  // Helper to detect whether an item has extra link metadata (title/description/image)
-  // that is not shown inline on the card – used for the link-details indicator icon.
-  const hasLinkDetails = (item: ListItemType): boolean => {
-    const a = item.attributes;
-    if (!a) return false;
-    return !!(
-      a.customLinkTitle ||
-      a.customLinkDescription ||
-      a.customLinkImage ||
-      a.linkTitle ||
-      a.linkDescription ||
-      a.linkImage ||
-      (a.custom?.image)
-    );
-  };
 
   // Universal item link component
   const ItemLinkActions = ({ item }: { item: ListItemType }) => {
@@ -4382,14 +4367,7 @@ export default function ListDetail() {
                                 })()}
                                 {item.text}
                               </p>
-                              {hasLinkDetails(item) && (
-                                <span
-                                  title="Link details saved (open item to view)"
-                                  className="flex-shrink-0 mt-0.5 cursor-help"
-                                >
-                                  <Info className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
-                                </span>
-                              )}
+
                             </div>
                             {item.notes && !(
                               item.text.match(/^(Main idea|Supporting details|Action items|Follow-up needed|Resources\/links|Breakfast|Lunch|Dinner|Snack|Notes)$/) ||
@@ -4623,7 +4601,6 @@ export default function ListDetail() {
                 isGrocery={isGrocery}
                 shouldShowItemLinks={shouldShowItemLinks}
                 ItemLinkActionsComponent={ItemLinkActions}
-                hasLinkDetails={hasLinkDetails}
                 handleDragStart={handleDragStart}
                 handleDragOver={handleDragOver}
                 handleDragLeave={handleDragLeave}
@@ -4814,14 +4791,7 @@ export default function ListDetail() {
                                 )}
                                 {item.text}
                               </p>
-                              {hasLinkDetails(item) && (
-                                <span
-                                  title="Link details saved (open item to view)"
-                                  className="flex-shrink-0 mt-0.5 cursor-help"
-                                >
-                                  <Info className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
-                                </span>
-                              )}
+
                             </div>
                             {item.notes && !(
                               item.text.match(/^(Main idea|Supporting details|Action items|Follow-up needed|Resources\/links|Breakfast|Lunch|Dinner|Snack|Notes)$/) ||

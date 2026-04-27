@@ -76,9 +76,6 @@ export interface ListItemCardContentProps {
 
   /** The actual link-actions component, rendered if shouldShowItemLinks returns true */
   ItemLinkActionsComponent: React.ComponentType<{ item: ListItemType }>;
-
-  /** Whether the item has extra link metadata (title/description/image) not shown inline */
-  hasLinkDetails?: (item: ListItemType) => boolean;
 }
 
 // ─── component ───────────────────────────────────────────────────────────────
@@ -94,7 +91,6 @@ const ListItemCardContent: React.FC<ListItemCardContentProps> = ({
   renderNotesWithLinks,
   shouldShowItemLinks,
   ItemLinkActionsComponent,
-  hasLinkDetails,
 }) => {
   // Quantity prefix logic (mirrors VIEW 1 in ListDetail)
   const qty =
