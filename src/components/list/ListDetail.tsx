@@ -2202,9 +2202,9 @@ export default function ListDetail() {
   const ItemLinkActions = ({ item }: { item: ListItemType }) => {
     const { url: primaryUrl, isFallback, isTheKnot } = getPrimaryItemUrl(item, list.source);
     
-    // For copy link: only copy real non-Knot links
-    const hasRealLink = !isTheKnot && item.links?.[0] && item.links[0].trim() !== '';
-    const copyableUrl = hasRealLink ? item.links![0] : null;
+    // For copy link: use the resolved primaryUrl (covers productLink / inspirationLink too),
+    // but exclude Knot fallback registry URLs (isFallback && isTheKnot).
+    const copyableUrl = (!isTheKnot && primaryUrl) ? primaryUrl : null;
     
     const handleCopyLink = async (e: React.MouseEvent) => {
       e.preventDefault();
@@ -2285,6 +2285,33 @@ export default function ListDetail() {
           <span className="hidden sm:inline">Search</span>
           <span className="sm:hidden sr-only">Search</span>
         </a>
+        {/* Link details - opens edit modal */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 px-2 text-xs"
+          title="If this item has extra link details (title, description, image), you'll see them after clicking."
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (import.meta.env.DEV) console.log(`[EDIT_MODAL_DEBUG] Opening edit for "${item.text?.substring(0, 40)}" | custom.image: ${item.attributes?.custom?.image || 'MISSING'} | customLinkImage: ${item.attributes?.customLinkImage || 'MISSING'} | Full attributes:`, JSON.stringify(item.attributes, null, 2));
+            setEditingItem(item);
+            setOriginalItemLinks(item.links ?? null);
+            setLinkFieldTouched(false);
+            if (item.dueDate) {
+              const d = typeof item.dueDate === 'string' ? item.dueDate : new Date(item.dueDate).toISOString().split('T')[0];
+              setDueDateInput(d);
+            } else {
+              setDueDateInput('');
+            }
+            setIsEditModalOpen(true);
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <Info className="w-3 h-3 mr-1" />
+          <span className="hidden sm:inline">Link details</span>
+          <span className="sm:hidden">Details</span>
+        </Button>
       </div>
     );
   };

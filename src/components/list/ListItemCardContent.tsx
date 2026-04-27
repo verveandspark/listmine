@@ -19,7 +19,6 @@ import {
   Calendar,
   Clock,
   Flag,
-  Info,
   User as UserIcon,
 } from "lucide-react";
 import { ListItem as ListItemType } from "@/types";
@@ -120,14 +119,7 @@ const ListItemCardContent: React.FC<ListItemCardContentProps> = ({
           )}
           {item.text}
         </p>
-        {hasLinkDetails && hasLinkDetails(item) && (
-          <span
-            title="Link details saved (open item to view)"
-            className="flex-shrink-0 mt-0.5 cursor-help"
-          >
-            <Info className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
-          </span>
-        )}
+
       </div>
 
       {/* ── Notes ── */}

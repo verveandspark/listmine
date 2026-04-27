@@ -467,9 +467,9 @@ export default function SharedListView() {
   const ItemLinkActions = ({ item }: { item: any }) => {
     const { url: primaryUrl, isFallback, isTheKnot, isMyRegistry } = getPrimaryItemUrl(item, list?.source);
     
-    // For copy link: only copy real non-fallback links
-    const hasRealLink = !isTheKnot && !isFallback && item.links?.[0] && item.links[0].trim() !== '';
-    const copyableUrl = hasRealLink ? item.links![0] : (item.attributes?.productLink || null);
+    // For copy link: use the resolved primaryUrl (covers productLink / inspirationLink too),
+    // but exclude Knot fallback registry URLs.
+    const copyableUrl = (!isTheKnot && primaryUrl) ? primaryUrl : null;
     
     const handleCopyLink = async (e: React.MouseEvent) => {
       e.preventDefault();
