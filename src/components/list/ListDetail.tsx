@@ -951,6 +951,7 @@ export default function ListDetail() {
         }
       } else if (isIdea) {
         attributes.status = newItemStatus || "brainstorm";
+        attributes.status_set_by_user = false;
         // Add section for sectioned idea lists
         if (sectionsActive && newItemSection) {
           attributes.section = newItemSection;
@@ -2515,6 +2516,7 @@ export default function ListDetail() {
                           attributes: {
                             ...editingItem.attributes,
                             status: value === "none" ? undefined : value,
+                            status_set_by_user: value !== "none",
                           },
                         });
                       }}
@@ -4343,7 +4345,7 @@ export default function ListDetail() {
                               </Badge>
                             )}
                             {/* Status badge - show for todo/idea lists with status */}
-                            {(isTodo || isIdea) && item.attributes?.status && (
+                            {(isTodo || (isIdea && item.attributes?.status_set_by_user === true)) && item.attributes?.status && (
                               <Badge
                                 variant="outline"
                                 className={`text-xs ${
@@ -4550,7 +4552,11 @@ export default function ListDetail() {
                 showCompletionCheckbox={showCompletionCheckbox}
                 isRegistryOrWishlistType={isRegistryOrWishlistType}
                 isTodo={isTodo}
+                isIdea={isIdea}
                 isShoppingList={isShoppingList}
+                isGrocery={isGrocery}
+                shouldShowItemLinks={shouldShowItemLinks}
+                ItemLinkActionsComponent={ItemLinkActions}
                 handleDragStart={handleDragStart}
                 handleDragOver={handleDragOver}
                 handleDragLeave={handleDragLeave}
@@ -4827,7 +4833,7 @@ export default function ListDetail() {
                               </Badge>
                             )}
                             {/* Status badge - show for todo/idea lists with status */}
-                            {(isTodo || isIdea) && item.attributes?.status && (
+                            {(isTodo || (isIdea && item.attributes?.status_set_by_user === true)) && item.attributes?.status && (
                               <Badge
                                 variant="outline"
                                 className={`text-xs ${

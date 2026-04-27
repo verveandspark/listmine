@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import ListItemCardContent from "@/components/list/ListItemCardContent";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -76,7 +77,13 @@ interface SectionedListViewProps {
   showCompletionCheckbox: boolean;
   isRegistryOrWishlistType: boolean;
   isTodo: boolean;
+  isIdea: boolean;
   isShoppingList: boolean;
+  isGrocery: boolean;
+
+  // Item link helpers (passed from ListDetail where they have closure access)
+  shouldShowItemLinks: (item: ListItemType) => boolean;
+  ItemLinkActionsComponent: React.ComponentType<{ item: ListItemType }>;
 
   // Item drag handlers
   handleDragStart: (e: React.DragEvent, item: ListItemType) => void;
@@ -152,7 +159,11 @@ const SectionedListView: React.FC<SectionedListViewProps> = ({
   showCompletionCheckbox,
   isRegistryOrWishlistType,
   isTodo,
+  isIdea,
   isShoppingList,
+  isGrocery,
+  shouldShowItemLinks,
+  ItemLinkActionsComponent,
   handleDragStart,
   handleDragOver,
   handleDragLeave,
@@ -446,20 +457,23 @@ const SectionedListView: React.FC<SectionedListViewProps> = ({
                         />
                       )}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <span
-                            className={`break-words ${
-                              (
-                                isRegistryOrWishlistType
-                                  ? isPurchased
-                                  : item.completed
-                              )
-                                ? "line-through text-gray-400"
-                                : ""
-                            }`}
-                          >
-                            {item.text}
-                          </span>
+                        <div className="flex items-start gap-2">
+                          {/* ── Shared item card content (qty, text, notes, badges) ── */}
+                          <div className="flex-1 min-w-0">
+                            <ListItemCardContent
+                              item={item}
+                              isPurchased={isPurchased}
+                              isRegistryOrWishlistType={isRegistryOrWishlistType}
+                              isTodo={isTodo}
+                              isIdea={isIdea}
+                              isShoppingList={isShoppingList}
+                              isGrocery={isGrocery}
+                              renderNotesWithLinks={renderNotesWithLinks}
+                              shouldShowItemLinks={shouldShowItemLinks}
+                              ItemLinkActionsComponent={ItemLinkActionsComponent}
+                            />
+                          </div>
+                          {/* ── Edit / Delete buttons ── */}
                           {canEditListItems && (
                             <div className="flex items-center gap-1 flex-shrink-0">
                               <button
@@ -551,20 +565,6 @@ const SectionedListView: React.FC<SectionedListViewProps> = ({
                             </div>
                           )}
                         </div>
-                        {/* Notes */}
-                        {item.notes &&
-                          !(
-                            item.text.match(
-                              /^(Main idea|Supporting details|Action items|Follow-up needed|Resources\/links|Breakfast|Lunch|Dinner|Snack|Notes)$/
-                            ) ||
-                            item.notes.match(
-                              /^(Add meal|Add snack|Add idea|Add item|Ideas for next week)/
-                            )
-                          ) && (
-                            <p className="text-xs text-gray-500 -mt-0.5 break-words italic">
-                              {renderNotesWithLinks(item.notes)}
-                            </p>
-                          )}
                       </div>
                     </div>
                   </Card>

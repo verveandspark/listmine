@@ -45,6 +45,7 @@ export interface ListItemAttributes {
   quantity?: number;
   priority?: string;
   status?: string;
+  status_set_by_user?: boolean;
   purchaseStatus?: string;
   quantityNeeded?: number;
   productLink?: string;
