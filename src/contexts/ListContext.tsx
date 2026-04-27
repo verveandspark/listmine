@@ -717,7 +717,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
               itemsData = itemsData.map((item) => {
                 if (purchasedItemIds.has(item.id)) {
                   const currentAttributes = item.attributes || {};
-                  if (currentAttributes.purchaseStatus !== "purchased") {
+                  if (currentAttributes.purchaseStatus !== "purchased" && currentAttributes.purchaseStatus !== "received") {
                     return {
                       ...item,
                       attributes: {

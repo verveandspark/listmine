@@ -84,6 +84,7 @@ interface SectionedListViewProps {
   // Item link helpers (passed from ListDetail where they have closure access)
   shouldShowItemLinks: (item: ListItemType) => boolean;
   ItemLinkActionsComponent: React.ComponentType<{ item: ListItemType }>;
+  hasLinkDetails?: (item: ListItemType) => boolean;
 
   // Item drag handlers
   handleDragStart: (e: React.DragEvent, item: ListItemType) => void;
@@ -164,6 +165,7 @@ const SectionedListView: React.FC<SectionedListViewProps> = ({
   isGrocery,
   shouldShowItemLinks,
   ItemLinkActionsComponent,
+  hasLinkDetails,
   handleDragStart,
   handleDragOver,
   handleDragLeave,
@@ -471,6 +473,7 @@ const SectionedListView: React.FC<SectionedListViewProps> = ({
                               renderNotesWithLinks={renderNotesWithLinks}
                               shouldShowItemLinks={shouldShowItemLinks}
                               ItemLinkActionsComponent={ItemLinkActionsComponent}
+                              hasLinkDetails={hasLinkDetails}
                             />
                           </div>
                           {/* ── Edit / Delete buttons ── */}

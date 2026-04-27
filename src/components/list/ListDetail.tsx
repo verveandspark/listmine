@@ -1369,14 +1369,14 @@ export default function ListDetail() {
       } else {
         toast({
           title: "Section added",
-          description: `"${trimmedName}" section is now available`,
+          description: `Section created. Add an item to place it in this section.`,
         });
       }
     } else {
       // Empty section
       toast({
         title: "Section added",
-        description: `"${trimmedName}" section is now available`,
+        description: `Section created. Add an item to place it in this section.`,
       });
     }
     
@@ -2167,6 +2167,12 @@ export default function ListDetail() {
     if (item.links?.[0] && item.links[0].trim() !== '') {
       return { url: item.links[0], isFallback: false, isTheKnot: false };
     }
+
+    // Fallback to productLink or inspirationLink stored in attributes (idea/todo/custom items)
+    const attrLink = item.attributes?.productLink || item.attributes?.inspirationLink;
+    if (attrLink && attrLink.trim() !== '') {
+      return { url: attrLink.trim(), isFallback: false, isTheKnot: false };
+    }
     
     // Fallback to MyRegistry source if available
     if (isMyRegistry) {
@@ -2174,6 +2180,22 @@ export default function ListDetail() {
     }
     
     return { url: null, isFallback: false, isTheKnot: false };
+  };
+
+  // Helper to detect whether an item has extra link metadata (title/description/image)
+  // that is not shown inline on the card – used for the link-details indicator icon.
+  const hasLinkDetails = (item: ListItemType): boolean => {
+    const a = item.attributes;
+    if (!a) return false;
+    return !!(
+      a.customLinkTitle ||
+      a.customLinkDescription ||
+      a.customLinkImage ||
+      a.linkTitle ||
+      a.linkDescription ||
+      a.linkImage ||
+      (a.custom?.image)
+    );
   };
 
   // Universal item link component
@@ -2267,12 +2289,19 @@ export default function ListDetail() {
     );
   };
   
-  // Helper to check if ItemLinkActions should render
+  // Helper to check if ItemLinkActions should render (any list type)
   const shouldShowItemLinks = (item: ListItemType): boolean => {
-    const isTheKnot = (list.source ?? "").startsWith("theknot:");
-    const hasDirectLink = !isTheKnot && !!item.links?.[0];
-    const hasRegistryFallback = isTheKnot || (list.source ?? "").startsWith("myregistry:");
-    return hasDirectLink || hasRegistryFallback;
+    const source = list.source ?? "";
+    const isTheKnot = source.startsWith("theknot:");
+    const isMyRegistry = source.startsWith("myregistry:");
+    // Registry fallback sources always show the row
+    if (isTheKnot || isMyRegistry) return true;
+    // Direct item link
+    if (item.links?.[0] && item.links[0].trim() !== "") return true;
+    // Attribute-stored links (idea, todo, shopping, custom, etc.)
+    if (item.attributes?.productLink && item.attributes.productLink.trim() !== "") return true;
+    if (item.attributes?.inspirationLink && item.attributes.inspirationLink.trim() !== "") return true;
+    return false;
   };
 
   // Guard against incomplete list data
@@ -4306,25 +4335,35 @@ export default function ListDetail() {
                         )}
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-col gap-0.5 min-w-0 w-full">
-                            <p
-                              className={`text-sm sm:text-base text-gray-900 transition-all duration-200 ${(isRegistryOrWishlistType ? isPurchased : item.completed) ? "line-through opacity-50" : ""} break-words overflow-hidden w-full`}
-                                              style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
-                            >
-                              {(() => {
-                                // For shopping, registry, and grocery types, always show quantity prefix
-                                const qty = item.quantity || item.attributes?.quantityNeeded || (isShoppingList || isRegistryOrWishlistType || isGrocery ? 1 : 0);
-                                const showQtyTypes = isShoppingList || isRegistryOrWishlistType || isGrocery;
-                                if (showQtyTypes && qty && qty >= 1) {
-                                  return (
-                                    <span className="font-semibold text-primary">
-                                      {qty}× {" "}
-                                    </span>
-                                  );
-                                }
-                                return null;
-                              })()}
-                              {item.text}
-                            </p>
+                            <div className="flex items-start gap-1 min-w-0 w-full">
+                              <p
+                                className={`text-sm sm:text-base text-gray-900 transition-all duration-200 ${(isRegistryOrWishlistType ? isPurchased : item.completed) ? "line-through opacity-50" : ""} break-words overflow-hidden flex-1`}
+                                                style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
+                              >
+                                {(() => {
+                                  // For shopping, registry, and grocery types, always show quantity prefix
+                                  const qty = item.quantity || item.attributes?.quantityNeeded || (isShoppingList || isRegistryOrWishlistType || isGrocery ? 1 : 0);
+                                  const showQtyTypes = isShoppingList || isRegistryOrWishlistType || isGrocery;
+                                  if (showQtyTypes && qty && qty >= 1) {
+                                    return (
+                                      <span className="font-semibold text-primary">
+                                        {qty}× {" "}
+                                      </span>
+                                    );
+                                  }
+                                  return null;
+                                })()}
+                                {item.text}
+                              </p>
+                              {hasLinkDetails(item) && (
+                                <span
+                                  title="Link details saved (open item to view)"
+                                  className="flex-shrink-0 mt-0.5 cursor-help"
+                                >
+                                  <Info className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
+                                </span>
+                              )}
+                            </div>
                             {item.notes && !(
                               item.text.match(/^(Main idea|Supporting details|Action items|Follow-up needed|Resources\/links|Breakfast|Lunch|Dinner|Snack|Notes)$/) ||
                               item.notes.match(/^(Add meal|Add snack|Add idea|Add item|Ideas for next week)/)
@@ -4557,6 +4596,7 @@ export default function ListDetail() {
                 isGrocery={isGrocery}
                 shouldShowItemLinks={shouldShowItemLinks}
                 ItemLinkActionsComponent={ItemLinkActions}
+                hasLinkDetails={hasLinkDetails}
                 handleDragStart={handleDragStart}
                 handleDragOver={handleDragOver}
                 handleDragLeave={handleDragLeave}
@@ -4735,17 +4775,27 @@ export default function ListDetail() {
                         })()}
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-col gap-0.5 min-w-0 w-full">
-                            <p
-                              className={`text-sm sm:text-base text-gray-900 transition-all duration-200 ${(isRegistryOrWishlistType ? isPurchased : item.completed) ? "line-through opacity-50" : ""} break-words overflow-hidden w-full`}
-                                              style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
-                            >
-                              {item.quantity && (
-                                <span className="font-semibold text-primary">
-                                  {item.quantity}×{" "}
+                            <div className="flex items-start gap-1 min-w-0 w-full">
+                              <p
+                                className={`text-sm sm:text-base text-gray-900 transition-all duration-200 ${(isRegistryOrWishlistType ? isPurchased : item.completed) ? "line-through opacity-50" : ""} break-words overflow-hidden flex-1`}
+                                                style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
+                              >
+                                {item.quantity && (
+                                  <span className="font-semibold text-primary">
+                                    {item.quantity}×{" "}
+                                  </span>
+                                )}
+                                {item.text}
+                              </p>
+                              {hasLinkDetails(item) && (
+                                <span
+                                  title="Link details saved (open item to view)"
+                                  className="flex-shrink-0 mt-0.5 cursor-help"
+                                >
+                                  <Info className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
                                 </span>
                               )}
-                              {item.text}
-                            </p>
+                            </div>
                             {item.notes && !(
                               item.text.match(/^(Main idea|Supporting details|Action items|Follow-up needed|Resources\/links|Breakfast|Lunch|Dinner|Snack|Notes)$/) ||
                               item.notes.match(/^(Add meal|Add snack|Add idea|Add item|Ideas for next week)/)

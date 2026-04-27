@@ -19,6 +19,7 @@ import {
   Calendar,
   Clock,
   Flag,
+  Info,
   User as UserIcon,
 } from "lucide-react";
 import { ListItem as ListItemType } from "@/types";
@@ -76,6 +77,9 @@ export interface ListItemCardContentProps {
 
   /** The actual link-actions component, rendered if shouldShowItemLinks returns true */
   ItemLinkActionsComponent: React.ComponentType<{ item: ListItemType }>;
+
+  /** Whether the item has extra link metadata (title/description/image) not shown inline */
+  hasLinkDetails?: (item: ListItemType) => boolean;
 }
 
 // ─── component ───────────────────────────────────────────────────────────────
@@ -91,6 +95,7 @@ const ListItemCardContent: React.FC<ListItemCardContentProps> = ({
   renderNotesWithLinks,
   shouldShowItemLinks,
   ItemLinkActionsComponent,
+  hasLinkDetails,
 }) => {
   // Quantity prefix logic (mirrors VIEW 1 in ListDetail)
   const qty =
@@ -103,17 +108,27 @@ const ListItemCardContent: React.FC<ListItemCardContentProps> = ({
   return (
     <div className="flex flex-col gap-0.5 min-w-0 w-full">
       {/* ── Main text line ── */}
-      <p
-        className={`text-sm sm:text-base text-gray-900 transition-all duration-200 ${
-          isPurchased ? "line-through opacity-50" : ""
-        } break-words overflow-hidden w-full`}
-        style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}
-      >
-        {showQty && (
-          <span className="font-semibold text-primary">{qty}× </span>
+      <div className="flex items-start gap-1 min-w-0 w-full">
+        <p
+          className={`text-sm sm:text-base text-gray-900 transition-all duration-200 ${
+            isPurchased ? "line-through opacity-50" : ""
+          } break-words overflow-hidden flex-1`}
+          style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}
+        >
+          {showQty && (
+            <span className="font-semibold text-primary">{qty}× </span>
+          )}
+          {item.text}
+        </p>
+        {hasLinkDetails && hasLinkDetails(item) && (
+          <span
+            title="Link details saved (open item to view)"
+            className="flex-shrink-0 mt-0.5 cursor-help"
+          >
+            <Info className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
+          </span>
         )}
-        {item.text}
-      </p>
+      </div>
 
       {/* ── Notes ── */}
       {item.notes &&
