@@ -1541,6 +1541,7 @@ export function ListProvider({ children }: { children: ReactNode }) {
     if (
       user &&
       !list.accountId &&
+      !list.isGuestAccess &&
       user.itemsPerListLimit !== -1 &&
       list.items.length >= user.itemsPerListLimit
     ) {
