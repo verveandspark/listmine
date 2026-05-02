@@ -2087,12 +2087,9 @@ export default function Dashboard() {
               )}
             </div>
             {recentLists.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 text-center rounded-xl border border-dashed border-muted-foreground/30 bg-muted/30">
-                <Clock className="w-8 h-8 text-muted-foreground/50 mb-3" />
-                <p className="text-sm text-muted-foreground">
-                  No recently updated lists yet. Create your first list to get started!
-                </p>
-              </div>
+              <p className="text-muted-foreground text-base">
+                No recently updated lists yet. Create your first list to get started!
+              </p>
             ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-2">
               {recentLists.map((list, index) => {

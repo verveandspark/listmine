@@ -237,7 +237,7 @@ export default function PurchaseHistoryModal({
                         </TableCell>
                         <TableCell>
                           {purchase.purchaser_name === "Marked by owner" ? (
-                            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                            <Badge variant="outline" className="bg-teal-50 text-teal-700 border-teal-200">
                               Marked by owner
                             </Badge>
                           ) : localShowPurchaserInfo && purchase.purchaser_name ? (
