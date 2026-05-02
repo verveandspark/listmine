@@ -234,7 +234,7 @@ export function ListSidebar({ onListSelect }: { onListSelect?: () => void } = {}
           <Badge
             variant="secondary"
             className="cursor-help"
-            title={`Total lists visible to you, including shared and guest lists.${!showArchived && archivedCount > 0 ? ` ${archivedCount} archived list${archivedCount !== 1 ? 's' : ''} hidden.` : ''}`}
+            title={`Total lists visible to you, including guest lists${showArchived && archivedCount > 0 ? ' and archived lists' : ''}.${!showArchived && archivedCount > 0 ? ` ${archivedCount} archived list${archivedCount !== 1 ? 's' : ''} hidden.` : ''}`}
           >
             {filteredLists.length}
           </Badge>

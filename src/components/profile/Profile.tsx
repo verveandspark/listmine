@@ -836,6 +836,10 @@ export default function Profile() {
                               </li>
                               <li className="flex items-center gap-1.5">
                                 <Star className="w-3 h-3 text-amber-500" />
+                                3 free templates and template shop access
+                              </li>
+                              <li className="flex items-center gap-1.5">
+                                <Star className="w-3 h-3 text-amber-500" />
                                 More lists and items per list
                               </li>
                             </>
@@ -853,6 +857,10 @@ export default function Profile() {
                               <li className="flex items-center gap-1.5">
                                 <Star className="w-3 h-3 text-amber-500" />
                                 Unlimited guests per list
+                              </li>
+                              <li className="flex items-center gap-1.5">
+                                <Star className="w-3 h-3 text-amber-500" />
+                                All templates included
                               </li>
                             </>
                           )}
