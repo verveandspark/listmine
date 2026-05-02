@@ -125,16 +125,17 @@ export default function Profile() {
 
   // Calculate stats from lists - use cached data if available
   // Count only owned active lists (exclude guest access and archived)
-  const totalLists = Math.max(0, lists.filter(
-    (l) => l.userId === user.id && !l.isGuestAccess && !l.isArchived && !l.title.startsWith("[Archived]")
-  ).length);
-  const totalItems = Math.max(0, lists.reduce((sum, list) => sum + (list.items?.length || 0), 0));
-  const completedItems = Math.max(0, lists.reduce(
+  const personalActiveLists = lists.filter(
+    (l) => l.userId === user.id && !l.isGuestAccess && !l.isArchived && !l.title.startsWith("[Archived]") && !l.accountId
+  );
+  const totalLists = Math.max(0, personalActiveLists.length);
+  const totalItems = Math.max(0, personalActiveLists.reduce((sum, list) => sum + (list.items?.length || 0), 0));
+  const completedItems = Math.max(0, personalActiveLists.reduce(
     (sum, list) => sum + (list.items?.filter((item) => item.completed).length || 0),
     0,
   ));
-  const favoriteLists = Math.max(0, lists.filter((list) => list.isFavorite).length);
-  const sharedLists = Math.max(0, lists.filter((list) => list.isShared).length);
+  const favoriteLists = Math.max(0, personalActiveLists.filter((list) => list.isFavorite).length);
+  const sharedLists = Math.max(0, personalActiveLists.filter((list) => list.isShared).length);
 
   const handleEditName = () => {
     setEditName(user.name);
