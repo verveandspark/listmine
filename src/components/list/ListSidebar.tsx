@@ -167,8 +167,8 @@ export function ListSidebar({ onListSelect }: { onListSelect?: () => void } = {}
     return null; // No badge for team lists
   };
 
-  // Count archived lists
-  const archivedCount = lists.filter(
+  // Count archived lists (scoped to current account context)
+  const archivedCount = accountFilteredLists.filter(
     (list) => list.isArchived || list.title.startsWith("[Archived]")
   ).length;
 
