@@ -876,8 +876,8 @@ export default function ListDetail() {
       }
     }
 
-    // Check item limit
-    if (user) {
+    // Check item limit - skip for guest access (use owner's limits, not viewer's)
+    if (user && !list.isGuestAccess) {
       const limitCheck = checkItemLimit(
         list.items.length,
         user.itemsPerListLimit,
