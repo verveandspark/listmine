@@ -1393,8 +1393,8 @@ export default function Dashboard() {
                     <TooltipContent>
                       <p className="max-w-xs">
                         {user?.listLimit === -1
-                          ? `You currently have ${contextActiveListsCount} lists on the ${getTierName(effectiveTier)} tier. Guest, shared, team, and archived lists aren't included in this count.`
-                          : `You're using ${contextActiveListsCount} of your ${user?.listLimit} lists on the ${getTierName(effectiveTier)} tier. Guest, shared, team, and archived lists don't count toward your limit.`
+                          ? `You currently have ${contextActiveListsCount} lists on the ${getTierName(effectiveTier)} tier. Guest, team, and archived lists aren't included in this count.`
+                          : `You're using ${contextActiveListsCount} of your ${user?.listLimit} lists on the ${getTierName(effectiveTier)} tier. Guest and archived lists don't count toward your limit.`
                         }
                       </p>
                     </TooltipContent>
