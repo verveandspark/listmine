@@ -950,7 +950,7 @@ export default function ListDetail() {
           attributes.section = newItemSection;
         }
       } else if (isIdea) {
-        attributes.status = newItemStatus || "brainstorm";
+        attributes.status = newItemStatus || undefined;
         attributes.status_set_by_user = false;
         // Add section for sectioned idea lists
         if (sectionsActive && newItemSection) {

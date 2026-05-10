@@ -161,7 +161,7 @@ const ListItemCardContent: React.FC<ListItemCardContentProps> = ({
                 : item.attributes.status === "in-progress"
                 ? "bg-warning/10 text-warning border-warning/20"
                 : item.attributes.status === "brainstorm"
-                ? "bg-purple-100 text-purple-700 border-purple-200"
+                ? "bg-primary/10 text-primary border-primary/20"
                 : item.attributes.status === "on-hold"
                 ? "bg-gray-100 text-gray-600 border-gray-200"
                 : "bg-primary/10 text-primary border-primary/20"
