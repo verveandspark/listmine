@@ -2680,8 +2680,8 @@ export function ListProvider({ children }: { children: ReactNode }) {
           listType: (list.list_type || "custom") as ListType,
           items: (itemsByListId[list.id] || []).map((item) => ({
             id: item.id,
-            text: item.name,
-            completed: item.is_completed || false,
+            text: item.text,
+            completed: item.completed || false,
             priority: item.priority as "low" | "medium" | "high" | undefined,
             dueDate: item.due_date,
             notes: item.notes,
