@@ -2752,7 +2752,7 @@ export default function Dashboard() {
       {/* Team Management Modal */}
       {isTeamManagementOpen && currentAccount?.type === 'team' && (
         <Dialog open={isTeamManagementOpen} onOpenChange={setIsTeamManagementOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0">
             <TeamManagement onClose={() => setIsTeamManagementOpen(false)} />
           </DialogContent>
         </Dialog>
