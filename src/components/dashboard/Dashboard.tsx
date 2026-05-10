@@ -846,7 +846,7 @@ export default function Dashboard() {
         // If no status set, use default based on list type
         const effectiveStatus = rawStatus 
           ? normalizeStatus(rawStatus)
-          : listType === "idea" ? "brainstorm" : "not-started";
+          : "not-started";
         return effectiveStatus === statusFilter;
       });
     });
